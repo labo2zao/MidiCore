@@ -32,6 +32,8 @@ Hal/ainser64_hw \
 Hal \
 Hal/oled_ssd1322 \
 Hal/uart_midi \
+Middlewares/ST/STM32_USB_Host_Library/Class/HID/Src \
+Middlewares/ST/STM32_USB_Host_Library/Core/Src \
 Middlewares/Third_Party/FatFs/src \
 Middlewares/Third_Party/FatFs/src/option \
 Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2 \
@@ -62,4 +64,6 @@ Services/usb_midi \
 Services/velocity \
 Services/watchdog \
 Services/zones \
+USB_HOST/App \
+USB_HOST/Target \
 

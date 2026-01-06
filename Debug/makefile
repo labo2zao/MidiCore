@@ -9,6 +9,8 @@ RM := rm -rf
 
 # All of the sources participating in the build are defined here
 -include sources.mk
+-include USB_HOST/Target/subdir.mk
+-include USB_HOST/App/subdir.mk
 -include Services/zones/subdir.mk
 -include Services/watchdog/subdir.mk
 -include Services/velocity/subdir.mk
@@ -39,6 +41,8 @@ RM := rm -rf
 -include Middlewares/Third_Party/FreeRTOS/Source/subdir.mk
 -include Middlewares/Third_Party/FatFs/src/option/subdir.mk
 -include Middlewares/Third_Party/FatFs/src/subdir.mk
+-include Middlewares/ST/STM32_USB_Host_Library/Core/Src/subdir.mk
+-include Middlewares/ST/STM32_USB_Host_Library/Class/HID/Src/subdir.mk
 -include Hal/uart_midi/subdir.mk
 -include Hal/oled_ssd1322/subdir.mk
 -include Hal/ainser64_hw/subdir.mk

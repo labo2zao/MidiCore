@@ -35,6 +35,8 @@ Services/watchdog/watchdog.o: ../Services/watchdog/watchdog.c \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim_ex.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h \
+ ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_hcd.h \
+ ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_ll_usb.h \
  J:/workspace_2.0.0/MidiCore_MERGED/Services/system/safe_mode.h \
  J:/workspace_2.0.0/MidiCore_MERGED/Services/ui/ui_status.h
 J:/workspace_2.0.0/MidiCore_MERGED/Services/watchdog/watchdog.h:
@@ -73,5 +75,7 @@ J:/workspace_2.0.0/MidiCore_MERGED/Services/watchdog/watchdog.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_tim_ex.h:
 ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_uart.h:
+../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal_hcd.h:
+../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_ll_usb.h:
 J:/workspace_2.0.0/MidiCore_MERGED/Services/system/safe_mode.h:
 J:/workspace_2.0.0/MidiCore_MERGED/Services/ui/ui_status.h:
