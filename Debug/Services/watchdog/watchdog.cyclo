@@ -1,2 +1,3 @@
 ../Drivers/CMSIS/Include/core_cm4.h:1938:34:__NVIC_SystemReset	1
 ../Services/watchdog/watchdog.c:6:6:watchdog_panic_code	0
+../Services/watchdog/watchdog.c:14:6:watchdog_init	1

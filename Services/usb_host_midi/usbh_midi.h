@@ -21,7 +21,7 @@ extern "C" {
 #endif
 
 // Minimal USB MIDI Host class (Audio/MIDIStreaming, bulk IN/OUT).
-extern USBH_ClassTypeDef USBH_MIDI_Class;
+extern USBH_ClassTypeDef  USBH_MIDI_CLASS;
 
 // Send raw USB-MIDI event packets (4-byte packets). Returns 0 on success.
 int USBH_MIDI_Send(USBH_HandleTypeDef *phost, const uint8_t *data, uint16_t len);
