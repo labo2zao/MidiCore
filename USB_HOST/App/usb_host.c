@@ -22,7 +22,7 @@
 
 #include "usb_host.h"
 #include "usbh_core.h"
-#include "Services/usb_host_midi/usbh_midi.h"
+#include "usbh_hid.h"
 
 /* USER CODE BEGIN Includes */
 
@@ -76,7 +76,7 @@ void MX_USB_HOST_Init(void)
   {
     Error_Handler();
   }
-  if (USBH_RegisterClass(&hUsbHostFS, USBH_MIDI_CLASS) != USBH_OK)
+  if (USBH_RegisterClass(&hUsbHostFS, USBH_HID_CLASS) != USBH_OK)
   {
     Error_Handler();
   }

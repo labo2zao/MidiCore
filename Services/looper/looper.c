@@ -14,8 +14,8 @@
 
 #ifndef LOOPER_MAX_EVENTS
 /* Limit per-track event buffer to keep total RAM usage within the MCU limits.
- * Default lowered to 768 events to balance memory footprint and recording room. */
-#define LOOPER_MAX_EVENTS 768u
+ * Default lowered to 640 events to balance memory footprint and recording room. */
+#define LOOPER_MAX_EVENTS 640u
 #endif
 
 #define LOOPER_MAGIC 0x4C4F4F50u /* 'LOOP' */
