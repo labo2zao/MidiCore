@@ -1,2 +1,0 @@
-../Services/router/router_send.c:12:13:send_bytes_uart	24	static
-../Services/router/router_send.c:28:5:router_send_default	24	static

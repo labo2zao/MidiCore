@@ -22,6 +22,10 @@
 #include "stm32f4xx_it.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "Services/system/panic.h"
+#include "Services/safe/safe_mode.h"
+#include "Services/ui/ui.h"
+#include "Services/watchdog/watchdog.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/

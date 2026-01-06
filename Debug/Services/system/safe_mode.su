@@ -1,2 +1,0 @@
-../Services/system/safe_mode.c:3:6:safe_mode_set_forced	16	static
-../Services/system/safe_mode.c:4:9:safe_mode_is_forced	4	static

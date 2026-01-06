@@ -1,7 +1,0 @@
-../Services/ui/ui_encoders.c:13:13:trim	5
-../Services/ui/ui_encoders.c:18:13:upcase	3
-../Services/ui/ui_encoders.c:20:12:parse_u32	4
-../Services/ui/ui_encoders.c:29:6:ui_encoders_defaults	2
-../Services/ui/ui_encoders.c:48:22:parse_mode	4
-../Services/ui/ui_encoders.c:59:13:set_key	18
-../Services/ui/ui_encoders.c:92:5:ui_encoders_load	17

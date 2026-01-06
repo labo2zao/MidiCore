@@ -122,21 +122,18 @@ static void process_key(uint8_t key, uint16_t raw) {
       uint8_t vB = map_velocity_B(k->vb_ema);
       uint8_t v  = fuse_vel(vA, vB);
 
-// Note on (raw key; chord handled in AinMIDI task)
-ain_event_t e = { .key = key, .type = AIN_EV_NOTE_ON, .pos = k->pos, .velocity = v };
-evq_push(&e);
-}
-}
+      // Note on (raw key; chord handled in AinMIDI task)
+      ain_event_t e = { .key = key, .type = AIN_EV_NOTE_ON, .pos = k->pos, .velocity = v };
+      evq_push(&e);
+
       k->st = ST_DOWN;
     }
   } else { // DOWN
     uint16_t th = (TOFF > HYS) ? (TOFF - HYS) : 0;
     if (k->pos < th) {
-// Note off (raw key; chord handled in AinMIDI task)
-ain_event_t e = { .key = key, .type = AIN_EV_NOTE_OFF, .pos = k->pos, .velocity = 0 };
-evq_push(&e);
-}
-}
+      // Note off (raw key; chord handled in AinMIDI task)
+      ain_event_t e = { .key = key, .type = AIN_EV_NOTE_OFF, .pos = k->pos, .velocity = 0 };
+      evq_push(&e);
       k->st = ST_IDLE;
     }
   }

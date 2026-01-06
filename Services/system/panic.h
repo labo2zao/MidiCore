@@ -6,6 +6,8 @@
 #define PANIC_MEMMANAGE   (0x00000002u)
 #define PANIC_BUSFAULT    (0x00000003u)
 #define PANIC_USAGEFAULT  (0x00000004u)
+#define PANIC_STACK_OVERFLOW (0x00000005u)
+#define PANIC_MALLOC_FAILED  (0x00000006u)
 #ifdef __cplusplus
 extern "C" {
 #endif

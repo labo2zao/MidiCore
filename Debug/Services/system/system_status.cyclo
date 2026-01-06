@@ -1,5 +1,0 @@
-../Services/system/system_status.c:6:6:system_set_sd_required	2
-../Services/system/system_status.c:7:6:system_set_sd_ok	2
-../Services/system/system_status.c:8:9:system_is_sd_required	1
-../Services/system/system_status.c:9:9:system_is_sd_ok	1
-../Services/system/system_status.c:11:9:system_is_fatal	3
