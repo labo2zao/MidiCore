@@ -128,7 +128,7 @@ evq_push(&e);
 }
 }
       k->st = ST_DOWN;
-
+    }
   } else { // DOWN
     uint16_t th = (TOFF > HYS) ? (TOFF - HYS) : 0;
     if (k->pos < th) {

@@ -102,7 +102,7 @@ static int is_probably_text(const uint8_t* h, size_t n) {
     if (c==0) continue;
     if (c==0xF0 || c==0xF7) return 0; // looks binary
     if (c=='#' || c==';' || c==',' || c=='[' || c==']' || c=='=' ) continue;
-    if (c=='' || c=='' || c=='	' || c==' ') continue;
+    if (c == '\r' || c == '\n' || c == '\t' || c == ' ') continue;
     if ((c>='0'&&c<='9')||(c>='A'&&c<='F')||(c>='a'&&c<='f')) continue;
     if ((c>='A'&&c<='Z')||(c>='a'&&c<='z')||c=='_'||c=='/'||c==':'||c=='.') continue;
     return 0;
@@ -264,5 +264,5 @@ if (syx_list[0]) {
 if (!syx_path[0]) return 0;
 int lr = load_sysex_auto(syx_path, buf, sizeof(buf), &n);
 if (lr < 0 || n == 0) return lr;
-return send_sysex(out_node, buf, n);
+return send_sysex(out_node, buf, n); #endif
 }
