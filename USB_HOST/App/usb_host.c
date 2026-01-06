@@ -23,6 +23,7 @@
 #include "usb_host.h"
 #include "usbh_core.h"
 #include "usbh_hid.h"
+#include "Services/usb_host_midi/usbh_midi_class.h"
 
 /* USER CODE BEGIN Includes */
 

@@ -1,9 +1,6 @@
 Services/usb_host_midi/usb_host_midi.o: \
  ../Services/usb_host_midi/usb_host_midi.c \
  ../Services/usb_host_midi/usb_host_midi.h \
- J:/workspace_2.0.0/MidiCore_MERGED/Config/project_config.h \
- J:/workspace_2.0.0/MidiCore_MERGED/Services/router/router.h \
- J:/workspace_2.0.0/MidiCore_MERGED/Config/router_config.h \
  ../Middlewares/ST/STM32_USB_Host_Library/Core/Inc/usbh_core.h \
  ../USB_HOST/Target/usbh_conf.h ../Core/Inc/main.h \
  ../Drivers/STM32F4xx_HAL_Driver/Inc/stm32f4xx_hal.h \
@@ -55,11 +52,11 @@ Services/usb_host_midi/usb_host_midi.o: \
  ../Middlewares/ST/STM32_USB_Host_Library/Core/Inc/usbh_core.h \
  ../Middlewares/ST/STM32_USB_Host_Library/Core/Inc/usbh_pipes.h \
  ../Middlewares/ST/STM32_USB_Host_Library/Core/Inc/usbh_ctlreq.h \
+ J:/workspace_2.0.0/MidiCore_MERGED/Config/project_config.h \
+ J:/workspace_2.0.0/MidiCore_MERGED/Services/router/router.h \
+ J:/workspace_2.0.0/MidiCore_MERGED/Config/router_config.h \
  ../Services/usb_host_midi/usbh_midi.h
 ../Services/usb_host_midi/usb_host_midi.h:
-J:/workspace_2.0.0/MidiCore_MERGED/Config/project_config.h:
-J:/workspace_2.0.0/MidiCore_MERGED/Services/router/router.h:
-J:/workspace_2.0.0/MidiCore_MERGED/Config/router_config.h:
 ../Middlewares/ST/STM32_USB_Host_Library/Core/Inc/usbh_core.h:
 ../USB_HOST/Target/usbh_conf.h:
 ../Core/Inc/main.h:
@@ -112,4 +109,7 @@ J:/workspace_2.0.0/MidiCore_MERGED/Config/router_config.h:
 ../Middlewares/ST/STM32_USB_Host_Library/Core/Inc/usbh_core.h:
 ../Middlewares/ST/STM32_USB_Host_Library/Core/Inc/usbh_pipes.h:
 ../Middlewares/ST/STM32_USB_Host_Library/Core/Inc/usbh_ctlreq.h:
+J:/workspace_2.0.0/MidiCore_MERGED/Config/project_config.h:
+J:/workspace_2.0.0/MidiCore_MERGED/Services/router/router.h:
+J:/workspace_2.0.0/MidiCore_MERGED/Config/router_config.h:
 ../Services/usb_host_midi/usbh_midi.h:

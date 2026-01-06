@@ -1,6 +1,9 @@
 #pragma once
 #include <stdint.h>
+#include "usbh_core.h"
 #include <stddef.h>
+
+extern USBH_ClassTypeDef USBH_MIDI_Class;
 
 #ifdef __cplusplus
 extern "C" {
