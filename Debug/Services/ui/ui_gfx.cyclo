@@ -1,6 +1,0 @@
-../Services/ui/ui_gfx.c:34:6:ui_gfx_set_fb	1
-../Services/ui/ui_gfx.c:36:6:ui_gfx_clear	2
-../Services/ui/ui_gfx.c:42:6:ui_gfx_pixel	7
-../Services/ui/ui_gfx.c:51:6:ui_gfx_rect	3
-../Services/ui/ui_gfx.c:55:13:draw_char	6
-../Services/ui/ui_gfx.c:64:6:ui_gfx_text	4

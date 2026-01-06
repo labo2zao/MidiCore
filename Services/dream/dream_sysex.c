@@ -264,5 +264,6 @@ if (syx_list[0]) {
 if (!syx_path[0]) return 0;
 int lr = load_sysex_auto(syx_path, buf, sizeof(buf), &n);
 if (lr < 0 || n == 0) return lr;
-return send_sysex(out_node, buf, n); #endif
+return send_sysex(out_node, buf, n);
+#endif
 }

@@ -1,7 +1,0 @@
-../Services/srio/srio.c:11:20:gpio_write	16	static
-../Services/srio/srio.c:16:6:srio_init	24	static
-../Services/srio/srio.c:23:10:srio_din_bytes	4	static
-../Services/srio/srio.c:24:10:srio_dout_bytes	4	static
-../Services/srio/srio.c:26:6:srio_set_dout_enable	16	static
-../Services/srio/srio.c:35:5:srio_read_din	32	static,ignoring_inline_asm
-../Services/srio/srio.c:54:5:srio_write_dout	16	static,ignoring_inline_asm

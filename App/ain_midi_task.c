@@ -35,8 +35,6 @@ static uint16_t strum_delay(uint8_t i, uint8_t n, const instrument_cfg_t* c) {
   return (uint16_t)(i * step);
 }
 
-  midi_delayq_send(ROUTER_NODE_KEYS, &m, (uint16_t)d);
-}
 
 static void send_note_ch(uint8_t ch, uint8_t note, uint8_t on, uint8_t vel,
                          uint16_t delay_ms, uint8_t apply_flag) {
@@ -61,6 +59,23 @@ static void send_note_ch(uint8_t ch, uint8_t note, uint8_t on, uint8_t vel,
   midi_delayq_send(ROUTER_NODE_KEYS, &m, (uint16_t)d);
 }
 
+
+// Helper: apply zones mapping (channels / transposition / split-layers) then queue MIDI
+static void send_note(uint8_t phys_key, uint8_t note, uint8_t on, uint8_t vel, uint16_t delay_ms, uint8_t apply_flag) {
+  uint8_t ch[ZONE_LAYERS_MAX] = {0};
+  uint8_t nn[ZONE_LAYERS_MAX] = {0};
+  uint8_t vv[ZONE_LAYERS_MAX] = {0};
+  uint8_t n = zones_map_note(phys_key, note, vel, ch, nn, vv);
+  if (n == 0) {
+    // fallback: ch0, no transpose
+    send_note_ch(0, note, on, vel, delay_ms, apply_flag);
+    return;
+  }
+  for (uint8_t i=0;i<n;i++) {
+    send_note_ch(ch[i], nn[i], on, vv[i], delay_ms, apply_flag);
+  }
+}
+
 static void AinMidiTask(void* argument) {
   (void)argument;
   for (;;) {
@@ -74,7 +89,7 @@ static void AinMidiTask(void* argument) {
         uint8_t chord_on = (chord_ui && chord_cond_active(vel));
 
         if (!chord_on) {
-          send_note(e.key, 1, vel, 0, HUMAN_APPLY_KEYS);
+          send_note(e.key, e.key, 1, vel, 0, HUMAN_APPLY_KEYS);
         } else {
           uint8_t notes[4]; uint8_t preset=0;
           uint8_t n = chord_bank_expand(ui_get_chord_bank(), e.key, notes, &preset);
@@ -90,7 +105,7 @@ static void AinMidiTask(void* argument) {
             uint8_t i = order[k];
             uint8_t v2 = chord_preset_scale_vel(&ui_get_chord_bank()->preset[preset], i, vel);
             uint16_t d = strum_delay(k, n, c);
-            send_note(notes[i], 1, v2, d, HUMAN_APPLY_CHORD);
+            send_note(e.key, notes[i], 1, v2, d, HUMAN_APPLY_CHORD);
           }
         }
       } else if (e.type == AIN_EV_NOTE_OFF) {
@@ -98,11 +113,11 @@ static void AinMidiTask(void* argument) {
         const instrument_cfg_t* c = instrument_cfg_get();
         uint8_t chord_ui = ui_get_chord_mode();
         if (!chord_ui) {
-          send_note(e.key, 0, 0, 0, HUMAN_APPLY_KEYS);
+          send_note(e.key, e.key, 0, 0, 0, HUMAN_APPLY_KEYS);
         } else {
           uint8_t notes[4]; uint8_t preset=0;
           uint8_t n = chord_bank_expand(ui_get_chord_bank(), e.key, notes, &preset);
-          for (uint8_t i=0;i<n;i++) send_note(notes[i], 0, 0, 0, HUMAN_APPLY_CHORD);
+          for (uint8_t i=0;i<n;i++) send_note(e.key, notes[i], 0, 0, 0, HUMAN_APPLY_CHORD);
         }
       }
     }

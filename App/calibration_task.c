@@ -4,6 +4,9 @@
 #include "Services/log/log.h"
 #include "Services/expression/expression.h"
 #include <string.h>
+#include <stdlib.h>  // strtol
+#include <stdio.h>   // snprintf
+#include <math.h>    // llround
 
 #if __has_include("ff.h")
   #include "ff.h"
@@ -19,6 +22,24 @@ typedef struct {
   uint16_t ext_ms;
   uint16_t margin_raw;
 } cal_cfg_t;
+
+static int keyeq_ci(const char* line, const char* key) {
+  // match: ^\s*KEY\s*=  (case-insensitive)
+  const char* l = line;
+  while (*l==' ' || *l=='\t') l++;
+  const char* k = key;
+  while (*k && *l) {
+    char a=*l, b=*k;
+    if (a>='a'&&a<='z') a=(char)(a-32);
+    if (b>='a'&&b<='z') b=(char)(b-32);
+    if (a!=b) return 0;
+    l++; k++;
+  }
+  if (*k) return 0;
+  while (*l==' ' || *l=='\t') l++;
+  return (*l=='=');
+}
+
 
 static void cal_defaults(cal_cfg_t* c){
   memset(c,0,sizeof(*c));
@@ -65,9 +86,9 @@ static int load_cal_cfg(cal_cfg_t* c){
 }
 
 // very small helper: rewrite whole file with updated keys (atomic by temp+rename)
-static int write_pressure_cfg(const pressure_cfg_t* pcfg){
+static int write_pressure_cfg(const cal_cfg_t* cc, const pressure_cfg_t* c) {
 #if !CAL_HAS_FATFS
-  (void)pcfg; return -10;
+  (void)cc; (void)c; return -10;
 #else
   FIL f;
   if(f_open(&f, "0:/cfg/pressure.tmp", FA_CREATE_ALWAYS|FA_WRITE)!=FR_OK) return -1;
@@ -76,95 +97,97 @@ static int write_pressure_cfg(const pressure_cfg_t* pcfg){
   int n = snprintf(buf,sizeof(buf),
     "ENABLE=%u\r\nI2C_BUS=%u\r\nADDR=0x%02X\r\nTYPE=%u\r\nMAP_MODE=%u\r\nINTERVAL_MS=%u\r\n"
     "PMIN_PA=%ld\r\nPMAX_PA=%ld\r\nATM0_PA=%ld\r\n",
-    (unsigned)pcfg->enable, (unsigned)pcfg->i2c_bus, (unsigned)pcfg->addr7,
-    (unsigned)pcfg->type, (unsigned)pcfg->map_mode, (unsigned)pcfg->interval_ms,
-    (long)pcfg->pmin_pa, (long)pcfg->pmax_pa, (long)pcfg->atm0_pa);
+    (unsigned)c->enable, (unsigned)c->i2c_bus, (unsigned)c->addr7,
+    (unsigned)c->type, (unsigned)c->map_mode, (unsigned)c->interval_ms,
+    (long)c->pmin_pa, (long)c->pmax_pa, (long)c->atm0_pa);
   if(n<0) { f_close(&f); return -2; }
   if(f_write(&f, buf, (UINT)n, &bw)!=FR_OK || bw!=(UINT)n){ f_close(&f); return -3; }
   f_close(&f);
-  if(cc.keep_files){ /* keep */ } else { f_unlink("0:/cfg/pressure.bak"); }
+  if(cc->keep_files){ /* keep */ } else { f_unlink("0:/cfg/pressure.bak"); }
   f_rename("0:/cfg/pressure.ngc","0:/cfg/pressure.bak");
   if(f_rename("0:/cfg/pressure.tmp","0:/cfg/pressure.ngc")!=FR_OK) return -4;
   return 0;
 #endif
 }
 
-static int patch_expression_rawminmax(uint16_t raw_min, uint16_t raw_max){
+static int patch_expression_rawminmax(const cal_cfg_t* cc, uint16_t raw_min, uint16_t raw_max) {
 #if !CAL_HAS_FATFS
-  (void)raw_min;(void)raw_max; return -10;
+  (void)cc; (void)raw_min; (void)raw_max;
+  return -1;
 #else
-  // Try in-place update: read, replace RAW_MIN/RAW_MAX, rewrite atomically
-  FIL f; 
-  if(f_open(&f,"0:/cfg/expression.ngc",FA_READ)==FR_OK){
-    char buf[4096]; UINT br=0; size_t off=0;
-    for(;;){
-      if(f_read(&f, buf+off, sizeof(buf)-off-1, &br)!=FR_OK) break;
-      off += br;
-      if(br==0) break;
-      if(off > sizeof(buf)-64) break;
-    }
-    buf[off]=0;
-    f_close(&f);
+  const char* path = "0:/cfg/expression.ngc";
+  const char* bak  = "0:/cfg/expression.bak";
 
-    // replace or append keys (case-insensitive)
-    // simple regex-like replacement using manual lines processing
-    std::string in(buf);
-    auto set_key = [](const std::string& input, const std::string& key, const std::string& val){
-      std::string out; out.reserve(input.size()+32);
-      bool found=false;
-      std::istringstream iss(input);
-      std::string line;
-      std::regex rx("^\\s*"+key+"\\s*=.*$", std::regex::icase);
-      while(std::getline(iss, line)){
-        if(std::regex_search(line, rx)){
-          out += key + "=" + val + "\n";
-          found=true;
-        }else{
-          out += line + "\n";
-        }
-      }
-      if(!found){
-        if(out.size() && out.back()!='\n') out.push_back('\n');
-        out += key + "=" + val + "\n";
-      }
-      return out;
-    };
-    std::string out = set_key(in, "RAW_MIN", std::to_string(raw_min));
-    out = set_key(out, "RAW_MAX", std::to_string(raw_max));
-
-    if(f_open(&f,"0:/cfg/expression.tmp",FA_CREATE_ALWAYS|FA_WRITE)!=FR_OK) return -1;
-    UINT bw=0;
-    if(f_write(&f, out.c_str(), (UINT)out.size(), &bw)!=FR_OK || bw!=(UINT)out.size()){ f_close(&f); return -2; }
-    f_close(&f);
-    f_rename("0:/cfg/expression.ngc","0:/cfg/expression.bak");
-    if(f_rename("0:/cfg/expression.tmp","0:/cfg/expression.ngc")!=FR_OK) return -3;
-    return 0;
-  } else {
-    // fallback to previous behavior (minimal file)
-    // original function body remains below this replacement
-#endif
-
-#if !CAL_HAS_FATFS
-  (void)raw_min;(void)raw_max; return -10;
-#else
-  // naive: rewrite minimal expression.ngc with existing keys if file missing
-  // For now: read existing file if present, but simplest is to rewrite key set.
   FIL f;
-  if(f_open(&f,"0:/cfg/expression.tmp", FA_CREATE_ALWAYS|FA_WRITE)!=FR_OK) return -1;
-  char buf[256];
-  UINT bw=0;
-  int n = snprintf(buf,sizeof(buf),
-    "# auto-updated by calibration\r\nRAW_MIN=%u\r\nRAW_MAX=%u\r\n", (unsigned)raw_min, (unsigned)raw_max);
-  if(n<0){ f_close(&f); return -2; }
-  if(f_write(&f, buf, (UINT)n, &bw)!=FR_OK || bw!=(UINT)n){ f_close(&f); return -3; }
+  if (f_open(&f, path, FA_READ) != FR_OK) return -1;
+  UINT sz = f_size(&f);
+  if (sz > 2048) { f_close(&f); return -2; }
+
+  static char inbuf[2049];
+  UINT br = 0;
+  if (f_read(&f, inbuf, sz, &br) != FR_OK) { f_close(&f); return -3; }
   f_close(&f);
-  // append mode: keep old file as .bak and replace with .tmp (user can merge other keys)
-  if(cc.keep_files){ /* keep */ } else { f_unlink("0:/cfg/expression.bak"); }
-  f_rename("0:/cfg/expression.ngc","0:/cfg/expression.bak");
-  if(f_rename("0:/cfg/expression.tmp","0:/cfg/expression.ngc")!=FR_OK) return -4;
+  inbuf[br] = 0;
+
+  (void)f_unlink(bak);
+  (void)f_rename(path, bak);
+
+  static char outbuf[2300];
+  size_t outlen = 0;
+  int found_min = 0, found_max = 0;
+
+  const char* s = inbuf;
+  while (*s) {
+    const char* e = s;
+    while (*e && *e != '\n' && *e != '\r') e++;
+    size_t linelen = (size_t)(e - s);
+
+    char line[128];
+    size_t cpy = (linelen < sizeof(line)-1) ? linelen : (sizeof(line)-1);
+    memcpy(line, s, cpy); line[cpy] = 0;
+
+    if (keyeq_ci(line, "RAW_MIN")) {
+      int n = snprintf(outbuf + outlen, sizeof(outbuf) - outlen, "RAW_MIN=%u\r\n", (unsigned)raw_min);
+      if (n < 0) return -4;
+      outlen += (size_t)n;
+      found_min = 1;
+    } else if (keyeq_ci(line, "RAW_MAX")) {
+      int n = snprintf(outbuf + outlen, sizeof(outbuf) - outlen, "RAW_MAX=%u\r\n", (unsigned)raw_max);
+      if (n < 0) return -4;
+      outlen += (size_t)n;
+      found_max = 1;
+    } else {
+      if (outlen + linelen + 2 >= sizeof(outbuf)) return -5;
+      memcpy(outbuf + outlen, s, linelen); outlen += linelen;
+      outbuf[outlen++] = '\r';
+      outbuf[outlen++] = '\n';
+    }
+
+    while (*e == '\r' || *e == '\n') e++;
+    s = e;
+  }
+
+  if (!found_min) {
+    int n = snprintf(outbuf + outlen, sizeof(outbuf) - outlen, "RAW_MIN=%u\r\n", (unsigned)raw_min);
+    if (n < 0) return -4;
+    outlen += (size_t)n;
+  }
+  if (!found_max) {
+    int n = snprintf(outbuf + outlen, sizeof(outbuf) - outlen, "RAW_MAX=%u\r\n", (unsigned)raw_max);
+    if (n < 0) return -4;
+    outlen += (size_t)n;
+  }
+
+  if (f_open(&f, path, FA_CREATE_ALWAYS | FA_WRITE) != FR_OK) return -6;
+  UINT bw = 0;
+  if (f_write(&f, outbuf, (UINT)outlen, &bw) != FR_OK || bw != (UINT)outlen) { f_close(&f); return -7; }
+  f_close(&f);
+
+  if (!cc->keep_files) { (void)f_unlink(bak); }
   return 0;
 #endif
 }
+
 
 static void CalibrationTask(void* argument){
   (void)argument;
@@ -254,8 +277,8 @@ static void CalibrationTask(void* argument){
 
 // Persist
 
-  int wrp = write_pressure_cfg(&pcfg);
-  int wre = patch_expression_rawminmax(raw_min, raw_max);
+  int wrp = write_pressure_cfg(&cc, &pcfg);
+  int wre = patch_expression_rawminmax(&cc, raw_min, raw_max);
 
   log_printf("CAL","Saved: PMIN=%ld PMAX=%ld ATM0=%ld RAW_MIN=%u RAW_MAX=%u (wrp=%d wre=%d)",
              (long)pmin,(long)pmax,(long)atm0,(unsigned)raw_min,(unsigned)raw_max, wrp, wre);
@@ -282,3 +305,5 @@ void app_start_calibration_task(void){
   };
   (void)osThreadNew(CalibrationTask, NULL, &attr);
 }
+
+

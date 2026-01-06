@@ -19,6 +19,9 @@
 #include "Services/system/boot_reason.h"
 #include "Services/log/log.h"
 #include "Services/instrument/instrument_cfg.h"
+#include "Services/zones/zones_cfg.h"
+#include "Services/expression/expression_cfg.h"
+#include "Services/pressure/pressure_i2c.h"
 #include "Services/humanize/humanize.h"
 #include "App/ain_midi_task.h"
 #include "Services/config/config.h"
@@ -33,6 +36,7 @@
 
 static void AinTask(void *argument);
 static void OledDemoTask(void *argument);
+static uint8_t boot_shift_held(uint8_t active_low);
 
 void app_init_and_start(void)
 {

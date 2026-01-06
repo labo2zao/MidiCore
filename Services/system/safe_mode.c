@@ -1,4 +1,2 @@
-#include "Services/system/safe_mode.h"
-static volatile uint8_t g_forced = 0;
-void safe_mode_set_forced(uint8_t on){ g_forced = on ? 1u : 0u; }
-uint8_t safe_mode_is_forced(void){ return g_forced; }
+// safe_mode.c - Correction de la définition multiple de safe_mode_set_forced
+// Code corrected based on errors in the original project.

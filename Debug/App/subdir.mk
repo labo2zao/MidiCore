@@ -6,6 +6,7 @@
 # Add inputs and outputs from these tool invocations to the build variables 
 C_SRCS += \
 ../App/ain_midi_task.c \
+../App/app_entry.c \
 ../App/app_init.c \
 ../App/calibration_task.c \
 ../App/freertos_hooks.c \
@@ -17,6 +18,7 @@ C_SRCS += \
 
 OBJS += \
 ./App/ain_midi_task.o \
+./App/app_entry.o \
 ./App/app_init.o \
 ./App/calibration_task.o \
 ./App/freertos_hooks.o \
@@ -28,6 +30,7 @@ OBJS += \
 
 C_DEPS += \
 ./App/ain_midi_task.d \
+./App/app_entry.d \
 ./App/app_init.d \
 ./App/calibration_task.d \
 ./App/freertos_hooks.d \
@@ -45,7 +48,7 @@ App/%.o App/%.su App/%.cyclo: ../App/%.c App/subdir.mk
 clean: clean-App
 
 clean-App:
-	-$(RM) ./App/ain_midi_task.cyclo ./App/ain_midi_task.d ./App/ain_midi_task.o ./App/ain_midi_task.su ./App/app_init.cyclo ./App/app_init.d ./App/app_init.o ./App/app_init.su ./App/calibration_task.cyclo ./App/calibration_task.d ./App/calibration_task.o ./App/calibration_task.su ./App/freertos_hooks.cyclo ./App/freertos_hooks.d ./App/freertos_hooks.o ./App/freertos_hooks.su ./App/i2c_scan.cyclo ./App/i2c_scan.d ./App/i2c_scan.o ./App/i2c_scan.su ./App/input_task.cyclo ./App/input_task.d ./App/input_task.o ./App/input_task.su ./App/looper_selftest.cyclo ./App/looper_selftest.d ./App/looper_selftest.o ./App/looper_selftest.su ./App/midi_io_task.cyclo ./App/midi_io_task.d ./App/midi_io_task.o ./App/midi_io_task.su ./App/pressure_task.cyclo ./App/pressure_task.d ./App/pressure_task.o ./App/pressure_task.su
+	-$(RM) ./App/ain_midi_task.cyclo ./App/ain_midi_task.d ./App/ain_midi_task.o ./App/ain_midi_task.su ./App/app_entry.cyclo ./App/app_entry.d ./App/app_entry.o ./App/app_entry.su ./App/app_init.cyclo ./App/app_init.d ./App/app_init.o ./App/app_init.su ./App/calibration_task.cyclo ./App/calibration_task.d ./App/calibration_task.o ./App/calibration_task.su ./App/freertos_hooks.cyclo ./App/freertos_hooks.d ./App/freertos_hooks.o ./App/freertos_hooks.su ./App/i2c_scan.cyclo ./App/i2c_scan.d ./App/i2c_scan.o ./App/i2c_scan.su ./App/input_task.cyclo ./App/input_task.d ./App/input_task.o ./App/input_task.su ./App/looper_selftest.cyclo ./App/looper_selftest.d ./App/looper_selftest.o ./App/looper_selftest.su ./App/midi_io_task.cyclo ./App/midi_io_task.d ./App/midi_io_task.o ./App/midi_io_task.su ./App/pressure_task.cyclo ./App/pressure_task.d ./App/pressure_task.o ./App/pressure_task.su
 
 .PHONY: clean-App
 

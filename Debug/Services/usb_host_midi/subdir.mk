@@ -7,17 +7,20 @@
 C_SRCS += \
 ../Services/usb_host_midi/usb_host_midi.c \
 ../Services/usb_host_midi/usbh_midi.c \
-../Services/usb_host_midi/usbh_midi_class.c 
+../Services/usb_host_midi/usbh_midi_class.c \
+../Services/usb_host_midi/usbh_midi_task.c 
 
 OBJS += \
 ./Services/usb_host_midi/usb_host_midi.o \
 ./Services/usb_host_midi/usbh_midi.o \
-./Services/usb_host_midi/usbh_midi_class.o 
+./Services/usb_host_midi/usbh_midi_class.o \
+./Services/usb_host_midi/usbh_midi_task.o 
 
 C_DEPS += \
 ./Services/usb_host_midi/usb_host_midi.d \
 ./Services/usb_host_midi/usbh_midi.d \
-./Services/usb_host_midi/usbh_midi_class.d 
+./Services/usb_host_midi/usbh_midi_class.d \
+./Services/usb_host_midi/usbh_midi_task.d 
 
 
 # Each subdirectory must supply rules for building sources it contributes
@@ -27,7 +30,7 @@ Services/usb_host_midi/%.o Services/usb_host_midi/%.su Services/usb_host_midi/%.
 clean: clean-Services-2f-usb_host_midi
 
 clean-Services-2f-usb_host_midi:
-	-$(RM) ./Services/usb_host_midi/usb_host_midi.cyclo ./Services/usb_host_midi/usb_host_midi.d ./Services/usb_host_midi/usb_host_midi.o ./Services/usb_host_midi/usb_host_midi.su ./Services/usb_host_midi/usbh_midi.cyclo ./Services/usb_host_midi/usbh_midi.d ./Services/usb_host_midi/usbh_midi.o ./Services/usb_host_midi/usbh_midi.su ./Services/usb_host_midi/usbh_midi_class.cyclo ./Services/usb_host_midi/usbh_midi_class.d ./Services/usb_host_midi/usbh_midi_class.o ./Services/usb_host_midi/usbh_midi_class.su
+	-$(RM) ./Services/usb_host_midi/usb_host_midi.cyclo ./Services/usb_host_midi/usb_host_midi.d ./Services/usb_host_midi/usb_host_midi.o ./Services/usb_host_midi/usb_host_midi.su ./Services/usb_host_midi/usbh_midi.cyclo ./Services/usb_host_midi/usbh_midi.d ./Services/usb_host_midi/usbh_midi.o ./Services/usb_host_midi/usbh_midi.su ./Services/usb_host_midi/usbh_midi_class.cyclo ./Services/usb_host_midi/usbh_midi_class.d ./Services/usb_host_midi/usbh_midi_class.o ./Services/usb_host_midi/usbh_midi_class.su ./Services/usb_host_midi/usbh_midi_task.cyclo ./Services/usb_host_midi/usbh_midi_task.d ./Services/usb_host_midi/usbh_midi_task.o ./Services/usb_host_midi/usbh_midi_task.su
 
 .PHONY: clean-Services-2f-usb_host_midi
 

@@ -1,6 +1,0 @@
-../Services/safe/safe_mode.c:7:6:safe_mode_set_forced	16	static
-../Services/safe/safe_mode.c:8:6:safe_mode_set_cfg	16	static
-../Services/safe/safe_mode.c:9:6:safe_mode_set_sd_ok	16	static
-../Services/safe/safe_mode.c:11:9:safe_mode_is_enabled	4	static
-../Services/safe/safe_mode.c:15:15:safe_mode_reason	4	static
-../Services/safe/safe_mode.c:22:13:safe_mode_reason_str	8	static
