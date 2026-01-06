@@ -198,7 +198,12 @@ uint8_t chord_bank_expand(const chord_bank_t* b, uint8_t root, uint8_t notes_out
 
   const chord_preset_t* c = &b->preset[pi];
   uint8_t n = c->count;
-  if (n<1) n=1; if (n>4) n=4;
+  if (n < 1) {
+    n = 1;
+  }
+  if (n > 4) {
+    n = 4;
+  }
 
   for (uint8_t i=0;i<n;i++) {
     int32_t note = (int32_t)root + (int32_t)c->intervals[i] + (int32_t)c->transpose;

@@ -4,6 +4,9 @@
 #  if __has_include("usbh_core.h")
 #    include "usbh_core.h"
 #    define USBH_MIDI_PRESENT 1
+#  elif __has_include("Middlewares/ST/STM32_USB_Host_Library/Core/Inc/usbh_core.h")
+#    include "Middlewares/ST/STM32_USB_Host_Library/Core/Inc/usbh_core.h"
+#    define USBH_MIDI_PRESENT 1
 #  else
 #    define USBH_MIDI_PRESENT 0
 #  endif
