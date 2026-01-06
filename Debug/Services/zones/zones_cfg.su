@@ -1,0 +1,11 @@
+../Services/zones/zones_cfg.c:15:13:trim	32	static
+../Services/zones/zones_cfg.c:20:12:keyeq	24	static
+../Services/zones/zones_cfg.c:28:16:u8	24	static
+../Services/zones/zones_cfg.c:29:15:s8	24	static
+../Services/zones/zones_cfg.c:31:6:zones_cfg_defaults	16	static
+../Services/zones/zones_cfg.c:45:13:set_zone_key	24	static
+../Services/zones/zones_cfg.c:60:5:zones_cfg_load_sd	736	static
+../Services/zones/zones_cfg.c:107:20:zones_cfg_get	4	static
+../Services/zones/zones_cfg.c:108:6:zones_cfg_set	32	static
+../Services/zones/zones_cfg.c:110:12:match_zone	16	static
+../Services/zones/zones_cfg.c:115:9:zones_map_note	48	static

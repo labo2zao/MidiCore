@@ -1,0 +1,9 @@
+../Services/ui/ui_actions.c:29:13:trim	5
+../Services/ui/ui_actions.c:34:13:upcase	3
+../Services/ui/ui_actions.c:36:20:parse_action	19
+../Services/ui/ui_actions.c:67:6:ui_actions_defaults	2
+../Services/ui/ui_actions.c:88:13:apply_action	17
+../Services/ui/ui_actions.c:122:13:set_key	10
+../Services/ui/ui_actions.c:142:5:ui_actions_load	17
+../Services/ui/ui_actions.c:190:6:ui_actions_on_encoder	7
+../Services/ui/ui_actions.c:196:6:ui_actions_on_button	4

@@ -1,0 +1,5 @@
+# 0:/cfg/global.ngc
+[GLOBAL]
+SAFE_MODE=0
+SD_REQUIRED=0
+SHIFT_ACTIVE_LOW=1

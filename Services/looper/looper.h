@@ -1,0 +1,80 @@
+#pragma once
+#include <stdint.h>
+#include "Services/router/router.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#define LOOPER_TRACKS 4
+
+typedef enum {
+  LOOPER_STATE_STOP = 0,
+  LOOPER_STATE_REC,
+  LOOPER_STATE_PLAY,
+  LOOPER_STATE_OVERDUB
+} looper_state_t;
+
+typedef enum {
+  LOOPER_QUANT_OFF = 0,
+  LOOPER_QUANT_1_16,
+  LOOPER_QUANT_1_8,
+  LOOPER_QUANT_1_4
+} looper_quant_t;
+
+typedef struct {
+  uint16_t bpm;          // 20..300
+  uint8_t  ts_num;       // default 4
+  uint8_t  ts_den;       // default 4
+  uint8_t  auto_loop;    // 1: stop REC at loop_len if known
+  uint8_t  reserved;
+} looper_transport_t;
+
+void looper_init(void);
+
+void looper_set_transport(const looper_transport_t* t);
+void looper_get_transport(looper_transport_t* out);
+
+void looper_set_tempo(uint16_t bpm);
+uint16_t looper_get_tempo(void);
+
+void looper_set_state(uint8_t track, looper_state_t st);
+looper_state_t looper_get_state(uint8_t track);
+
+void looper_clear(uint8_t track);
+
+void looper_set_loop_beats(uint8_t track, uint16_t beats);
+uint16_t looper_get_loop_beats(uint8_t track);
+
+void looper_set_quant(uint8_t track, looper_quant_t q);
+looper_quant_t looper_get_quant(uint8_t track);
+
+void looper_set_mute(uint8_t track, uint8_t mute);
+uint8_t looper_get_mute(uint8_t track);
+
+void looper_tick_1ms(void);
+void looper_on_router_msg(uint8_t in_node, const router_msg_t* msg);
+
+int looper_save_track(uint8_t track, const char* filename);
+int looper_load_track(uint8_t track, const char* filename);
+
+// ---- UI/Debug helpers (read/edit) ----
+typedef struct {
+  uint32_t idx;     // stable index in internal event array (until resort/clear/load)
+  uint32_t tick;    // tick position
+  uint8_t  len;     // 2 or 3
+  uint8_t  b0, b1, b2;
+} looper_event_view_t;
+
+uint32_t looper_get_loop_len_ticks(uint8_t track);
+
+/** Copy events snapshot into out[]. Returns number copied. */
+uint32_t looper_export_events(uint8_t track, looper_event_view_t* out, uint32_t max);
+
+/** Edit an event (tick + bytes). Returns 0 on success. */
+int looper_edit_event(uint8_t track, uint32_t idx, uint32_t new_tick,
+                      uint8_t len, uint8_t b0, uint8_t b1, uint8_t b2);
+
+#ifdef __cplusplus
+}
+#endif

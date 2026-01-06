@@ -1,0 +1,13 @@
+# 0:/patch/patch03.ngc
+[PATCH]
+LABEL=DreamInitExample
+
+[DREAM]
+# You can use SYSEX_FILE or a list:
+# - Works with TEXT hex (.syx) OR BINARY .syx (auto-detected)
+SYSEX_LIST=0:/cfg/dream/init1.syx;0:/cfg/dream/init_bin.syx
+OUT_NODE=USB_OUT
+
+# Avoid re-sending on every Apply (per boot)
+SEND_ONCE=1
+KEY=DREAM_INIT_BANK01

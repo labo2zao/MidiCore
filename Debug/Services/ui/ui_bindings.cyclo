@@ -1,0 +1,6 @@
+../Services/ui/ui_bindings.c:13:13:trim	5
+../Services/ui/ui_bindings.c:19:13:upcase	3
+../Services/ui/ui_bindings.c:21:12:parse_u32	4
+../Services/ui/ui_bindings.c:30:6:ui_bindings_defaults	2
+../Services/ui/ui_bindings.c:39:13:set_key	14
+../Services/ui/ui_bindings.c:56:5:ui_bindings_load	17

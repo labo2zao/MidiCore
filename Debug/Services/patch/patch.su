@@ -1,0 +1,5 @@
+../Services/patch/patch.c:4:6:patch_init	8	static
+../Services/patch/patch.c:5:6:patch_load	16	static
+../Services/patch/patch.c:6:6:patch_get	24	static
+../Services/patch/patch.c:7:6:patch_set	16	static
+../Services/patch/patch.c:8:6:patch_save	16	static

@@ -1,0 +1,26 @@
+# 0:/cfg/instrument.ngc
+
+[HUMAN]
+ENABLE=1
+TIME_MS=3
+VEL=5
+APPLY=KEYS|CHORD|LOOPER
+
+[VELOCITY]
+CURVE=LINEAR     # LINEAR/SOFT/HARD/CUSTOM
+MIN=10
+MAX=120
+GAMMA=1.35       # used in CUSTOM
+
+[CHORD_COND]
+ENABLE=0
+VEL_GT=60        # chord active only if velocity > 60 (0 disables)
+VEL_LT=0
+NEED_HOLD=0      # 1 requires HOLD button
+BLOCK_SHIFT=0
+HOLD_PHYS=4      # physical button id used as HOLD
+
+[CHORD_STRUM]
+ENABLE=1
+SPREAD_MS=8
+DIRECTION=UP     # UP/DOWN/RANDOM

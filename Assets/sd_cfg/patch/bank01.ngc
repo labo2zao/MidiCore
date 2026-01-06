@@ -1,0 +1,14 @@
+# 0:/patch/bank01.ngc
+[BANK]
+NAME=Default
+ID=B01
+# Optional: chord bank per patch bank
+CHORD_BANK=0:/cfg/chords/bank01_chords.ngc
+
+[PATCH 1]
+FILE=0:/patch/patch01.ngc
+LABEL=Init
+
+[PATCH 2]
+FILE=0:/patch/patch02.ngc
+LABEL=Sampler

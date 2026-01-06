@@ -1,0 +1,36 @@
+# 0:/cfg/expression.ngc
+# A) Deadband/Hysteresis:
+#   DEADBAND_CC: minimum CC delta before sending (anti-jitter)
+#   HYST_CC: extra delta when direction flips
+#
+# B) Curve:
+#   CURVE=0 linear
+#   CURVE=1 expo with CURVE_PARAM=gamma*100 (e.g. 180=>1.80)
+#   CURVE=2 S-curve (smoothstep)
+#
+# C) Bidirectional:
+#   BIDIR=0 uses CC=
+#   BIDIR=1 uses CC_PUSH for push and CC_PULL for pull (requires signed pressure Pa)
+
+ENABLE=0
+MIDI_CH=0
+
+BIDIR=0
+CC=11
+CC_PUSH=11
+CC_PULL=2
+
+OUT_MIN=0
+OUT_MAX=127
+
+RATE_MS=20
+SMOOTH=200
+
+DEADBAND_CC=2
+HYST_CC=1
+
+CURVE=1
+CURVE_PARAM=180
+
+# Neutral zone around 0 Pa to avoid flip
+ZERO_DEADBAND_PA=500

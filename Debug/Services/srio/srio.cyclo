@@ -1,0 +1,7 @@
+../Services/srio/srio.c:11:20:gpio_write	2
+../Services/srio/srio.c:16:6:srio_init	7
+../Services/srio/srio.c:23:10:srio_din_bytes	1
+../Services/srio/srio.c:24:10:srio_dout_bytes	1
+../Services/srio/srio.c:26:6:srio_set_dout_enable	3
+../Services/srio/srio.c:35:5:srio_read_din	5
+../Services/srio/srio.c:54:5:srio_write_dout	4

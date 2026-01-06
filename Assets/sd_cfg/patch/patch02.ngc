@@ -1,0 +1,8 @@
+# 0:/patch/patch02.ngc
+[PATCH]
+LABEL=Sampler
+# Override chord bank for this patch only
+CHORD_BANK=0:/cfg/chords/sampler_chords.ngc
+
+[ROUTER]
+# Example: pass-through (details handled by router DSL)

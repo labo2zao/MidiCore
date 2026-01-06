@@ -1,0 +1,6 @@
+../Services/ui/ui_state.c:21:6:ui_state_mark_dirty	1
+../Services/ui/ui_state.c:23:13:trim	5
+../Services/ui/ui_state.c:29:13:upcase	3
+../Services/ui/ui_state.c:32:13:try_load_once	16
+../Services/ui/ui_state.c:63:13:save_now	4
+../Services/ui/ui_state.c:76:6:ui_state_tick_20ms	5

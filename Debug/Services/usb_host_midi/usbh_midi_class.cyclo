@@ -1,0 +1,9 @@
+../Services/usb_host_midi/usbh_midi_class.c:41:27:USBH_MIDI_InterfaceInit	10
+../Services/usb_host_midi/usbh_midi_class.c:87:27:USBH_MIDI_InterfaceDeInit	4
+../Services/usb_host_midi/usbh_midi_class.c:98:27:USBH_MIDI_ClassRequest	1
+../Services/usb_host_midi/usbh_midi_class.c:104:27:USBH_MIDI_SOFProcess	1
+../Services/usb_host_midi/usbh_midi_class.c:109:13:decode_event_packet	11
+../Services/usb_host_midi/usbh_midi_class.c:126:20:USBH_MIDI_Process	7
+../Services/usb_host_midi/usbh_midi_class.c:150:16:cin_from_status	19
+../Services/usb_host_midi/usbh_midi_class.c:169:5:USBH_MIDI_SendShort	7
+../Services/usb_host_midi/usbh_midi_class.c:186:5:USBH_MIDI_SendBytes	1

@@ -1,0 +1,2 @@
+../Drivers/CMSIS/Include/core_cm4.h:1938:34:__NVIC_SystemReset	4	static,ignoring_inline_asm
+../Services/watchdog/watchdog.c:6:6:watchdog_panic_code	16	static

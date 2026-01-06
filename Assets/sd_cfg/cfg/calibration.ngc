@@ -1,0 +1,14 @@
+# 0:/cfg/calibration.ngc
+# Enable one-shot calibration at boot.
+# Steps:
+# 1) Hold bellows at rest (no push/pull) during ATM_MS to measure atmospheric baseline.
+# 2) Then do full push/pull during EXT_MS to measure min/max range.
+# Results:
+# - Writes ATM0_PA, PMIN_PA, PMAX_PA into pressure.ngc
+# - Writes RAW_MIN/RAW_MAX into expression.ngc (mapped range, with margins)
+ENABLE=0
+ATM_MS=600
+EXT_MS=5000
+MARGIN_RAW=60
+
+CAL_KEEP_FILES=1

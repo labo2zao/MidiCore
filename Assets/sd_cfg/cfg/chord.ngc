@@ -1,0 +1,20 @@
+# 0:/cfg/chord.ngc
+# Configure chord expansion used when CHORD_MODE=1
+[CHORD]
+# number of notes (1..4)
+COUNT=3
+
+# semitone intervals from root
+I0=0
+I1=4
+I2=7
+I3=12
+
+# transpose semitones (-24..+24)
+TRANSPOSE=0
+
+# velocity scaling per note in %
+V0=100
+V1=95
+V2=90
+V3=80

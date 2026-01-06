@@ -1,0 +1,4 @@
+# ui state (auto)
+# PAGE: 0=LOOPER, 1=TIMELINE, 2=PIANOROLL
+PAGE=0
+CHORD_MODE=0

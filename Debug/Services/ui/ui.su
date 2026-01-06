@@ -1,0 +1,12 @@
+../Services/ui/ui.c:14:6:ui_set_status_line	16	static
+../Services/ui/ui.c:30:6:ui_set_patch_status	16	static
+../Services/ui/ui.c:41:6:ui_init	8	static
+../Services/ui/ui.c:47:6:ui_set_page	16	static
+../Services/ui/ui.c:48:11:ui_get_page	4	static
+../Services/ui/ui.c:50:9:ui_get_chord_mode	4	static
+../Services/ui/ui.c:51:21:ui_get_chord_bank	4	static
+../Services/ui/ui.c:53:5:ui_reload_chord_bank	24	static
+../Services/ui/ui.c:57:6:ui_set_chord_mode	16	static
+../Services/ui/ui.c:59:6:ui_on_button	96	static
+../Services/ui/ui.c:87:6:ui_on_encoder	96	static
+../Services/ui/ui.c:107:6:ui_tick_20ms	88	static

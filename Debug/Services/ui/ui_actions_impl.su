@@ -1,0 +1,7 @@
+../Services/ui/ui_actions_impl.c:8:6:ui_prev_page	16	static
+../Services/ui/ui_actions_impl.c:16:6:ui_next_page	16	static
+../Services/ui/ui_actions_impl.c:24:6:ui_cursor_move	16	static
+../Services/ui/ui_actions_impl.c:28:6:ui_zoom	24	static
+../Services/ui/ui_actions_impl.c:39:6:ui_quantize	16	static
+../Services/ui/ui_actions_impl.c:51:6:ui_delete	16	static
+../Services/ui/ui_actions_impl.c:59:6:ui_toggle_auto_loop	16	static

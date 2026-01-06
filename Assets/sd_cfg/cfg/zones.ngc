@@ -1,0 +1,35 @@
+# 0:/cfg/zones.ngc
+# Zones = splits/layers/channels/transpose
+# ch are 0..15 (0=MIDI ch1). TR in semitones.
+# Layer2 enabled if CH2!=CH1 or TR2!=0.
+
+[ZONE0]
+ENABLE=1
+KEY_MIN=0
+KEY_MAX=63
+CH1=0
+TR1=0
+CH2=0
+TR2=0
+L2_ENABLE=0
+STACK=0
+VEL_MUL=128
+VEL_ADD=0
+PRIO=1
+
+# Example split:
+#[ZONE1]
+#ENABLE=1
+#KEY_MIN=0
+#KEY_MAX=31
+#CH1=0
+#TR1=0
+#PRIO=10
+#
+#[ZONE2]
+#ENABLE=1
+#KEY_MIN=32
+#KEY_MAX=63
+#CH1=1
+#TR1=12
+#PRIO=10

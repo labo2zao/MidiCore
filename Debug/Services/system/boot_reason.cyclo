@@ -1,0 +1,2 @@
+../Services/system/boot_reason.c:12:6:boot_reason_init	5
+../Services/system/boot_reason.c:29:15:boot_reason_get	1

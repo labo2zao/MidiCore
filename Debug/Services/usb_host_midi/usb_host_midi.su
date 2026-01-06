@@ -1,0 +1,7 @@
+../Services/usb_host_midi/usb_host_midi.c:31:13:rx_push	24	static
+../Services/usb_host_midi/usb_host_midi.c:38:12:rx_pop	32	static
+../Services/usb_host_midi/usb_host_midi.c:46:16:cin_from_status	24	static
+../Services/usb_host_midi/usb_host_midi.c:60:6:usb_host_midi_init	4	static
+../Services/usb_host_midi/usb_host_midi.c:65:6:usb_host_midi_task	112	static
+../Services/usb_host_midi/usb_host_midi.c:90:5:usb_host_midi_send3	24	static
+../Services/usb_host_midi/usb_host_midi.c:98:5:usb_host_midi_recv3	24	static

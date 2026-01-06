@@ -1,0 +1,3 @@
+../Services/velocity/velocity.c:4:14:norm	1
+../Services/velocity/velocity.c:5:16:denorm	5
+../Services/velocity/velocity.c:14:9:velocity_apply_curve	11

@@ -1,0 +1,49 @@
+# 0:/cfg/chord_bank.ngc
+# Multi-preset chord config + mapping by note class (root % 12).
+# Sections:
+#  - [CHORD0]..[CHORD7] : define presets (COUNT, I0..I3, TRANSPOSE, V0..V3)
+#  - [MAP] : assign note classes to presets (NOTECLASS0..11 or C,C#,DB,...)
+#
+# Example: Major scale chords in C (very simple mapping):
+#   C->maj, D->min, E->min, F->maj, G->maj, A->min, B->dim
+# Here we approximate dim as m3+b5 (0,3,6).
+#
+[CHORD0]  # Major triad
+COUNT=3
+I0=0
+I1=4
+I2=7
+TRANSPOSE=0
+V0=100
+V1=95
+V2=90
+
+[CHORD1]  # Minor triad
+COUNT=3
+I0=0
+I1=3
+I2=7
+TRANSPOSE=0
+V0=100
+V1=95
+V2=90
+
+[CHORD2]  # Diminished triad
+COUNT=3
+I0=0
+I1=3
+I2=6
+TRANSPOSE=0
+V0=100
+V1=95
+V2=90
+
+[MAP]
+C=0
+D=1
+E=1
+F=0
+G=0
+A=1
+B=2
+# everything else default to 0 unless specified

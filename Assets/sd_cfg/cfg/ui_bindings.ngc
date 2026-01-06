@@ -1,0 +1,8 @@
+# 0:/cfg/ui_bindings.ngc
+# Map DIN bit numbers to actions. Use 65535 to disable an action.
+[BINDINGS]
+PATCH_PREV=0
+PATCH_NEXT=1
+LOAD_APPLY=2
+BANK_PREV=3
+BANK_NEXT=4

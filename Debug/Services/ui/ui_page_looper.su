@@ -1,0 +1,6 @@
+../Services/ui/ui_page_looper.c:8:20:st_name	16	static
+../Services/ui/ui_page_looper.c:17:20:q_name	16	static
+../Services/ui/ui_page_looper.c:26:6:ui_page_looper_render	136	static
+../Services/ui/ui_page_looper.c:55:6:ui_page_looper_on_button	24	static
+../Services/ui/ui_page_looper.c:66:6:ui_page_looper_on_encoder	16	static
+../Services/ui/ui_page_looper.c:71:9:ui_page_looper_get_track	4	static

@@ -1,0 +1,11 @@
+[BANK]
+NAME=Bank 02
+ID=02
+
+[PATCH]
+FILE=0:/patch/bank02/p001.ngp
+LABEL=Studio
+
+[PATCH]
+FILE=0:/patch/bank02/p002.ngp
+LABEL=FX

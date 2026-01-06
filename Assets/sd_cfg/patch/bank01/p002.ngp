@@ -1,0 +1,8 @@
+[router]
+IN DIN1 CH1 -> USB CH1
+
+[instrument]
+AUTO_LOOP=1
+
+[dream]
+PROFILE=/dream/profiles/octaver.ngd

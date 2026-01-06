@@ -1,0 +1,3 @@
+[router]
+IN DIN1 -> USB
+IN USB  -> DIN1

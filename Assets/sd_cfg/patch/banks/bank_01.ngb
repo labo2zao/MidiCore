@@ -1,0 +1,11 @@
+[BANK]
+NAME=Bank 01
+ID=01
+
+[PATCH]
+FILE=0:/patch/bank01/p001.ngp
+LABEL=Clean
+
+[PATCH]
+FILE=0:/patch/bank01/p002.ngp
+LABEL=Octaver

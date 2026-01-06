@@ -1,0 +1,2 @@
+../Services/system/boot_reason.c:12:6:boot_reason_init	16	static
+../Services/system/boot_reason.c:29:15:boot_reason_get	4	static

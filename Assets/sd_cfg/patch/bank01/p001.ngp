@@ -1,0 +1,6 @@
+[router]
+IN DIN1 CH1 -> USB CH1
+IN USB  CH1 -> DIN1 CH1
+
+[instrument]
+AUTO_LOOP=0

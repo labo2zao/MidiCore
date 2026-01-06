@@ -1,0 +1,7 @@
+../Services/ui/ui_encoders.c:13:13:trim	32	static
+../Services/ui/ui_encoders.c:18:13:upcase	24	static
+../Services/ui/ui_encoders.c:20:12:parse_u32	24	static
+../Services/ui/ui_encoders.c:29:6:ui_encoders_defaults	16	static
+../Services/ui/ui_encoders.c:48:22:parse_mode	32	static
+../Services/ui/ui_encoders.c:59:13:set_key	112	static
+../Services/ui/ui_encoders.c:92:5:ui_encoders_load	776	static

@@ -1,0 +1,16 @@
+../Services/pressure/pressure_i2c.c:17:6:pressure_defaults	16	static
+../Services/pressure/pressure_i2c.c:38:13:trim	32	static
+../Services/pressure/pressure_i2c.c:43:12:keyeq	24	static
+../Services/pressure/pressure_i2c.c:51:16:u8	24	static
+../Services/pressure/pressure_i2c.c:52:16:s32	24	static
+../Services/pressure/pressure_i2c.c:53:14:f32	16	static
+../Services/pressure/pressure_i2c.c:55:5:pressure_load_sd	776	static
+../Services/pressure/pressure_i2c.c:103:6:pressure_set_cfg	24	static
+../Services/pressure/pressure_i2c.c:104:23:pressure_get_cfg	4	static
+../Services/pressure/pressure_i2c.c:107:12:xgzp_read_pa_abs	64	static
+../Services/pressure/pressure_i2c.c:123:5:pressure_read_pa_abs	24	static
+../Services/pressure/pressure_i2c.c:131:5:pressure_read_pa	56	static
+../Services/pressure/pressure_i2c.c:153:5:pressure_read_once	56	static
+../Services/pressure/pressure_i2c.c:178:17:clamp_u12	16	static
+../Services/pressure/pressure_i2c.c:186:10:pressure_mid_raw	56	static
+../Services/pressure/pressure_i2c.c:200:10:pressure_to_12b	80	static

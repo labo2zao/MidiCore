@@ -1,0 +1,23 @@
+# 0:/cfg/pressure.ngc
+# XGZP6847D040KPGPN (I2C pressure)
+#
+# ADDRESS: default in datasheet is 0x58 (try 0x6D if NACK)
+# REGS: 0x04..0x06 (24-bit)
+#
+# Calibration:
+# - ATM0_PA is the atmospheric baseline to subtract (0 Pa reference)
+# - PMIN_PA/PMAX_PA are the signed range relative to ATM0_PA you want to map
+
+ENABLE=0
+I2C_BUS=2
+ADDR=0x58
+TYPE=2
+MAP_MODE=1
+INTERVAL_MS=5
+
+# Signed physical range (Pa) relative to atmospheric 0
+PMIN_PA=-40000
+PMAX_PA= 40000
+
+# Atmospheric baseline (Pa), set by calibration
+ATM0_PA=0
