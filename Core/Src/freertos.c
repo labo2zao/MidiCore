@@ -21,6 +21,7 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "main.h"
+extern void vApplicationMallocFailedHook(void);
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -52,12 +53,8 @@
 
 /* USER CODE END FunctionPrototypes */
 
-/* Hook prototypes */
-extern void vApplicationMallocFailedHook(void);
-
-/* USER CODE BEGIN 5 */
-
 /* Private application code --------------------------------------------------*/
 /* USER CODE BEGIN Application */
 
 /* USER CODE END Application */
+

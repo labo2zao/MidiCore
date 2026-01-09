@@ -8,6 +8,7 @@
 "./App/looper_selftest.o"
 "./App/midi_io_task.o"
 "./App/pressure_task.o"
+"./Core/Src/debug.o"
 "./Core/Src/freertos.o"
 "./Core/Src/main.o"
 "./Core/Src/stm32f4xx_hal_msp.o"

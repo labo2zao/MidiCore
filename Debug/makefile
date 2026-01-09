@@ -93,6 +93,12 @@ default.size.stdout \
 OBJDUMP_LIST += \
 MidiCore.list \
 
+OBJCOPY_HEX += \
+MidiCore.hex \
+
+OBJCOPY_BIN += \
+MidiCore.bin \
+
 
 # All Target
 all: main-build
@@ -116,12 +122,22 @@ MidiCore.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
 	@echo 'Finished building: $@'
 	@echo ' '
 
+MidiCore.hex: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-objcopy  -O ihex $(EXECUTABLES) "MidiCore.hex"
+	@echo 'Finished building: $@'
+	@echo ' '
+
+MidiCore.bin: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-objcopy  -O binary $(EXECUTABLES) "MidiCore.bin"
+	@echo 'Finished building: $@'
+	@echo ' '
+
 # Other Targets
 clean:
-	-$(RM) MidiCore.elf MidiCore.list MidiCore.map default.size.stdout
+	-$(RM) MidiCore.bin MidiCore.elf MidiCore.hex MidiCore.list MidiCore.map default.size.stdout
 	-@echo ' '
 
-secondary-outputs: $(SIZE_OUTPUT) $(OBJDUMP_LIST)
+secondary-outputs: $(SIZE_OUTPUT) $(OBJDUMP_LIST) $(OBJCOPY_HEX) $(OBJCOPY_BIN)
 
 fail-specified-linker-script-missing:
 	@echo 'Error: Cannot find the specified linker script. Check the linker settings in the build configuration.'

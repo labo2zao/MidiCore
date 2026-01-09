@@ -21,6 +21,7 @@
 #include "cmsis_os.h"
 #include "fatfs.h"
 #include "usb_host.h"
+#include "debug.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -69,7 +70,7 @@ DMA_HandleTypeDef hdma_usart3_rx;
 osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
-  .stack_size = 256 * 4,
+  .stack_size = 1024  * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
 /* USER CODE BEGIN PV */
@@ -147,6 +148,8 @@ int main(void)
   MX_CAN1_Init();
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
+  HAL_GPIO_WritePin(GREEN_LED_GPIO_Port, GREEN_LED_Pin, GPIO_PIN_SET);
+
 
   /* USER CODE END 2 */
 
@@ -644,7 +647,7 @@ static void MX_USART2_UART_Init(void)
 
   /* USER CODE END USART2_Init 1 */
   huart2.Instance = USART2;
-  huart2.Init.BaudRate = 31250;
+  huart2.Init.BaudRate = 115200;
   huart2.Init.WordLength = UART_WORDLENGTH_8B;
   huart2.Init.StopBits = UART_STOPBITS_1;
   huart2.Init.Parity = UART_PARITY_NONE;
@@ -858,7 +861,9 @@ void StartDefaultTask(void *argument)
   /* Infinite loop */
   for(;;)
   {
-    osDelay(1);
+	  dbg_print("Hello from FreeRTOS!\r\n");
+	  HAL_GPIO_TogglePin(GREEN_LED_GPIO_Port, GREEN_LED_Pin); // PD12
+	  osDelay(500); // 500 ms
   }
   /* USER CODE END 5 */
 }

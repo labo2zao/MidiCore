@@ -24,19 +24,29 @@ static void set_bank_number(char* out, size_t out_sz, int n) {
 }
 
 void patch_system_init(void) {
-  patch_manager_init(&g_pm);
-  int br = patch_manager_boot(&g_pm);
-  if (br < 0) {
-    strcpy(g_pm.bank.bank_name, "NO_SD");
-    strcpy(g_pm.bank.bank_id, "SD?");
-    g_pm.bank.patch_count = 1;
-    strcpy(g_pm.bank.patches[0].label, "Init");
-    g_pm.state.patch_index = 0;
-    g_pm.current_patch_path[0] = 0;
-    safe_mode_set_sd_ok(0);
-    return;
-  }
-  (void)patch_manager_apply(&g_pm);
+
+	  // Phase de test : on initialise juste la structure, sans toucher à la SD / FatFS
+	  patch_manager_init(&g_pm);
+
+	  // Optionnel : indiquer au reste du système qu'on est en mode "NO PATCH"
+	  strcpy(g_pm.bank.bank_name, "TEST");
+	  strcpy(g_pm.bank.bank_id, "NP"); // No Patch
+	  g_pm.bank.patch_count = 0;
+	  g_pm.current_patch_path[0] = 0;
+
+//  patch_manager_init(&g_pm);
+//  int br = patch_manager_boot(&g_pm);
+//  if (br < 0) {
+//    strcpy(g_pm.bank.bank_name, "NO_SD");
+//    strcpy(g_pm.bank.bank_id, "SD?");
+//    g_pm.bank.patch_count = 1;
+//    strcpy(g_pm.bank.patches[0].label, "Init");
+//    g_pm.state.patch_index = 0;
+//    g_pm.current_patch_path[0] = 0;
+//    safe_mode_set_sd_ok(0);
+//    return;
+//  }
+//  (void)patch_manager_apply(&g_pm);
 }
 int patch_system_apply(void) {
   (void)ui_reload_chord_bank(g_pm.bank.chord_bank_path);
