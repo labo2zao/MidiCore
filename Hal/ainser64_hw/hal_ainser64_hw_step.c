@@ -47,10 +47,20 @@ static int32_t mcp3208_read_channel_with_sr(uint8_t channel, uint8_t sr_byte, ui
   tx[1] = (uint8_t)(channel << 6);
   tx[2] = sr_byte;
 
-  // spi_bus drives CS low in begin() and high in end(). That CS rising edge is
-  // also connected to the 74HC595 RCLK on AINSER64, so the last byte (sr_byte)
-  // will be latched at the end of the transfer.
-  if (spibus_txrx(SPIBUS_DEV_AIN, tx, rx, 3, 10) != HAL_OK)
+  // IMPORTANT (AINSER64 wiring): RC (chip-select) is shared between
+  // - MCP3208 CS (pin 10)
+  // - 74HC595 RCLK (pin 12)
+  // So we MUST assert CS low for the transfer, then deassert it high so that
+  // the 74HC595 latches the last shifted byte (sr_byte).
+  if (spibus_begin(SPIBUS_DEV_AIN) != HAL_OK)
+    return -1;
+
+  HAL_StatusTypeDef st = spibus_txrx(SPIBUS_DEV_AIN, tx, rx, 3, 10);
+
+  // CS rising edge latches 74HC595 outputs (Link LED + MUX A/B/C)
+  (void)spibus_end(SPIBUS_DEV_AIN);
+
+  if (st != HAL_OK)
     return -1;
 
   // 12-bit sample: low 4 bits in rx[1], then rx[2]

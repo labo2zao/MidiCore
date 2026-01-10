@@ -16,7 +16,7 @@ static void cs_high(spibus_dev_t dev) {
   if (dev == SPIBUS_DEV_SD)
     HAL_GPIO_WritePin(SD_CS_GPIO_Port, SD_CS_Pin, GPIO_PIN_SET);
   else if (dev == SPIBUS_DEV_AIN)
-    HAL_GPIO_WritePin(AIN_CS_GPIO_Port, AIN_CS_Pin, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(AIN_CS_PORT, AIN_CS_PIN, GPIO_PIN_SET);
   else
     HAL_GPIO_WritePin(OLED_CS_GPIO_Port, OLED_CS_Pin, GPIO_PIN_SET);
 }
@@ -25,7 +25,7 @@ static void cs_low(spibus_dev_t dev) {
   if (dev == SPIBUS_DEV_SD)
     HAL_GPIO_WritePin(SD_CS_GPIO_Port, SD_CS_Pin, GPIO_PIN_RESET);
   else if (dev == SPIBUS_DEV_AIN)
-    HAL_GPIO_WritePin(AIN_CS_GPIO_Port, AIN_CS_Pin, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(AIN_CS_PORT, AIN_CS_PIN, GPIO_PIN_RESET);
   else
     HAL_GPIO_WritePin(OLED_CS_GPIO_Port, OLED_CS_Pin, GPIO_PIN_RESET);
 }
