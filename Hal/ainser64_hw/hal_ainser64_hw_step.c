@@ -1,49 +1,132 @@
+// hal_ainser64_hw_step.c
+// MIOS32-compatible AINSER64 backend (MCP3208 + 74HC595)
+
 #include "Hal/ainser64_hw/hal_ainser64_hw_step.h"
+
+#include <string.h>
+
 #include "Hal/spi_bus.h"
-#include "Hal/delay_us.h"
-#include "Config/ainser64_pins.h"
+#include "Config/ainser64_pins.h" // AIN_CS_* used by SPIBUS_DEV_AIN
+
 #include "stm32f4xx_hal.h"
 
-static inline void set_bank(uint8_t bank) {
-  HAL_GPIO_WritePin(BANK_A_GPIO_Port, BANK_A_Pin, (bank & 0x01) ? GPIO_PIN_SET : GPIO_PIN_RESET);
-  HAL_GPIO_WritePin(BANK_B_GPIO_Port, BANK_B_Pin, (bank & 0x02) ? GPIO_PIN_SET : GPIO_PIN_RESET);
-  HAL_GPIO_WritePin(BANK_C_GPIO_Port, BANK_C_Pin, (bank & 0x04) ? GPIO_PIN_SET : GPIO_PIN_RESET);
-}
+// -----------------------------------------------------------------------------
+// Mapping & options
+// -----------------------------------------------------------------------------
 
-static inline void set_mux_step(uint8_t step) {
-  HAL_GPIO_WritePin(MUX_S0_GPIO_Port, MUX_S0_Pin, (step & 0x01) ? GPIO_PIN_SET : GPIO_PIN_RESET);
-  HAL_GPIO_WritePin(MUX_S1_GPIO_Port, MUX_S1_Pin, (step & 0x02) ? GPIO_PIN_SET : GPIO_PIN_RESET);
-  HAL_GPIO_WritePin(MUX_S2_GPIO_Port, MUX_S2_Pin, (step & 0x04) ? GPIO_PIN_SET : GPIO_PIN_RESET);
-}
+// Default MIOS32 mapping for MBHP_AINSER64 routing.
+// In MIOS32 (modules/ainser/ainser.c) this is used to map mux address -> pin base.
+// Here we expose it so the higher level can turn it into a key index.
+static const uint8_t k_default_mux_port_map[8] = { 0, 5, 2, 7, 4, 1, 6, 3 };
+static uint8_t g_mux_port_map[8];
 
-static uint16_t mcp3208_read_ch(uint8_t ch) {
+// Simple, cheap LED modulation (MIOS32 uses a PWM-modulated slow flash).
+static uint8_t g_link_led_enable = 1;
+static uint16_t g_link_led_phase = 0;
+
+// This project currently supports a single AINSER64 module on a single CS line.
+// Keeping the "module" parameter in the API allows later extension.
+static inline int module_supported(uint8_t module) { return module == 0; }
+
+// -----------------------------------------------------------------------------
+// Helpers
+// -----------------------------------------------------------------------------
+
+// MCP3208 transaction (3 bytes) + 74HC595 update byte in the 3rd byte.
+// Returns 12-bit sample in *out.
+static int32_t mcp3208_read_channel_with_sr(uint8_t channel, uint8_t sr_byte, uint16_t *out)
+{
+  // MCP3208 command format (single-ended):
+  // b0: 0b00000110 | (channel >> 2)
+  // b1: (channel << 6)
+  // b2: don't care for MCP, but is used as 74HC595 data (via MOSI)
   uint8_t tx[3];
   uint8_t rx[3];
-  tx[0] = 0x06 | ((ch & 0x04) >> 2);
-  tx[1] = (uint8_t)((ch & 0x03) << 6);
-  tx[2] = 0x00;
-  spibus_txrx(SPIBUS_DEV_AIN, tx, rx, 3, 10);
-  return (uint16_t)(((rx[1] & 0x0F) << 8) | rx[2]);
+
+  tx[0] = (uint8_t)(0x06 | (channel >> 2));
+  tx[1] = (uint8_t)(channel << 6);
+  tx[2] = sr_byte;
+
+  // spi_bus drives CS low in begin() and high in end(). That CS rising edge is
+  // also connected to the 74HC595 RCLK on AINSER64, so the last byte (sr_byte)
+  // will be latched at the end of the transfer.
+  if (spibus_txrx(SPIBUS_DEV_AIN, tx, rx, 3, 10) != HAL_OK)
+    return -1;
+
+  // 12-bit sample: low 4 bits in rx[1], then rx[2]
+  *out = (uint16_t)(((rx[1] & 0x0Fu) << 8) | rx[2]);
+  return 0;
 }
 
-void hal_ainser64_init(void) {
-  // Ensure CS high
-  HAL_GPIO_WritePin(AIN_CS_GPIO_Port, AIN_CS_Pin, GPIO_PIN_SET);
-  set_bank(0);
-  set_mux_step(0);
+static inline uint8_t compute_link_led_bit(void)
+{
+  if (!g_link_led_enable)
+    return 0;
+
+  // Slow blink: ~2 Hz, cheap PWM-ish (good enough for a status LED)
+  // (toggle every 250 ms)
+  uint32_t t = HAL_GetTick();
+  return (uint8_t)(((t / 250u) & 1u) ? 1u : 0u);
 }
 
-int hal_ainser64_read_bank_step(uint8_t bank, uint8_t step, uint16_t out8[8]) {
-  if (bank > 7 || step > 7) return -1;
+// -----------------------------------------------------------------------------
+// Public API
+// -----------------------------------------------------------------------------
 
-  set_bank(bank);
-  delay_us(AIN_BANK_SETTLE_US);
+int32_t hal_ainser64_init(void)
+{
+  memcpy(g_mux_port_map, k_default_mux_port_map, sizeof(g_mux_port_map));
+  g_link_led_enable = 1;
+  g_link_led_phase = 0;
 
-  set_mux_step(step);
-  delay_us(AIN_MUX_SETTLE_US);
+  // SPI bus init is handled by the app (see app_init.c).
+  return 0;
+}
 
-  if (spibus_begin(SPIBUS_DEV_AIN) != HAL_OK) return -2;
-  for (uint8_t ch = 0; ch < 8; ch++) out8[ch] = mcp3208_read_ch(ch);
-  spibus_end(SPIBUS_DEV_AIN);
+void hal_ainser64_set_link_led_enable(uint8_t enable)
+{
+  g_link_led_enable = enable ? 1 : 0;
+}
+
+void hal_ainser64_set_mux_port_map(const uint8_t map[8])
+{
+  if (!map) {
+    memcpy(g_mux_port_map, k_default_mux_port_map, sizeof(g_mux_port_map));
+    return;
+  }
+  memcpy(g_mux_port_map, map, sizeof(g_mux_port_map));
+}
+
+int32_t hal_ainser64_read_bank_step(uint8_t module, uint8_t step, uint16_t out8[8])
+{
+  if (!out8)
+    return -1;
+  if (!module_supported(module))
+    return -2;
+
+  step &= 0x7u;
+
+  // MIOS32: mux control value goes in bits 7..5 of the 74HC595 byte.
+  // LSB is the LINK LED.
+  // We keep other bits 0.
+  uint8_t link_bit = compute_link_led_bit();
+
+  // If you want strict MIOS32-style port order, the mux control that must be
+  // shifted is the *physical* mux address. The mapping array is used later to
+  // map results to pin numbers. Here we keep it simple: mux_ctr == step.
+  uint8_t mux_ctr = step;
+
+  for (uint8_t ch = 0; ch < 8; ++ch) {
+    // For best behaviour we can preload the next mux ctr at the end of the scan
+    // (MIOS32 does this on channel 7). Here we keep mux constant for this call.
+    uint8_t sr_byte = (uint8_t)((mux_ctr << 5) | (link_bit & 1u));
+
+    uint16_t sample = 0;
+    if (mcp3208_read_channel_with_sr(ch, sr_byte, &sample) != 0) {
+      return -4;
+    }
+    out8[ch] = sample;
+  }
+  (void)g_link_led_phase; // reserved for future PWM
   return 0;
 }

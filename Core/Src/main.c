@@ -26,6 +26,12 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "App/app_entry.h"
+#include "Services/ain/ain.h"
+#include "Hal/spi_bus.h"
+#include "Hal/ainser64_hw/hal_ainser64_hw_step.h"
+#include <stdio.h>
+#include <string.h>
+/* USER CODE END Includes */
 
 /* USER CODE END Includes */
 
@@ -856,17 +862,45 @@ void StartDefaultTask(void *argument)
   MX_USB_HOST_Init();
   /* USER CODE BEGIN 5 */
   // Project entrypoint (kept in App/ to survive CubeMX regen)
-  app_entry_start();
+  app_entry_start(); // actuellement stub pendant le bring-up
 
-  /* Infinite loop */
-  for(;;)
-  {
-	  dbg_print("Hello from FreeRTOS!\r\n");
-	  HAL_GPIO_TogglePin(GREEN_LED_GPIO_Port, GREEN_LED_Pin); // PD12
-	  osDelay(500); // 500 ms
+    dbg_print("AIN test: init...\r\n");
+
+    // Init SPI + AINSER64 + AIN
+    spibus_init();
+    hal_ainser64_init();
+    ain_init();
+
+    dbg_print("AIN init OK\r\n");
+
+    char buf[128];
+    uint32_t led_timer = 0;
+
+    /* Infinite loop */
+    for(;;)
+    {
+      // Tick 5 ms pour le moteur AIN
+      ain_tick_5ms();
+      osDelay(5);
+
+      // On vide la file d'événements AIN et on log
+      ain_event_t ev;
+      while (ain_pop_event(&ev)) {
+        snprintf(buf, sizeof(buf),
+                 "AIN ev: key=%u type=%u pos=%u vel=%u\r\n",
+                 ev.key, (unsigned)ev.type, ev.pos, ev.velocity);
+        dbg_print(buf);
+      }
+
+      // Blink LED toutes les 500 ms
+      led_timer += 5;
+      if (led_timer >= 500) {
+        HAL_GPIO_TogglePin(GREEN_LED_GPIO_Port, GREEN_LED_Pin);
+        led_timer = 0;
+      }
+    }
+    /* USER CODE END 5 */
   }
-  /* USER CODE END 5 */
-}
 
 /**
   * @brief  Period elapsed callback in non blocking mode

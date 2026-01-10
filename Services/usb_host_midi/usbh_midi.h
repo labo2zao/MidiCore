@@ -4,9 +4,6 @@
 #  if __has_include("usbh_core.h")
 #    include "usbh_core.h"
 #    define USBH_MIDI_PRESENT 1
-#  elif __has_include("Middlewares/ST/STM32_USB_Host_Library/Core/Inc/usbh_core.h")
-#    include "Middlewares/ST/STM32_USB_Host_Library/Core/Inc/usbh_core.h"
-#    define USBH_MIDI_PRESENT 1
 #  else
 #    define USBH_MIDI_PRESENT 0
 #  endif
@@ -21,7 +18,7 @@ extern "C" {
 #endif
 
 // Minimal USB MIDI Host class (Audio/MIDIStreaming, bulk IN/OUT).
-extern USBH_ClassTypeDef  USBH_MIDI_CLASS;
+extern USBH_ClassTypeDef USBH_MIDI_Class;
 
 // Send raw USB-MIDI event packets (4-byte packets). Returns 0 on success.
 int USBH_MIDI_Send(USBH_HandleTypeDef *phost, const uint8_t *data, uint16_t len);

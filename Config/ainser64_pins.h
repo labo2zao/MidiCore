@@ -1,33 +1,22 @@
+// SPDX-License-Identifier: MIT
 #pragma once
-#include "stm32f4xx_hal.h"
 
-// ===== SPI handles (adjust names to match CubeMX generated code) =====
-extern SPI_HandleTypeDef hspi1; // SD + AINSER64 (MCP3208)
-extern SPI_HandleTypeDef hspi2; // OLED SSD1322
+// AINSER64 (MCP3208 + 74HC595) pin mapping.
+//
+// This project uses the SPI bus abstraction (Hal/spi_bus.*).
+// The AINSER64 uses:
+//   - SPI3 for SCK/MISO/MOSI (PB3/PB4/PB5 with CubeMX default)
+//   - A dedicated GPIO for CS (default: PA15, which matches many MIOS32 STM32F4 core J19 mappings)
+//
+// If your wiring differs, change the AIN_CS_* defines below.
 
-// ===== SPI1 chip selects (GPIO) =====
-#define SD_CS_GPIO_Port GPIOB
-#define SD_CS_Pin       GPIO_PIN_2
+#include "main.h"
 
-#define AIN_CS_GPIO_Port GPIOC
-#define AIN_CS_Pin       GPIO_PIN_3
+// SPI peripheral used for AINSER64
+extern SPI_HandleTypeDef hspi3;
 
-// ===== AINSER64 bank select (74HC138 : 3->8) =====
-#define BANK_A_GPIO_Port GPIOC
-#define BANK_A_Pin       GPIO_PIN_0
-#define BANK_B_GPIO_Port GPIOC
-#define BANK_B_Pin       GPIO_PIN_1
-#define BANK_C_GPIO_Port GPIOC
-#define BANK_C_Pin       GPIO_PIN_2
-
-// ===== AINSER64 mux select (4051 : 8->1) =====
-#define MUX_S0_GPIO_Port GPIOD
-#define MUX_S0_Pin       GPIO_PIN_3
-#define MUX_S1_GPIO_Port GPIOD
-#define MUX_S1_Pin       GPIO_PIN_4
-#define MUX_S2_GPIO_Port GPIOD
-#define MUX_S2_Pin       GPIO_PIN_5
-
-// ===== Timing (tune later) =====
-#define AIN_BANK_SETTLE_US   500u   // bank power-gating settle time
-#define AIN_MUX_SETTLE_US     20u   // mux settle time per step
+// Chip Select GPIO for MCP3208
+#ifndef AIN_CS_GPIO_Port
+#define AIN_CS_GPIO_Port GPIOA
+#define AIN_CS_Pin GPIO_PIN_15
+#endif

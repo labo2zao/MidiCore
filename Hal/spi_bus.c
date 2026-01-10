@@ -1,9 +1,11 @@
 #include "Hal/spi_bus.h"
-#include "Config/ainser64_pins.h"
+#include "Config/sd_pins.h"
 #include "Config/oled_pins.h"
+#include "Config/ainser64_pins.h"
 
 static osMutexId_t g_spi1_mutex;
 static osMutexId_t g_spi2_mutex;
+static osMutexId_t g_spi3_mutex;
 
 // Safe defaults (tune later)
 static uint32_t presc_sd   = SPI_BAUDRATEPRESCALER_4;
@@ -29,10 +31,20 @@ static void cs_low(spibus_dev_t dev) {
 }
 
 static SPI_HandleTypeDef* dev_spi(spibus_dev_t dev) {
-  return (dev == SPIBUS_DEV_OLED) ? &hspi2 : &hspi1;
+  switch (dev) {
+    case SPIBUS_DEV_SD:   return &hspi1;
+    case SPIBUS_DEV_OLED: return &hspi2;
+    case SPIBUS_DEV_AIN:  return &hspi3;
+    default:              return &hspi1;
+  }
 }
+
 static osMutexId_t dev_mutex(spibus_dev_t dev) {
-  return (dev == SPIBUS_DEV_OLED) ? g_spi2_mutex : g_spi1_mutex;
+  switch (dev) {
+    case SPIBUS_DEV_OLED: return g_spi2_mutex;
+    case SPIBUS_DEV_AIN:  return g_spi3_mutex;
+    default:              return g_spi1_mutex;
+  }
 }
 static uint32_t dev_presc(spibus_dev_t dev) {
   if (dev == SPIBUS_DEV_SD) return presc_sd;
@@ -50,6 +62,7 @@ void spibus_init(void) {
   const osMutexAttr_t attr = { .name = "spibus" };
   g_spi1_mutex = osMutexNew(&attr);
   g_spi2_mutex = osMutexNew(&attr);
+  g_spi3_mutex = osMutexNew(&attr);
 
   cs_high(SPIBUS_DEV_SD);
   cs_high(SPIBUS_DEV_AIN);

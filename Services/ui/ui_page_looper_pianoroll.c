@@ -3,7 +3,6 @@
 #include "Services/looper/looper.h"
 #include <stdio.h>
 #include <string.h>
-#include "Config/memory_sections.h"
 
 static inline uint32_t wrap_tick_i32(uint32_t cur, int32_t d, uint32_t L){
   if(L==0) return 0;
@@ -42,8 +41,8 @@ static uint32_t xorshift32(void) {
   return x;
 }
 
-#define MAX_EVT 512
-#define MAX_NOTES 192
+#define MAX_EVT 768
+#define MAX_NOTES 256
 
 typedef struct {
   uint32_t on_idx;
@@ -65,15 +64,15 @@ static uint32_t g_sel = 0;
 static uint8_t g_edit = 0;
 static uint8_t g_field = 0; // 0 start, 1 len, 2 note, 3 vel
 
-static looper_event_view_t ev[MAX_EVT] CCM_BSS;
+static looper_event_view_t ev[MAX_EVT];
 static uint32_t ev_n = 0;
 
-static note_span_t notes[MAX_NOTES] CCM_BSS;
+static note_span_t notes[MAX_NOTES];
 static uint32_t notes_n = 0;
 
 // simple active map for pairing within one loop
 typedef struct { uint32_t on_idx; uint32_t start; uint8_t vel; uint8_t valid; } active_t;
-static active_t active[16][128] CCM_BSS;
+static active_t active[16][128];
 
 static uint8_t is_note_on(const looper_event_view_t* e) {
   return (e->len==3) && ((e->b0 & 0xF0)==0x90) && e->b2!=0;

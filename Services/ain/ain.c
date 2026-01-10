@@ -142,6 +142,15 @@ static void process_key(uint8_t key, uint16_t raw) {
 static uint8_t g_bank = 0;
 static uint8_t g_step = 0;
 
+// MIOS32-compatible port re-ordering (matches the wiring on the classic
+// MBHP_AINSER64 PCB).
+// If your PCB/wiring differs, adjust this table.
+static const uint8_t k_mux_port_map[8] = { 0, 5, 2, 7, 4, 1, 6, 3 };
+
+#ifndef AINSER64_NUM_MODULES
+#define AINSER64_NUM_MODULES 1
+#endif
+
 void ain_init(void) {
   memset(g_keys, 0, sizeof(g_keys));
   for (uint8_t i=0;i<AIN_NUM_KEYS;i++) {
@@ -154,13 +163,23 @@ void ain_init(void) {
 void ain_tick_5ms(void) {
   uint16_t vals[8] = {0};
   if (hal_ainser64_read_bank_step(g_bank, g_step, vals) == 0) {
+    uint8_t port = k_mux_port_map[g_step & 7u];
     for (uint8_t ch=0; ch<8; ch++) {
-      // key mapping (adjust if your wiring differs):
-      // key = ((bank*8 + adc_channel) * 8 + step)
-      uint8_t key = (uint8_t)(((g_bank*8u + ch) * 8u) + g_step);
+      // Key mapping:
+      // - step selects the port group (J6..J13), possibly reordered by k_mux_port_map
+      // - MCP3208 channel (0..7) corresponds to A0..A7, reversed to match MIOS32
+      (void)g_bank; // currently only one module supported in this project
+      uint8_t key = (uint8_t)(port * 8u + (uint8_t)(7u - ch));
       process_key(key, vals[ch]);
     }
   }
   g_step++;
-  if (g_step >= 8) { g_step = 0; g_bank = (uint8_t)((g_bank + 1) & 0x07); }
+  if (g_step >= 8) {
+    g_step = 0;
+    if (AINSER64_NUM_MODULES > 1) {
+      g_bank = (uint8_t)((g_bank + 1) % AINSER64_NUM_MODULES);
+    } else {
+      g_bank = 0;
+    }
+  }
 }

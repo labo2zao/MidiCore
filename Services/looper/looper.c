@@ -2,7 +2,6 @@
 #include "Services/midi/midi_delayq.h"
 #include "Services/instrument/instrument_cfg.h"
 #include "Services/humanize/humanize.h"
-#include "Config/memory_sections.h"
 #include "cmsis_os2.h"
 #include "ff.h"
 #include <string.h>
@@ -13,9 +12,7 @@
 #endif
 
 #ifndef LOOPER_MAX_EVENTS
-/* Limit per-track event buffer to keep total RAM usage within the MCU limits.
- * Default lowered to 640 events to balance memory footprint and recording room. */
-#define LOOPER_MAX_EVENTS 640u
+#define LOOPER_MAX_EVENTS 8192u
 #endif
 
 #define LOOPER_MAGIC 0x4C4F4F50u /* 'LOOP' */
@@ -44,7 +41,7 @@ typedef struct {
   uint8_t active_notes[16][128];
 } looper_track_t;
 
-static looper_track_t g_tr[LOOPER_TRACKS] CCM_BSS;
+static looper_track_t g_tr[LOOPER_TRACKS];
 static looper_transport_t g_tp = { .bpm=120, .ts_num=4, .ts_den=4, .auto_loop=1 };
 
 static uint32_t g_ticks_per_ms_q16 = 0;

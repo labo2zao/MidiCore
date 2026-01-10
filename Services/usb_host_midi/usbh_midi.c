@@ -11,37 +11,10 @@
 #include "Services/usb_host_midi/usbh_midi.h"
 #include "Services/usb_host_midi/usbh_midi_class.h"
 
-#if __has_include("usbh_core.h")
 #include "usbh_core.h"
-#elif __has_include("Middlewares/ST/STM32_USB_Host_Library/Core/Inc/usbh_core.h")
-#include "Middlewares/ST/STM32_USB_Host_Library/Core/Inc/usbh_core.h"
-#else
-#error "usbh_core.h not found; add USB Host Core include path"
-#endif
-
-#if __has_include("usbh_ctlreq.h")
 #include "usbh_ctlreq.h"
-#elif __has_include("Middlewares/ST/STM32_USB_Host_Library/Core/Inc/usbh_ctlreq.h")
-#include "Middlewares/ST/STM32_USB_Host_Library/Core/Inc/usbh_ctlreq.h"
-#else
-#error "usbh_ctlreq.h not found; add USB Host Core include path"
-#endif
-
-#if __has_include("usbh_def.h")
 #include "usbh_def.h"
-#elif __has_include("Middlewares/ST/STM32_USB_Host_Library/Core/Inc/usbh_def.h")
-#include "Middlewares/ST/STM32_USB_Host_Library/Core/Inc/usbh_def.h"
-#else
-#error "usbh_def.h not found; add USB Host Core include path"
-#endif
-
-#if __has_include("usbh_ioreq.h")
 #include "usbh_ioreq.h"
-#elif __has_include("Middlewares/ST/STM32_USB_Host_Library/Core/Inc/usbh_ioreq.h")
-#include "Middlewares/ST/STM32_USB_Host_Library/Core/Inc/usbh_ioreq.h"
-#else
-#error "usbh_ioreq.h not found; add USB Host Core include path"
-#endif
 
 #include <string.h>
 #include <stdint.h>
