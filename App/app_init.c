@@ -24,6 +24,7 @@
 #include "Services/pressure/pressure_i2c.h"
 #include "Services/humanize/humanize.h"
 #include "App/ain_midi_task.h"
+#include "App/ain_raw_debug_task.h"
 #include "Services/config/config.h"
 #include "Services/srio/srio.h"
 #include "Services/srio/srio_user_config.h"
@@ -128,6 +129,9 @@ looper_init();
     .stack_size = 1024
   };
   (void)osThreadNew(OledDemoTask, NULL, &oled_attr);
+
+  // Optional UART debug stream (raw ADC values)
+  ain_raw_debug_task_create();
   app_start_midi_io_task();
   app_start_looper_selftest();
 }

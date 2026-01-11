@@ -16,7 +16,11 @@ static inline void gpio_write(GPIO_TypeDef* port, uint16_t pin, GPIO_PinState st
 void srio_init(const srio_config_t* cfg) {
   memset(&g, 0, sizeof(g));
   if (cfg) g = *cfg;
-  g_inited = (g.hspi && g.din_pl_port && g.dout_rclk_port && g.din_bytes && g.dout_bytes);
+  g_inited = (g.hspi && g.din_pl_port && g.din_bytes);
+
+  // Ensure sane idle levels (MIOS32-style expects DIN /PL idle high)
+  HAL_GPIO_WritePin(g.din_pl_port, g.din_pl_pin, GPIO_PIN_SET);
+  if (g.dout_rclk_port) HAL_GPIO_WritePin(g.dout_rclk_port, g.dout_rclk_pin, GPIO_PIN_RESET);
   srio_set_dout_enable(1);
 }
 
@@ -53,6 +57,7 @@ int srio_read_din(uint8_t* out) {
 
 int srio_write_dout(const uint8_t* in) {
   if (!g_inited || !in) return -1;
+  if (!g.dout_rclk_port || !g.dout_bytes) return -1;
 
   // Shift out to 595 chain.
   if (HAL_SPI_Transmit(g.hspi, (uint8_t*)in, g.dout_bytes, 10) != HAL_OK) return -2;

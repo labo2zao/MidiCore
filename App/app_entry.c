@@ -1,6 +1,7 @@
 #include "App/app_entry.h"
 
 #include "App/app_init.h"
+#include "App/din_selftest.h"
 #include "cmsis_os.h"
 
 /**
@@ -14,7 +15,13 @@ void app_entry_start(void)
   started = 1u;
 
   // One-time init + task creation
-  //app_init_and_start(); // TODO faire fonctionner cette fonction
+
+#ifdef DIN_SELFTEST
+  // Blocking raw DIN dump (early hardware debug)
+  din_selftest_run();
+#endif
+
+  app_init_and_start();
 
   // If you want: lower this task priority or delete it once init is done.
   // osThreadExit(); // uncomment if you want to end the default task after init

@@ -18,6 +18,11 @@ typedef struct {
 
 static key_ctx_t g_keys[AIN_NUM_KEYS];
 
+// Debug snapshots (updated in process_key()).
+static uint16_t g_dbg_raw[AIN_NUM_KEYS];
+static uint16_t g_dbg_filt[AIN_NUM_KEYS];
+static uint16_t g_dbg_pos14[AIN_NUM_KEYS];
+
 // thresholds on pos (0..16383)
 static const uint16_t T1   = 1200;
 static const uint16_t T2   = 6500;
@@ -106,6 +111,11 @@ static void process_key(uint8_t key, uint16_t raw) {
   k->pos_prev = k->pos;
   k->pos = normalize(k->filt, k->cal_min, k->cal_max);
 
+  // Debug snapshots
+  g_dbg_raw[key] = raw;
+  g_dbg_filt[key] = k->filt;
+  g_dbg_pos14[key] = k->pos;
+
   if (k->st == ST_IDLE) {
     if (k->pos > T1) {
       k->st = ST_ARMED;
@@ -153,11 +163,32 @@ static const uint8_t k_mux_port_map[8] = { 0, 5, 2, 7, 4, 1, 6, 3 };
 
 void ain_init(void) {
   memset(g_keys, 0, sizeof(g_keys));
+  memset(g_dbg_raw, 0, sizeof(g_dbg_raw));
+  memset(g_dbg_filt, 0, sizeof(g_dbg_filt));
+  memset(g_dbg_pos14, 0, sizeof(g_dbg_pos14));
   for (uint8_t i=0;i<AIN_NUM_KEYS;i++) {
     g_keys[i].cal_min = 0;
     g_keys[i].cal_max = 4095;
     g_keys[i].st = ST_IDLE;
   }
+}
+
+void ain_debug_get_raw(uint16_t* dst, uint16_t len) {
+  if (!dst) return;
+  if (len > AIN_NUM_KEYS) len = AIN_NUM_KEYS;
+  memcpy(dst, g_dbg_raw, len * sizeof(uint16_t));
+}
+
+void ain_debug_get_filt(uint16_t* dst, uint16_t len) {
+  if (!dst) return;
+  if (len > AIN_NUM_KEYS) len = AIN_NUM_KEYS;
+  memcpy(dst, g_dbg_filt, len * sizeof(uint16_t));
+}
+
+void ain_debug_get_pos14(uint16_t* dst, uint16_t len) {
+  if (!dst) return;
+  if (len > AIN_NUM_KEYS) len = AIN_NUM_KEYS;
+  memcpy(dst, g_dbg_pos14, len * sizeof(uint16_t));
 }
 
 void ain_tick_5ms(void) {

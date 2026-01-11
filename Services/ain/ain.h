@@ -20,3 +20,14 @@ typedef struct {
 void ain_init(void);
 void ain_tick_5ms(void);
 uint8_t ain_pop_event(ain_event_t* ev);
+
+// Debug helpers --------------------------------------------------------------
+// Copies the latest raw (ADC counts, typically 0..4095) values for each key.
+// dst must point to an array of at least AIN_NUM_KEYS uint16_t.
+void ain_debug_get_raw(uint16_t* dst, uint16_t dst_len);
+
+// Copies the latest filtered raw values (same unit as raw, before 14-bit scaling).
+void ain_debug_get_filt(uint16_t* dst, uint16_t dst_len);
+
+// Copies the latest scaled position values (0..16383).
+void ain_debug_get_pos(uint16_t* dst, uint16_t dst_len);
