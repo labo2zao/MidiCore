@@ -1,0 +1,83 @@
+# MidiCore Rhythm Trainer Configuration
+# Future enhancement - not yet implemented in config_io.c
+# This file shows the planned format for Rhythm Trainer configuration
+
+# =============================================================================
+# Rhythm Trainer Settings
+# =============================================================================
+
+# Enable rhythm trainer on startup
+# 0 = disabled, 1 = enabled
+RHYTHM_TRAINER_ENABLE = 0
+
+# Difficulty preset
+# 0 = EASY, 1 = MEDIUM, 2 = HARD, 3 = EXPERT
+RHYTHM_DIFFICULTY = 1
+
+# Subdivision for beat detection
+# 0 = 1/4 notes, 1 = 1/8 notes, 2 = 1/16 notes, 3 = 1/32 notes
+RHYTHM_SUBDIVISION = 1
+
+# Perfect timing window in ticks (±ticks around beat)
+# Range: 1-50 ticks
+# 1 tick ≈ 2.6ms @ 96 PPQN, 120 BPM
+RHYTHM_PERFECT_TICKS = 12
+
+# Good timing window in ticks (±ticks around beat)
+# Range: 2-100 ticks
+# Must be larger than perfect window
+RHYTHM_GOOD_TICKS = 24
+
+# Off timing threshold in ticks
+# Notes beyond this are marked as "OFF"
+# Range: 10-200 ticks
+RHYTHM_OFF_TICKS = 96
+
+# Audio feedback mode
+# 0 = NONE (visual only)
+# 1 = MUTE (silence off-beat notes)
+# 2 = WARNING (play alert sound for errors)
+RHYTHM_FEEDBACK_MODE = 0
+
+# Warning sound MIDI note (for WARNING mode)
+# Default: 38 (snare drum on GM channel 10)
+RHYTHM_WARNING_NOTE = 38
+
+# Warning sound velocity
+# Range: 1-127
+RHYTHM_WARNING_VELOCITY = 90
+
+# Warning sound MIDI channel
+# Range: 0-15 (0 = channel 1, 9 = channel 10/drums)
+RHYTHM_WARNING_CHANNEL = 9
+
+# Adaptive mode
+# 0 = disabled, 1 = enabled
+# When enabled, thresholds automatically tighten as accuracy improves
+RHYTHM_ADAPTIVE = 0
+
+# Target accuracy for adaptive mode (percentage)
+# Range: 50-100
+# When accuracy reaches this %, thresholds tighten by 10%
+RHYTHM_ADAPTIVE_TARGET = 85
+
+# =============================================================================
+# Difficulty Preset Reference
+# =============================================================================
+# EASY (0):
+#   Perfect: ±24 ticks (±60ms @ 120bpm)
+#   Good:    ±48 ticks (±120ms @ 120bpm)
+#
+# MEDIUM (1):
+#   Perfect: ±12 ticks (±30ms @ 120bpm)
+#   Good:    ±24 ticks (±60ms @ 120bpm)
+#
+# HARD (2):
+#   Perfect: ±6 ticks (±15ms @ 120bpm)
+#   Good:    ±16 ticks (±40ms @ 120bpm)
+#
+# EXPERT (3):
+#   Perfect: ±4 ticks (±10ms @ 120bpm)
+#   Good:    ±12 ticks (±30ms @ 120bpm)
+#
+# Note: Selecting a difficulty preset overrides manual threshold settings

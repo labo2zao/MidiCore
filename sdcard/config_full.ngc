@@ -1,0 +1,29 @@
+# MidiCore Configuration - Full Hardware Setup
+# Use this for complete MIDIbox NG hardware with maximum I/O
+
+# DIN Module - Full (16 bytes = 128 digital inputs)
+SRIO_DIN_ENABLE = 1
+SRIO_DIN_BYTES = 16
+DIN_INVERT_DEFAULT = 0
+DIN_DEBOUNCE_MS = 20
+
+# AINSER Module - Multiple modules (up to 8 modules = 512 analog inputs)
+# Module 1
+AINSER_ENABLE = 1
+AINSER_I2C_ADDR = 0x48
+AINSER_SCAN_MS = 5
+AINSER_DEADBAND = 4
+
+# Note: To add more AINSER modules, you'll need multiple AINSER_I2C_ADDR entries
+# This requires config file parser enhancement for array support
+
+# AIN Module - Enabled with velocity sensing
+AIN_ENABLE = 1
+AIN_VELOCITY_ENABLE = 1
+AIN_CALIBRATE_AUTO = 1
+AIN_SCAN_MS = 10
+AIN_DEADBAND = 8
+
+# MIDI Configuration
+MIDI_DEFAULT_CHANNEL = 1
+MIDI_VELOCITY_CURVE = 0
