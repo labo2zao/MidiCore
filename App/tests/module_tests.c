@@ -4,10 +4,52 @@
  */
 
 #include "App/tests/module_tests.h"
+#include "App/tests/test_debug.h"
 #include "Config/module_config.h"
 
 #include "cmsis_os2.h"
 #include <string.h>
+
+// Conditional includes for all modules that might be tested
+#if MODULE_ENABLE_AINSER64 && MODULE_ENABLE_AIN
+#include "Hal/spi_bus.h"
+#include "Hal/ainser64_hw/hal_ainser64_hw_step.h"
+#include "Hal/uart_midi/hal_uart_midi.h"
+#endif
+
+#if MODULE_ENABLE_SRIO
+#include "Services/srio/srio.h"
+#include "Services/srio/srio_user_config.h"
+#endif
+
+#if MODULE_ENABLE_MIDI_DIN
+#include "Services/midi/midi_din.h"
+#endif
+
+#if MODULE_ENABLE_ROUTER
+#include "Services/router/router.h"
+#endif
+
+#if MODULE_ENABLE_LOOPER
+#include "Services/looper/looper.h"
+#endif
+
+#if MODULE_ENABLE_UI && MODULE_ENABLE_OLED
+#include "Services/ui/ui.h"
+#endif
+
+#if MODULE_ENABLE_PATCH
+#include "Services/patch/patch_sd_mount.h"
+#include "Services/patch/patch.h"
+#endif
+
+#if MODULE_ENABLE_PRESSURE
+#include "Services/pressure/pressure_i2c.h"
+#endif
+
+#if MODULE_ENABLE_USBH_MIDI
+#include "Services/usb_host_midi/usb_host_midi.h"
+#endif
 
 // =============================================================================
 // FORWARD DECLARATIONS FOR EXISTING TEST IMPLEMENTATIONS
@@ -62,8 +104,12 @@ const char* module_tests_get_name(module_test_t test)
 
 void module_tests_init(void)
 {
-  // Initialize any common test infrastructure here
-  // For now, this is a placeholder
+  // Initialize debug UART
+  test_debug_init();
+  
+  // Print startup banner
+  dbg_print_test_header("MidiCore Module Test Framework");
+  dbg_print_config_info();
 }
 
 // =============================================================================
@@ -164,32 +210,59 @@ void module_test_ainser64_run(void)
   // Use existing AINSER test
   app_test_ainser_midi_run_forever();
 #elif MODULE_ENABLE_AINSER64 && MODULE_ENABLE_AIN
-  // Simplified AINSER64 test
-  #include "Hal/spi_bus.h"
-  #include "Hal/ainser64_hw/hal_ainser64_hw_step.h"
-  #include "Hal/uart_midi/hal_uart_midi.h"
+  // Print test header
+  dbg_print_test_header("AINSER64 Module Test");
   
+  // Initialize hardware
+  dbg_print("Initializing SPI bus...");
   spibus_init();
-  hal_ainser64_init();
-  hal_uart_midi_init();
+  dbg_print(" OK\r\n");
   
-  const char* msg = "[TEST] AINSER64 module test started\r\n";
-  for (const char* p = msg; *p; p++) {
-    hal_uart_midi_send_byte(1, (uint8_t)*p);
-  }
+  dbg_print("Initializing AINSER64...");
+  hal_ainser64_init();
+  dbg_print(" OK\r\n");
+  
+  dbg_print("Initializing UART MIDI...");
+  hal_uart_midi_init();
+  dbg_print(" OK\r\n");
+  
+  dbg_print_separator();
+  dbg_print("Scanning 64 channels continuously...\r\n");
+  dbg_print("Press Ctrl+C to stop\r\n");
+  dbg_print_separator();
+  
+  uint32_t scan_count = 0;
   
   for (;;) {
     for (uint8_t step = 0; step < 8; ++step) {
       uint16_t vals[8];
       if (hal_ainser64_read_bank_step(0u, step, vals) == 0) {
         // Successfully read values
-        // Could output to UART/OLED here
+        // Print every 100th scan to avoid flooding
+        if ((scan_count % 100) == 0) {
+          dbg_print("Step ");
+          dbg_print_uint(step);
+          dbg_print(": ");
+          for (uint8_t ch = 0; ch < 8; ch++) {
+            uint8_t idx = step * 8 + ch;
+            dbg_print("CH");
+            if (idx < 10) dbg_putc('0');
+            dbg_print_uint(idx);
+            dbg_print("=");
+            dbg_print_uint(vals[ch]);
+            if (ch < 7) dbg_print(" ");
+          }
+          dbg_println();
+        }
       }
     }
+    scan_count++;
     osDelay(10);
   }
 #else
   // Module not enabled
+  dbg_print("ERROR: AINSER64 module not enabled\r\n");
+  dbg_print("Enable MODULE_ENABLE_AINSER64 and MODULE_ENABLE_AIN\r\n");
   for (;;) osDelay(1000);
 #endif
 }
@@ -200,9 +273,6 @@ void module_test_srio_run(void)
   // Use existing DIN selftest
   din_selftest_run();
 #elif MODULE_ENABLE_SRIO
-  #include "Services/srio/srio.h"
-  #include "Services/srio/srio_user_config.h"
-  
   srio_config_t scfg = {
     .hspi = SRIO_SPI_HANDLE,
     .din_pl_port = SRIO_DIN_PL_PORT,
@@ -234,8 +304,6 @@ void module_test_midi_din_run(void)
   // Use existing DIN MIDI test
   app_test_din_midi_run_forever();
 #elif MODULE_ENABLE_MIDI_DIN
-  #include "Services/midi/midi_din.h"
-  
   // Simple MIDI echo test
   for (;;) {
     osDelay(10);
@@ -250,8 +318,6 @@ void module_test_midi_din_run(void)
 void module_test_router_run(void)
 {
 #if MODULE_ENABLE_ROUTER
-  #include "Services/router/router.h"
-  
   router_init();
   
   // Test basic router functionality
@@ -272,8 +338,6 @@ void module_test_looper_run(void)
   app_start_looper_selftest();
   for (;;) osDelay(1000);
 #elif MODULE_ENABLE_LOOPER
-  #include "Services/looper/looper.h"
-  
   looper_init();
   
   // Basic looper test cycle
@@ -290,8 +354,6 @@ void module_test_looper_run(void)
 void module_test_ui_run(void)
 {
 #if MODULE_ENABLE_UI && MODULE_ENABLE_OLED
-  #include "Services/ui/ui.h"
-  
   // Test UI drawing
   for (;;) {
     osDelay(100);
@@ -306,9 +368,6 @@ void module_test_ui_run(void)
 int module_test_patch_sd_run(void)
 {
 #if MODULE_ENABLE_PATCH
-  #include "Services/patch/patch_sd_mount.h"
-  #include "Services/patch/patch.h"
-  
   // Test SD card mounting
   int result = patch_sd_mount_retry(3);
   if (result == 0) {
@@ -326,8 +385,6 @@ int module_test_patch_sd_run(void)
 void module_test_pressure_run(void)
 {
 #if MODULE_ENABLE_PRESSURE
-  #include "Services/pressure/pressure_i2c.h"
-  
   // Test pressure sensor
   for (;;) {
     osDelay(100);
