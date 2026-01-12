@@ -295,7 +295,7 @@ const char* rhythm_trainer_eval_name(rhythm_eval_t eval) {
  * @brief Set audio feedback mode
  */
 void rhythm_trainer_set_feedback_mode(uint8_t mode) {
-  if (mode > 2) mode = 0; // Clamp to valid range
+  if (mode > RHYTHM_FEEDBACK_WARNING) mode = RHYTHM_FEEDBACK_NONE; // Clamp to valid range
   
   if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
   g_config.feedback_mode = mode;
@@ -346,7 +346,7 @@ int rhythm_trainer_process_note(uint32_t tick, uint8_t note_num, uint8_t velocit
   if (g_mutex) osMutexRelease(g_mutex);
   
   // Apply audio feedback based on mode and evaluation
-  if (feedback_mode == 0) {
+  if (feedback_mode == RHYTHM_FEEDBACK_NONE) {
     // NONE - pass through all notes
     *out_note_num = note_num;
     *out_velocity = velocity;
@@ -364,10 +364,10 @@ int rhythm_trainer_process_note(uint32_t tick, uint8_t note_num, uint8_t velocit
   }
   
   // Bad timing - apply feedback
-  if (feedback_mode == 1) {
+  if (feedback_mode == RHYTHM_FEEDBACK_MUTE) {
     // MUTE mode - block the note
     return 0;
-  } else if (feedback_mode == 2) {
+  } else if (feedback_mode == RHYTHM_FEEDBACK_WARNING) {
     // WARNING mode - replace with warning sound
     if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
     *out_note_num = g_config.warning_note;

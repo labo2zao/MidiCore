@@ -210,7 +210,7 @@ static void draw_parameters(uint8_t x, uint8_t y) {
   highlight = (s_edit_mode && s_selected_param == PARAM_FEEDBACK) ? 1 : 0;
   const char* feedback_names[] = {"NONE", "MUTE", "WARN"};
   uint8_t feedback_mode = rhythm_trainer_get_feedback_mode();
-  if (feedback_mode > 2) feedback_mode = 0;
+  if (feedback_mode > RHYTHM_FEEDBACK_WARNING) feedback_mode = RHYTHM_FEEDBACK_NONE;
   snprintf(buf, sizeof(buf), "%sFeedback: %s", highlight ? ">" : " ", feedback_names[feedback_mode]);
   gfx_text(x, row_y, buf, GFX_FONT_SMALL);
 }
@@ -375,8 +375,8 @@ void ui_page_rhythm_encoder(int8_t delta) {
         {
           uint8_t mode = rhythm_trainer_get_feedback_mode();
           int8_t new_mode = (int8_t)mode + delta;
-          if (new_mode < 0) new_mode = 2;  // NONE, MUTE, WARNING
-          if (new_mode > 2) new_mode = 0;
+          if (new_mode < 0) new_mode = RHYTHM_FEEDBACK_WARNING;  // Wrap around
+          if (new_mode > RHYTHM_FEEDBACK_WARNING) new_mode = RHYTHM_FEEDBACK_NONE;
           rhythm_trainer_set_feedback_mode((uint8_t)new_mode);
         }
         break;
