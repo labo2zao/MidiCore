@@ -37,13 +37,15 @@ void instrument_cfg_defaults(instrument_cfg_t* c) {
   c->vel_gamma = 1.35f;
 }
 
-static void trim(char* s) {
-  while (*s && isspace((unsigned char)*s)) memmove(s, s+1, strlen(s));
+static inline void trim(char* s) {
+  char* p = s;
+  while (*p && isspace((unsigned char)*p)) p++;
+  if (p != s) memmove(s, p, strlen(p)+1);
   size_t n=strlen(s);
   while (n && isspace((unsigned char)s[n-1])) s[--n]=0;
 }
 
-static int keyeq(const char* a, const char* b) {
+static inline int keyeq(const char* a, const char* b) {
   while (*a && *b) {
     char ca=(char)toupper((unsigned char)*a++);
     char cb=(char)toupper((unsigned char)*b++);
@@ -52,9 +54,23 @@ static int keyeq(const char* a, const char* b) {
   return *a==0 && *b==0;
 }
 
-static uint8_t parse_u8(const char* v) { long x=strtol(v,0,10); if(x<0)x=0; if(x>255)x=255; return (uint8_t)x; }
-static uint16_t parse_u16(const char* v) { long x=strtol(v,0,10); if(x<0)x=0; if(x>65535)x=65535; return (uint16_t)x; }
-static float parse_f(const char* v) { return (float)strtod(v,0); }
+static inline uint8_t parse_u8(const char* v) { 
+  long x=strtol(v,0,10); 
+  if(x<0)x=0; 
+  if(x>255)x=255; 
+  return (uint8_t)x; 
+}
+
+static inline uint16_t parse_u16(const char* v) { 
+  long x=strtol(v,0,10); 
+  if(x<0)x=0; 
+  if(x>65535)x=65535; 
+  return (uint16_t)x; 
+}
+
+static inline float parse_f(const char* v) { 
+  return (float)strtod(v,0); 
+}
 
 static uint8_t parse_apply_mask(const char* v) {
   uint8_t m=0;
