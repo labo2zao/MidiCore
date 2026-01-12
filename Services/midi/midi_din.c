@@ -34,55 +34,30 @@ typedef struct {
 
 static midi_din_port_ctx_t g_ctx[MIDI_DIN_PORTS];
 
-static uint8_t midi_expected_len(uint8_t status)
+static inline uint8_t midi_expected_len(uint8_t status)
 {
-  if (status < 0x80)
+  if (status < 0x80u)
     return 0;
 
-  if (status < 0xF0) {
-    switch (status & 0xF0) {
-      case 0xC0: // Program Change
-      case 0xD0: // Channel Pressure
-        return 2;
-      default:
-        return 3;
+  if (status < 0xF0u) {
+    uint8_t type = status & 0xF0u;
+    if (type == 0xC0u || type == 0xD0u) {
+      return 2;
     }
+    return 3;
   }
 
   // System Common + Realtime
-  switch (status) {
-    case 0xF0: // SysEx start (variable)
-      return 0;
-    case 0xF1: // MTC Quarter Frame
-      return 2;
-    case 0xF2: // Song Position
-      return 3;
-    case 0xF3: // Song Select
-      return 2;
-    case 0xF6: // Tune Request
-      return 1;
-    case 0xF7: // End of SysEx
-      return 1;
-
-    // Realtime messages (can appear anytime)
-    case 0xF8:
-    case 0xF9:
-    case 0xFA:
-    case 0xFB:
-    case 0xFC:
-    case 0xFD:
-    case 0xFE:
-    case 0xFF:
-      return 1;
-    default:
-      return 1;
-  }
+  if (status >= 0xF8u) return 1; // All realtime messages
+  if (status == 0xF0u) return 0; // SysEx start
+  if (status == 0xF2u) return 3; // Song Position
+  if (status == 0xF1u || status == 0xF3u) return 2; // MTC/Song Select
+  return 1; // F6, F7, and others
 }
 
 static void dispatch_short_msg(uint8_t port, const uint8_t* bytes, uint8_t len)
 {
   router_msg_t msg;
-  memset(&msg, 0, sizeof(msg));
   msg.src = (router_node_t)(ROUTER_NODE_DIN_IN1 + port);
 
   if (len == 1) {
@@ -103,7 +78,6 @@ static void dispatch_short_msg(uint8_t port, const uint8_t* bytes, uint8_t len)
   midi_din_port_ctx_t* c = &g_ctx[port];
   c->stats.rx_msgs++;
   c->stats.last_len = len;
-  memset(c->stats.last_bytes, 0, sizeof(c->stats.last_bytes));
   memcpy(c->stats.last_bytes, bytes, len);
 
   router_dispatch(&msg);
@@ -115,7 +89,6 @@ static void dispatch_sysex_chunk(uint8_t port, const uint8_t* data, uint16_t len
     return;
 
   router_msg_t msg;
-  memset(&msg, 0, sizeof(msg));
   msg.src = (router_node_t)(ROUTER_NODE_DIN_IN1 + port);
   msg.type = ROUTER_MSG_SYSEX;
   msg.data.sysex.data = data;
@@ -125,12 +98,11 @@ static void dispatch_sysex_chunk(uint8_t port, const uint8_t* data, uint16_t len
   midi_din_port_ctx_t* c = &g_ctx[port];
   c->stats.rx_sysex_chunks++;
   c->stats.last_len = 0;
-  memset(c->stats.last_bytes, 0, sizeof(c->stats.last_bytes));
 
   router_dispatch(&msg);
 }
 
-static void sysex_reset(midi_din_port_ctx_t* c)
+static inline void sysex_reset(midi_din_port_ctx_t* c)
 {
   c->in_sysex = 0;
   c->sysex_len = 0;

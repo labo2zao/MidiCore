@@ -39,8 +39,8 @@ static const float    WA        = 0.7f;
 static ain_event_t evq[EVQ_SIZE];
 static volatile uint8_t evq_w = 0, evq_r = 0;
 
-static void evq_push(const ain_event_t* e) {
-  uint8_t next = (uint8_t)((evq_w + 1) % EVQ_SIZE);
+static inline void evq_push(const ain_event_t* e) {
+  uint8_t next = (uint8_t)((evq_w + 1) & (EVQ_SIZE - 1));
   if (next == evq_r) return;
   evq[evq_w] = *e;
   evq_w = next;
@@ -49,11 +49,11 @@ static void evq_push(const ain_event_t* e) {
 uint8_t ain_pop_event(ain_event_t* ev) {
   if (evq_r == evq_w) return 0;
   *ev = evq[evq_r];
-  evq_r = (uint8_t)((evq_r + 1) % EVQ_SIZE);
+  evq_r = (uint8_t)((evq_r + 1) & (EVQ_SIZE - 1));
   return 1;
 }
 
-static uint16_t clamp_u16(int32_t v, uint16_t lo, uint16_t hi) {
+static inline uint16_t clamp_u16(int32_t v, uint16_t lo, uint16_t hi) {
   if (v < (int32_t)lo) return lo;
   if (v > (int32_t)hi) return hi;
   return (uint16_t)v;
@@ -67,7 +67,7 @@ static uint16_t normalize(uint16_t raw, uint16_t mn, uint16_t mx) {
   return clamp_u16(p, 0, 16383);
 }
 
-static uint32_t now_ms(void) { return (uint32_t)osKernelGetTickCount(); }
+static inline uint32_t now_ms(void) { return (uint32_t)osKernelGetTickCount(); }
 
 static uint8_t map_velocity_A(uint32_t dt_ms) {
   if (dt_ms <= DT_MIN_MS) return 127;
@@ -90,11 +90,12 @@ static uint8_t map_velocity_B(uint16_t vb_ema) {
   return (uint8_t)v;
 }
 
-static uint8_t fuse_vel(uint8_t vA, uint8_t vB) {
-  float vf = WA * (float)vA + (1.0f - WA) * (float)vB;
-  if (vf < 1.0f) vf = 1.0f;
-  if (vf > 127.0f) vf = 127.0f;
-  return (uint8_t)(vf + 0.5f);
+static inline uint8_t fuse_vel(uint8_t vA, uint8_t vB) {
+  // Use integer arithmetic instead of floating point for performance
+  uint32_t vf = ((uint32_t)vA * 70u + (uint32_t)vB * 30u) / 100u;
+  if (vf < 1u) vf = 1u;
+  if (vf > 127u) vf = 127u;
+  return (uint8_t)vf;
 }
 
 static void process_key(uint8_t key, uint16_t raw) {
