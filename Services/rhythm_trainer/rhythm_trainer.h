@@ -40,6 +40,13 @@ typedef struct {
   uint8_t accuracy_percent;   // Overall accuracy (0-100%)
 } rhythm_stats_t;
 
+// Audio feedback modes
+typedef enum {
+  RHYTHM_FEEDBACK_NONE = 0,     // No audio feedback - all notes play normally
+  RHYTHM_FEEDBACK_MUTE,         // Mute notes outside good threshold
+  RHYTHM_FEEDBACK_WARNING       // Replace off-beat notes with warning sound
+} rhythm_feedback_mode_t;
+
 // Training configuration
 typedef struct {
   uint8_t enabled;            // Trainer active flag
@@ -60,6 +67,13 @@ typedef struct {
   // Difficulty progression
   uint8_t adaptive;           // Auto-adjust thresholds based on performance
   uint8_t target_accuracy;    // Target accuracy for threshold tightening (80-100%)
+  
+  // Audio feedback
+  uint8_t feedback_mode;      // NONE, MUTE, or WARNING
+  uint8_t warning_note;       // MIDI note for warning (default: 38 - snare)
+  uint8_t warning_velocity;   // Velocity for warning (default: 90)
+  uint8_t warning_channel;    // MIDI channel (default: 9 - drums)
+  uint8_t warning_port;       // Output port
 } rhythm_config_t;
 
 /**
@@ -163,6 +177,47 @@ void rhythm_trainer_set_thresholds(uint16_t perfect_ticks, uint16_t good_ticks, 
  * @return String name ("PERFECT", "GOOD", "EARLY", "LATE", "OFF")
  */
 const char* rhythm_trainer_eval_name(rhythm_eval_t eval);
+
+/**
+ * @brief Set audio feedback mode
+ * @param mode NONE, MUTE, or WARNING
+ */
+void rhythm_trainer_set_feedback_mode(uint8_t mode);
+
+/**
+ * @brief Get audio feedback mode
+ * @return Current feedback mode
+ */
+uint8_t rhythm_trainer_get_feedback_mode(void);
+
+/**
+ * @brief Configure warning sound parameters
+ * @param note MIDI note number for warning
+ * @param velocity Velocity for warning note
+ * @param channel MIDI channel (typically 9 for drums)
+ * @param port Output port
+ */
+void rhythm_trainer_set_warning_sound(uint8_t note, uint8_t velocity, 
+                                      uint8_t channel, uint8_t port);
+
+/**
+ * @brief Process note with audio feedback (call before sending to output)
+ * @param tick Current tick position
+ * @param note_num MIDI note number
+ * @param velocity MIDI velocity
+ * @param out_note_num Output note (may be changed to warning)
+ * @param out_velocity Output velocity (may be changed)
+ * @param out_channel Output channel (may be changed)
+ * @return 1 to allow note, 0 to mute
+ * 
+ * This function evaluates the note timing and applies audio feedback.
+ * - NONE mode: Always returns 1 (allow note)
+ * - MUTE mode: Returns 0 for off-beat notes (mute)
+ * - WARNING mode: Returns 1 but modifies out_* to warning sound for off-beat notes
+ */
+int rhythm_trainer_process_note(uint32_t tick, uint8_t note_num, uint8_t velocity,
+                                uint8_t* out_note_num, uint8_t* out_velocity, 
+                                uint8_t* out_channel);
 
 #ifdef __cplusplus
 }

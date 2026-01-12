@@ -33,6 +33,13 @@ void rhythm_trainer_init(void) {
   g_config.adaptive = 0;
   g_config.target_accuracy = 85;
   
+  // Audio feedback defaults
+  g_config.feedback_mode = 0;     // NONE
+  g_config.warning_note = 38;     // Snare drum
+  g_config.warning_velocity = 90;
+  g_config.warning_channel = 9;   // Drum channel
+  g_config.warning_port = 0;
+  
   g_last_eval = RHYTHM_EVAL_OFF;
   g_last_error = 0;
   
@@ -282,4 +289,96 @@ const char* rhythm_trainer_eval_name(rhythm_eval_t eval) {
     case RHYTHM_EVAL_OFF:     return "OFF";
     default:                  return "UNKNOWN";
   }
+}
+
+/**
+ * @brief Set audio feedback mode
+ */
+void rhythm_trainer_set_feedback_mode(uint8_t mode) {
+  if (mode > 2) mode = 0; // Clamp to valid range
+  
+  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  g_config.feedback_mode = mode;
+  if (g_mutex) osMutexRelease(g_mutex);
+}
+
+/**
+ * @brief Get audio feedback mode
+ */
+uint8_t rhythm_trainer_get_feedback_mode(void) {
+  return g_config.feedback_mode;
+}
+
+/**
+ * @brief Configure warning sound parameters
+ */
+void rhythm_trainer_set_warning_sound(uint8_t note, uint8_t velocity, 
+                                      uint8_t channel, uint8_t port) {
+  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  
+  g_config.warning_note = note;
+  g_config.warning_velocity = velocity;
+  g_config.warning_channel = channel;
+  g_config.warning_port = port;
+  
+  if (g_mutex) osMutexRelease(g_mutex);
+}
+
+/**
+ * @brief Process note with audio feedback
+ */
+int rhythm_trainer_process_note(uint32_t tick, uint8_t note_num, uint8_t velocity,
+                                uint8_t* out_note_num, uint8_t* out_velocity, 
+                                uint8_t* out_channel) {
+  if (!g_config.enabled) {
+    // Trainer disabled - pass through
+    *out_note_num = note_num;
+    *out_velocity = velocity;
+    // out_channel left unchanged
+    return 1;
+  }
+  
+  // Evaluate the note timing
+  rhythm_eval_t eval = rhythm_trainer_evaluate_note(tick, note_num, velocity);
+  
+  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  uint8_t feedback_mode = g_config.feedback_mode;
+  if (g_mutex) osMutexRelease(g_mutex);
+  
+  // Apply audio feedback based on mode and evaluation
+  if (feedback_mode == 0) {
+    // NONE - pass through all notes
+    *out_note_num = note_num;
+    *out_velocity = velocity;
+    return 1;
+  }
+  
+  // Check if note is within acceptable timing (PERFECT or GOOD)
+  int is_good_timing = (eval == RHYTHM_EVAL_PERFECT || eval == RHYTHM_EVAL_GOOD);
+  
+  if (is_good_timing) {
+    // Good timing - allow note to play
+    *out_note_num = note_num;
+    *out_velocity = velocity;
+    return 1;
+  }
+  
+  // Bad timing - apply feedback
+  if (feedback_mode == 1) {
+    // MUTE mode - block the note
+    return 0;
+  } else if (feedback_mode == 2) {
+    // WARNING mode - replace with warning sound
+    if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+    *out_note_num = g_config.warning_note;
+    *out_velocity = g_config.warning_velocity;
+    *out_channel = g_config.warning_channel;
+    if (g_mutex) osMutexRelease(g_mutex);
+    return 1;
+  }
+  
+  // Default - pass through
+  *out_note_num = note_num;
+  *out_velocity = velocity;
+  return 1;
 }

@@ -14,7 +14,8 @@ static uint8_t s_selected_param = 0;     // Parameter selection
 #define PARAM_PERFECT      2
 #define PARAM_GOOD         3
 #define PARAM_ADAPTIVE     4
-#define PARAM_COUNT        5
+#define PARAM_FEEDBACK     5
+#define PARAM_COUNT        6
 
 // Difficulty levels with preset thresholds
 typedef enum {
@@ -203,6 +204,15 @@ static void draw_parameters(uint8_t x, uint8_t y) {
   highlight = (s_edit_mode && s_selected_param == PARAM_ADAPTIVE) ? 1 : 0;
   snprintf(buf, sizeof(buf), "%sAdaptive: %s", highlight ? ">" : " ", config.adaptive ? "ON" : "OFF");
   gfx_text(x, row_y, buf, GFX_FONT_SMALL);
+  row_y += 10;
+  
+  // Feedback mode
+  highlight = (s_edit_mode && s_selected_param == PARAM_FEEDBACK) ? 1 : 0;
+  const char* feedback_names[] = {"NONE", "MUTE", "WARN"};
+  uint8_t feedback_mode = rhythm_trainer_get_feedback_mode();
+  if (feedback_mode > 2) feedback_mode = 0;
+  snprintf(buf, sizeof(buf), "%sFeedback: %s", highlight ? ">" : " ", feedback_names[feedback_mode]);
+  gfx_text(x, row_y, buf, GFX_FONT_SMALL);
 }
 
 /**
@@ -358,6 +368,16 @@ void ui_page_rhythm_encoder(int8_t delta) {
         if (delta != 0) {
           config.adaptive = !config.adaptive;
           rhythm_trainer_set_config(&config);
+        }
+        break;
+        
+      case PARAM_FEEDBACK:
+        {
+          uint8_t mode = rhythm_trainer_get_feedback_mode();
+          int8_t new_mode = (int8_t)mode + delta;
+          if (new_mode < 0) new_mode = 2;  // NONE, MUTE, WARNING
+          if (new_mode > 2) new_mode = 0;
+          rhythm_trainer_set_feedback_mode((uint8_t)new_mode);
         }
         break;
     }
