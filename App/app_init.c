@@ -161,18 +161,18 @@ static void plot_event(uint8_t key, uint8_t vel, uint8_t on)
   uint8_t gray = on ? 0xF : 0x3;
 
   // Set a 2x2 block for visibility.
-  for (uint16_t dy=0; dy<2; dy++) {
-    for (uint16_t dx=0; dx<2; dx++) {
+  for (uint16_t dy=0; dy<2u; dy++) {
+    for (uint16_t dx=0; dx<2u; dx++) {
       uint16_t xx = x + dx;
       uint16_t yy = y + dy;
-      if (xx >= 256 || yy >= 64) continue;
+      if (xx >= 256u || yy >= 64u) continue;
 
-      uint32_t idx = (yy * 256u + xx);
-      uint32_t byte = idx >> 1; // 2 pixels per byte
-      uint8_t hi = (idx & 1u) == 0; // even pixel -> high nibble
+      uint32_t idx = (yy << 8u) + xx; // Optimize: yy * 256 as shift
+      uint32_t byte = idx >> 1u; // 2 pixels per byte
+      uint8_t hi = (idx & 1u) == 0u; // even pixel -> high nibble
       uint8_t v = fb[byte];
-      if (hi) v = (uint8_t)((v & 0x0F) | (gray << 4));
-      else    v = (uint8_t)((v & 0xF0) | (gray & 0x0F));
+      if (hi) v = (uint8_t)((v & 0x0Fu) | (gray << 4));
+      else    v = (uint8_t)((v & 0xF0u) | (gray & 0x0Fu));
       fb[byte] = v;
     }
   }
@@ -203,10 +203,10 @@ static void OledDemoTask(void *argument)
 
     osDelay(10);
   }
-}static uint8_t din_get_bit(const uint8_t* din, uint16_t phys) {
-  uint16_t byte = (uint16_t)(phys >> 3);
-  uint8_t bit = (uint8_t)(phys & 7u);
-  return (din[byte] & (1u<<bit)) ? 1u : 0u;
+}static inline uint8_t din_get_bit(const uint8_t* din, uint16_t phys) {
+  uint16_t byte = phys >> 3u;
+  uint8_t bit = phys & 7u;
+  return (din[byte] & (1u << bit)) ? 1u : 0u;
 }
 
 /** Boot-time SHIFT detection.

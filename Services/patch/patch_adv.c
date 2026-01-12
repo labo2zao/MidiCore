@@ -21,8 +21,9 @@ static void str_trim(char* s) {
   while (n && isspace((unsigned char)s[n-1])) { s[n-1] = 0; n--; }
 }
 
-static uint8_t starts_with(const char* s, const char* pfx) {
-  return strncmp(s, pfx, strlen(pfx)) == 0;
+static inline uint8_t starts_with(const char* s, const char* pfx) {
+  size_t pfx_len = strlen(pfx);
+  return strncmp(s, pfx, pfx_len) == 0;
 }
 
 static void clear_all(void) {
@@ -30,7 +31,10 @@ static void clear_all(void) {
   g_count = 0;
 }
 
-void patch_adv_init(void) { clear_all(); }
+void patch_adv_init(void) { 
+  g_count = 0;
+  // No need to clear entire array; only clear entries as they're reused
+}
 
 static int find_entry(const char* section, const char* key, const char* cond) {
   if (!cond) cond = "";

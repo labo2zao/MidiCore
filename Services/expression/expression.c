@@ -11,7 +11,11 @@ static float g_filt = 0.0f;
 static uint8_t g_last_sent = 255;
 static int8_t g_last_dir = 0;
 
-static uint8_t clamp8(int v){ if(v<0) return 0; if(v>127) return 127; return (uint8_t)v; }
+static inline uint8_t clamp8(int v){ 
+  if(v<0) return 0; 
+  if(v>127) return 127; 
+  return (uint8_t)v; 
+}
 
 static float apply_curve(float t){
   if(t < 0.0f) t = 0.0f;
