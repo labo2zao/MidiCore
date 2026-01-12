@@ -8,7 +8,8 @@
 #include "Hal/spi_bus.h"
 #include "Config/ainser64_pins.h" // AIN_CS_* used by SPIBUS_DEV_AIN
 
-#include "stm32f4xx_hal.h"
+// Include main.h for portable STM32 HAL (F4/F7/H7 compatibility)
+#include "main.h"
 
 // -----------------------------------------------------------------------------
 // Mapping & options
@@ -73,10 +74,10 @@ static inline uint8_t compute_link_led_bit(void)
   if (!g_link_led_enable)
     return 0;
 
-  // Slow blink: ~2 Hz, cheap PWM-ish (good enough for a status LED)
-  // (toggle every 250 ms)
+  // Slow blink: ~2 Hz (256ms period instead of 250ms)
+  // Optimized with bit shift for performance
   uint32_t t = HAL_GetTick();
-  return (uint8_t)(((t / 250u) & 1u) ? 1u : 0u);
+  return (uint8_t)((t >> 8u) & 1u);
 }
 
 // -----------------------------------------------------------------------------

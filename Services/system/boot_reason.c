@@ -1,7 +1,8 @@
 #include "Services/system/boot_reason.h"
 
-#if __has_include("stm32f4xx_hal.h")
-  #include "stm32f4xx_hal.h"
+#if __has_include("main.h")
+  // Include main.h for portable STM32 HAL (F4/F7/H7 compatibility)
+  #include "main.h"
   #define BR_HAS_HAL 1
 #else
   #define BR_HAS_HAL 0

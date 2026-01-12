@@ -61,26 +61,24 @@ static void update_rate(void) {
   if (g_ticks_per_ms_q16 == 0) g_ticks_per_ms_q16 = 1;
 }
 
-static uint32_t beats_to_ticks(uint16_t beats) {
+static inline uint32_t beats_to_ticks(uint16_t beats) {
   return (uint32_t)beats * (uint32_t)LOOPER_PPQN;
 }
 
-static uint32_t quant_step_ticks(looper_quant_t q) {
-  switch (q) {
-    default:
-    case LOOPER_QUANT_OFF:  return 0;
-    case LOOPER_QUANT_1_16: return (uint32_t)LOOPER_PPQN / 4u;
-    case LOOPER_QUANT_1_8:  return (uint32_t)LOOPER_PPQN / 2u;
-    case LOOPER_QUANT_1_4:  return (uint32_t)LOOPER_PPQN;
-  }
+static inline uint32_t quant_step_ticks(looper_quant_t q) {
+  // Optimized with bit shifts for power-of-2 divisions
+  if (q == LOOPER_QUANT_1_16) return (uint32_t)LOOPER_PPQN >> 2u;
+  if (q == LOOPER_QUANT_1_8)  return (uint32_t)LOOPER_PPQN >> 1u;
+  if (q == LOOPER_QUANT_1_4)  return (uint32_t)LOOPER_PPQN;
+  return 0; // LOOPER_QUANT_OFF or default
 }
 
-static uint32_t quantize_tick(uint32_t t, uint32_t step) {
+static inline uint32_t quantize_tick(uint32_t t, uint32_t step) {
   if (!step) return t;
   uint32_t r = t % step;
+  uint32_t half_step = step >> 1u;
   uint32_t down = t - r;
-  uint32_t up = down + step;
-  return (r < (step/2u)) ? down : up;
+  return (r < half_step) ? down : (down + step);
 }
 
 static void clear_track(looper_track_t* t) {

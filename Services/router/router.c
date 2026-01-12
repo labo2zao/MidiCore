@@ -22,13 +22,13 @@ static route_t g_routes[ROUTER_NUM_NODES][ROUTER_NUM_NODES];
 static router_send_fn_t g_send = 0;
 static osMutexId_t g_router_mutex;
 
-static uint8_t is_channel_voice(uint8_t status) {
-  uint8_t hi = status & 0xF0;
-  return (hi >= 0x80 && hi <= 0xE0);
+static inline uint8_t is_channel_voice(uint8_t status) {
+  uint8_t hi = status & 0xF0u;
+  return (hi >= 0x80u && hi <= 0xE0u);
 }
 
-static uint16_t msg_channel_bit(const router_msg_t* msg) {
-  uint8_t ch = (msg->b0 & 0x0F); // 0..15
+static inline uint16_t msg_channel_bit(const router_msg_t* msg) {
+  uint8_t ch = (msg->b0 & 0x0Fu); // 0..15
   return (uint16_t)(1u << ch);
 }
 
@@ -37,9 +37,7 @@ void router_init(router_send_fn_t send_cb) {
   memset(g_routes, 0, sizeof(g_routes));
   for (uint8_t i=0;i<ROUTER_NUM_NODES;i++) {
     for (uint8_t j=0;j<ROUTER_NUM_NODES;j++) {
-      g_routes[i][j].enabled = 0;
       g_routes[i][j].chmask = ROUTER_CHMASK_ALL;
-      g_routes[i][j].label[0] = '\0';
     }
   }
   const osMutexAttr_t attr = { .name = "router" };

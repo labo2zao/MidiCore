@@ -15,7 +15,10 @@ typedef struct {
 static item_t q[MIDI_DELAYQ_MAX];
 
 void midi_delayq_init(void) {
-  memset(q,0,sizeof(q));
+  // Only clear used flags; rest will be initialized when slot is used
+  for (uint32_t i = 0; i < MIDI_DELAYQ_MAX; i++) {
+    q[i].used = 0;
+  }
 }
 
 void midi_delayq_send(uint8_t in_node, const router_msg_t* msg, uint16_t delay_ms) {

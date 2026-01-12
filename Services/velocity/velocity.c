@@ -1,8 +1,14 @@
 #include "Services/velocity/velocity.h"
 #include <math.h>
 
-static float norm(uint8_t v) { return (float)v / 127.0f; }
-static uint8_t denorm(float x) {
+// Pre-computed constant for velocity normalization (1/127)
+#define VELOCITY_NORM_FACTOR (1.0f / 127.0f)
+
+static inline float norm(uint8_t v) { 
+  return (float)v * VELOCITY_NORM_FACTOR; 
+}
+
+static inline uint8_t denorm(float x) {
   if (x < 0.0f) x = 0.0f;
   if (x > 1.0f) x = 1.0f;
   int iv = (int)lrintf(x * 127.0f);
