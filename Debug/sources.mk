@@ -61,6 +61,7 @@ Services/midi \
 Services/patch \
 Services/pressure \
 Services/router \
+Services/router_hooks \
 Services/safe \
 Services/scale \
 Services/srio \

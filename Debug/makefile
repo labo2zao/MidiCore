@@ -21,6 +21,7 @@ RM := rm -rf
 -include Services/srio/subdir.mk
 -include Services/scale/subdir.mk
 -include Services/safe/subdir.mk
+-include Services/router_hooks/subdir.mk
 -include Services/router/subdir.mk
 -include Services/pressure/subdir.mk
 -include Services/patch/subdir.mk

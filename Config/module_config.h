@@ -149,6 +149,11 @@ extern "C" {
 #define MODULE_ENABLE_SCALE 1
 #endif
 
+/** @brief Enable Router Hooks (LiveFX/Monitor integration) */
+#ifndef MODULE_ENABLE_ROUTER_HOOKS
+#define MODULE_ENABLE_ROUTER_HOOKS 1
+#endif
+
 /** @brief Enable Zones configuration (keyboard split/layers) */
 #ifndef MODULE_ENABLE_ZONES
 #define MODULE_ENABLE_ZONES 1
