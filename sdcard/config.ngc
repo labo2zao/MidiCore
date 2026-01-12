@@ -3,100 +3,40 @@
 # Copy this file to SD card root as: 0:/config.ngc
 
 # =============================================================================
-# DIN Module Configuration (Digital Input via SRIO)
+# SUPPORTED PARAMETERS (parsed by config_io service)
 # =============================================================================
 
-# Enable DIN module
-# 0 = disabled, 1 = enabled
+# DIN Module Configuration (Digital Input via SRIO)
 SRIO_DIN_ENABLE = 1
-
-# Number of SRIO bytes to scan for DIN
-# Range: 1-16 (each byte = 8 digital inputs)
-# Default: 8 bytes = 64 inputs
 SRIO_DIN_BYTES = 8
-
-# Invert DIN input logic by default
-# 0 = normal (button press = logic 0)
-# 1 = inverted (button press = logic 1)
 DIN_INVERT_DEFAULT = 0
 
-# DIN debounce time in milliseconds
-# Range: 1-100 ms
-# Default: 20 ms
-DIN_DEBOUNCE_MS = 20
-
-# =============================================================================
 # AINSER Module Configuration (Analog Input via I2C)
-# =============================================================================
-
-# Enable AINSER64 module
-# 0 = disabled, 1 = enabled
 AINSER_ENABLE = 1
-
-# AINSER I2C address
-# Valid addresses: 0x48-0x4F (default: 0x48)
-# Each AINSER module must have a unique address
 AINSER_I2C_ADDR = 0x48
-
-# AINSER scan interval in milliseconds
-# Range: 1-100 ms
-# Lower = faster response, higher CPU usage
-# Default: 5 ms
 AINSER_SCAN_MS = 5
 
-# AINSER deadband (prevents jitter)
-# Range: 0-127
-# Higher = less sensitive to small changes
-# Default: 4
-AINSER_DEADBAND = 4
-
-# =============================================================================
-# AIN Module Configuration (Analog Input via STM32 ADC)
-# =============================================================================
-
-# Enable AIN module (built-in ADC)
-# 0 = disabled, 1 = enabled
-AIN_ENABLE = 1
-
-# Enable velocity sensing for AIN inputs
-# 0 = disabled, 1 = enabled
-# When enabled, rate of change affects MIDI velocity
+# AIN Module Configuration (Built-in ADC)
 AIN_VELOCITY_ENABLE = 1
-
-# Auto-calibrate AIN inputs
-# 0 = disabled, 1 = enabled
-# Automatically learns min/max range for each input
 AIN_CALIBRATE_AUTO = 1
 
-# AIN scan interval in milliseconds
-# Range: 1-100 ms
-# Default: 10 ms
-AIN_SCAN_MS = 10
-
-# AIN deadband (prevents jitter)
-# Range: 0-127
-# Default: 8
-AIN_DEADBAND = 8
-
 # =============================================================================
-# General MIDI Configuration
+# NOTES
 # =============================================================================
-
-# Default MIDI channel for controllers
-# Range: 1-16
-# Default: 1
-MIDI_DEFAULT_CHANNEL = 1
-
-# MIDI velocity curve
-# 0 = linear, 1 = soft, 2 = hard
-# Default: 0 (linear)
-MIDI_VELOCITY_CURVE = 0
-
-# =============================================================================
-# Notes
-# =============================================================================
-# - After editing this file, reload via Config page BTN2 (LOAD)
-# - Or power cycle MidiCore to load at startup
-# - Invalid values are replaced with defaults
-# - Lines without '=' are ignored
-# - Maximum line length: 128 characters
+# Only the 8 parameters above are currently implemented in config_io parser.
+# Other parameters are ignored (no error, just skipped).
+# 
+# Parameter Descriptions:
+# - SRIO_DIN_ENABLE: Enable DIN module (0=off, 1=on)
+# - SRIO_DIN_BYTES: SRIO bytes to scan (1-16, each byte = 8 inputs)
+# - DIN_INVERT_DEFAULT: Invert button logic (0=normal, 1=inverted)
+# - AINSER_ENABLE: Enable AINSER64 module (0=off, 1=on)
+# - AINSER_I2C_ADDR: I2C address (hex format: 0x48-0x4F)
+# - AINSER_SCAN_MS: Scan interval in milliseconds (1-100)
+# - AIN_VELOCITY_ENABLE: Enable velocity sensing (0=off, 1=on)
+# - AIN_CALIBRATE_AUTO: Auto-calibrate inputs (0=off, 1=on)
+#
+# Usage:
+# - Edit parameters and save to SD card as 0:/config.ngc
+# - Reload: Config page BTN2 (LOAD) or power cycle device
+# - Invalid values replaced with defaults

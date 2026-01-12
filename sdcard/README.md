@@ -9,15 +9,33 @@ Main configuration file for hardware modules (DIN, AINSER, AIN). This file uses 
 
 **Location on SD card**: `0:/config.ngc`
 
+**Supported Parameters** (config_io parser v1.0):
+- `SRIO_DIN_ENABLE` - Enable DIN module (0/1)
+- `SRIO_DIN_BYTES` - SRIO bytes to scan (1-16)
+- `DIN_INVERT_DEFAULT` - Invert button logic (0/1)
+- `AINSER_ENABLE` - Enable AINSER64 module (0/1)
+- `AINSER_I2C_ADDR` - I2C address (hex: 0x48-0x4F)
+- `AINSER_SCAN_MS` - Scan interval in ms (1-100)
+- `AIN_VELOCITY_ENABLE` - Enable velocity sensing (0/1)
+- `AIN_CALIBRATE_AUTO` - Auto-calibrate inputs (0/1)
+
+**Note**: Only the 8 parameters above are currently implemented. Other parameters in .NGC format are ignored (no error).
+
+### `config_minimal.ngc`
+Minimal hardware configuration for quick testing (only basic DIN support).
+
+### `config_full.ngc`
+Full hardware configuration with all modules enabled at maximum settings.
+
 ### `livefx_defaults.ngc`
 Default LiveFX settings for each track (transpose, velocity scaling, force-to-scale).
 
-**Location on SD card**: `0:/livefx_defaults.ngc` (future enhancement)
+**Location on SD card**: `0:/livefx_defaults.ngc` (future enhancement - parser not yet implemented)
 
 ### `rhythm_trainer.ngc`
 Rhythm trainer configuration (difficulty presets, thresholds, feedback mode).
 
-**Location on SD card**: `0:/rhythm_trainer.ngc` (future enhancement)
+**Location on SD card**: `0:/rhythm_trainer.ngc` (future enhancement - parser not yet implemented)
 
 ## File Format
 
@@ -26,11 +44,13 @@ All configuration files use the MIDIbox NG .NGC format:
 - Configuration format: `KEY = VALUE`
 - Whitespace around `=` is ignored
 - Values can be decimal (123) or hexadecimal (0x7B)
+- Unrecognized keys are silently ignored
+- Maximum line length: 128 characters
 
 ## Usage
 
 1. Format an SD card as FAT32
-2. Copy `config.ngc` (and any other desired files) to the SD card root
+2. Copy `config.ngc` (or `config_minimal.ngc`/`config_full.ngc`) to the SD card root as `0:/config.ngc`
 3. Insert SD card into MidiCore hardware
 4. Configuration is loaded automatically at startup
 5. Use the Config Editor UI page to modify settings

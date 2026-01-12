@@ -1,18 +1,14 @@
 # MidiCore Configuration - Minimal Setup
 # Use this for quick testing with minimal hardware
+# Only 8 supported parameters (matches config_io parser)
 
-# DIN Module - Minimal (1 byte = 8 buttons)
 SRIO_DIN_ENABLE = 1
 SRIO_DIN_BYTES = 1
 DIN_INVERT_DEFAULT = 0
-DIN_DEBOUNCE_MS = 20
 
-# AINSER Module - Disabled
 AINSER_ENABLE = 0
+AINSER_I2C_ADDR = 0x48
+AINSER_SCAN_MS = 5
 
-# AIN Module - Disabled
-AIN_ENABLE = 0
-
-# MIDI Configuration
-MIDI_DEFAULT_CHANNEL = 1
-MIDI_VELOCITY_CURVE = 0
+AIN_VELOCITY_ENABLE = 0
+AIN_CALIBRATE_AUTO = 0
