@@ -99,6 +99,26 @@ extern "C" {
 #define MODULE_ENABLE_UI 1
 #endif
 
+/** @brief Enable UI Song Mode page */
+#ifndef MODULE_ENABLE_UI_PAGE_SONG
+#define MODULE_ENABLE_UI_PAGE_SONG 1
+#endif
+
+/** @brief Enable UI MIDI Monitor page */
+#ifndef MODULE_ENABLE_UI_PAGE_MIDI_MONITOR
+#define MODULE_ENABLE_UI_PAGE_MIDI_MONITOR 1
+#endif
+
+/** @brief Enable UI SysEx page */
+#ifndef MODULE_ENABLE_UI_PAGE_SYSEX
+#define MODULE_ENABLE_UI_PAGE_SYSEX 1
+#endif
+
+/** @brief Enable UI Config Editor page */
+#ifndef MODULE_ENABLE_UI_PAGE_CONFIG
+#define MODULE_ENABLE_UI_PAGE_CONFIG 1
+#endif
+
 /** @brief Enable Expression pedal/pressure service */
 #ifndef MODULE_ENABLE_EXPRESSION
 #define MODULE_ENABLE_EXPRESSION 1
