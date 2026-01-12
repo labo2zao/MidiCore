@@ -159,7 +159,7 @@ Le SCS (Standard Control Surface) de MIDIbox NG offre une UI légère avec:
 - [x] Integration with force-to-scale
 - [x] UI page for LiveFX control (`ui_page_livefx.c/h`)
 - [x] Enable/disable per track
-- [ ] Integration with MIDI router pipeline
+- [x] Integration with MIDI router pipeline
 
 #### 2.2 Force-to-Scale ✅ COMPLETE
 - [x] Create `Services/scale/scale.c/h`
@@ -168,11 +168,28 @@ Le SCS (Standard Control Surface) de MIDIbox NG offre une UI légère avec:
 - [x] Real-time application via LiveFX
 - [x] UI for scale selection (integrated in LiveFX page)
 
-#### 2.3 Beatloop Enhancement
+#### 2.3 Router Integration ✅ COMPLETE
+- [x] Add `router_transform_hook()` for message transformation
+- [x] Add enhanced `router_tap_hook()` for message capture
+- [x] Create `Services/router_hooks/` integration module
+- [x] MIDI Monitor auto-capture
+- [x] SysEx auto-capture
+- [x] Per-output-node track mapping
+
+#### 2.4 Song Mode Backend ✅ COMPLETE
+- [x] Scene structure in looper (8 scenes × 4 tracks)
+- [x] Scene save/load functions
+- [x] Scene trigger/playback
+- [x] Current scene tracking
+- [x] Clip presence indicators
+- [x] UI integration with Song Mode page
+- [ ] Save/load song arrangements to SD (future)
+
+#### 2.5 Beatloop Enhancement
 - [ ] Visual loop region on timeline
 - [ ] Playhead indicator
 
-#### 2.4 Step Playback (NEW)
+#### 2.6 Step Playback (NEW)
 - [ ] Add cursor navigation functions
 - [ ] Forward/backward step functions
 - [ ] Footswitch integration
@@ -648,18 +665,23 @@ void looper_on_footswitch_bwd(void);  // Callback for backward footswitch
 | Scale Module | ✅ Done | scale.c/h | bebccea |
 | LiveFX UI Page | ✅ Done | ui_page_livefx.c/h | 2e20706 |
 | Build System (LiveFX/Scale) | ✅ Done | makefiles, module_config.h | 2e20706 |
-| LiveFX Router Integration | ⏳ Next | router.c integration | TBD |
-| Song Mode Backend | ⏳ Pending | looper.c (scenes) | TBD |
-| MIDI Monitor Backend | ⏳ Pending | MIDI router integration | TBD |
-| Beatloop UI Enhancement | ⏳ Pending | ui_page_looper_timeline.c | TBD |
-| MIDI Export | ⏳ Pending | midi_export.c | TBD |
+| Router Integration | ✅ Done | router.c/h, router_hooks.c/h | 3f24b4a |
+| MIDI Monitor Backend | ✅ Done | router_tap_hook integration | 3f24b4a |
+| SysEx Capture Backend | ✅ Done | router_tap_hook integration | 3f24b4a |
+| Song Mode Backend | ✅ Done | looper.c/h scene management | 7b19722 |
 | Config Editor SD Integration | ⏳ Pending | ui_page_config.c (file I/O) | TBD |
+| Beatloop UI Enhancement | ⏳ Pending | ui_page_looper_timeline.c | TBD |
 | Step Playback | ⏳ Pending | looper.c extensions | TBD |
+| MIDI Export | ⏳ Pending | midi_export.c | TBD |
 
 ---
 
 **Status Update (2026-01-12)**:
-- ✅ Phase 1 (UI Pages) Complete - 5 new pages implemented (Song, MIDI Monitor, SysEx, Config, LiveFX)
-- ⏳ Phase 2 (Looper Features) In Progress - LiveFX and Scale modules complete
-- 🎯 Current: LiveFX Module (transpose, velocity scaling, 15 musical scales)
-- Next: Router pipeline integration for real-time FX processing
+- ✅ Phase 1 (UI Pages) Complete - 5 new pages (Song, MIDI Monitor, SysEx, Config, LiveFX)
+- ✅ Phase 2 (Core Features) Mostly Complete:
+  - ✅ LiveFX with Scale quantization (15 scales)
+  - ✅ Router integration (real-time FX pipeline)
+  - ✅ MIDI Monitor/SysEx auto-capture
+  - ✅ Song Mode scene management (8 scenes × 4 tracks)
+- 🎯 Current: All major features functional, ready for hardware testing
+- Next: Config file I/O, beatloop enhancements, step playback
