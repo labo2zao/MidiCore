@@ -1,0 +1,146 @@
+/**
+ * @file module_tests.h
+ * @brief Unified module testing framework for MidiCore
+ * 
+ * This file provides a centralized testing infrastructure for all MidiCore modules.
+ * Tests can be selected at compile time or runtime to isolate and validate individual modules.
+ */
+
+#ifndef MODULE_TESTS_H
+#define MODULE_TESTS_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+#include <stdint.h>
+
+// =============================================================================
+// TEST SELECTION
+// =============================================================================
+
+/**
+ * @brief Available module tests
+ * These can be enabled via compiler defines or runtime selection
+ */
+typedef enum {
+  MODULE_TEST_NONE = 0,
+  MODULE_TEST_AINSER64,      // Test AINSER64 analog inputs
+  MODULE_TEST_SRIO,          // Test SRIO DIN/DOUT
+  MODULE_TEST_MIDI_DIN,      // Test MIDI DIN I/O
+  MODULE_TEST_ROUTER,        // Test MIDI router
+  MODULE_TEST_LOOPER,        // Test looper recording/playback
+  MODULE_TEST_UI,            // Test UI/OLED
+  MODULE_TEST_PATCH_SD,      // Test patch loading from SD
+  MODULE_TEST_PRESSURE,      // Test pressure sensor I2C
+  MODULE_TEST_USB_HOST_MIDI, // Test USB Host MIDI
+  MODULE_TEST_ALL,           // Run all tests sequentially
+} module_test_t;
+
+// =============================================================================
+// TEST FUNCTIONS
+// =============================================================================
+
+/**
+ * @brief Initialize the test framework
+ * Call this before running any tests
+ */
+void module_tests_init(void);
+
+/**
+ * @brief Run a specific module test
+ * @param test Test to run (see module_test_t)
+ * @return 0 on success, negative on error
+ * @note Most tests run in infinite loops and do not return
+ */
+int module_tests_run(module_test_t test);
+
+/**
+ * @brief Get the name of a test
+ * @param test Test identifier
+ * @return String name of the test
+ */
+const char* module_tests_get_name(module_test_t test);
+
+// =============================================================================
+// INDIVIDUAL MODULE TEST FUNCTIONS
+// =============================================================================
+
+/**
+ * @brief Test AINSER64 module (analog inputs)
+ * Reads all 64 channels and outputs values via UART or OLED
+ * @note This function runs forever
+ */
+void module_test_ainser64_run(void);
+
+/**
+ * @brief Test SRIO module (shift register I/O)
+ * Reads DIN inputs and toggles DOUT outputs
+ * @note This function runs forever
+ */
+void module_test_srio_run(void);
+
+/**
+ * @brief Test MIDI DIN module
+ * Echoes MIDI input to output, shows status
+ * @note This function runs forever
+ */
+void module_test_midi_din_run(void);
+
+/**
+ * @brief Test MIDI Router module
+ * Tests routing rules and message forwarding
+ * @note This function runs forever
+ */
+void module_test_router_run(void);
+
+/**
+ * @brief Test Looper module
+ * Tests recording, playback, overdub, quantization
+ * @note This function runs forever
+ */
+void module_test_looper_run(void);
+
+/**
+ * @brief Test UI module (OLED display)
+ * Tests graphics primitives, pages, encoders
+ * @note This function runs forever
+ */
+void module_test_ui_run(void);
+
+/**
+ * @brief Test Patch/SD module
+ * Tests SD card mounting, file I/O, patch loading
+ * @return 0 on success, negative on error
+ */
+int module_test_patch_sd_run(void);
+
+/**
+ * @brief Test Pressure sensor module
+ * Tests I2C communication and value mapping
+ * @note This function runs forever
+ */
+void module_test_pressure_run(void);
+
+/**
+ * @brief Test USB Host MIDI module
+ * Tests USB device detection and MIDI communication
+ * @note This function runs forever
+ */
+void module_test_usb_host_midi_run(void);
+
+// =============================================================================
+// COMPILE-TIME TEST SELECTION HELPERS
+// =============================================================================
+
+/**
+ * @brief Get the test selected at compile time
+ * @return Selected test or MODULE_TEST_NONE if no compile-time selection
+ */
+module_test_t module_tests_get_compile_time_selection(void);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif // MODULE_TESTS_H

@@ -28,6 +28,7 @@
 
 #include "App/tests/app_test_din_midi.h"
 #include "App/tests/app_test_ainser_midi.h"
+#include "App/tests/module_tests.h"
 #include "Services/usb_host_midi/usb_host_midi.h"
 /* USER CODE END Includes */
 
@@ -845,30 +846,41 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN Header_StartDefaultTask */
 /**
-  * @brief  Function implementing the defaultTask thread.
-  * @param  argument: Not used
-  * @retval None
-  */
+ * @brief  Main production task implementing the defaultTask thread.
+ * 
+ * This is the definitive production entry point for MidiCore.
+ * It initializes USB Host MIDI and starts the main application.
+ * 
+ * For module testing, define MODULE_TEST_xxx at compile time to run
+ * specific module tests instead of the full application.
+ * 
+ * @param  argument: Not used
+ * @retval None
+ */
 /* USER CODE END Header_StartDefaultTask */
 void StartDefaultTask(void *argument)
 {
   /* init code for USB_HOST */
   MX_USB_HOST_Init();
   /* USER CODE BEGIN 5 */
-  // Init layer for USB Host MIDI wrapper (no-op if USBH MIDI absent)
+  
+  // Init USB Host MIDI wrapper (no-op if USBH MIDI module not enabled)
   usb_host_midi_init();
-#if defined(APP_TEST_DIN_MIDI)
-  // Module test in defaultTask: DIN -> MIDI (UART/USBH)
-  // NOTE: app_test_din_midi_run_forever() does not return.
-  app_test_din_midi_run_forever();
-#elif defined(APP_TEST_AINSER_MIDI)
-  // Module test in defaultTask: AINSER64 -> MIDI CC (UART/USBH)
-  // NOTE: app_test_ainser_midi_run_forever() does not return.
-  app_test_ainser_midi_run_forever();
-#else
+  
+  // Check if a module test was selected at compile time
+  module_test_t selected_test = module_tests_get_compile_time_selection();
+  
+  if (selected_test != MODULE_TEST_NONE) {
+    // TEST MODE: Run specific module test
+    // This allows testing modules in isolation
+    module_tests_init();
+    module_tests_run(selected_test);
+    // Note: most tests run forever and don't return
+  }
+  
+  // PRODUCTION MODE: Run full application
   // Project entrypoint (kept in App/ to survive CubeMX regen)
   app_entry_start();
-#endif
 
   /* Infinite loop */
   for(;;)
