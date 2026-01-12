@@ -158,6 +158,11 @@ extern "C" {
 #define MODULE_ENABLE_SAFE_MODE 1
 #endif
 
+/** @brief Enable Bootloader (USB MIDI firmware update) */
+#ifndef MODULE_ENABLE_BOOTLOADER
+#define MODULE_ENABLE_BOOTLOADER 1
+#endif
+
 /** @brief Enable Logging service */
 #ifndef MODULE_ENABLE_LOG
 #define MODULE_ENABLE_LOG 1
