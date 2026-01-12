@@ -46,6 +46,7 @@ Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang \
 Services/ain \
 Services/ainser \
 Services/config \
+Services/config_io \
 Services/din \
 Services/dout \
 Services/dream \

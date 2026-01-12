@@ -164,6 +164,11 @@ extern "C" {
 #define MODULE_ENABLE_METRONOME 1
 #endif
 
+/** @brief Enable Config I/O (SD card configuration file read/write) */
+#ifndef MODULE_ENABLE_CONFIG_IO
+#define MODULE_ENABLE_CONFIG_IO 1
+#endif
+
 /** @brief Enable Zones configuration (keyboard split/layers) */
 #ifndef MODULE_ENABLE_ZONES
 #define MODULE_ENABLE_ZONES 1
