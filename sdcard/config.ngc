@@ -11,9 +11,8 @@ SRIO_DIN_ENABLE = 1
 SRIO_DIN_BYTES = 8
 DIN_INVERT_DEFAULT = 0
 
-# AINSER Module Configuration (Analog Input via I2C)
+# AINSER Module Configuration (Analog Input via SPI)
 AINSER_ENABLE = 1
-AINSER_I2C_ADDR = 0x48
 AINSER_SCAN_MS = 5
 
 # AIN Module Configuration (Built-in ADC)
@@ -23,7 +22,7 @@ AIN_CALIBRATE_AUTO = 1
 # =============================================================================
 # NOTES
 # =============================================================================
-# Only the 8 parameters above are currently implemented in config_io parser.
+# Only the 7 parameters above are currently implemented in config_io parser.
 # Other parameters are ignored (no error, just skipped).
 # 
 # Parameter Descriptions:
@@ -31,10 +30,11 @@ AIN_CALIBRATE_AUTO = 1
 # - SRIO_DIN_BYTES: SRIO bytes to scan (1-16, each byte = 8 inputs)
 # - DIN_INVERT_DEFAULT: Invert button logic (0=normal, 1=inverted)
 # - AINSER_ENABLE: Enable AINSER64 module (0=off, 1=on)
-# - AINSER_I2C_ADDR: I2C address (hex format: 0x48-0x4F)
 # - AINSER_SCAN_MS: Scan interval in milliseconds (1-100)
 # - AIN_VELOCITY_ENABLE: Enable velocity sensing (0=off, 1=on)
 # - AIN_CALIBRATE_AUTO: Auto-calibrate inputs (0=off, 1=on)
+#
+# Note: AINSER64 uses SPI, not I2C
 #
 # Usage:
 # - Edit parameters and save to SD card as 0:/config.ngc

@@ -27,7 +27,6 @@ typedef struct {
 // Configuration structure for AINSER module
 typedef struct {
   uint8_t ainser_enable;
-  uint8_t ainser_i2c_addr;
   uint8_t ainser_scan_ms;
 } config_ainser_t;
 

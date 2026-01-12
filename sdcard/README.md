@@ -14,12 +14,11 @@ Main configuration file for hardware modules (DIN, AINSER, AIN). This file uses 
 - `SRIO_DIN_BYTES` - SRIO bytes to scan (1-16)
 - `DIN_INVERT_DEFAULT` - Invert button logic (0/1)
 - `AINSER_ENABLE` - Enable AINSER64 module (0/1)
-- `AINSER_I2C_ADDR` - I2C address (hex: 0x48-0x4F)
 - `AINSER_SCAN_MS` - Scan interval in ms (1-100)
 - `AIN_VELOCITY_ENABLE` - Enable velocity sensing (0/1)
 - `AIN_CALIBRATE_AUTO` - Auto-calibrate inputs (0/1)
 
-**Note**: Only the 8 parameters above are currently implemented. Other parameters in .NGC format are ignored (no error).
+**Note**: Only the 7 parameters above are currently implemented. AINSER64 uses SPI, not I2C. Other parameters in .NGC format are ignored (no error).
 
 ### `config_minimal.ngc`
 Minimal hardware configuration for quick testing (only basic DIN support).

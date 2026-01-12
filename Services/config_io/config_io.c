@@ -41,7 +41,6 @@ void config_io_get_defaults(config_data_t* cfg) {
   
   // AINSER module defaults
   cfg->ainser.ainser_enable = 1;
-  cfg->ainser.ainser_i2c_addr = 0x48;
   cfg->ainser.ainser_scan_ms = 5;
   
   // AIN module defaults
@@ -87,8 +86,6 @@ static int parse_config_line(const char* line, config_data_t* cfg) {
     cfg->din.din_invert_default = (uint8_t)value;
   } else if (strcmp(key, "AINSER_ENABLE") == 0) {
     cfg->ainser.ainser_enable = (uint8_t)value;
-  } else if (strcmp(key, "AINSER_I2C_ADDR") == 0) {
-    cfg->ainser.ainser_i2c_addr = (uint8_t)value;
   } else if (strcmp(key, "AINSER_SCAN_MS") == 0) {
     cfg->ainser.ainser_scan_ms = (uint8_t)value;
   } else if (strcmp(key, "AIN_VELOCITY_ENABLE") == 0) {
@@ -180,7 +177,6 @@ int config_io_save(const config_data_t* cfg) {
   // Write AINSER module config
   f_puts("# AINSER Module Configuration\n", &file);
   f_printf(&file, "AINSER_ENABLE = %u\n", cfg->ainser.ainser_enable);
-  f_printf(&file, "AINSER_I2C_ADDR = 0x%02X\n", cfg->ainser.ainser_i2c_addr);
   f_printf(&file, "AINSER_SCAN_MS = %u\n\n", cfg->ainser.ainser_scan_ms);
   
   // Write AIN module config

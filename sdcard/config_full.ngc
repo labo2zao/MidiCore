@@ -1,13 +1,12 @@
 # MidiCore Configuration - Full Hardware Setup
 # Use this for complete MIDIbox NG hardware with maximum I/O
-# Only 8 supported parameters (matches config_io parser)
+# Only 7 supported parameters (matches config_io parser)
 
 SRIO_DIN_ENABLE = 1
 SRIO_DIN_BYTES = 16
 DIN_INVERT_DEFAULT = 0
 
 AINSER_ENABLE = 1
-AINSER_I2C_ADDR = 0x48
 AINSER_SCAN_MS = 5
 
 AIN_VELOCITY_ENABLE = 1
