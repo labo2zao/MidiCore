@@ -49,6 +49,43 @@ Plan d'implémentation des fonctionnalités inspirées de LoopA pour MidiCore.
    - Sauvegarde .mid format SMF
    - Track export
 
+9. **Mode Config (NEW)**
+   - Éditeur de fichiers de configuration SD
+   - Édition des paramètres DIN module
+   - Édition des paramètres AINSER module
+   - Édition des paramètres AIN module
+   - Sauvegarde sur carte SD
+
+---
+
+## UI Design Philosophy
+
+### Inspiration: MIDIbox NG Standard Control Surface (SCS)
+
+**Reference**: http://www.ucapps.de/midibox_ng_manual_scs.html
+
+Le SCS (Standard Control Surface) de MIDIbox NG offre une UI légère avec:
+- **Minimal buttons**: 4-6 boutons (Left, Right, Up, Down, Shift, Select)
+- **Small display**: LCD 2×16 ou petit OLED
+- **Menu hierarchy**: Navigation par menu/sous-menu
+- **Context-sensitive**: Actions changent selon le contexte
+- **Quick access**: Fonctions principales à 1-2 boutons
+
+### MidiCore UI Approach
+
+**Inspiration SCS pour MidiCore**:
+- ✅ UI légère et rapide
+- ✅ Navigation hiérarchique (pages → sous-pages)
+- ✅ Boutons context-sensitive
+- ✅ Affichage compact mais informatif
+- ✅ OLED 256×64 (plus grand que SCS LCD 2×16)
+
+**Avantages pour MidiCore**:
+- Interface accessible sans souris/clavier
+- Édition live pendant performance
+- Faible consommation de ressources CPU
+- Compatible hardware MBHP
+
 ---
 
 ## Implementation Phases
@@ -78,6 +115,14 @@ Plan d'implémentation des fonctionnalités inspirées de LoopA pour MidiCore.
 - [ ] SysEx capture/display
 - [ ] Hex viewer
 - [ ] Send/receive controls
+
+#### 1.5 Config Editor Page (NEW)
+- [ ] Create `ui_page_config.c/h`
+- [ ] File browser for SD config files
+- [ ] Text editor for .ngc files
+- [ ] Parameter editor (structured view)
+- [ ] DIN/AINSER/AIN module configuration
+- [ ] Save/reload config files
 
 ### Phase 2: Looper Features (Priority 2)
 
@@ -152,13 +197,19 @@ Services/
 ├── midi_monitor/
 │   ├── midi_monitor.c
 │   └── midi_monitor.h
+├── config_editor/
+│   ├── config_editor.c
+│   ├── config_editor.h
+│   └── ngc_parser.c
 └── ui/
     ├── ui_page_song.c
     ├── ui_page_song.h
     ├── ui_page_midi_monitor.c
     ├── ui_page_midi_monitor.h
     ├── ui_page_sysex.c
-    └── ui_page_sysex.h
+    ├── ui_page_sysex.h
+    ├── ui_page_config.c
+    └── ui_page_config.h
 ```
 
 ### Files to Modify
@@ -327,6 +378,38 @@ int midi_export_all_tracks(const char* filename);
 │ SEND │RCV │CLR │SAVE│LOAD│EDIT│           │
 ```
 
+### Config Editor Page (NEW)
+
+**Inspired by MIDIbox NG SCS (Standard Control Surface)**
+
+```
+┌─────────────────────────────────────────────────┐
+│ CONFIG EDITOR   File: global.ngc               │
+├─────────────────────────────────────────────────┤
+│ [DIN Module Configuration]                      │
+│ SRIO_DIN_ENABLE      = 1                       │
+│ SRIO_DIN_BYTES       = 8                       │
+│ DIN_INVERT_DEFAULT   = 0                       │
+│                                                  │
+│ [AINSER Module Configuration]                   │
+│ AINSER_ENABLE        = 1                       │
+│ AINSER_I2C_ADDR      = 0x48                    │
+│ AINSER_SCAN_MS       = 5                       │
+│                                                  │
+│ [AIN Module Configuration]                      │
+│ AIN_VELOCITY_ENABLE  = 1                       │
+│ AIN_CALIBRATE_AUTO   = 1                       │
+└─────────────────────────────────────────────────┘
+│ SAVE │LOAD│EDIT│FILES│↑   │↓   │           │
+```
+
+**SCS-Style Lightweight Navigation**:
+- Menu hierarchy: Main → Category → Parameter
+- 4-6 button navigation (cursor keys + shift)
+- Context-sensitive button labels
+- Quick parameter editing (increment/decrement)
+- Visual feedback (highlight, cursor)
+
 ### LiveFX Controls
 
 ```
@@ -370,9 +453,14 @@ int midi_export_all_tracks(const char* filename);
 #define MODULE_ENABLE_MIDI_MONITOR 1
 #endif
 
-/** @brief Enable MIDI Export */
-#ifndef MODULE_ENABLE_MIDI_EXPORT
-#define MODULE_ENABLE_MIDI_EXPORT 1
+/** @brief Enable Config Editor UI page */
+#ifndef MODULE_ENABLE_CONFIG_EDITOR
+#define MODULE_ENABLE_CONFIG_EDITOR 1
+#endif
+
+/** @brief Enable SCS-style lightweight UI navigation */
+#ifndef MODULE_ENABLE_SCS_UI_STYLE
+#define MODULE_ENABLE_SCS_UI_STYLE 1
 #endif
 ```
 
