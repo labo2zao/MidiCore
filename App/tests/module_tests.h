@@ -22,19 +22,22 @@ extern "C" {
 /**
  * @brief Available module tests
  * These can be enabled via compiler defines or runtime selection
+ * 
+ * Note: Enum values use _ID suffix to avoid conflicts with preprocessor defines
+ * (e.g., MODULE_TEST_AINSER64_ID vs MODULE_TEST_AINSER64 define)
  */
 typedef enum {
-  MODULE_TEST_NONE = 0,
-  MODULE_TEST_AINSER64,      // Test AINSER64 analog inputs
-  MODULE_TEST_SRIO,          // Test SRIO DIN/DOUT
-  MODULE_TEST_MIDI_DIN,      // Test MIDI DIN I/O
-  MODULE_TEST_ROUTER,        // Test MIDI router
-  MODULE_TEST_LOOPER,        // Test looper recording/playback
-  MODULE_TEST_UI,            // Test UI/OLED
-  MODULE_TEST_PATCH_SD,      // Test patch loading from SD
-  MODULE_TEST_PRESSURE,      // Test pressure sensor I2C
-  MODULE_TEST_USB_HOST_MIDI, // Test USB Host MIDI
-  MODULE_TEST_ALL,           // Run all tests sequentially
+  MODULE_TEST_NONE_ID = 0,
+  MODULE_TEST_AINSER64_ID,      // Test AINSER64 analog inputs
+  MODULE_TEST_SRIO_ID,          // Test SRIO DIN/DOUT
+  MODULE_TEST_MIDI_DIN_ID,      // Test MIDI DIN I/O
+  MODULE_TEST_ROUTER_ID,        // Test MIDI router
+  MODULE_TEST_LOOPER_ID,        // Test looper recording/playback
+  MODULE_TEST_UI_ID,            // Test UI/OLED
+  MODULE_TEST_PATCH_SD_ID,      // Test patch loading from SD
+  MODULE_TEST_PRESSURE_ID,      // Test pressure sensor I2C
+  MODULE_TEST_USB_HOST_MIDI_ID, // Test USB Host MIDI
+  MODULE_TEST_ALL_ID,           // Run all tests sequentially
 } module_test_t;
 
 // =============================================================================

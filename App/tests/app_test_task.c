@@ -30,7 +30,7 @@ void StartTestTask(void* argument)
   // Check if a test was selected at compile time
   module_test_t selected_test = module_tests_get_compile_time_selection();
   
-  if (selected_test != MODULE_TEST_NONE) {
+  if (selected_test != MODULE_TEST_NONE_ID) {
     // Run the selected test
     // Note: most tests run forever and don't return
     module_tests_run(selected_test);

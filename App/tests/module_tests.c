@@ -93,7 +93,7 @@ static const char* test_names[] = {
 
 const char* module_tests_get_name(module_test_t test)
 {
-  if (test >= MODULE_TEST_NONE && test <= MODULE_TEST_ALL) {
+  if (test >= MODULE_TEST_NONE_ID && test <= MODULE_TEST_ALL_ID) {
     return test_names[test];
   }
   return "UNKNOWN";
@@ -120,29 +120,29 @@ void module_tests_init(void)
 module_test_t module_tests_get_compile_time_selection(void)
 {
 #if defined(MODULE_TEST_AINSER64)
-  return MODULE_TEST_AINSER64;
+  return MODULE_TEST_AINSER64_ID;
 #elif defined(MODULE_TEST_SRIO)
-  return MODULE_TEST_SRIO;
+  return MODULE_TEST_SRIO_ID;
 #elif defined(MODULE_TEST_MIDI_DIN) || defined(APP_TEST_DIN_MIDI)
-  return MODULE_TEST_MIDI_DIN;
+  return MODULE_TEST_MIDI_DIN_ID;
 #elif defined(MODULE_TEST_ROUTER)
-  return MODULE_TEST_ROUTER;
+  return MODULE_TEST_ROUTER_ID;
 #elif defined(MODULE_TEST_LOOPER) || defined(LOOPER_SELFTEST)
-  return MODULE_TEST_LOOPER;
+  return MODULE_TEST_LOOPER_ID;
 #elif defined(MODULE_TEST_UI)
-  return MODULE_TEST_UI;
+  return MODULE_TEST_UI_ID;
 #elif defined(MODULE_TEST_PATCH_SD)
-  return MODULE_TEST_PATCH_SD;
+  return MODULE_TEST_PATCH_SD_ID;
 #elif defined(MODULE_TEST_PRESSURE)
-  return MODULE_TEST_PRESSURE;
+  return MODULE_TEST_PRESSURE_ID;
 #elif defined(MODULE_TEST_USB_HOST_MIDI)
-  return MODULE_TEST_USB_HOST_MIDI;
+  return MODULE_TEST_USB_HOST_MIDI_ID;
 #elif defined(MODULE_TEST_ALL)
-  return MODULE_TEST_ALL;
+  return MODULE_TEST_ALL_ID;
 #elif defined(APP_TEST_AINSER_MIDI)
-  return MODULE_TEST_AINSER64;
+  return MODULE_TEST_AINSER64_ID;
 #else
-  return MODULE_TEST_NONE;
+  return MODULE_TEST_NONE_ID;
 #endif
 }
 
@@ -153,47 +153,47 @@ module_test_t module_tests_get_compile_time_selection(void)
 int module_tests_run(module_test_t test)
 {
   switch (test) {
-    case MODULE_TEST_AINSER64:
+    case MODULE_TEST_AINSER64_ID:
       module_test_ainser64_run();
       break;
       
-    case MODULE_TEST_SRIO:
+    case MODULE_TEST_SRIO_ID:
       module_test_srio_run();
       break;
       
-    case MODULE_TEST_MIDI_DIN:
+    case MODULE_TEST_MIDI_DIN_ID:
       module_test_midi_din_run();
       break;
       
-    case MODULE_TEST_ROUTER:
+    case MODULE_TEST_ROUTER_ID:
       module_test_router_run();
       break;
       
-    case MODULE_TEST_LOOPER:
+    case MODULE_TEST_LOOPER_ID:
       module_test_looper_run();
       break;
       
-    case MODULE_TEST_UI:
+    case MODULE_TEST_UI_ID:
       module_test_ui_run();
       break;
       
-    case MODULE_TEST_PATCH_SD:
+    case MODULE_TEST_PATCH_SD_ID:
       return module_test_patch_sd_run();
       
-    case MODULE_TEST_PRESSURE:
+    case MODULE_TEST_PRESSURE_ID:
       module_test_pressure_run();
       break;
       
-    case MODULE_TEST_USB_HOST_MIDI:
+    case MODULE_TEST_USB_HOST_MIDI_ID:
       module_test_usb_host_midi_run();
       break;
       
-    case MODULE_TEST_ALL:
+    case MODULE_TEST_ALL_ID:
       // Run all tests sequentially (where possible)
       // Most tests loop forever, so this is limited
       return -1; // Not implemented for now
       
-    case MODULE_TEST_NONE:
+    case MODULE_TEST_NONE_ID:
     default:
       return -1;
   }

@@ -870,7 +870,7 @@ void StartDefaultTask(void *argument)
   // Check if a module test was selected at compile time
   module_test_t selected_test = module_tests_get_compile_time_selection();
   
-  if (selected_test != MODULE_TEST_NONE) {
+  if (selected_test != MODULE_TEST_NONE_ID) {
     // TEST MODE: Run specific module test
     // This allows testing modules in isolation
     module_tests_init();
