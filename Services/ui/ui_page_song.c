@@ -33,10 +33,11 @@ void ui_page_song_render(uint32_t now_ms) {
   
   ui_gfx_clear(0);
   
-  // Header
+  // Header with current scene
+  uint8_t current_scene = looper_get_current_scene();
   char header[64];
   snprintf(header, sizeof(header), "SONG MODE  BPM:%3u  Scene:%c", 
-           tp.bpm, 'A' + selected_scene);
+           tp.bpm, 'A' + current_scene);
   ui_gfx_text(0, 0, header, 15);
   ui_gfx_rect(0, 9, 256, 1, 4);
   
@@ -61,30 +62,31 @@ void ui_page_song_render(uint32_t now_ms) {
       int x = 24 + s * 28;
       int y = 24 + t * 10;
       
-      // For now, show track state (will be per-scene in future)
-      looper_state_t st = looper_get_state(t);
-      uint16_t beats = looper_get_loop_beats(t);
+      // Get clip info from looper
+      looper_scene_clip_t clip = looper_get_scene_clip(s, t);
       
-      // Draw cell indicator
-      uint8_t has_clip = (st != LOOPER_STATE_STOP || beats > 0) ? 1 : 0;
+      uint8_t has_clip = clip.has_clip;
       uint8_t is_selected = (t == selected_track && s == selected_scene) ? 1 : 0;
+      uint8_t is_current = (s == current_scene) ? 1 : 0;
       
       if (has_clip) {
         // Filled box for clips
-        ui_gfx_rect(x, y, 6, 6, is_selected ? 15 : 10);
+        uint8_t brightness = is_current ? 15 : (is_selected ? 12 : 10);
+        ui_gfx_rect(x, y, 6, 6, brightness);
       } else {
         // Empty box outline
-        ui_gfx_rect(x, y, 6, 1, is_selected ? 12 : 6);
-        ui_gfx_rect(x, y + 5, 6, 1, is_selected ? 12 : 6);
-        ui_gfx_rect(x, y, 1, 6, is_selected ? 12 : 6);
-        ui_gfx_rect(x + 5, y, 1, 6, is_selected ? 12 : 6);
+        uint8_t brightness = is_current ? 12 : (is_selected ? 10 : 6);
+        ui_gfx_rect(x, y, 6, 1, brightness);
+        ui_gfx_rect(x, y + 5, 6, 1, brightness);
+        ui_gfx_rect(x, y, 1, 6, brightness);
+        ui_gfx_rect(x + 5, y, 1, 6, brightness);
       }
     }
   }
   
   // Footer
   ui_gfx_rect(0, 62, 256, 1, 4);
-  ui_gfx_text(0, 54, "B1 PLAY  B2 STOP  B3 EDIT  B4 CHAIN  ENC nav", 8);
+  ui_gfx_text(0, 54, "B1 TRIG  B2 SAVE  B3 EDIT  B4 LOAD  ENC nav", 8);
 }
 
 /**
@@ -94,27 +96,20 @@ void ui_page_song_on_button(uint8_t id, uint8_t pressed) {
   if (!pressed) return;
   
   switch (id) {
-    case 1:  // PLAY selected scene
-      // For now, play all tracks that have clips
-      for (uint8_t t = 0; t < LOOPER_TRACKS; t++) {
-        if (looper_get_loop_beats(t) > 0) {
-          looper_set_state(t, LOOPER_STATE_PLAY);
-        }
-      }
+    case 1:  // TRIGGER scene - load and play selected scene
+      looper_trigger_scene(selected_scene);
       break;
       
-    case 2:  // STOP all tracks
-      for (uint8_t t = 0; t < LOOPER_TRACKS; t++) {
-        looper_set_state(t, LOOPER_STATE_STOP);
-      }
+    case 2:  // SAVE current track state to selected scene
+      looper_save_to_scene(selected_scene, selected_track);
       break;
       
     case 3:  // EDIT - cycle through tracks
       selected_track = (selected_track + 1) % LOOPER_TRACKS;
       break;
       
-    case 4:  // CHAIN - cycle through scenes
-      selected_scene = (selected_scene + 1) % NUM_SCENES;
+    case 4:  // LOAD - load selected scene's track to current
+      looper_load_from_scene(selected_scene, selected_track);
       break;
       
     default:

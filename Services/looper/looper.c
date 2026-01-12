@@ -565,3 +565,112 @@ int looper_delete_event(uint8_t track, uint32_t idx) {
   if (g_mutex) osMutexRelease(g_mutex);
   return 0;
 }
+
+// ---- Song Mode / Scene Management ----
+
+// Scene storage: snapshot of track states
+typedef struct {
+  uint8_t has_clip;
+  uint16_t loop_beats;
+  uint16_t loop_len_ticks;
+  looper_state_t saved_state;
+  // For simplicity, we don't copy the full event buffer here
+  // Just track metadata. In a full implementation, you'd need
+  // to save/restore event data or reference stored clips.
+} scene_slot_t;
+
+static scene_slot_t g_scenes[LOOPER_SCENES][LOOPER_TRACKS];
+static uint8_t g_current_scene = 0;
+
+/**
+ * @brief Get clip info for a specific scene and track
+ */
+looper_scene_clip_t looper_get_scene_clip(uint8_t scene, uint8_t track) {
+  looper_scene_clip_t clip = {0, 0};
+  if (scene >= LOOPER_SCENES || track >= LOOPER_TRACKS) return clip;
+  
+  clip.has_clip = g_scenes[scene][track].has_clip;
+  clip.loop_beats = g_scenes[scene][track].loop_beats;
+  return clip;
+}
+
+/**
+ * @brief Set current scene
+ */
+void looper_set_current_scene(uint8_t scene) {
+  if (scene < LOOPER_SCENES) {
+    g_current_scene = scene;
+  }
+}
+
+/**
+ * @brief Get current scene
+ */
+uint8_t looper_get_current_scene(void) {
+  return g_current_scene;
+}
+
+/**
+ * @brief Copy current track state to a scene slot
+ */
+void looper_save_to_scene(uint8_t scene, uint8_t track) {
+  if (scene >= LOOPER_SCENES || track >= LOOPER_TRACKS) return;
+  
+  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  
+  looper_track_t* t = &g_tr[track];
+  scene_slot_t* slot = &g_scenes[scene][track];
+  
+  // Save metadata
+  slot->has_clip = (t->count > 0 || t->loop_beats > 0) ? 1 : 0;
+  slot->loop_beats = t->loop_beats;
+  slot->loop_len_ticks = t->loop_len_ticks;
+  slot->saved_state = t->st;
+  
+  if (g_mutex) osMutexRelease(g_mutex);
+}
+
+/**
+ * @brief Load a scene's track state to current
+ */
+void looper_load_from_scene(uint8_t scene, uint8_t track) {
+  if (scene >= LOOPER_SCENES || track >= LOOPER_TRACKS) return;
+  
+  scene_slot_t* slot = &g_scenes[scene][track];
+  if (!slot->has_clip) return;  // Nothing to load
+  
+  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  
+  looper_track_t* t = &g_tr[track];
+  
+  // Restore metadata (in a full implementation, restore event data too)
+  t->loop_beats = slot->loop_beats;
+  t->loop_len_ticks = slot->loop_len_ticks;
+  // Note: Not changing state automatically - user controls playback
+  
+  if (g_mutex) osMutexRelease(g_mutex);
+}
+
+/**
+ * @brief Trigger scene playback (load all tracks from scene)
+ */
+void looper_trigger_scene(uint8_t scene) {
+  if (scene >= LOOPER_SCENES) return;
+  
+  g_current_scene = scene;
+  
+  // Load all tracks from this scene and start playback
+  for (uint8_t track = 0; track < LOOPER_TRACKS; track++) {
+    scene_slot_t* slot = &g_scenes[scene][track];
+    
+    if (slot->has_clip) {
+      looper_load_from_scene(scene, track);
+      // Start playback if there's a clip
+      looper_set_state(track, LOOPER_STATE_PLAY);
+    } else {
+      // Stop tracks that don't have clips in this scene
+      looper_set_state(track, LOOPER_STATE_STOP);
+    }
+  }
+}
+

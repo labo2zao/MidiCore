@@ -75,6 +75,54 @@ uint32_t looper_export_events(uint8_t track, looper_event_view_t* out, uint32_t 
 int looper_edit_event(uint8_t track, uint32_t idx, uint32_t new_tick,
                       uint8_t len, uint8_t b0, uint8_t b1, uint8_t b2);
 
+// ---- Song Mode / Scene Management ----
+#define LOOPER_SCENES 8
+
+typedef struct {
+  uint8_t has_clip;       // 1 if this scene has a clip recorded
+  uint16_t loop_beats;    // Length in beats
+} looper_scene_clip_t;
+
+/**
+ * @brief Get clip info for a specific scene and track
+ * @param scene Scene index (0-7)
+ * @param track Track index (0-3)
+ * @return Clip info (has_clip=1 if recorded)
+ */
+looper_scene_clip_t looper_get_scene_clip(uint8_t scene, uint8_t track);
+
+/**
+ * @brief Set current scene
+ * @param scene Scene index (0-7)
+ */
+void looper_set_current_scene(uint8_t scene);
+
+/**
+ * @brief Get current scene
+ * @return Current scene index
+ */
+uint8_t looper_get_current_scene(void);
+
+/**
+ * @brief Copy current track state to a scene slot
+ * @param scene Scene index (0-7)
+ * @param track Track index (0-3)
+ */
+void looper_save_to_scene(uint8_t scene, uint8_t track);
+
+/**
+ * @brief Load a scene's track state to current
+ * @param scene Scene index (0-7)
+ * @param track Track index (0-3)
+ */
+void looper_load_from_scene(uint8_t scene, uint8_t track);
+
+/**
+ * @brief Trigger scene playback (load all tracks from scene)
+ * @param scene Scene index (0-7)
+ */
+void looper_trigger_scene(uint8_t scene);
+
 #ifdef __cplusplus
 }
 #endif
