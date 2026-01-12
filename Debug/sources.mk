@@ -57,6 +57,7 @@ Services/instrument \
 Services/livefx \
 Services/log \
 Services/looper \
+Services/metronome \
 Services/midi \
 Services/patch \
 Services/pressure \

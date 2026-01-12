@@ -23,8 +23,10 @@ RM := rm -rf
 -include Services/safe/subdir.mk
 -include Services/router_hooks/subdir.mk
 -include Services/router/subdir.mk
+-include Services/rhythm_trainer/subdir.mk
 -include Services/pressure/subdir.mk
 -include Services/patch/subdir.mk
+-include Services/metronome/subdir.mk
 -include Services/midi/subdir.mk
 -include Services/looper/subdir.mk
 -include Services/log/subdir.mk

@@ -159,6 +159,11 @@ extern "C" {
 #define MODULE_ENABLE_RHYTHM_TRAINER 1
 #endif
 
+/** @brief Enable Metronome (synchronized click track) */
+#ifndef MODULE_ENABLE_METRONOME
+#define MODULE_ENABLE_METRONOME 1
+#endif
+
 /** @brief Enable Zones configuration (keyboard split/layers) */
 #ifndef MODULE_ENABLE_ZONES
 #define MODULE_ENABLE_ZONES 1
