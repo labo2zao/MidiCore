@@ -26,13 +26,15 @@ static uint16_t scroll_offset = 0;
  * called from the MIDI router when SysEx messages are received.
  */
 void ui_sysex_capture(const uint8_t* data, uint16_t len) {
+  uint8_t truncated = 0;
   if (len > SYSEX_MAX_SIZE) {
     len = SYSEX_MAX_SIZE;
+    truncated = 1;
   }
   
   memcpy(sysex_buffer, data, len);
   sysex_length = len;
-  sysex_captured = 1;
+  sysex_captured = truncated ? 2 : 1;  // 2 = truncated, 1 = complete
   scroll_offset = 0;
 }
 
@@ -57,7 +59,11 @@ void ui_page_sysex_render(uint32_t now_ms) {
   // Header
   char header[64];
   if (sysex_captured) {
-    snprintf(header, sizeof(header), "SYSEX VIEWER  Captured: %u bytes", sysex_length);
+    if (sysex_captured == 2) {
+      snprintf(header, sizeof(header), "SYSEX VIEWER  Captured: %u bytes [TRUNCATED]", sysex_length);
+    } else {
+      snprintf(header, sizeof(header), "SYSEX VIEWER  Captured: %u bytes", sysex_length);
+    }
   } else {
     snprintf(header, sizeof(header), "SYSEX VIEWER  Waiting for SysEx...");
   }

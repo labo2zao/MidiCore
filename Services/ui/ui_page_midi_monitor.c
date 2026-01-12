@@ -45,9 +45,7 @@ void ui_midi_monitor_capture(uint8_t port, const uint8_t* data, uint8_t len, uin
     event_buffer[idx].data[i] = data[i];
   }
   
-  if (event_count < MONITOR_BUFFER_SIZE) {
-    event_count++;
-  }
+  event_count++;
 }
 
 /**
@@ -119,10 +117,11 @@ void ui_page_midi_monitor_render(uint32_t now_ms) {
   ui_gfx_rect(0, 9, 256, 1, 4);
   
   // Display event list
+  uint8_t display_count = (event_count < MONITOR_BUFFER_SIZE) ? event_count : MONITOR_BUFFER_SIZE;
   uint8_t start_idx = (event_count > MONITOR_BUFFER_SIZE) ? 
                       (event_count - MONITOR_BUFFER_SIZE) : 0;
   
-  for (uint8_t i = 0; i < MONITOR_BUFFER_SIZE && i < event_count; i++) {
+  for (uint8_t i = 0; i < display_count; i++) {
     uint8_t buf_idx = (start_idx + i) % MONITOR_BUFFER_SIZE;
     midi_event_t* ev = &event_buffer[buf_idx];
     

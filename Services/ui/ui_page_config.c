@@ -208,14 +208,14 @@ void ui_page_config_on_encoder(int8_t delta) {
       case CONFIG_CAT_DIN:
         switch (current_param) {
           case 0:
-            din_cfg.srio_din_enable = (din_cfg.srio_din_enable + delta) & 1;
+            din_cfg.srio_din_enable = !din_cfg.srio_din_enable;
             break;
           case 1:
             if (delta > 0 && din_cfg.srio_din_bytes < 32) din_cfg.srio_din_bytes++;
             else if (delta < 0 && din_cfg.srio_din_bytes > 1) din_cfg.srio_din_bytes--;
             break;
           case 2:
-            din_cfg.din_invert_default = (din_cfg.din_invert_default + delta) & 1;
+            din_cfg.din_invert_default = !din_cfg.din_invert_default;
             break;
         }
         break;
@@ -223,7 +223,7 @@ void ui_page_config_on_encoder(int8_t delta) {
       case CONFIG_CAT_AINSER:
         switch (current_param) {
           case 0:
-            ainser_cfg.ainser_enable = (ainser_cfg.ainser_enable + delta) & 1;
+            ainser_cfg.ainser_enable = !ainser_cfg.ainser_enable;
             break;
           case 1:
             if (delta > 0 && ainser_cfg.ainser_i2c_addr < 0x7F) ainser_cfg.ainser_i2c_addr++;
@@ -239,10 +239,10 @@ void ui_page_config_on_encoder(int8_t delta) {
       case CONFIG_CAT_AIN:
         switch (current_param) {
           case 0:
-            ain_cfg.ain_velocity_enable = (ain_cfg.ain_velocity_enable + delta) & 1;
+            ain_cfg.ain_velocity_enable = !ain_cfg.ain_velocity_enable;
             break;
           case 1:
-            ain_cfg.ain_calibrate_auto = (ain_cfg.ain_calibrate_auto + delta) & 1;
+            ain_cfg.ain_calibrate_auto = !ain_cfg.ain_calibrate_auto;
             break;
         }
         break;
