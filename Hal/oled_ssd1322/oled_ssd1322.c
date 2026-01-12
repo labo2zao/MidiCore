@@ -5,7 +5,9 @@
 #include "stm32f4xx_hal.h"
 #include <string.h>
 
-static uint8_t fb[OLED_W * OLED_H / 2];
+// Framebuffer can live in CCMRAM to reduce pressure on main SRAM.
+// (CCMRAM is fine: this buffer is only accessed by CPU, not DMA.)
+static uint8_t fb[OLED_W * OLED_H / 2] __attribute__((section(".ccmram")));
 
 static void dc_cmd(void) { HAL_GPIO_WritePin(OLED_DC_GPIO_Port, OLED_DC_Pin, GPIO_PIN_RESET); }
 static void dc_data(void){ HAL_GPIO_WritePin(OLED_DC_GPIO_Port, OLED_DC_Pin, GPIO_PIN_SET); }

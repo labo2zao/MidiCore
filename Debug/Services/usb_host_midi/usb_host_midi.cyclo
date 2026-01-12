@@ -1,0 +1,4 @@
+../Services/usb_host_midi/usb_host_midi.c:12:6:usb_host_midi_init	1
+../Services/usb_host_midi/usb_host_midi.c:18:6:usb_host_midi_task	1
+../Services/usb_host_midi/usb_host_midi.c:24:5:usb_host_midi_send3	1
+../Services/usb_host_midi/usb_host_midi.c:38:5:usb_host_midi_recv3	6

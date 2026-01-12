@@ -1,0 +1,45 @@
+# MIDI router config
+# Copy to 0:/cfg/router_map.ngc on SD card.
+#
+# Each section is a source:
+#   [SRCn]  where n = 0..6 (see midi_router_src_t)
+#          0 = INTERNAL
+#          1 = DIN
+#          2 = AINSER
+#          3 = UART
+#          4 = USBH
+#          5 = USBD
+#          6 = DREAM
+#
+# Keys:
+#   DST=mask    ; bitmask of MIDI_ROUTER_DST_* flags (numeric, e.g. 3 => UART|USBH)
+#   UART=0|1
+#   USBH=0|1
+#   USBD=0|1
+#   DREAM=0|1
+#
+# Defaults at boot (if this file is absent):
+#   SRC1 (DIN)    -> UART + USBH
+#   SRC2 (AINSER) -> UART + USBH
+#   other sources -> disabled
+#   USBH=0|1
+#   USBD=0|1
+#   DREAM=0|1
+
+# Example: DIN -> UART only
+[SRC1]
+UART=1
+USBH=0
+USBD=0
+DREAM=0
+
+# Example: AINSER -> UART + USBH
+[SRC2]
+UART=1
+USBH=1
+
+# Example: USB Host -> Dream only (for later use)
+[SRC4]
+UART=0
+USBH=0
+DREAM=1

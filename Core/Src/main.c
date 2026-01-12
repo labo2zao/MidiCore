@@ -21,18 +21,14 @@
 #include "cmsis_os.h"
 #include "fatfs.h"
 #include "usb_host.h"
-#include "debug.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "App/app_entry.h"
-#include "Services/ain/ain.h"
-#include "Hal/spi_bus.h"
-#include "Hal/ainser64_hw/hal_ainser64_hw_step.h"
-#include <stdio.h>
-#include <string.h>
-/* USER CODE END Includes */
 
+#include "App/tests/app_test_din_midi.h"
+#include "App/tests/app_test_ainser_midi.h"
+#include "Services/usb_host_midi/usb_host_midi.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -76,7 +72,7 @@ DMA_HandleTypeDef hdma_usart3_rx;
 osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
-  .stack_size = 1024  * 4,
+  .stack_size = 1024 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
 /* USER CODE BEGIN PV */
@@ -154,8 +150,6 @@ int main(void)
   MX_CAN1_Init();
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
-  HAL_GPIO_WritePin(GREEN_LED_GPIO_Port, GREEN_LED_Pin, GPIO_PIN_SET);
-
 
   /* USER CODE END 2 */
 
@@ -653,7 +647,7 @@ static void MX_USART2_UART_Init(void)
 
   /* USER CODE END USART2_Init 1 */
   huart2.Instance = USART2;
-  huart2.Init.BaudRate = 115200;
+  huart2.Init.BaudRate = 31250;
   huart2.Init.WordLength = UART_WORDLENGTH_8B;
   huart2.Init.StopBits = UART_STOPBITS_1;
   huart2.Init.Parity = UART_PARITY_NONE;
@@ -861,46 +855,28 @@ void StartDefaultTask(void *argument)
   /* init code for USB_HOST */
   MX_USB_HOST_Init();
   /* USER CODE BEGIN 5 */
+  // Init layer for USB Host MIDI wrapper (no-op if USBH MIDI absent)
+  usb_host_midi_init();
+#if defined(APP_TEST_DIN_MIDI)
+  // Module test in defaultTask: DIN -> MIDI (UART/USBH)
+  // NOTE: app_test_din_midi_run_forever() does not return.
+  app_test_din_midi_run_forever();
+#elif defined(APP_TEST_AINSER_MIDI)
+  // Module test in defaultTask: AINSER64 -> MIDI CC (UART/USBH)
+  // NOTE: app_test_ainser_midi_run_forever() does not return.
+  app_test_ainser_midi_run_forever();
+#else
   // Project entrypoint (kept in App/ to survive CubeMX regen)
-  app_entry_start(); // actuellement stub pendant le bring-up
+  app_entry_start();
+#endif
 
-    dbg_print("AIN test: init...\r\n");
-
-    // Init SPI + AINSER64 + AIN
-    spibus_init();
-    hal_ainser64_init();
-    ain_init();
-
-    dbg_print("AIN init OK\r\n");
-
-    char buf[128];
-    uint32_t led_timer = 0;
-
-    /* Infinite loop */
-    for(;;)
-    {
-      // Tick 5 ms pour le moteur AIN
-      ain_tick_5ms();
-      osDelay(5);
-
-      // On vide la file d'événements AIN et on log
-      ain_event_t ev;
-      while (ain_pop_event(&ev)) {
-        snprintf(buf, sizeof(buf),
-                 "AIN ev: key=%u type=%u pos=%u vel=%u\r\n",
-                 ev.key, (unsigned)ev.type, ev.pos, ev.velocity);
-        dbg_print(buf);
-      }
-
-      // Blink LED toutes les 500 ms
-      led_timer += 5;
-      if (led_timer >= 500) {
-        HAL_GPIO_TogglePin(GREEN_LED_GPIO_Port, GREEN_LED_Pin);
-        led_timer = 0;
-      }
-    }
-    /* USER CODE END 5 */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
   }
+  /* USER CODE END 5 */
+}
 
 /**
   * @brief  Period elapsed callback in non blocking mode

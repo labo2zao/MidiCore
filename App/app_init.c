@@ -3,6 +3,7 @@
 #include "Hal/spi_bus.h"
 #include "Hal/ainser64_hw/hal_ainser64_hw_step.h"
 #include "Services/ain/ain.h"
+#include "Services/ainser/ainser_map.h"
 #include "Hal/oled_ssd1322/oled_ssd1322.h"
 #include "Services/router/router.h"
 #include "Services/router/router_send.h"
@@ -24,7 +25,6 @@
 #include "Services/pressure/pressure_i2c.h"
 #include "Services/humanize/humanize.h"
 #include "App/ain_midi_task.h"
-#include "App/ain_raw_debug_task.h"
 #include "Services/config/config.h"
 #include "Services/srio/srio.h"
 #include "Services/srio/srio_user_config.h"
@@ -76,6 +76,12 @@ if (sd_ok) {
   pressure_cfg_t pcfg; pressure_defaults(&pcfg);
   if (sd_ok) { (void)pressure_load_sd(&pcfg, "0:/cfg/pressure.ngc"); }
   pressure_set_cfg(&pcfg);
+  // MIDI router: defaults, then optional overrides from SD.
+  midi_router_init();
+  if (sd_ok) { (void)midi_router_load_sd("0:/cfg/router_map.ngc"); }
+  // Global AINSER mapping: init defaults then override from SD if file exists.
+  ainser_map_init_defaults();
+  if (sd_ok) { (void)ainser_map_load_sd("0:/cfg/ainser_map.ngc"); }
   // Debug: scan I2C bus to confirm pressure sensor address
   app_i2c_scan_and_log(pcfg.i2c_bus);
   humanize_init(osKernelGetTickCount());
@@ -129,9 +135,6 @@ looper_init();
     .stack_size = 1024
   };
   (void)osThreadNew(OledDemoTask, NULL, &oled_attr);
-
-  // Optional UART debug stream (raw ADC values)
-  ain_raw_debug_task_create();
   app_start_midi_io_task();
   app_start_looper_selftest();
 }

@@ -17,16 +17,33 @@
 // DIN port to USART1, or you'll get no MIDI events.
 //
 // We map DIN ports to the UARTs that are configured at 31250 in Core/Src/main.c.
-// Adjust here if you change CubeMX mappings.
+//
+// Convention (match MIOS32):
+//   - DIN1 is the primary DIN port
+//   - DIN1 corresponds to Port 0
+//
+// MIOS32 STM32F4 backend uses (see mios32/STM32F4xx/mios32_uart.c):
+//   UART0 = USART2 (PA2/PA3)
+//   UART1 = USART3 (PD8/PD9)
+//   UART3 = UART5  (PC12/PD2)
+//
+// Therefore we map:
+//   Port 0 (DIN1, primary) -> USART2 (huart2)  [MIOS32 UART0]
+//   Port 1 (DIN2)          -> USART3 (huart3)  [MIOS32 UART1]
+//   Port 2 (DIN3)          -> UART5  (huart5)  [MIOS32 UART3]
+
+#ifndef MIDI_DIN_PORTS
+#define MIDI_DIN_PORTS 4
+#endif
 
 extern UART_HandleTypeDef huart2; // USART2 (31250)
 extern UART_HandleTypeDef huart3; // USART3 (31250)
 extern UART_HandleTypeDef huart5; // UART5  (31250)
 
 static UART_HandleTypeDef* const s_midi_uarts[MIDI_DIN_PORTS] = {
-    &huart3, // Port 0 -> MIDI2 (USART3: PD8/PD9)
-    &huart5, // Port 1 -> MIDI4 (UART5: PC12/PD2)
-    &huart2, // Port 2 -> USART2 (PA2/PA3) (optional)
+    &huart2, // Port 0 -> DIN1 (primary)  [MIOS32 UART0]
+    &huart3, // Port 1 -> DIN2            [MIOS32 UART1]
+    &huart5, // Port 2 -> DIN3            [MIOS32 UART3]
     NULL,    // Port 3 -> unused for now
 };
 

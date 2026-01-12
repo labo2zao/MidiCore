@@ -236,7 +236,7 @@ if (send_once) {
 }
 
 // Send one or multiple SysEx files
-uint8_t buf[1024];
+uint8_t buf[256];
 size_t n=0;
 
 if (syx_list[0]) {

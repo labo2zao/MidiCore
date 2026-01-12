@@ -33,7 +33,9 @@ RM := rm -rf
 -include Services/expression/subdir.mk
 -include Services/dream/subdir.mk
 -include Services/dout/subdir.mk
+-include Services/din/subdir.mk
 -include Services/config/subdir.mk
+-include Services/ainser/subdir.mk
 -include Services/ain/subdir.mk
 -include Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/subdir.mk
 -include Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F/subdir.mk
@@ -52,6 +54,7 @@ RM := rm -rf
 -include Drivers/STM32F4xx_HAL_Driver/Src/subdir.mk
 -include Core/Startup/subdir.mk
 -include Core/Src/subdir.mk
+-include App/tests/subdir.mk
 -include App/subdir.mk
 -include objects.mk
 
@@ -108,8 +111,11 @@ main-build: MidiCore.elf secondary-outputs
 
 # Tool invocations
 MidiCore.elf MidiCore.map: $(OBJS) $(USER_OBJS) J:\workspace_2.0.0\MidiCore_MERGED\STM32F407VGTX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "MidiCore.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"J:\workspace_2.0.0\MidiCore_MERGED\STM32F407VGTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="MidiCore.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+	arm-none-eabi-gcc -o "MidiCore.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m4 -T"J:\workspace_2.0.0\MidiCore_MERGED\STM32F407VGTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="MidiCore.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -flto -Wl,--no-warn-mismatch -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
+	@echo ' '
+	@echo 'Stripping unneeded symbols from MidiCore.elf to reduce size...'
+	arm-none-eabi-strip --strip-unneeded "MidiCore.elf" || true
 	@echo ' '
 
 default.size.stdout: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)

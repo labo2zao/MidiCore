@@ -12,7 +12,7 @@
 #endif
 
 #ifndef LOOPER_MAX_EVENTS
-#define LOOPER_MAX_EVENTS 8192u
+#define LOOPER_MAX_EVENTS 512u
 #endif
 
 #define LOOPER_MAGIC 0x4C4F4F50u /* 'LOOP' */
@@ -41,7 +41,10 @@ typedef struct {
   uint8_t active_notes[16][128];
 } looper_track_t;
 
-static looper_track_t g_tr[LOOPER_TRACKS];
+// NOTE: place the looper tracks in CCMRAM on STM32F4 (0x1000_0000)
+// to preserve main SRAM for other subsystems.
+// CCMRAM is NOT DMA accessible, which is fine here (pure CPU data).
+static looper_track_t g_tr[LOOPER_TRACKS] __attribute__((section(".ccmram")));
 static looper_transport_t g_tp = { .bpm=120, .ts_num=4, .ts_den=4, .auto_loop=1 };
 
 static uint32_t g_ticks_per_ms_q16 = 0;
