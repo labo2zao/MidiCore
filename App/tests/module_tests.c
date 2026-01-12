@@ -399,8 +399,6 @@ void module_test_pressure_run(void)
 void module_test_usb_host_midi_run(void)
 {
 #if MODULE_ENABLE_USBH_MIDI
-  #include "Services/usb_host_midi/usb_host_midi.h"
-  
   usb_host_midi_init();
   
   // Test USB host MIDI
