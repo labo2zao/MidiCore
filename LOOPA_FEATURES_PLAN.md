@@ -56,6 +56,13 @@ Plan d'implémentation des fonctionnalités inspirées de LoopA pour MidiCore.
    - Édition des paramètres AIN module
    - Sauvegarde sur carte SD
 
+10. **Step Playback (NEW)**
+   - Déplacement curseur avant/arrière avec footswitches
+   - Playback pas à pas (step-by-step)
+   - Similaire au step recording
+   - Navigation manuelle dans timeline
+   - Intégration contrôle pédale
+
 ---
 
 ## UI Design Philosophy
@@ -143,6 +150,14 @@ Le SCS (Standard Control Surface) de MIDIbox NG offre une UI légère avec:
 #### 2.3 Beatloop Enhancement
 - [ ] Visual loop region on timeline
 - [ ] Playhead indicator
+
+#### 2.4 Step Playback (NEW)
+- [ ] Add cursor navigation functions
+- [ ] Forward/backward step functions
+- [ ] Footswitch integration
+- [ ] Pause on step mode
+- [ ] Visual cursor highlight
+- [ ] Step size configuration (beat/bar/tick)
 - [ ] Loop start/end markers
 - [ ] Visual feedback during loop
 
@@ -152,7 +167,17 @@ Le SCS (Standard Control Surface) de MIDIbox NG offre une UI légère avec:
 - [ ] Scene playback engine
 - [ ] Save/load song arrangements
 
-### Phase 3: MIDI Export (Priority 3)
+### Phase 3: Advanced Features (Priority 3)
+
+#### 3.1 Step Playback System
+- [ ] Add to `Services/looper/looper.c`
+- [ ] Cursor position tracking
+- [ ] Step forward/backward functions
+- [ ] Footswitch event handlers
+- [ ] Integration with UI timeline
+- [ ] Configuration: step size (beat/16th/32nd)
+
+#### 3.2 MIDI Export
 
 #### 3.1 MIDI File Export
 - [ ] Create `Services/midi_export/midi_export.c/h`
@@ -325,6 +350,38 @@ int midi_export_all_tracks(const char* filename);
 - Time signature
 - Note events
 
+### 6. Step Playback (NEW)
+
+**File**: `Services/looper/looper.c` (extensions)
+
+```c
+typedef enum {
+  STEP_SIZE_TICK,    // 1 tick (PPQN/24)
+  STEP_SIZE_16TH,    // 1/16 note (PPQN/4)
+  STEP_SIZE_8TH,     // 1/8 note (PPQN/2)
+  STEP_SIZE_BEAT,    // 1 beat (PPQN)
+  STEP_SIZE_BAR      // 1 bar (PPQN*4)
+} step_size_t;
+
+// Step playback functions
+void looper_step_playback_enable(uint8_t track_idx, bool enable);
+void looper_step_forward(uint8_t track_idx);   // Move cursor forward
+void looper_step_backward(uint8_t track_idx);  // Move cursor backward
+void looper_step_set_size(step_size_t size);   // Configure step size
+uint32_t looper_step_get_cursor(uint8_t track_idx);  // Get cursor position
+
+// Footswitch integration
+void looper_on_footswitch_fwd(void);  // Callback for forward footswitch
+void looper_on_footswitch_bwd(void);  // Callback for backward footswitch
+```
+
+**Fonctionnalités**:
+- Navigation manuelle dans timeline avec footswitches
+- Playback pas à pas (pause automatique entre steps)
+- Step size configurable (tick/16th/8th/beat/bar)
+- Highlight visuel du curseur sur timeline UI
+- Compatible avec step recording existant
+
 ---
 
 ## UI Layout Designs
@@ -462,6 +519,11 @@ int midi_export_all_tracks(const char* filename);
 #ifndef MODULE_ENABLE_SCS_UI_STYLE
 #define MODULE_ENABLE_SCS_UI_STYLE 1
 #endif
+
+/** @brief Enable Step Playback (NEW) */
+#ifndef MODULE_ENABLE_STEP_PLAYBACK
+#define MODULE_ENABLE_STEP_PLAYBACK 1
+#endif
 ```
 
 ---
@@ -469,26 +531,30 @@ int midi_export_all_tracks(const char* filename);
 ## Implementation Timeline
 
 ### Immediate (Commit 1)
-- [ ] Create implementation plan document
-- [ ] Update UI_LOOPA_IMPLEMENTATION.md
+- [x] Create implementation plan document
+- [x] Update UI_LOOPA_IMPLEMENTATION.md
 
 ### Week 1 (Commits 2-4)
 - [ ] LiveFX module skeleton
 - [ ] Scale module with quantization
 - [ ] Enhanced looper overview page
+- [ ] **Step playback functions** (NEW)
 
 ### Week 2 (Commits 5-7)
 - [ ] Song mode logic
 - [ ] Song mode UI page
 - [ ] MIDI monitor capture logic
+- [ ] **Footswitch integration for step playback** (NEW)
 
 ### Week 3 (Commits 8-10)
 - [ ] MIDI monitor UI page
 - [ ] SysEx UI page
 - [ ] Beatloop visual enhancements
+- [ ] **Step playback UI indicators** (NEW)
 
 ### Week 4 (Commits 11-13)
 - [ ] MIDI export (SMF format)
+- [ ] Config editor (NEW)
 - [ ] Integration testing
 - [ ] Documentation updates
 
