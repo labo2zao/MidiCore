@@ -28,6 +28,7 @@
 
 #if MODULE_ENABLE_ROUTER
 #include "Services/router/router.h"
+#include "Services/router/router_send.h"
 #endif
 
 #if MODULE_ENABLE_LOOPER
@@ -318,7 +319,7 @@ void module_test_midi_din_run(void)
 void module_test_router_run(void)
 {
 #if MODULE_ENABLE_ROUTER
-  router_init();
+  router_init(router_send_default);
   
   // Test basic router functionality
   for (;;) {
