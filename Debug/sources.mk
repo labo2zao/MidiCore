@@ -60,6 +60,7 @@ Services/looper \
 Services/midi \
 Services/patch \
 Services/pressure \
+Services/rhythm_trainer \
 Services/router \
 Services/router_hooks \
 Services/safe \

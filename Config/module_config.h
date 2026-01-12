@@ -154,6 +154,11 @@ extern "C" {
 #define MODULE_ENABLE_ROUTER_HOOKS 1
 #endif
 
+/** @brief Enable Rhythm Trainer (pedagogical timing practice tool) */
+#ifndef MODULE_ENABLE_RHYTHM_TRAINER
+#define MODULE_ENABLE_RHYTHM_TRAINER 1
+#endif
+
 /** @brief Enable Zones configuration (keyboard split/layers) */
 #ifndef MODULE_ENABLE_ZONES
 #define MODULE_ENABLE_ZONES 1
