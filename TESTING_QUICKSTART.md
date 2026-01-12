@@ -2,11 +2,22 @@
 
 This guide provides quick examples for testing each module.
 
+## MIOS32 Hardware Compatibility
+
+MidiCore is **100% compatible with MIOS32 hardware**. All UART ports match MIOS32 pinout:
+- Port 0 = UART1 (PA9/PA10) - MIDI OUT1/IN1
+- Port 1 = UART2 (PA2/PA3) - MIDI OUT2/IN2 (default debug)
+- Port 2 = UART3 (PB10/PB11) - MIDI OUT3/IN3
+- Port 3 = UART5 (PC12/PD2) - MIDI OUT4/IN4
+
+See [README_MIOS32_UART_CONFIG.md](README_MIOS32_UART_CONFIG.md) for full UART configuration guide.
+
 ## Prerequisites
 
 - STM32CubeIDE installed
 - MidiCore project opened in CubeIDE
 - Target hardware connected (STM32F407)
+- USB-UART adapter for debug output (optional but recommended)
 
 ## Quick Test Examples
 
@@ -113,22 +124,34 @@ module_test_t module_tests_get_compile_time_selection(void)
 
 ## Viewing Debug Output
 
-Most tests output debug information via UART2:
+Most tests output debug information via UART using the MIOS32-compatible `dbg_print()` API.
+
+**Default UART Configuration:**
+- Debug Output: UART2 (PA2/PA3) at 115200 baud
+- MIDI DIN: UART1 (PA9/PA10) at 31250 baud
 
 **Hardware Setup:**
-- Connect USB-UART adapter to USART2
-- TX: PA2
-- RX: PA3 (if needed)
-- GND: Common ground
+- Connect USB-UART adapter to debug UART:
+  - Debug TX: PA2 (UART2) - Default
+  - Debug RX: PA3 (UART2) - Optional
+  - GND: Common ground
 
 **Serial Settings:**
-- Baud rate: 31250 (MIDI baud) or check your configuration
+- Baud rate: 115200 (debug) or 31250 (MIDI)
 - Data bits: 8
 - Stop bits: 1
 - Parity: None
 
 **Tools:**
 - PuTTY, Tera Term, Arduino Serial Monitor, etc.
+
+**Configure Different UART:**
+Add to build defines to use a different UART for debug:
+```
+TEST_DEBUG_UART_PORT=2  // Use UART3 (PB10/PB11) for debug
+```
+
+See [README_MIOS32_UART_CONFIG.md](README_MIOS32_UART_CONFIG.md) for detailed UART configuration.
 
 ---
 

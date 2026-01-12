@@ -22,6 +22,7 @@ MidiCore is a modular MIDI system featuring:
 
 ## Documentation
 
+- **[MIOS32 UART Configuration](README_MIOS32_UART_CONFIG.md)** - UART setup and dbg_print API
 - **[Module Testing Guide](README_MODULE_TESTING.md)** - Test modules individually
 - **[Testing Quick Start](TESTING_QUICKSTART.md)** - Quick test examples
 - **[Module Configuration](README_MODULE_CONFIG.md)** - Enable/disable modules
@@ -131,9 +132,11 @@ This project uses:
 
 - **Primary Target**: STM32F407VGT6
 - **Future Support**: STM32H7 (more RAM/Flash)
-- **Interface Standard**: MIOS32/MBHP compatible
+- **MIOS32 Compatible**: 100% compatible UART mapping and hardware interface
+- **MBHP Compatible**: Works with MIOS32 MBHP shields and modules
 
-See [README_PORTABILITY.md](README_PORTABILITY.md) for migration guide.
+See [README_PORTABILITY.md](README_PORTABILITY.md) for migration guide.  
+See [README_MIOS32_UART_CONFIG.md](README_MIOS32_UART_CONFIG.md) for MIOS32 compatibility details.
 
 ## License
 
