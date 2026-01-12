@@ -1,5 +1,6 @@
 #pragma once
-#include "stm32f4xx_hal.h"
+// Include main.h for portable STM32 HAL (F4/F7/H7 compatibility)
+#include "main.h"
 #include <stdint.h>
 
 #ifdef __cplusplus

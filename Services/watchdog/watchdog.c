@@ -1,5 +1,6 @@
 #include "Services/watchdog/watchdog.h"
-#include "stm32f4xx_hal.h"
+// Include main.h for portable STM32 HAL (F4/F7/H7 compatibility)
+#include "main.h"
 #include "Services/system/safe_mode.h"
 #include "Services/ui/ui_status.h"
 

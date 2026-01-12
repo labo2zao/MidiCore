@@ -2,7 +2,8 @@
 #include "Hal/spi_bus.h"
 #include "Config/oled_pins.h"
 #include "Hal/delay_us.h"
-#include "stm32f4xx_hal.h"
+// Include main.h for portable STM32 HAL (F4/F7/H7 compatibility)
+#include "main.h"
 #include <string.h>
 
 static uint8_t fb[OLED_W * OLED_H / 2];

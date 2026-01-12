@@ -2,7 +2,8 @@
 #pragma once
 #include <stdint.h>
 
-#include "stm32f4xx_hal.h"
+// Include main.h for portable STM32 HAL (F4/F7/H7 compatibility)
+#include "main.h"
 
 void hal_uart_midi_init(void);
 void hal_uart_midi_send_byte(uint8_t port, uint8_t b);
