@@ -34,7 +34,7 @@ void rhythm_trainer_init(void) {
   g_config.target_accuracy = 85;
   
   // Audio feedback defaults
-  g_config.feedback_mode = 0;     // NONE
+  g_config.feedback_mode = RHYTHM_FEEDBACK_NONE;
   g_config.warning_note = 38;     // Snare drum
   g_config.warning_velocity = 90;
   g_config.warning_channel = 9;   // Drum channel
