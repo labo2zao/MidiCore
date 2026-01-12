@@ -74,9 +74,10 @@ static inline uint8_t compute_link_led_bit(void)
   if (!g_link_led_enable)
     return 0;
 
-  // Slow blink: ~2 Hz, optimized with bit operations
+  // Slow blink: ~2 Hz (256ms period instead of 250ms)
+  // Optimized with bit shift for performance
   uint32_t t = HAL_GetTick();
-  return (uint8_t)((t >> 8u) & 1u); // Toggle every 256ms approximately
+  return (uint8_t)((t >> 8u) & 1u);
 }
 
 // -----------------------------------------------------------------------------

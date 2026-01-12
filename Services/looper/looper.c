@@ -74,7 +74,8 @@ static inline uint32_t quantize_tick(uint32_t t, uint32_t step) {
   if (!step) return t;
   uint32_t r = t % step;
   uint32_t half_step = step >> 1u;
-  return (r < half_step) ? (t - r) : (t - r + step);
+  uint32_t down = t - r;
+  return (r < half_step) ? down : (down + step);
 }
 
 static void clear_track(looper_track_t* t) {

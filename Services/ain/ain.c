@@ -36,6 +36,9 @@ static const float    GAMMA     = 1.4f;
 static const float    WA        = 0.7f;
 
 #define EVQ_SIZE 64
+// Note: EVQ_SIZE must be a power of 2 for bitwise optimizations
+static_assert((EVQ_SIZE & (EVQ_SIZE - 1)) == 0, "EVQ_SIZE must be power of 2");
+
 static ain_event_t evq[EVQ_SIZE];
 static volatile uint8_t evq_w = 0, evq_r = 0;
 
@@ -90,9 +93,13 @@ static uint8_t map_velocity_B(uint16_t vb_ema) {
   return (uint8_t)v;
 }
 
+// velocity fusion weights (70% vA + 30% vB)
+#define VELOCITY_WEIGHT_A 70u
+#define VELOCITY_WEIGHT_B 30u
+
 static inline uint8_t fuse_vel(uint8_t vA, uint8_t vB) {
   // Use integer arithmetic instead of floating point for performance
-  uint32_t vf = ((uint32_t)vA * 70u + (uint32_t)vB * 30u) / 100u;
+  uint32_t vf = ((uint32_t)vA * VELOCITY_WEIGHT_A + (uint32_t)vB * VELOCITY_WEIGHT_B) / 100u;
   if (vf < 1u) vf = 1u;
   if (vf > 127u) vf = 127u;
   return (uint8_t)vf;
