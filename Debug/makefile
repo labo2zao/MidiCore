@@ -19,6 +19,7 @@ RM := rm -rf
 -include Services/ui/subdir.mk
 -include Services/system/subdir.mk
 -include Services/srio/subdir.mk
+-include Services/scale/subdir.mk
 -include Services/safe/subdir.mk
 -include Services/router/subdir.mk
 -include Services/pressure/subdir.mk
@@ -26,6 +27,7 @@ RM := rm -rf
 -include Services/midi/subdir.mk
 -include Services/looper/subdir.mk
 -include Services/log/subdir.mk
+-include Services/livefx/subdir.mk
 -include Services/instrument/subdir.mk
 -include Services/input/subdir.mk
 -include Services/humanize/subdir.mk

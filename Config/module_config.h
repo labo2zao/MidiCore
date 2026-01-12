@@ -139,6 +139,16 @@ extern "C" {
 #define MODULE_ENABLE_HUMANIZE 1
 #endif
 
+/** @brief Enable LiveFX module (transpose, velocity scale, force-to-scale) */
+#ifndef MODULE_ENABLE_LIVEFX
+#define MODULE_ENABLE_LIVEFX 1
+#endif
+
+/** @brief Enable Scale module (musical scale quantization) */
+#ifndef MODULE_ENABLE_SCALE
+#define MODULE_ENABLE_SCALE 1
+#endif
+
 /** @brief Enable Zones configuration (keyboard split/layers) */
 #ifndef MODULE_ENABLE_ZONES
 #define MODULE_ENABLE_ZONES 1

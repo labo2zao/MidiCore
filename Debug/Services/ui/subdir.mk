@@ -20,6 +20,7 @@ C_SRCS += \
 ../Services/ui/ui_page_midi_monitor.c \
 ../Services/ui/ui_page_sysex.c \
 ../Services/ui/ui_page_config.c \
+../Services/ui/ui_page_livefx.c \
 ../Services/ui/ui_state.c \
 ../Services/ui/ui_status.c 
 
@@ -39,6 +40,7 @@ OBJS += \
 ./Services/ui/ui_page_midi_monitor.o \
 ./Services/ui/ui_page_sysex.o \
 ./Services/ui/ui_page_config.o \
+./Services/ui/ui_page_livefx.o \
 ./Services/ui/ui_state.o \
 ./Services/ui/ui_status.o 
 
@@ -58,6 +60,7 @@ C_DEPS += \
 ./Services/ui/ui_page_midi_monitor.d \
 ./Services/ui/ui_page_sysex.d \
 ./Services/ui/ui_page_config.d \
+./Services/ui/ui_page_livefx.d \
 ./Services/ui/ui_state.d \
 ./Services/ui/ui_status.d 
 

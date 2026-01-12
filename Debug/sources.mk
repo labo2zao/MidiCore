@@ -54,6 +54,7 @@ Services/fs \
 Services/humanize \
 Services/input \
 Services/instrument \
+Services/livefx \
 Services/log \
 Services/looper \
 Services/midi \
@@ -61,6 +62,7 @@ Services/patch \
 Services/pressure \
 Services/router \
 Services/safe \
+Services/scale \
 Services/srio \
 Services/system \
 Services/ui \
