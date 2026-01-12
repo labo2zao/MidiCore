@@ -100,8 +100,10 @@ bool bootloader_erase_application(void);
  * @brief Write data to application flash
  * @param offset Offset from APPLICATION_START_ADDRESS
  * @param data Data to write
- * @param len Length of data (must be multiple of 4)
+ * @param len Length of data (automatically padded to 4-byte alignment)
  * @return true if successful, false on error
+ * 
+ * @note Data is automatically padded with 0xFF if not 4-byte aligned
  */
 bool bootloader_write_flash(uint32_t offset, const uint8_t* data, uint32_t len);
 

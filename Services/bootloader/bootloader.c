@@ -13,8 +13,12 @@
 #include <string.h>
 
 // Magic key location in RAM (preserved across soft reset)
-// Place in a section that's not initialized by startup code
-#define BOOTLOADER_MAGIC_RAM_ADDR  ((volatile uint32_t*)0x2001FFF0)
+// Place at end of RAM to avoid initialization by startup code
+// For STM32F407: RAM ends at 0x20020000, use last 16 bytes for bootloader data
+#if !defined(BOOTLOADER_MAGIC_RAM_ADDR)
+  #define BOOTLOADER_MAGIC_RAM_END 0x20020000  // End of 128KB RAM
+  #define BOOTLOADER_MAGIC_RAM_ADDR  ((volatile uint32_t*)(BOOTLOADER_MAGIC_RAM_END - 16))
+#endif
 
 static bootloader_entry_reason_t g_entry_reason = BOOTLOADER_ENTRY_NONE;
 
@@ -160,9 +164,10 @@ bool bootloader_write_flash(uint32_t offset, const uint8_t* data, uint32_t len) 
     return false;
   }
   
-  // Length must be multiple of 4 for word programming
+  // Auto-pad to 4-byte alignment if needed
+  uint32_t pad_len = len;
   if (len % 4 != 0) {
-    return false;
+    pad_len = (len + 3) & ~3;  // Round up to multiple of 4
   }
   
   HAL_StatusTypeDef status;
@@ -175,8 +180,19 @@ bool bootloader_write_flash(uint32_t offset, const uint8_t* data, uint32_t len) 
   }
   
   // Write data word by word
-  for (uint32_t i = 0; i < len; i += 4) {
-    uint32_t word = *((uint32_t*)(data + i));
+  for (uint32_t i = 0; i < pad_len; i += 4) {
+    uint32_t word;
+    if (i + 4 <= len) {
+      // Normal word from data
+      word = *((uint32_t*)(data + i));
+    } else {
+      // Partial word - pad with 0xFF (erased flash value)
+      word = 0xFFFFFFFF;
+      for (uint32_t j = 0; i + j < len; j++) {
+        ((uint8_t*)&word)[j] = data[i + j];
+      }
+    }
+    
     status = HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, address + i, word);
     if (status != HAL_OK) {
       HAL_FLASH_Lock();

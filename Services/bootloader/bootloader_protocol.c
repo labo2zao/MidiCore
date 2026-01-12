@@ -222,8 +222,10 @@ bool bootloader_protocol_process(const uint8_t* data, uint32_t len) {
       }
       
       // Write data to flash
-      // Note: Data is 7-bit encoded, need to decode
-      // For simplicity, expect 8-bit data padded to 7-bit (MSB=0)
+      // Note: Current implementation assumes 7-bit safe data (MSB=0 for each byte)
+      // For production use with arbitrary binary data, implement proper 7-to-8 bit
+      // decoding here. MIOS32 typically uses nibble encoding or base64-like schemes.
+      // Example: 7 bytes of 7-bit data -> 6 bytes of 8-bit data
       bool success = bootloader_write_flash(offset, &data[13], data_len);
       
       if (success) {
@@ -246,8 +248,14 @@ bool bootloader_protocol_process(const uint8_t* data, uint32_t len) {
       // Jump to application
       bootloader_protocol_send_ack(command, APPLICATION_START_ADDRESS);
       
-      // Small delay to allow ACK to be sent
-      for (volatile int i = 0; i < 100000; i++);
+      // Note: In production, implement proper delay using HAL_Delay()
+      // or a system timer. This is a simple busy-wait for minimal bootloader.
+      #ifdef HAL_DELAY_AVAILABLE
+      HAL_Delay(100);  // 100ms delay to allow ACK transmission
+      #else
+      // Simple busy-wait (approx 100ms at 168MHz)
+      for (volatile uint32_t i = 0; i < 4200000; i++);
+      #endif
       
       bootloader_jump_to_application();
       return true;
