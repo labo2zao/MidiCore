@@ -7,13 +7,32 @@
 
 // UI state
 static uint8_t s_edit_mode = 0;          // 0=VIEW, 1=EDIT
-static uint8_t s_selected_param = 0;     // 0=Subdiv, 1=Perfect, 2=Good, 3=Adaptive
+static uint8_t s_selected_param = 0;     // Parameter selection
 
-#define PARAM_SUBDIVISION 0
-#define PARAM_PERFECT     1
-#define PARAM_GOOD        2
-#define PARAM_ADAPTIVE    3
-#define PARAM_COUNT       4
+#define PARAM_DIFFICULTY   0
+#define PARAM_SUBDIVISION  1
+#define PARAM_PERFECT      2
+#define PARAM_GOOD         3
+#define PARAM_ADAPTIVE     4
+#define PARAM_COUNT        5
+
+// Difficulty levels with preset thresholds
+typedef enum {
+  DIFFICULTY_EASY = 0,      // ±24 ticks perfect, ±48 good
+  DIFFICULTY_MEDIUM,        // ±12 ticks perfect, ±24 good
+  DIFFICULTY_HARD,          // ±6 ticks perfect, ±16 good
+  DIFFICULTY_EXPERT         // ±4 ticks perfect, ±12 good
+} difficulty_level_t;
+
+static difficulty_level_t s_difficulty = DIFFICULTY_MEDIUM;
+
+// Difficulty preset thresholds (perfect, good, off)
+static const uint16_t difficulty_presets[][3] = {
+  {24, 48, 96},   // EASY: ±24 (60ms), ±48 (120ms) @ 120bpm
+  {12, 24, 72},   // MEDIUM: ±12 (30ms), ±24 (60ms)
+  {6, 16, 48},    // HARD: ±6 (15ms), ±16 (40ms)
+  {4, 12, 48}     // EXPERT: ±4 (10ms), ±12 (30ms)
+};
 
 /**
  * @brief Initialize rhythm trainer UI page
@@ -21,46 +40,100 @@ static uint8_t s_selected_param = 0;     // 0=Subdiv, 1=Perfect, 2=Good, 3=Adapt
 void ui_page_rhythm_init(void) {
   s_edit_mode = 0;
   s_selected_param = 0;
+  s_difficulty = DIFFICULTY_MEDIUM;
+  
+  // Apply medium difficulty presets
+  rhythm_trainer_set_thresholds(
+    difficulty_presets[DIFFICULTY_MEDIUM][0],
+    difficulty_presets[DIFFICULTY_MEDIUM][1],
+    difficulty_presets[DIFFICULTY_MEDIUM][2]
+  );
 }
 
 /**
- * @brief Draw timing indicator with color coding
+ * @brief Draw measure bar with beat subdivisions and threshold zones
  */
-static void draw_timing_indicator(uint8_t x, uint8_t y, rhythm_eval_t eval) {
-  const char* label = rhythm_trainer_eval_name(eval);
+static void draw_measure_bar(uint8_t x, uint8_t y, uint8_t width, uint8_t height) {
+  rhythm_config_t config;
+  rhythm_trainer_get_config(&config);
   
-  // Draw label
-  gfx_text(x, y, label, GFX_FONT_SMALL);
+  // Get current playback position and last hit
+  rhythm_eval_t last_eval = rhythm_trainer_get_last_eval();
+  int32_t last_error = rhythm_trainer_get_last_error();
   
-  // Draw color bar based on evaluation
-  uint8_t bar_y = y + 12;
-  uint8_t bar_width = 60;
+  // Draw background bar
+  gfx_draw_rect(x, y, width, height, 8);
   
-  switch (eval) {
-    case RHYTHM_EVAL_PERFECT:
-      // Green bar (bright)
-      gfx_fill_rect(x, bar_y, bar_width, 4, 15);
-      break;
-    case RHYTHM_EVAL_GOOD:
-      // Medium brightness
-      gfx_fill_rect(x, bar_y, bar_width, 4, 10);
-      break;
-    case RHYTHM_EVAL_EARLY:
-      // Left-aligned bar (early = left)
-      gfx_fill_rect(x, bar_y, bar_width / 3, 4, 8);
-      break;
-    case RHYTHM_EVAL_LATE:
-      // Right-aligned bar (late = right)
-      gfx_fill_rect(x + bar_width * 2 / 3, bar_y, bar_width / 3, 4, 8);
-      break;
-    case RHYTHM_EVAL_OFF:
-      // Dim bar
-      gfx_fill_rect(x, bar_y, bar_width, 4, 3);
-      break;
+  // Calculate subdivisions based on setting
+  uint8_t num_subdivs = 4;  // Quarter notes (1/4)
+  switch (config.subdivision) {
+    case 0: num_subdivs = 4; break;    // 1/4 notes
+    case 1: num_subdivs = 8; break;    // 1/8 notes
+    case 2: num_subdivs = 16; break;   // 1/16 notes
+    case 3: num_subdivs = 32; break;   // 1/32 notes
   }
   
-  // Draw center line
-  gfx_draw_vline(x + bar_width / 2, bar_y, 4, 15);
+  // Draw subdivision markers
+  for (uint8_t i = 0; i <= num_subdivs; i++) {
+    uint8_t marker_x = x + (i * width) / num_subdivs;
+    
+    // Every 4th subdivision gets a taller marker (quarter note)
+    uint8_t marker_height = (i % 4 == 0) ? height : height / 2;
+    uint8_t marker_y = (i % 4 == 0) ? y : y + height / 4;
+    
+    gfx_draw_vline(marker_x, marker_y, marker_height, 12);
+  }
+  
+  // Draw threshold zones around beat markers
+  // Show acceptance zones: perfect (green), good (yellow), outside (red)
+  for (uint8_t i = 0; i <= num_subdivs; i++) {
+    uint8_t beat_x = x + (i * width) / num_subdivs;
+    
+    // Calculate pixel width of thresholds
+    uint8_t perfect_px = (config.perfect_window * width) / (96 * 4);  // Scale to bar
+    uint8_t good_px = (config.good_window * width) / (96 * 4);
+    
+    // Clamp to reasonable sizes
+    if (perfect_px < 1) perfect_px = 1;
+    if (good_px < 2) good_px = 2;
+    if (good_px > width / num_subdivs / 2) good_px = width / num_subdivs / 2;
+    
+    // Draw good zone (dim)
+    if (beat_x >= good_px) {
+      gfx_fill_rect(beat_x - good_px, y + height + 2, good_px * 2, 3, 6);
+    }
+    
+    // Draw perfect zone (bright) on top
+    if (beat_x >= perfect_px) {
+      gfx_fill_rect(beat_x - perfect_px, y + height + 2, perfect_px * 2, 3, 12);
+    }
+  }
+  
+  // Draw last hit indicator
+  if (last_error != 0 && last_eval != RHYTHM_EVAL_OFF) {
+    // Calculate position based on error
+    // Map error ticks to pixel position within measure
+    int16_t error_px = (last_error * width) / (96 * 4);
+    
+    // Find nearest beat position
+    uint8_t nearest_beat = 0;  // Simplified: assume beat 0
+    uint8_t beat_x = x + (nearest_beat * width) / num_subdivs;
+    
+    int16_t hit_x = beat_x + error_px;
+    
+    // Clamp to bar bounds
+    if (hit_x < x) hit_x = x;
+    if (hit_x > x + width) hit_x = x + width;
+    
+    // Draw hit marker with color based on evaluation
+    uint8_t brightness = 15;
+    if (last_eval == RHYTHM_EVAL_PERFECT) brightness = 15;
+    else if (last_eval == RHYTHM_EVAL_GOOD) brightness = 10;
+    else brightness = 6;
+    
+    // Triangle marker pointing down
+    gfx_fill_rect(hit_x - 1, y - 3, 3, 3, brightness);
+  }
 }
 
 /**
@@ -91,7 +164,7 @@ static void draw_statistics(uint8_t x, uint8_t y) {
 }
 
 /**
- * @brief Draw parameter editor
+ * @brief Draw parameter editor with difficulty levels
  */
 static void draw_parameters(uint8_t x, uint8_t y) {
   rhythm_config_t config;
@@ -100,22 +173,29 @@ static void draw_parameters(uint8_t x, uint8_t y) {
   char buf[32];
   uint8_t row_y = y;
   
+  // Difficulty level
+  const char* diff_names[] = {"EASY", "MEDIUM", "HARD", "EXPERT"};
+  uint8_t highlight = (s_edit_mode && s_selected_param == PARAM_DIFFICULTY) ? 1 : 0;
+  snprintf(buf, sizeof(buf), "%sDifficulty: %s", highlight ? ">" : " ", diff_names[s_difficulty]);
+  gfx_text(x, row_y, buf, GFX_FONT_SMALL);
+  row_y += 10;
+  
   // Subdivision
   const char* subdiv_names[] = {"1/4", "1/8", "1/16", "1/32"};
-  uint8_t highlight = (s_edit_mode && s_selected_param == PARAM_SUBDIVISION) ? 1 : 0;
+  highlight = (s_edit_mode && s_selected_param == PARAM_SUBDIVISION) ? 1 : 0;
   snprintf(buf, sizeof(buf), "%sSubdiv: %s", highlight ? ">" : " ", subdiv_names[config.subdivision]);
   gfx_text(x, row_y, buf, GFX_FONT_SMALL);
   row_y += 10;
   
-  // Perfect window
+  // Perfect window (only show in custom mode)
   highlight = (s_edit_mode && s_selected_param == PARAM_PERFECT) ? 1 : 0;
-  snprintf(buf, sizeof(buf), "%sPerfect: %d", highlight ? ">" : " ", config.perfect_window);
+  snprintf(buf, sizeof(buf), "%sPerfect: %dtk", highlight ? ">" : " ", config.perfect_window);
   gfx_text(x, row_y, buf, GFX_FONT_SMALL);
   row_y += 10;
   
-  // Good window
+  // Good window (only show in custom mode)
   highlight = (s_edit_mode && s_selected_param == PARAM_GOOD) ? 1 : 0;
-  snprintf(buf, sizeof(buf), "%sGood: %d", highlight ? ">" : " ", config.good_window);
+  snprintf(buf, sizeof(buf), "%sGood: %dtk", highlight ? ">" : " ", config.good_window);
   gfx_text(x, row_y, buf, GFX_FONT_SMALL);
   row_y += 10;
   
@@ -144,23 +224,38 @@ void ui_page_rhythm_update(uint8_t force_redraw) {
   
   // Main content area
   if (enabled) {
-    // Left: Current timing feedback
+    // Top: Measure bar with subdivisions and threshold zones (LoopA style)
+    draw_measure_bar(10, 12, 236, 10);
+    
+    // Middle: Current timing feedback and stats
     rhythm_eval_t last_eval = rhythm_trainer_get_last_eval();
     int32_t last_error = rhythm_trainer_get_last_error();
     
-    draw_timing_indicator(10, 15, last_eval);
+    // Left: Evaluation display
+    const char* eval_label = rhythm_trainer_eval_name(last_eval);
+    gfx_text(10, 28, eval_label, GFX_FONT_LARGE);
     
     // Show timing error in ms
     char buf[16];
     float error_ms = (float)last_error * 1000.0f / (96.0f * 2.0f);  // Approximate @ 120bpm
     snprintf(buf, sizeof(buf), "%+.1fms", error_ms);
-    gfx_text(10, 35, buf, GFX_FONT_SMALL);
+    gfx_text(10, 40, buf, GFX_FONT_SMALL);
     
-    // Right: Statistics
-    draw_statistics(120, 15);
+    // Right: Statistics (compact)
+    rhythm_stats_t stats;
+    rhythm_trainer_get_stats(&stats);
+    
+    snprintf(buf, sizeof(buf), "Accuracy: %d%%", stats.accuracy_percent);
+    gfx_text(120, 28, buf, GFX_FONT_SMALL);
+    
+    snprintf(buf, sizeof(buf), "P:%lu G:%lu", stats.perfect_count, stats.good_count);
+    gfx_text(120, 36, buf, GFX_FONT_SMALL);
+    
+    snprintf(buf, sizeof(buf), "E:%lu L:%lu O:%lu", stats.early_count, stats.late_count, stats.off_count);
+    gfx_text(120, 44, buf, GFX_FONT_SMALL);
   } else {
     gfx_text(10, 25, "Trainer disabled", GFX_FONT_NORMAL);
-    gfx_text(10, 40, "Press BTN1 to enable", GFX_FONT_SMALL);
+    gfx_text(10, 38, "Press BTN3 to enable", GFX_FONT_SMALL);
   }
   
   // Bottom: Parameters (always visible)
@@ -212,6 +307,22 @@ void ui_page_rhythm_encoder(int8_t delta) {
   if (s_edit_mode) {
     // Edit selected parameter
     switch (s_selected_param) {
+      case PARAM_DIFFICULTY:
+        {
+          int8_t diff = (int8_t)s_difficulty + delta;
+          if (diff < 0) diff = 0;
+          if (diff > 3) diff = 3;
+          s_difficulty = (difficulty_level_t)diff;
+          
+          // Apply difficulty preset thresholds
+          rhythm_trainer_set_thresholds(
+            difficulty_presets[s_difficulty][0],
+            difficulty_presets[s_difficulty][1],
+            difficulty_presets[s_difficulty][2]
+          );
+        }
+        break;
+        
       case PARAM_SUBDIVISION:
         {
           int8_t subdiv = (int8_t)config.subdivision + delta;
@@ -223,6 +334,7 @@ void ui_page_rhythm_encoder(int8_t delta) {
         
       case PARAM_PERFECT:
         {
+          // Manual adjustment (for custom difficulty)
           int16_t val = (int16_t)config.perfect_window + delta;
           if (val < 1) val = 1;
           if (val > 50) val = 50;
@@ -233,6 +345,7 @@ void ui_page_rhythm_encoder(int8_t delta) {
         
       case PARAM_GOOD:
         {
+          // Manual adjustment (for custom difficulty)
           int16_t val = (int16_t)config.good_window + delta;
           if (val < 2) val = 2;
           if (val > 100) val = 100;
