@@ -123,6 +123,80 @@ void looper_load_from_scene(uint8_t scene, uint8_t track);
  */
 void looper_trigger_scene(uint8_t scene);
 
+// ---- Step Playback ----
+
+/**
+ * @brief Enable/disable step playback mode for a track
+ * @param track Track index (0-3)
+ * @param enable 1 to enable step mode, 0 to disable (normal playback)
+ * 
+ * In step playback mode, the track cursor position is manually controlled
+ * rather than automatically advancing with tempo. Use looper_step_forward()
+ * and looper_step_backward() to navigate.
+ */
+void looper_set_step_mode(uint8_t track, uint8_t enable);
+
+/**
+ * @brief Get step playback mode status
+ * @param track Track index (0-3)
+ * @return 1 if step mode enabled, 0 otherwise
+ */
+uint8_t looper_get_step_mode(uint8_t track);
+
+/**
+ * @brief Step forward to next event (or by specified ticks)
+ * @param track Track index (0-3)
+ * @param ticks Number of ticks to advance (0 = next event)
+ * @return Current position in ticks after step
+ * 
+ * In step mode, advances the cursor and triggers any events at the new position.
+ * If ticks is 0, steps to the next event. Otherwise steps by specified ticks.
+ */
+uint32_t looper_step_forward(uint8_t track, uint32_t ticks);
+
+/**
+ * @brief Step backward to previous event (or by specified ticks)
+ * @param track Track index (0-3)
+ * @param ticks Number of ticks to rewind (0 = previous event)
+ * @return Current position in ticks after step
+ * 
+ * In step mode, moves the cursor backward. Notes that were on will be
+ * turned off, and the cursor position updated.
+ */
+uint32_t looper_step_backward(uint8_t track, uint32_t ticks);
+
+/**
+ * @brief Get current cursor position in step mode
+ * @param track Track index (0-3)
+ * @return Current position in ticks
+ */
+uint32_t looper_get_cursor_position(uint8_t track);
+
+/**
+ * @brief Set cursor position in step mode
+ * @param track Track index (0-3)
+ * @param tick Tick position to set
+ */
+void looper_set_cursor_position(uint8_t track, uint32_t tick);
+
+/**
+ * @brief Configure step size for footswitch control
+ * @param ticks Step size in ticks (0 = auto/event-based, or fixed tick count)
+ * 
+ * Sets the default step size. Common values:
+ * - 0: Auto (step to next/previous event)
+ * - 24: 16th note at PPQN=96
+ * - 48: 8th note at PPQN=96
+ * - 96: Quarter note at PPQN=96
+ */
+void looper_set_step_size(uint32_t ticks);
+
+/**
+ * @brief Get configured step size
+ * @return Step size in ticks (0 = auto)
+ */
+uint32_t looper_get_step_size(void);
+
 #ifdef __cplusplus
 }
 #endif

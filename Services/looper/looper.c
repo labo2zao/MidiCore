@@ -674,3 +674,234 @@ void looper_trigger_scene(uint8_t scene) {
   }
 }
 
+// ---- Step Playback ----
+
+// Step playback state
+typedef struct {
+  uint8_t enabled;           // Step mode enabled flag
+  uint32_t cursor_tick;      // Current cursor position in ticks
+} step_state_t;
+
+static step_state_t g_step[LOOPER_TRACKS];
+static uint32_t g_step_size = 0;  // 0 = auto (event-based), else fixed ticks
+
+/**
+ * @brief Enable/disable step playback mode for a track
+ */
+void looper_set_step_mode(uint8_t track, uint8_t enable) {
+  if (track >= LOOPER_TRACKS) return;
+  
+  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  
+  g_step[track].enabled = enable ? 1 : 0;
+  
+  if (enable) {
+    // Initialize cursor to current playback position
+    g_step[track].cursor_tick = g_tr[track].play_tick;
+    
+    // Pause normal playback when entering step mode
+    if (g_tr[track].st == LOOPER_STATE_PLAY) {
+      // Keep state but stop auto-advance
+      g_tr[track].st = LOOPER_STATE_STOP;
+    }
+  }
+  
+  if (g_mutex) osMutexRelease(g_mutex);
+}
+
+/**
+ * @brief Get step playback mode status
+ */
+uint8_t looper_get_step_mode(uint8_t track) {
+  if (track >= LOOPER_TRACKS) return 0;
+  return g_step[track].enabled;
+}
+
+/**
+ * @brief Step forward to next event (or by specified ticks)
+ */
+uint32_t looper_step_forward(uint8_t track, uint32_t ticks) {
+  if (track >= LOOPER_TRACKS) return 0;
+  if (!g_step[track].enabled) return 0;
+  
+  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  
+  looper_track_t* t = &g_tr[track];
+  uint32_t old_tick = g_step[track].cursor_tick;
+  uint32_t new_tick = old_tick;
+  
+  if (ticks == 0) {
+    // Auto mode: step to next event
+    ticks = g_step_size;
+    
+    if (ticks == 0) {
+      // Event-based stepping: find next event
+      uint32_t next_event_tick = t->loop_len_ticks;  // Default to end
+      
+      for (uint32_t i = 0; i < t->count; i++) {
+        if (t->ev[i].tick > old_tick) {
+          next_event_tick = t->ev[i].tick;
+          break;
+        }
+      }
+      
+      new_tick = next_event_tick;
+    } else {
+      // Fixed tick stepping
+      new_tick = old_tick + ticks;
+    }
+  } else {
+    // Explicit tick count
+    new_tick = old_tick + ticks;
+  }
+  
+  // Wrap around loop
+  if (t->loop_len_ticks > 0 && new_tick >= t->loop_len_ticks) {
+    new_tick = new_tick % t->loop_len_ticks;
+  }
+  
+  // Play events between old_tick and new_tick
+  for (uint32_t i = 0; i < t->count; i++) {
+    uint32_t evt_tick = t->ev[i].tick;
+    
+    if (evt_tick > old_tick && evt_tick <= new_tick) {
+      // Trigger this event
+      router_msg_t msg;
+      msg.type = t->ev[i].len;
+      msg.b0 = t->ev[i].b0;
+      msg.b1 = t->ev[i].b1;
+      msg.b2 = t->ev[i].b2;
+      
+      // Send immediately (no delay in step mode)
+      midi_delayq_push(&msg, 0);
+    }
+  }
+  
+  g_step[track].cursor_tick = new_tick;
+  
+  if (g_mutex) osMutexRelease(g_mutex);
+  
+  return new_tick;
+}
+
+/**
+ * @brief Step backward to previous event (or by specified ticks)
+ */
+uint32_t looper_step_backward(uint8_t track, uint32_t ticks) {
+  if (track >= LOOPER_TRACKS) return 0;
+  if (!g_step[track].enabled) return 0;
+  
+  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  
+  looper_track_t* t = &g_tr[track];
+  uint32_t old_tick = g_step[track].cursor_tick;
+  uint32_t new_tick;
+  
+  if (ticks == 0) {
+    // Auto mode: step to previous event
+    ticks = g_step_size;
+    
+    if (ticks == 0) {
+      // Event-based stepping: find previous event
+      uint32_t prev_event_tick = 0;
+      
+      for (int32_t i = t->count - 1; i >= 0; i--) {
+        if (t->ev[i].tick < old_tick) {
+          prev_event_tick = t->ev[i].tick;
+          break;
+        }
+      }
+      
+      new_tick = prev_event_tick;
+    } else {
+      // Fixed tick stepping
+      if (old_tick >= ticks) {
+        new_tick = old_tick - ticks;
+      } else {
+        // Wrap to end of loop
+        if (t->loop_len_ticks > 0) {
+          new_tick = t->loop_len_ticks - (ticks - old_tick);
+        } else {
+          new_tick = 0;
+        }
+      }
+    }
+  } else {
+    // Explicit tick count
+    if (old_tick >= ticks) {
+      new_tick = old_tick - ticks;
+    } else {
+      // Wrap to end of loop
+      if (t->loop_len_ticks > 0) {
+        new_tick = t->loop_len_ticks - (ticks - old_tick);
+      } else {
+        new_tick = 0;
+      }
+    }
+  }
+  
+  // Send note-off for any active notes
+  for (uint8_t ch = 0; ch < 16; ch++) {
+    for (uint8_t note = 0; note < 128; note++) {
+      if (t->active_notes[ch][note]) {
+        router_msg_t msg;
+        msg.type = 3;
+        msg.b0 = 0x80 | ch;  // Note Off
+        msg.b1 = note;
+        msg.b2 = 0;
+        midi_delayq_push(&msg, 0);
+        t->active_notes[ch][note] = 0;
+      }
+    }
+  }
+  
+  g_step[track].cursor_tick = new_tick;
+  
+  if (g_mutex) osMutexRelease(g_mutex);
+  
+  return new_tick;
+}
+
+/**
+ * @brief Get current cursor position in step mode
+ */
+uint32_t looper_get_cursor_position(uint8_t track) {
+  if (track >= LOOPER_TRACKS) return 0;
+  return g_step[track].cursor_tick;
+}
+
+/**
+ * @brief Set cursor position in step mode
+ */
+void looper_set_cursor_position(uint8_t track, uint32_t tick) {
+  if (track >= LOOPER_TRACKS) return;
+  
+  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  
+  looper_track_t* t = &g_tr[track];
+  
+  // Wrap to loop length
+  if (t->loop_len_ticks > 0 && tick >= t->loop_len_ticks) {
+    tick = tick % t->loop_len_ticks;
+  }
+  
+  g_step[track].cursor_tick = tick;
+  
+  if (g_mutex) osMutexRelease(g_mutex);
+}
+
+/**
+ * @brief Configure step size for footswitch control
+ */
+void looper_set_step_size(uint32_t ticks) {
+  g_step_size = ticks;
+}
+
+/**
+ * @brief Get configured step size
+ */
+uint32_t looper_get_step_size(void) {
+  return g_step_size;
+}
+
+
