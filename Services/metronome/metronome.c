@@ -78,9 +78,12 @@ void metronome_sync_tempo(uint16_t bpm, uint8_t ts_num, uint8_t ts_den) {
 }
 
 void metronome_start_count_in(void) {
-  if (g_config.count_in_bars == 0) return;
-  
   osMutexAcquire(g_mutex, osWaitForever);
+  if (g_config.count_in_bars == 0) {
+    osMutexRelease(g_mutex);
+    return;
+  }
+  
   g_count_in_active = 1;
   g_count_in_start_tick = 0;
   g_last_click_tick = 0xFFFFFFFF;
@@ -105,18 +108,21 @@ static void send_metronome_click(uint8_t is_accent) {
   
   // Build MIDI note on message
   router_msg_t msg;
+  msg.type = ROUTER_MSG_3B;
+  msg.b0 = 0x90 | (g_config.midi_channel & 0x0F);  // Note On
+  msg.b1 = is_accent ? g_config.accent_note : g_config.regular_note;
+  msg.b2 = is_accent ? g_config.accent_velocity : g_config.regular_velocity;
   msg.len = 3;
-  msg.data[0] = 0x90 | (g_config.midi_channel & 0x0F);  // Note On
-  msg.data[1] = is_accent ? g_config.accent_note : g_config.regular_note;
-  msg.data[2] = is_accent ? g_config.accent_velocity : g_config.regular_velocity;
+  msg.data = NULL;
   
-  // Send to configured output port
-  // Note: This assumes router_send_msg exists or similar function
-  // In actual implementation, would use router API to send message
-  // For now, using placeholder - integrate with actual router API
+  // Send note on through router (from metronome virtual node to configured output)
+  // Use router_process with metronome as source node
+  // Note: In actual integration, metronome would have its own node ID
+  // For now, sending from a virtual node (e.g., 0xFF for internal)
+  router_process(0xFF, &msg);
   
-  // Schedule note off after 50ms
-  // In actual implementation, would use delay queue or timer
+  // Note off is typically handled by the receiving synthesizer after a short duration
+  // or can be sent explicitly after a delay using MIDI delay queue if needed
 }
 
 void metronome_tick_1ms(uint32_t current_tick, uint8_t is_playing) {
