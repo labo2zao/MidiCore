@@ -11,6 +11,7 @@
 #include "Services/ui/ui_encoders.h"
 #include "Services/ui/ui_actions.h"
 #include "Services/ui/ui.h"
+#include <string.h>
 
 // This task is compile-safe and demonstrates how to drive the input layer.
 // Replace the demo section with your SRIO scanner/encoder decoder.
@@ -38,6 +39,14 @@ void InputTask(void *argument) {
   ui_bindings_t binds;
   (void)ui_bindings_load(&binds, "/cfg/ui_bindings.ngc");
   dout_map_init(&cfg_sd);
+
+  // Encoder and UI action configuration
+  ui_encoders_cfg_t enc_cfg;
+  ui_actions_cfg_t  act_cfg;
+  ui_encoders_defaults(&enc_cfg);
+  ui_actions_defaults(&act_cfg);
+  (void)ui_encoders_load(&enc_cfg, "/cfg/ui_encoders.ngc");
+  (void)ui_actions_load(&act_cfg, "/cfg/ui_actions.ngc");
 
   if (cfg_sd.ui_shift_hold_ms) {
     cfg.shift_hold_ms = cfg_sd.ui_shift_hold_ms;
@@ -159,6 +168,7 @@ static const int8_t step_lut[16] = {
 
 static uint8_t enc_prev_ab[UI_MAX_ENCODERS] = {0};
 static uint8_t enc_btn_prev[UI_MAX_ENCODERS] = {0};
+static uint8_t enc0_btn_prev = 0;
 
 for (uint8_t e = 0; e < UI_MAX_ENCODERS; e++) {
   if (enc_cfg.enc_a[e] == 0xFFFFu || enc_cfg.enc_b[e] == 0xFFFFu) continue;

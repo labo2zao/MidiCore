@@ -1,0 +1,36 @@
+# AINSER mapping config
+# Copy this file to 0:/cfg/ainser_map.ngc on the SD card.
+# Only channels explicitly listed here override the compiled defaults.
+#
+# Syntax:
+#   [CHn]          ; n = 0..63 logical AINSER index
+#   CC=number      ; 0..127
+#   CHAN=number    ; MIDI channel 0..15 (0 = ch1)
+#   CURVE=0|1|2    ; 0=linear,1=expo,2=log  (or LIN/EXPO/LOG)
+#   INVERT=0|1
+#   MIN=0..4095
+#   MAX=0..4095
+#   THRESHOLD=delta_raw_12bit
+#   ENABLED=0|1
+
+[CH16]
+# Example: primary bellows sensor
+CC=36
+CHAN=0
+CURVE=2
+INVERT=1
+MIN=200
+MAX=3800
+THRESHOLD=12
+ENABLED=1
+
+[CH17]
+# Example: secondary bellows sensor
+CC=37
+CHAN=0
+CURVE=2
+INVERT=0
+MIN=200
+MAX=3800
+THRESHOLD=12
+ENABLED=1

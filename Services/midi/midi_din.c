@@ -55,23 +55,27 @@ static inline uint8_t midi_expected_len(uint8_t status)
   return 1; // F6, F7, and others
 }
 
+
+
 static void dispatch_short_msg(uint8_t port, const uint8_t* bytes, uint8_t len)
 {
+  if (!bytes || len == 0) return;
+
   router_msg_t msg;
   msg.src = (router_node_t)(ROUTER_NODE_DIN_IN1 + port);
 
   if (len == 1) {
     msg.type = ROUTER_MSG_1B;
-    msg.data.msg1.b0 = bytes[0];
+    msg.b0 = bytes[0];
   } else if (len == 2) {
     msg.type = ROUTER_MSG_2B;
-    msg.data.msg2.b0 = bytes[0];
-    msg.data.msg2.b1 = bytes[1];
+    msg.b0 = bytes[0];
+    msg.b1 = bytes[1];
   } else { // 3
     msg.type = ROUTER_MSG_3B;
-    msg.data.msg3.b0 = bytes[0];
-    msg.data.msg3.b1 = bytes[1];
-    msg.data.msg3.b2 = bytes[2];
+    msg.b0 = bytes[0];
+    msg.b1 = bytes[1];
+    msg.b2 = bytes[2];
   }
 
   // Stats
@@ -80,26 +84,29 @@ static void dispatch_short_msg(uint8_t port, const uint8_t* bytes, uint8_t len)
   c->stats.last_len = len;
   memcpy(c->stats.last_bytes, bytes, len);
 
-  router_dispatch(&msg);
+  router_process((uint8_t)(ROUTER_NODE_DIN_IN1 + port), &msg);
 }
+
 
 static void dispatch_sysex_chunk(uint8_t port, const uint8_t* data, uint16_t len, uint8_t is_last)
 {
-  if (len == 0)
+  if (len == 0 || !data)
     return;
 
   router_msg_t msg;
   msg.src = (router_node_t)(ROUTER_NODE_DIN_IN1 + port);
   msg.type = ROUTER_MSG_SYSEX;
-  msg.data.sysex.data = data;
-  msg.data.sysex.len = len;
-  msg.data.sysex.is_last = is_last;
+  msg.data = data;
+  msg.len = len;
+
+  // For now, we ignore is_last at router level; higher layers can
+  // reconstruct full SysEx from the stream of chunks if needed.
 
   midi_din_port_ctx_t* c = &g_ctx[port];
   c->stats.rx_sysex_chunks++;
   c->stats.last_len = 0;
 
-  router_dispatch(&msg);
+  router_process((uint8_t)(ROUTER_NODE_DIN_IN1 + port), &msg);
 }
 
 static inline void sysex_reset(midi_din_port_ctx_t* c)
@@ -211,7 +218,7 @@ void midi_din_init(void)
 void midi_din_tick(void)
 {
   for (uint8_t port = 0; port < MIDI_DIN_PORTS; ++port) {
-    while (hal_uart_midi_rx_available(port)) {
+    while (hal_uart_midi_available(port)) {
       uint8_t b = hal_uart_midi_read_byte(port);
       process_byte(port, b);
     }

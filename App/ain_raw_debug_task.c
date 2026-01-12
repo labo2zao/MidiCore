@@ -1,7 +1,9 @@
 #include "ain_raw_debug_task.h"
 
 #include "cmsis_os.h"
-#include "usart.h"           // huart1
+#include "stm32f4xx_hal.h"
+#include "main.h"
+extern UART_HandleTypeDef huart1;
 #include "Services/ain/ain.h"
 #include "Config/project_config.h"
 

@@ -92,7 +92,7 @@ static int write_pressure_cfg(const cal_cfg_t* cc, const pressure_cfg_t* c) {
 #else
   FIL f;
   if(f_open(&f, "0:/cfg/pressure.tmp", FA_CREATE_ALWAYS|FA_WRITE)!=FR_OK) return -1;
-  char buf[256];
+  char buf[128];
   UINT bw=0;
   int n = snprintf(buf,sizeof(buf),
     "ENABLE=%u\r\nI2C_BUS=%u\r\nADDR=0x%02X\r\nTYPE=%u\r\nMAP_MODE=%u\r\nINTERVAL_MS=%u\r\n"
@@ -121,9 +121,9 @@ static int patch_expression_rawminmax(const cal_cfg_t* cc, uint16_t raw_min, uin
   FIL f;
   if (f_open(&f, path, FA_READ) != FR_OK) return -1;
   UINT sz = f_size(&f);
-  if (sz > 2048) { f_close(&f); return -2; }
+  if (sz > 512) { f_close(&f); return -2; }
 
-  static char inbuf[2049];
+  static char inbuf[513];
   UINT br = 0;
   if (f_read(&f, inbuf, sz, &br) != FR_OK) { f_close(&f); return -3; }
   f_close(&f);
@@ -132,7 +132,7 @@ static int patch_expression_rawminmax(const cal_cfg_t* cc, uint16_t raw_min, uin
   (void)f_unlink(bak);
   (void)f_rename(path, bak);
 
-  static char outbuf[2300];
+  static char outbuf[600];
   size_t outlen = 0;
   int found_min = 0, found_max = 0;
 

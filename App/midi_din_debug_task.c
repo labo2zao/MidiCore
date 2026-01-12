@@ -12,6 +12,14 @@
 
 extern UART_HandleTypeDef huart1;
 
+#ifndef DEBUG_MIDI_DIN_MONITOR
+#define DEBUG_MIDI_DIN_MONITOR 0
+#endif
+
+#ifndef DEBUG_MIDI_DIN_MONITOR_PERIOD_MS
+#define DEBUG_MIDI_DIN_MONITOR_PERIOD_MS 500
+#endif
+
 static osThreadId_t s_midi_mon_tid = NULL;
 
 static void debug_uart_write(const char* s)
@@ -32,27 +40,27 @@ static void mon_task(void* arg)
       midi_din_stats_t st;
       midi_din_get_stats(p, &st);
 
-      if (st.last_short_len == 0) {
+      if (st.last_len == 0) {
         snprintf(line, sizeof(line), "  P%u: rxB=%lu txB=%lu msg=%lu syx=%lu drop=%lu last=-\r\n",
                  (unsigned)(p + 1), (unsigned long)st.rx_bytes, (unsigned long)st.tx_bytes,
                  (unsigned long)st.rx_msgs, (unsigned long)st.rx_sysex_chunks,
                  (unsigned long)st.rx_drops);
-      } else if (st.last_short_len == 1) {
+      } else if (st.last_len == 1) {
         snprintf(line, sizeof(line), "  P%u: rxB=%lu txB=%lu msg=%lu syx=%lu drop=%lu last=%02X\r\n",
                  (unsigned)(p + 1), (unsigned long)st.rx_bytes, (unsigned long)st.tx_bytes,
                  (unsigned long)st.rx_msgs, (unsigned long)st.rx_sysex_chunks,
-                 (unsigned long)st.rx_drops, (unsigned)st.last_short[0]);
-      } else if (st.last_short_len == 2) {
+                 (unsigned long)st.rx_drops, (unsigned)st.last_bytes[0]);
+      } else if (st.last_len == 2) {
         snprintf(line, sizeof(line), "  P%u: rxB=%lu txB=%lu msg=%lu syx=%lu drop=%lu last=%02X %02X\r\n",
                  (unsigned)(p + 1), (unsigned long)st.rx_bytes, (unsigned long)st.tx_bytes,
                  (unsigned long)st.rx_msgs, (unsigned long)st.rx_sysex_chunks,
-                 (unsigned long)st.rx_drops, (unsigned)st.last_short[0], (unsigned)st.last_short[1]);
+                 (unsigned long)st.rx_drops, (unsigned)st.last_bytes[0], (unsigned)st.last_bytes[1]);
       } else {
         snprintf(line, sizeof(line), "  P%u: rxB=%lu txB=%lu msg=%lu syx=%lu drop=%lu last=%02X %02X %02X\r\n",
                  (unsigned)(p + 1), (unsigned long)st.rx_bytes, (unsigned long)st.tx_bytes,
                  (unsigned long)st.rx_msgs, (unsigned long)st.rx_sysex_chunks,
-                 (unsigned long)st.rx_drops, (unsigned)st.last_short[0], (unsigned)st.last_short[1],
-                 (unsigned)st.last_short[2]);
+                 (unsigned long)st.rx_drops, (unsigned)st.last_bytes[0], (unsigned)st.last_bytes[1],
+                 (unsigned)st.last_bytes[2]);
       }
       debug_uart_write(line);
     }

@@ -13,16 +13,24 @@ typedef enum {
   ROUTER_MSG_SYSEX = 0xF0
 } router_msg_type_t;
 
+// Generic MIDI message container for the router:
+// - For 1/2/3-byte channel/system messages, use type=ROUTER_MSG_1B/2B/3B and b0..b2.
+// - For SysEx chunks, use type=ROUTER_MSG_SYSEX and (data,len).
 typedef struct {
   router_msg_type_t type;
-  uint8_t b0, b1, b2;
+  uint8_t b0;
+  uint8_t b1;
+  uint8_t b2;
   const uint8_t* data;
   uint16_t len;
 } router_msg_t;
 
+// Callback implemented by backend to send a message out of a given node.
 typedef int (*router_send_fn_t)(uint8_t out_node, const router_msg_t* msg);
 
+// Initialize router graph with a send callback.
 void router_init(router_send_fn_t send_cb);
+
 void router_set_route(uint8_t in_node, uint8_t out_node, uint8_t enable);
 uint8_t router_get_route(uint8_t in_node, uint8_t out_node);
 
@@ -32,6 +40,7 @@ uint16_t router_get_chanmask(uint8_t in_node, uint8_t out_node);
 void router_set_label(uint8_t in_node, uint8_t out_node, const char* label);
 const char* router_get_label(uint8_t in_node, uint8_t out_node);
 
+// Process an incoming message from node 'in_node' and route to all enabled outputs.
 void router_process(uint8_t in_node, const router_msg_t* msg);
 
 #ifdef __cplusplus

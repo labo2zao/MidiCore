@@ -1,0 +1,30 @@
+# DIN mapping config
+# Copy this file to 0:/cfg/din_map.ngc on the SD card.
+# Only listed channels override compiled defaults (NOTE, ch1, base_note+idx).
+
+# Syntax:
+#   [CHn]          ; n = 0..63 logical DIN index
+#   TYPE=NOTE|CC|0|1|2
+#   CHAN=0..15     ; 0 = MIDI ch1
+#   NUMBER=0..127  ; note or CC number
+#   VEL_ON=0..127
+#   VEL_OFF=0..127
+#   INVERT=0|1
+#   ENABLED=0|1
+
+[CH0]
+# Ex: first button sends Note C3 on channel 1
+TYPE=NOTE
+CHAN=0
+NUMBER=48
+VEL_ON=100
+VEL_OFF=0
+ENABLED=1
+
+[CH1]
+# Ex: second button acts as CC64 (sustain) toggle
+TYPE=CC
+CHAN=0
+NUMBER=64
+INVERT=0
+ENABLED=1
