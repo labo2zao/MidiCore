@@ -11,13 +11,15 @@
   #define CONFIG_HAS_FATFS 0
 #endif
 
-static void trim(char* s) {
-  while (*s && isspace((unsigned char)*s)) memmove(s, s+1, strlen(s));
+static inline void trim(char* s) {
+  char* p = s;
+  while (*p && isspace((unsigned char)*p)) p++;
+  if (p != s) memmove(s, p, strlen(p)+1);
   size_t n = strlen(s);
   while (n && isspace((unsigned char)s[n-1])) s[--n] = 0;
 }
 
-static int parse_u32(const char* v, uint32_t* out) {
+static inline int parse_u32(const char* v, uint32_t* out) {
   if (!v || !out) return -1;
   char* end = 0;
   unsigned long x = strtoul(v, &end, 0);
@@ -26,7 +28,7 @@ static int parse_u32(const char* v, uint32_t* out) {
   return 0;
 }
 
-static void upcase(char* s) {
+static inline void upcase(char* s) {
   for (; *s; s++) *s = (char)toupper((unsigned char)*s);
 }
 

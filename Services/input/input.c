@@ -24,20 +24,20 @@ static uint8_t g_shift = 0;
 static uint16_t g_shift_phys = 0xFFFF;
 static uint32_t g_shift_press_ms = 0;
 
-static uint8_t map_button(uint16_t phys, uint8_t shift) {
+static inline uint8_t map_button(uint16_t phys, uint8_t shift) {
   // ---- Default mapping (edit later) ----
   // phys 0..3 -> UI buttons 1..4
   if (!shift) {
-    if (phys < 9) return (uint8_t)(phys + 1); // 0->1 ... 8->9
-    if (phys == 9) return 5;                 // page cycle
-    if (phys == 10) return 0;                // reserved shift
+    if (phys < 9u) return (uint8_t)(phys + 1u); // 0->1 ... 8->9
+    if (phys == 9u) return 5u;                 // page cycle
+    if (phys == 10u) return 0u;                // reserved shift
   } else {
     // SHIFT layer: reuse phys 0..3 for tools: dup/transpose/humanize etc
     // Here we map to 6..9 as used by Piano-roll tools
-    if (phys == 0) return 6; // dup
-    if (phys == 1) return 7; // transpose +
-    if (phys == 2) return 8; // transpose -
-    if (phys == 3) return 9; // humanize
+    if (phys == 0u) return 6u; // dup
+    if (phys == 1u) return 7u; // transpose +
+    if (phys == 2u) return 8u; // transpose -
+    if (phys == 3u) return 9u; // humanize
   }
   return 0;
 }
@@ -49,14 +49,18 @@ static uint8_t map_encoder(uint16_t phys) {
 }
 
 void input_init(const input_config_t* cfg) {
-  memset(&g_cfg, 0, sizeof(g_cfg));
   g_cfg.debounce_ms = 20;
   g_cfg.shift_hold_ms = 500;
   g_cfg.shift_button_id = 10;
 
   if (cfg) g_cfg = *cfg;
 
-  memset(g_btn, 0, sizeof(g_btn));
+  // Optimize: only clear button states, not entire array
+  for (uint16_t i = 0; i < INPUT_MAX_BUTTONS; i++) {
+    g_btn[i].stable = 0;
+    g_btn[i].last_raw = 0;
+    g_btn[i].cnt = 0;
+  }
   g_shift = 0;
   g_shift_phys = 0xFFFF;
   g_shift_press_ms = 0;
