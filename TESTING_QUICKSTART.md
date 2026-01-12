@@ -105,20 +105,22 @@ Edit `App/tests/module_tests.c`, function `module_tests_get_compile_time_selecti
 ```c
 module_test_t module_tests_get_compile_time_selection(void)
 {
-  // Uncomment the test you want to run:
-  // return MODULE_TEST_AINSER64;
-  // return MODULE_TEST_SRIO;
-  // return MODULE_TEST_MIDI_DIN;
-  // return MODULE_TEST_ROUTER;
-  // return MODULE_TEST_LOOPER;
-  // return MODULE_TEST_UI;
-  // return MODULE_TEST_PATCH_SD;
-  // return MODULE_TEST_PRESSURE;
-  // return MODULE_TEST_USB_HOST_MIDI;
+  // Uncomment the test you want to run (use _ID enum values):
+  // return MODULE_TEST_AINSER64_ID;
+  // return MODULE_TEST_SRIO_ID;
+  // return MODULE_TEST_MIDI_DIN_ID;
+  // return MODULE_TEST_ROUTER_ID;
+  // return MODULE_TEST_LOOPER_ID;
+  // return MODULE_TEST_UI_ID;
+  // return MODULE_TEST_PATCH_SD_ID;
+  // return MODULE_TEST_PRESSURE_ID;
+  // return MODULE_TEST_USB_HOST_MIDI_ID;
   
   // ... rest of function
 }
 ```
+
+**Note:** In code, enum values use `_ID` suffix (e.g., `MODULE_TEST_AINSER64_ID`) to avoid conflicts with preprocessor defines.
 
 ---
 

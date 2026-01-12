@@ -36,11 +36,13 @@ MidiCore is a modular MIDI system featuring:
 MidiCore includes a comprehensive testing framework for validating modules in isolation:
 
 ```c
-// Example: Test AINSER64 analog inputs only
+// Select test via preprocessor define in build settings
 #define MODULE_TEST_AINSER64
 ```
 
 See [TESTING_QUICKSTART.md](TESTING_QUICKSTART.md) for step-by-step examples.
+
+**Note:** Preprocessor defines (e.g., `MODULE_TEST_AINSER64`) are used in build configuration. Internal enum values have `_ID` suffix to avoid conflicts.
 
 ## Architecture
 

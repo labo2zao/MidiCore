@@ -258,7 +258,7 @@ GND       -----> Pin 2
 ```bash
 # Configuration
 TEST_DEBUG_UART_PORT=1
-MODULE_TEST_AINSER64=1
+MODULE_TEST_AINSER64
 
 # Build et flash
 # Connecter USB-UART sur PA2/PA3
@@ -266,12 +266,14 @@ MODULE_TEST_AINSER64=1
 # Observer les valeurs des 64 canaux
 ```
 
+**Note:** Use `MODULE_TEST_AINSER64` as a preprocessor define (not `=1`). The internal enum is `MODULE_TEST_AINSER64_ID`.
+
 ### Test 2: SRIO avec Debug
 
 ```bash
 # Configuration
 TEST_DEBUG_UART_PORT=1
-MODULE_TEST_SRIO=1
+MODULE_TEST_SRIO
 
 # Build et flash
 # Presser les boutons SRIO

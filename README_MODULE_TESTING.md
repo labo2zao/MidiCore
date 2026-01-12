@@ -33,6 +33,8 @@ MidiCore now provides a unified module testing framework that allows testing ind
 | Pressure | `MODULE_TEST_PRESSURE` | Tests I2C pressure sensor (XGZP6847) |
 | USB Host MIDI | `MODULE_TEST_USB_HOST_MIDI` | Tests USB Host MIDI device communication |
 
+**Note:** The table above shows **preprocessor defines** you use in your build configuration. The internal enum values (in code) have an `_ID` suffix (e.g., `MODULE_TEST_AINSER64_ID`) to avoid naming conflicts.
+
 ## How to Use
 
 ### Method 1: Compiler Defines (Recommended)
@@ -43,16 +45,21 @@ Add the test define to your build configuration:
 1. Right-click project → Properties
 2. C/C++ Build → Settings
 3. MCU GCC Compiler → Preprocessor
-4. Add define: `MODULE_TEST_AINSER64=1` (or any other test)
+4. Add define: `MODULE_TEST_AINSER64` (or any other test)
 5. Build and flash
+
+**Note:** You can optionally add `=1` (e.g., `MODULE_TEST_AINSER64=1`), but it's not required. Just `MODULE_TEST_AINSER64` works fine.
 
 **Command Line:**
 ```bash
 # Example: Test AINSER64 module
-make CFLAGS+="-DMODULE_TEST_AINSER64=1"
+make CFLAGS+="-DMODULE_TEST_AINSER64"
 
 # Example: Test MIDI DIN module
-make CFLAGS+="-DMODULE_TEST_MIDI_DIN=1"
+make CFLAGS+="-DMODULE_TEST_MIDI_DIN"
+
+# You can also use =1 syntax if preferred
+make CFLAGS+="-DMODULE_TEST_SRIO=1"
 ```
 
 ### Method 2: Modify module_tests.c
@@ -62,12 +69,14 @@ For quick testing, you can temporarily modify the compile-time selection in `mod
 ```c
 module_test_t module_tests_get_compile_time_selection(void)
 {
-  // Force a specific test
-  return MODULE_TEST_AINSER64;
+  // Force a specific test (use enum ID values)
+  return MODULE_TEST_AINSER64_ID;
   
   // ... rest of function
 }
 ```
+
+**Note:** The enum values use `_ID` suffix (e.g., `MODULE_TEST_AINSER64_ID`) to avoid conflicts with preprocessor defines (e.g., `MODULE_TEST_AINSER64`).
 
 ### Method 3: Use Existing Legacy Defines
 
@@ -84,7 +93,7 @@ The new framework is backward compatible with existing test defines:
 
 ```bash
 # Compile with AINSER64 test
-make CFLAGS+="-DMODULE_TEST_AINSER64=1"
+make CFLAGS+="-DMODULE_TEST_AINSER64"
 
 # Flash to device
 make flash
@@ -101,7 +110,7 @@ make flash
 
 ```bash
 # Compile with SRIO test
-make CFLAGS+="-DMODULE_TEST_SRIO=1"
+make CFLAGS+="-DMODULE_TEST_SRIO"
 
 # Connect UART to see DIN values
 # Press buttons connected to shift registers
@@ -271,10 +280,10 @@ Tests can be automated in CI/CD pipelines:
 ```yaml
 # Example GitHub Actions workflow
 - name: Test AINSER64
-  run: make CFLAGS+="-DMODULE_TEST_AINSER64=1"
+  run: make CFLAGS+="-DMODULE_TEST_AINSER64"
 
 - name: Test MIDI DIN
-  run: make CFLAGS+="-DMODULE_TEST_MIDI_DIN=1"
+  run: make CFLAGS+="-DMODULE_TEST_MIDI_DIN"
 ```
 
 ## Migration from Legacy Tests
