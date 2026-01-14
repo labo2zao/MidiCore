@@ -271,6 +271,48 @@ void looper_set_randomize_params(uint8_t track, uint8_t velocity_range,
 void looper_get_randomize_params(uint8_t track, uint8_t* out_velocity_range,
                                  uint8_t* out_timing_range, uint8_t* out_note_skip_prob);
 
+// ---- Humanizer Feature ----
+
+/**
+ * @brief Apply humanization to a track
+ * @param track Track index (0-3)
+ * @param velocity_amount Velocity humanization amount (0-32, subtle variations)
+ * @param timing_amount Timing humanization in ticks (0-6, micro-timing shifts)
+ * @param intensity Overall humanization intensity (0-100%)
+ * 
+ * Adds musical, subtle variations for natural-feeling loops:
+ * - Velocity: Smooth velocity curves following natural performance
+ * - Timing: Groove-aware micro-timing shifts (on-beat less affected)
+ * - Intensity: Controls overall humanization strength
+ * 
+ * Differs from Randomizer: Musical and groove-preserving vs. chaotic.
+ * Recommend pushing undo before applying.
+ */
+void looper_human
+
+ize_track(uint8_t track, uint8_t velocity_amount,
+                           uint8_t timing_amount, uint8_t intensity);
+
+/**
+ * @brief Set humanization parameters for a track
+ * @param track Track index (0-3)
+ * @param velocity_amount Velocity humanization (0-32)
+ * @param timing_amount Timing humanization in ticks (0-6)
+ * @param intensity Humanization intensity (0-100%)
+ */
+void looper_set_humanize_params(uint8_t track, uint8_t velocity_amount,
+                                uint8_t timing_amount, uint8_t intensity);
+
+/**
+ * @brief Get humanization parameters for a track
+ * @param track Track index (0-3)
+ * @param out_velocity_amount Velocity humanization output
+ * @param out_timing_amount Timing humanization output
+ * @param out_intensity Humanization intensity output
+ */
+void looper_get_humanize_params(uint8_t track, uint8_t* out_velocity_amount,
+                                uint8_t* out_timing_amount, uint8_t* out_intensity);
+
 // ---- Tempo Tap Feature ----
 
 /**

@@ -2338,4 +2338,149 @@ void looper_get_randomize_params(uint8_t track, uint8_t* out_velocity_range,
   }
 }
 
+// ==================== Humanizer Feature ====================
+
+// Humanizer parameter storage
+typedef struct {
+  uint8_t velocity_amount;
+  uint8_t timing_amount;
+  uint8_t intensity;
+} humanize_params_t;
+
+static humanize_params_t g_humanize_params[LOOPER_TRACKS] = {0};
+
+// Simple sine-like curve for smooth humanization
+static inline int8_t _humanize_curve(uint32_t seed, int8_t range) {
+  // Use seed to generate smooth variations
+  uint32_t val = (seed * 1103515245u + 12345u) % 256;
+  // Map to sine-like curve: -range to +range
+  int16_t curve = (int16_t)((val * (int32_t)range * 2) / 256) - range;
+  return (int8_t)curve;
+}
+
+/**
+ * @brief Apply humanization to a track
+ */
+void looper_humanize_track(uint8_t track, uint8_t velocity_amount,
+                           uint8_t timing_amount, uint8_t intensity) {
+  if (track >= LOOPER_TRACKS) return;
+  
+  // Clamp parameters
+  if (velocity_amount > 32) velocity_amount = 32;
+  if (timing_amount > 6) timing_amount = 6;
+  if (intensity > 100) intensity = 100;
+  
+  looper_track_t* t = &g_tr[track];
+  
+  if (osMutexAcquire(g_mutex, osWaitForever) != osOK) return;
+  
+  // Store parameters
+  g_humanize_params[track].velocity_amount = velocity_amount;
+  g_humanize_params[track].timing_amount = timing_amount;
+  g_humanize_params[track].intensity = intensity;
+  
+  // Apply humanization to all note events
+  for (uint32_t i = 0; i < t->count; i++) {
+    uint8_t status = t->ev[i].b0 & 0xF0;
+    
+    // Check if this is a note-on event
+    if (status == 0x90 && t->ev[i].b2 > 0) {
+      // Calculate beat position (0 = on-beat, >0 = off-beat)
+      uint32_t beat_pos = t->ev[i].tick % (LOOPER_PPQN / 4); // Quarter note position
+      uint8_t is_on_beat = (beat_pos < (LOOPER_PPQN / 16)) ? 1 : 0; // Within 1/16th of beat
+      
+      // Apply velocity humanization with smooth curves
+      if (velocity_amount > 0 && intensity > 0) {
+        int16_t vel = (int16_t)t->ev[i].b2;
+        
+        // Generate smooth velocity curve based on event index
+        int8_t vel_curve = _humanize_curve(i + t->ev[i].tick, velocity_amount);
+        
+        // Scale by intensity
+        vel_curve = (int8_t)((vel_curve * (int16_t)intensity) / 100);
+        
+        // Apply with natural dynamics preservation
+        vel += vel_curve;
+        
+        // Clamp to valid range (1-127)
+        if (vel < 1) vel = 1;
+        if (vel > 127) vel = 127;
+        
+        t->ev[i].b2 = (uint8_t)vel;
+      }
+      
+      // Apply timing humanization (groove-aware)
+      if (timing_amount > 0 && intensity > 0) {
+        int32_t tick = (int32_t)t->ev[i].tick;
+        
+        // On-beat notes get less variation (preserve groove)
+        uint8_t timing_scale = is_on_beat ? 20 : 100; // 20% for on-beat, 100% for off-beat
+        
+        // Generate smooth timing curve
+        int8_t timing_curve = _humanize_curve(t->ev[i].tick + (i * 17), timing_amount);
+        
+        // Scale by intensity and beat position
+        timing_curve = (int8_t)((timing_curve * (int16_t)intensity * timing_scale) / 10000);
+        
+        // Apply timing shift
+        tick += timing_curve;
+        
+        // Clamp to valid range
+        if (tick < 0) tick = 0;
+        if (tick >= (int32_t)t->loop_len_ticks) tick = t->loop_len_ticks - 1;
+        
+        t->ev[i].tick = (uint32_t)tick;
+      }
+    }
+  }
+  
+  // Re-sort events by tick after humanization
+  for (uint32_t i = 0; i < t->count - 1; i++) {
+    for (uint32_t j = i + 1; j < t->count; j++) {
+      if (t->ev[j].tick < t->ev[i].tick) {
+        looper_evt_t tmp = t->ev[i];
+        t->ev[i] = t->ev[j];
+        t->ev[j] = tmp;
+      }
+    }
+  }
+  
+  osMutexRelease(g_mutex);
+}
+
+/**
+ * @brief Set humanization parameters for a track
+ */
+void looper_set_humanize_params(uint8_t track, uint8_t velocity_amount,
+                                uint8_t timing_amount, uint8_t intensity) {
+  if (track >= LOOPER_TRACKS) return;
+  
+  // Clamp parameters
+  if (velocity_amount > 32) velocity_amount = 32;
+  if (timing_amount > 6) timing_amount = 6;
+  if (intensity > 100) intensity = 100;
+  
+  g_humanize_params[track].velocity_amount = velocity_amount;
+  g_humanize_params[track].timing_amount = timing_amount;
+  g_humanize_params[track].intensity = intensity;
+}
+
+/**
+ * @brief Get humanization parameters for a track
+ */
+void looper_get_humanize_params(uint8_t track, uint8_t* out_velocity_amount,
+                                uint8_t* out_timing_amount, uint8_t* out_intensity) {
+  if (track >= LOOPER_TRACKS) return;
+  
+  if (out_velocity_amount) {
+    *out_velocity_amount = g_humanize_params[track].velocity_amount;
+  }
+  if (out_timing_amount) {
+    *out_timing_amount = g_humanize_params[track].timing_amount;
+  }
+  if (out_intensity) {
+    *out_intensity = g_humanize_params[track].intensity;
+  }
+}
+
 
