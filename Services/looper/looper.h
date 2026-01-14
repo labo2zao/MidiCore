@@ -754,6 +754,88 @@ void looper_footswitch_press(uint8_t fs_num);
  */
 void looper_footswitch_release(uint8_t fs_num);
 
+// ---- MIDI Learn System ----
+
+/**
+ * @brief Start MIDI learn mode for an action
+ * @param action Action to map
+ * @param param Action parameter (track/scene number)
+ * 
+ * After calling this, the next incoming MIDI CC or Note message will be
+ * mapped to the specified action. Learn mode auto-cancels after 10 seconds.
+ */
+void looper_midi_learn_start(footswitch_action_t action, uint8_t param);
+
+/**
+ * @brief Cancel MIDI learn mode
+ */
+void looper_midi_learn_cancel(void);
+
+/**
+ * @brief Process incoming MIDI message for learn mode
+ * @param msg MIDI message to process
+ */
+void looper_midi_learn_process(const router_msg_t* msg);
+
+/**
+ * @brief Check if MIDI message triggers a learned action
+ * @param msg MIDI message to check
+ */
+void looper_midi_learn_check(const router_msg_t* msg);
+
+/**
+ * @brief Clear all MIDI learn mappings
+ */
+void looper_midi_learn_clear(void);
+
+/**
+ * @brief Get number of learned MIDI mappings
+ * @return Number of active mappings (0-32)
+ */
+uint8_t looper_midi_learn_get_count(void);
+
+// ---- Quick-Save System ----
+
+/**
+ * @brief Save current session to a quick-save slot
+ * @param slot Slot number (0-7)
+ * @param name Optional name (can be NULL for auto-naming)
+ * @return 0 on success, negative on error
+ * 
+ * Saves all tracks, current scene, and transport settings to the specified slot.
+ * Data is persisted to SD card for recall after power cycle.
+ */
+int looper_quick_save(uint8_t slot, const char* name);
+
+/**
+ * @brief Load session from a quick-save slot
+ * @param slot Slot number (0-7)
+ * @return 0 on success, negative on error (e.g., slot empty)
+ * 
+ * Restores all tracks, scene, and transport settings from the specified slot.
+ */
+int looper_quick_load(uint8_t slot);
+
+/**
+ * @brief Check if quick-save slot contains data
+ * @param slot Slot number (0-7)
+ * @return 1 if slot is used, 0 if empty
+ */
+uint8_t looper_quick_save_is_used(uint8_t slot);
+
+/**
+ * @brief Get quick-save slot name
+ * @param slot Slot number (0-7)
+ * @return Slot name, or NULL if slot is empty
+ */
+const char* looper_quick_save_get_name(uint8_t slot);
+
+/**
+ * @brief Clear a quick-save slot
+ * @param slot Slot number (0-7)
+ */
+void looper_quick_save_clear(uint8_t slot);
+
 #ifdef __cplusplus
 }
 #endif

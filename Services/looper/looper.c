@@ -77,6 +77,40 @@ typedef struct {
 
 static footswitch_mapping_t g_footswitch[NUM_FOOTSWITCHES];
 
+// MIDI Learn system
+#define MAX_MIDI_LEARN_MAPPINGS 32
+
+typedef struct {
+    uint8_t midi_cc;        // CC number (or note for note-based control)
+    uint8_t midi_channel;   // MIDI channel (0-15, 0xFF = omni)
+    uint8_t control_type;   // 0=CC, 1=Note
+    footswitch_action_t action;
+    uint8_t param;
+} midi_learn_mapping_t;
+
+typedef struct {
+    uint8_t learning_active;
+    footswitch_action_t pending_action;
+    uint8_t pending_param;
+    uint32_t learn_timeout_ms;
+} midi_learn_state_t;
+
+static midi_learn_mapping_t g_midi_learn[MAX_MIDI_LEARN_MAPPINGS];
+static uint8_t g_midi_learn_count = 0;
+static midi_learn_state_t g_midi_learn_state;
+
+// Quick-Save system
+#define NUM_QUICK_SAVE_SLOTS 8
+
+typedef struct {
+    uint8_t used;
+    char name[32];
+    uint8_t current_scene;
+    looper_transport_t transport;
+} quick_save_slot_t;
+
+static quick_save_slot_t g_quick_save_slots[NUM_QUICK_SAVE_SLOTS];
+
 static uint32_t g_ticks_per_ms_q16 = 0;
 static uint32_t g_acc_q16 = 0;
 
@@ -2761,6 +2795,272 @@ void looper_footswitch_release(uint8_t fs_num) {
   }
   
   fs->pressed = 0;
+  
+  if (g_mutex) osMutexRelease(g_mutex);
+}
+
+// ============================================================================
+// MIDI Learn System
+// ============================================================================
+
+/**
+ * @brief Start MIDI learn mode
+ */
+void looper_midi_learn_start(footswitch_action_t action, uint8_t param) {
+  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  
+  g_midi_learn_state.learning_active = 1;
+  g_midi_learn_state.pending_action = action;
+  g_midi_learn_state.pending_param = param;
+  g_midi_learn_state.learn_timeout_ms = HAL_GetTick() + 10000;  // 10 second timeout
+  
+  if (g_mutex) osMutexRelease(g_mutex);
+}
+
+/**
+ * @brief Cancel MIDI learn mode
+ */
+void looper_midi_learn_cancel(void) {
+  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  
+  g_midi_learn_state.learning_active = 0;
+  
+  if (g_mutex) osMutexRelease(g_mutex);
+}
+
+/**
+ * @brief Process incoming MIDI message for learn mode
+ */
+void looper_midi_learn_process(const router_msg_t* msg) {
+  if (!g_midi_learn_state.learning_active) return;
+  
+  // Check timeout
+  if (HAL_GetTick() > g_midi_learn_state.learn_timeout_ms) {
+    looper_midi_learn_cancel();
+    return;
+  }
+  
+  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  
+  // Parse MIDI message
+  uint8_t status = msg->b0 & 0xF0;
+  uint8_t channel = msg->b0 & 0x0F;
+  uint8_t control_type = 0;
+  uint8_t control_num = 0;
+  
+  if (status == 0xB0) {
+    // Control Change
+    control_type = 0;
+    control_num = msg->b1;
+  } else if (status == 0x90 || status == 0x80) {
+    // Note On/Off
+    control_type = 1;
+    control_num = msg->b1;
+  } else {
+    // Not a learnable message
+    if (g_mutex) osMutexRelease(g_mutex);
+    return;
+  }
+  
+  // Add mapping
+  if (g_midi_learn_count < MAX_MIDI_LEARN_MAPPINGS) {
+    g_midi_learn[g_midi_learn_count].midi_cc = control_num;
+    g_midi_learn[g_midi_learn_count].midi_channel = channel;
+    g_midi_learn[g_midi_learn_count].control_type = control_type;
+    g_midi_learn[g_midi_learn_count].action = g_midi_learn_state.pending_action;
+    g_midi_learn[g_midi_learn_count].param = g_midi_learn_state.pending_param;
+    g_midi_learn_count++;
+  }
+  
+  // Exit learn mode
+  g_midi_learn_state.learning_active = 0;
+  
+  if (g_mutex) osMutexRelease(g_mutex);
+}
+
+/**
+ * @brief Check if MIDI message triggers a learned action
+ */
+void looper_midi_learn_check(const router_msg_t* msg) {
+  uint8_t status = msg->b0 & 0xF0;
+  uint8_t channel = msg->b0 & 0x0F;
+  uint8_t control_num = msg->b1;
+  uint8_t control_type = 0;
+  
+  if (status == 0xB0) {
+    control_type = 0;
+  } else if (status == 0x90 || status == 0x80) {
+    control_type = 1;
+  } else {
+    return;
+  }
+  
+  // Check learned mappings
+  for (uint8_t i = 0; i < g_midi_learn_count; i++) {
+    midi_learn_mapping_t* mapping = &g_midi_learn[i];
+    
+    if (mapping->control_type == control_type &&
+        mapping->midi_cc == control_num &&
+        (mapping->midi_channel == 0xFF || mapping->midi_channel == channel)) {
+      
+      // Execute mapped action
+      uint8_t track = mapping->param;
+      uint8_t scene = mapping->param;
+      
+      switch (mapping->action) {
+        case FS_ACTION_PLAY_STOP:
+          if (track < LOOPER_TRACKS) {
+            if (g_tr[track].st == LOOPER_STATE_PLAY) {
+              looper_set_state(track, LOOPER_STATE_STOP);
+            } else {
+              looper_set_state(track, LOOPER_STATE_PLAY);
+            }
+          }
+          break;
+          
+        case FS_ACTION_RECORD:
+          if (track < LOOPER_TRACKS) {
+            if (g_tr[track].st == LOOPER_STATE_REC) {
+              looper_set_state(track, LOOPER_STATE_STOP);
+            } else {
+              looper_set_state(track, LOOPER_STATE_REC);
+            }
+          }
+          break;
+          
+        case FS_ACTION_TRIGGER_SCENE:
+          if (scene < LOOPER_SCENES) {
+            looper_trigger_scene(scene);
+          }
+          break;
+          
+        case FS_ACTION_MUTE_TRACK:
+          if (track < LOOPER_TRACKS) {
+            uint8_t is_muted = looper_is_track_muted(track);
+            looper_set_track_muted(track, !is_muted);
+          }
+          break;
+          
+        default:
+          break;
+      }
+      
+      break;  // Only trigger first matching mapping
+    }
+  }
+}
+
+/**
+ * @brief Clear all MIDI learn mappings
+ */
+void looper_midi_learn_clear(void) {
+  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  
+  g_midi_learn_count = 0;
+  memset(g_midi_learn, 0, sizeof(g_midi_learn));
+  
+  if (g_mutex) osMutexRelease(g_mutex);
+}
+
+/**
+ * @brief Get number of learned MIDI mappings
+ */
+uint8_t looper_midi_learn_get_count(void) {
+  return g_midi_learn_count;
+}
+
+// ============================================================================
+// Quick-Save System
+// ============================================================================
+
+/**
+ * @brief Save current session to slot
+ */
+int looper_quick_save(uint8_t slot, const char* name) {
+  if (slot >= NUM_QUICK_SAVE_SLOTS) return -1;
+  
+  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  
+  quick_save_slot_t* qs = &g_quick_save_slots[slot];
+  
+  qs->used = 1;
+  if (name) {
+    strncpy(qs->name, name, sizeof(qs->name) - 1);
+    qs->name[sizeof(qs->name) - 1] = '\0';
+  } else {
+    snprintf(qs->name, sizeof(qs->name), "Slot %d", slot + 1);
+  }
+  
+  qs->current_scene = g_current_scene;
+  qs->transport = g_tp;
+  
+  // Save all tracks to SD card
+  char filename[64];
+  for (uint8_t t = 0; t < LOOPER_TRACKS; t++) {
+    snprintf(filename, sizeof(filename), "0:/looper/quicksave_%d_track_%d.bin", slot, t);
+    looper_save_track(t, filename);
+  }
+  
+  if (g_mutex) osMutexRelease(g_mutex);
+  
+  return 0;
+}
+
+/**
+ * @brief Load session from slot
+ */
+int looper_quick_load(uint8_t slot) {
+  if (slot >= NUM_QUICK_SAVE_SLOTS) return -1;
+  
+  quick_save_slot_t* qs = &g_quick_save_slots[slot];
+  if (!qs->used) return -1;
+  
+  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  
+  // Restore transport settings
+  g_tp = qs->transport;
+  
+  // Load all tracks from SD card
+  char filename[64];
+  for (uint8_t t = 0; t < LOOPER_TRACKS; t++) {
+    snprintf(filename, sizeof(filename), "0:/looper/quicksave_%d_track_%d.bin", slot, t);
+    looper_load_track(t, filename);
+  }
+  
+  // Restore scene
+  looper_trigger_scene(qs->current_scene);
+  
+  if (g_mutex) osMutexRelease(g_mutex);
+  
+  return 0;
+}
+
+/**
+ * @brief Check if quick-save slot is used
+ */
+uint8_t looper_quick_save_is_used(uint8_t slot) {
+  if (slot >= NUM_QUICK_SAVE_SLOTS) return 0;
+  return g_quick_save_slots[slot].used;
+}
+
+/**
+ * @brief Get quick-save slot name
+ */
+const char* looper_quick_save_get_name(uint8_t slot) {
+  if (slot >= NUM_QUICK_SAVE_SLOTS) return NULL;
+  if (!g_quick_save_slots[slot].used) return NULL;
+  return g_quick_save_slots[slot].name;
+}
+
+/**
+ * @brief Clear quick-save slot
+ */
+void looper_quick_save_clear(uint8_t slot) {
+  if (slot >= NUM_QUICK_SAVE_SLOTS) return;
+  
+  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  
+  g_quick_save_slots[slot].used = 0;
   
   if (g_mutex) osMutexRelease(g_mutex);
 }
