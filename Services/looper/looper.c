@@ -1716,4 +1716,190 @@ uint8_t looper_get_quantize_resolution(uint8_t track) {
   return quantize_resolution[track];
 }
 
+// ========================================================================
+// MIDI Clock Sync Implementation
+// ========================================================================
+
+#define CLOCK_BUFFER_SIZE 24  // 24 PPQN (1 quarter note)
+#define CLOCK_TIMEOUT_MS 2000  // 2 seconds timeout
+
+static struct {
+  uint8_t enabled;
+  uint8_t active;
+  uint32_t last_clock_time_us;
+  uint32_t clock_intervals_us[CLOCK_BUFFER_SIZE];
+  uint8_t clock_index;
+  uint8_t clock_count;
+  uint16_t detected_bpm;
+} clock_sync_state = {0};
+
+/**
+ * @brief Enable/disable external MIDI clock synchronization
+ */
+void looper_set_clock_sync_enabled(uint8_t enabled) {
+  clock_sync_state.enabled = enabled ? 1 : 0;
+  if (!enabled) {
+    // Reset clock state when disabled
+    clock_sync_state.active = 0;
+    clock_sync_state.clock_count = 0;
+    clock_sync_state.clock_index = 0;
+    clock_sync_state.detected_bpm = 0;
+  }
+}
+
+/**
+ * @brief Get external clock sync status
+ */
+uint8_t looper_get_clock_sync_enabled(void) {
+  return clock_sync_state.enabled;
+}
+
+/**
+ * @brief Process incoming MIDI clock message (0xF8)
+ */
+void looper_process_midi_clock(void) {
+  if (!clock_sync_state.enabled) return;
+  
+  // Get current time in microseconds
+  uint32_t now_us = HAL_GetTick() * 1000; // Convert ms to us (approximate)
+  
+  // Calculate interval since last clock
+  if (clock_sync_state.clock_count > 0) {
+    uint32_t interval_us = now_us - clock_sync_state.last_clock_time_us;
+    
+    // Store interval in circular buffer
+    clock_sync_state.clock_intervals_us[clock_sync_state.clock_index] = interval_us;
+    clock_sync_state.clock_index = (clock_sync_state.clock_index + 1) % CLOCK_BUFFER_SIZE;
+    
+    // Calculate average interval after collecting enough samples
+    if (clock_sync_state.clock_count >= CLOCK_BUFFER_SIZE) {
+      uint32_t total_us = 0;
+      uint8_t valid_samples = 0;
+      
+      // Calculate average, filtering outliers (>20% deviation)
+      uint32_t avg_first_pass = 0;
+      for (uint8_t i = 0; i < CLOCK_BUFFER_SIZE; i++) {
+        avg_first_pass += clock_sync_state.clock_intervals_us[i];
+      }
+      avg_first_pass /= CLOCK_BUFFER_SIZE;
+      
+      // Second pass: filter outliers
+      for (uint8_t i = 0; i < CLOCK_BUFFER_SIZE; i++) {
+        uint32_t interval = clock_sync_state.clock_intervals_us[i];
+        uint32_t deviation = (interval > avg_first_pass) ? 
+                             (interval - avg_first_pass) : (avg_first_pass - interval);
+        
+        // Accept if within 20% of average
+        if (deviation < (avg_first_pass / 5)) {
+          total_us += interval;
+          valid_samples++;
+        }
+      }
+      
+      if (valid_samples > 0) {
+        uint32_t avg_interval_us = total_us / valid_samples;
+        
+        // Calculate BPM: 60,000,000 / (avg_interval_us * 24)
+        // 24 PPQN = 24 clock pulses per quarter note
+        if (avg_interval_us > 0) {
+          uint32_t bpm_calc = 60000000UL / (avg_interval_us * 24UL);
+          
+          // Clamp to valid BPM range
+          if (bpm_calc < 20) bpm_calc = 20;
+          if (bpm_calc > 300) bpm_calc = 300;
+          
+          // Apply gradual tempo change (max ±1 BPM per update for stability)
+          if (clock_sync_state.detected_bpm == 0) {
+            clock_sync_state.detected_bpm = (uint16_t)bpm_calc;
+          } else {
+            int16_t diff = (int16_t)bpm_calc - (int16_t)clock_sync_state.detected_bpm;
+            if (diff > 1) diff = 1;
+            if (diff < -1) diff = -1;
+            clock_sync_state.detected_bpm += diff;
+          }
+          
+          // Update looper tempo
+          looper_set_tempo(clock_sync_state.detected_bpm);
+        }
+      }
+      
+      clock_sync_state.active = 1;
+    }
+  }
+  
+  clock_sync_state.last_clock_time_us = now_us;
+  clock_sync_state.clock_count++;
+}
+
+/**
+ * @brief Process MIDI Start message (0xFA)
+ */
+void looper_process_midi_start(void) {
+  if (!clock_sync_state.enabled || !clock_sync_state.active) return;
+  
+  // Start playback from beginning on all tracks
+  for (uint8_t track = 0; track < LOOPER_TRACKS; track++) {
+    looper_state_t state = looper_get_state(track);
+    if (state != LOOPER_STATE_STOP) {
+      looper_set_state(track, LOOPER_STATE_PLAY);
+      // Reset play position to beginning (implementation-specific)
+    }
+  }
+}
+
+/**
+ * @brief Process MIDI Stop message (0xFC)
+ */
+void looper_process_midi_stop(void) {
+  if (!clock_sync_state.enabled || !clock_sync_state.active) return;
+  
+  // Stop playback on all tracks
+  for (uint8_t track = 0; track < LOOPER_TRACKS; track++) {
+    looper_set_state(track, LOOPER_STATE_STOP);
+  }
+}
+
+/**
+ * @brief Process MIDI Continue message (0xFB)
+ */
+void looper_process_midi_continue(void) {
+  if (!clock_sync_state.enabled || !clock_sync_state.active) return;
+  
+  // Resume playback from current position
+  for (uint8_t track = 0; track < LOOPER_TRACKS; track++) {
+    looper_state_t state = looper_get_state(track);
+    if (state == LOOPER_STATE_STOP) {
+      looper_set_state(track, LOOPER_STATE_PLAY);
+    }
+  }
+}
+
+/**
+ * @brief Get detected external BPM
+ */
+uint16_t looper_get_external_bpm(void) {
+  return clock_sync_state.detected_bpm;
+}
+
+/**
+ * @brief Check if external clock is actively being received
+ */
+uint8_t looper_is_external_clock_active(void) {
+  if (!clock_sync_state.enabled) return 0;
+  
+  // Check if we've received clock recently (within timeout period)
+  uint32_t now_us = HAL_GetTick() * 1000;
+  uint32_t elapsed_us = now_us - clock_sync_state.last_clock_time_us;
+  
+  if (elapsed_us > (CLOCK_TIMEOUT_MS * 1000)) {
+    // Timeout: no clock received recently
+    clock_sync_state.active = 0;
+    clock_sync_state.clock_count = 0;
+    clock_sync_state.clock_index = 0;
+    return 0;
+  }
+  
+  return clock_sync_state.active;
+}
+
 

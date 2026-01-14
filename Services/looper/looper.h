@@ -352,6 +352,69 @@ void looper_set_quantize_resolution(uint8_t track, uint8_t resolution);
  */
 uint8_t looper_get_quantize_resolution(uint8_t track);
 
+// ---- MIDI Clock Sync ----
+
+/**
+ * @brief Enable/disable external MIDI clock synchronization
+ * @param enabled 1 to enable external clock sync, 0 to use internal clock
+ * 
+ * When enabled, the looper will synchronize its tempo to incoming MIDI clock
+ * messages (0xF8) from an external source. The BPM is calculated from the
+ * average interval of 24 clock pulses (1 quarter note).
+ */
+void looper_set_clock_sync_enabled(uint8_t enabled);
+
+/**
+ * @brief Get external clock sync status
+ * @return 1 if external clock sync enabled, 0 otherwise
+ */
+uint8_t looper_get_clock_sync_enabled(void);
+
+/**
+ * @brief Process incoming MIDI clock message (0xF8)
+ * 
+ * Call this function when a MIDI clock message (0xF8) is received.
+ * The system will measure intervals and calculate external BPM.
+ * After 24 pulses (1 quarter note), the tempo is updated if sync is enabled.
+ */
+void looper_process_midi_clock(void);
+
+/**
+ * @brief Process MIDI Start message (0xFA)
+ * 
+ * Call when receiving MIDI Start. If external clock sync is enabled,
+ * this will start playback from the beginning.
+ */
+void looper_process_midi_start(void);
+
+/**
+ * @brief Process MIDI Stop message (0xFC)
+ * 
+ * Call when receiving MIDI Stop. If external clock sync is enabled,
+ * this will stop playback.
+ */
+void looper_process_midi_stop(void);
+
+/**
+ * @brief Process MIDI Continue message (0xFB)
+ * 
+ * Call when receiving MIDI Continue. If external clock sync is enabled,
+ * this will resume playback from current position.
+ */
+void looper_process_midi_continue(void);
+
+/**
+ * @brief Get detected external BPM
+ * @return BPM detected from external MIDI clock (20-300), or 0 if no clock detected
+ */
+uint16_t looper_get_external_bpm(void);
+
+/**
+ * @brief Check if external clock is actively being received
+ * @return 1 if clock messages received within last 2 seconds, 0 otherwise
+ */
+uint8_t looper_is_external_clock_active(void);
+
 // ---- MIDI File Export ----
 
 /**
