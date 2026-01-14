@@ -1622,4 +1622,98 @@ uint8_t looper_can_redo(uint8_t track) {
   return stack->undo_idx != stack->write_idx && stack->count > 0;
 }
 
+// ================ Loop Quantization ================
+
+// Quantization state per track
+static uint8_t quantize_enabled[LOOPER_TRACKS] = {0};
+static uint8_t quantize_resolution[LOOPER_TRACKS] = {2, 2, 2, 2}; // Default: 1/16 note
+
+// Quantization grid sizes in ticks (assuming 96 PPQN)
+static const uint16_t quant_grid_ticks[] = {
+  96,  // 0: Quarter note
+  48,  // 1: Eighth note
+  24,  // 2: Sixteenth note (default)
+  12,  // 3: Thirty-second note
+  6    // 4: Sixty-fourth note
+};
+#define QUANT_RESOLUTIONS 5
+
+/**
+ * @brief Quantize all events in a track to nearest grid position
+ */
+void looper_quantize_track(uint8_t track, uint8_t resolution) {
+  if (track >= LOOPER_TRACKS) return;
+  if (resolution >= QUANT_RESOLUTIONS) resolution = 2; // Default to 1/16
+  
+  pthread_mutex_lock(&looper_mutex);
+  
+  uint16_t grid_size = quant_grid_ticks[resolution];
+  track_t* t = &tracks[track];
+  
+  // Quantize each event's timestamp
+  for (uint32_t i = 0; i < t->event_count; i++) {
+    uint32_t original_tick = t->events[i].tick;
+    
+    // Calculate nearest grid position
+    // Formula: quantized = round(original / grid) * grid
+    uint32_t grid_position = (original_tick + grid_size / 2) / grid_size;
+    uint32_t quantized_tick = grid_position * grid_size;
+    
+    // Ensure we don't exceed loop length
+    if (quantized_tick >= t->loop_len_ticks && t->loop_len_ticks > 0) {
+      quantized_tick = t->loop_len_ticks - 1;
+    }
+    
+    t->events[i].tick = quantized_tick;
+  }
+  
+  // Events may need re-sorting after quantization
+  // Simple bubble sort for simplicity (could optimize later)
+  for (uint32_t i = 0; i < t->event_count - 1; i++) {
+    for (uint32_t j = 0; j < t->event_count - i - 1; j++) {
+      if (t->events[j].tick > t->events[j + 1].tick) {
+        // Swap events
+        looper_event_t temp = t->events[j];
+        t->events[j] = t->events[j + 1];
+        t->events[j + 1] = temp;
+      }
+    }
+  }
+  
+  pthread_mutex_unlock(&looper_mutex);
+}
+
+/**
+ * @brief Enable/disable auto-quantization for track
+ */
+void looper_set_quantize_enabled(uint8_t track, uint8_t enabled) {
+  if (track >= LOOPER_TRACKS) return;
+  quantize_enabled[track] = enabled ? 1 : 0;
+}
+
+/**
+ * @brief Get quantization enabled state
+ */
+uint8_t looper_get_quantize_enabled(uint8_t track) {
+  if (track >= LOOPER_TRACKS) return 0;
+  return quantize_enabled[track];
+}
+
+/**
+ * @brief Set quantization resolution for track
+ */
+void looper_set_quantize_resolution(uint8_t track, uint8_t resolution) {
+  if (track >= LOOPER_TRACKS) return;
+  if (resolution >= QUANT_RESOLUTIONS) resolution = 2; // Default to 1/16
+  quantize_resolution[track] = resolution;
+}
+
+/**
+ * @brief Get quantization resolution
+ */
+uint8_t looper_get_quantize_resolution(uint8_t track) {
+  if (track >= LOOPER_TRACKS) return 2; // Default 1/16
+  return quantize_resolution[track];
+}
+
 

@@ -302,6 +302,56 @@ uint8_t looper_can_undo(uint8_t track);
  */
 uint8_t looper_can_redo(uint8_t track);
 
+// ---- Loop Quantization ----
+
+/**
+ * @brief Quantize all events in a track to nearest grid position
+ * @param track Track index (0-3)
+ * @param resolution Quantization resolution (0=1/4, 1=1/8, 2=1/16, 3=1/32, 4=1/64)
+ * 
+ * Snaps all MIDI events to the nearest grid position based on the specified resolution.
+ * Recommended to call looper_undo_push() before quantizing to enable undo.
+ * 
+ * Resolutions at 96 PPQN:
+ * - 0: Quarter note (96 ticks)
+ * - 1: Eighth note (48 ticks)
+ * - 2: Sixteenth note (24 ticks) - default
+ * - 3: Thirty-second note (12 ticks)
+ * - 4: Sixty-fourth note (6 ticks)
+ */
+void looper_quantize_track(uint8_t track, uint8_t resolution);
+
+/**
+ * @brief Enable/disable auto-quantization for track
+ * @param track Track index (0-3)
+ * @param enabled 1 to enable, 0 to disable
+ * 
+ * When enabled, events are quantized during recording (future enhancement).
+ * Currently manual quantization via looper_quantize_track() is supported.
+ */
+void looper_set_quantize_enabled(uint8_t track, uint8_t enabled);
+
+/**
+ * @brief Get quantization enabled state
+ * @param track Track index (0-3)
+ * @return 1 if enabled, 0 otherwise
+ */
+uint8_t looper_get_quantize_enabled(uint8_t track);
+
+/**
+ * @brief Set quantization resolution for track
+ * @param track Track index (0-3)
+ * @param resolution Resolution index (0-4)
+ */
+void looper_set_quantize_resolution(uint8_t track, uint8_t resolution);
+
+/**
+ * @brief Get quantization resolution
+ * @param track Track index (0-3)
+ * @return Resolution index (0-4)
+ */
+uint8_t looper_get_quantize_resolution(uint8_t track);
+
 // ---- MIDI File Export ----
 
 /**
