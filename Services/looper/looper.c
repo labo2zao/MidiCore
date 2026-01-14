@@ -1430,4 +1430,196 @@ int looper_export_scene_midi(uint8_t scene, const char* filename) {
   return looper_export_midi(filename);
 }
 
+// ============================================================================
+// Undo/Redo System
+// ============================================================================
+
+#define UNDO_STACK_DEPTH 10
+
+typedef struct {
+  uint32_t event_count;
+  uint32_t loop_len_ticks;
+  uint16_t loop_beats;
+  looper_quant_t quant;
+  uint8_t has_data;
+  // Events stored inline for simplicity (could be optimized with dynamic allocation)
+  struct {
+    uint32_t tick;
+    uint8_t len;
+    uint8_t b0, b1, b2;
+  } events[256];  // Max 256 events per undo state
+} undo_state_t;
+
+typedef struct {
+  undo_state_t states[UNDO_STACK_DEPTH];
+  uint8_t write_idx;      // Where to write next state
+  uint8_t undo_idx;       // Current position in history
+  uint8_t count;          // Number of valid states
+} undo_stack_t;
+
+static undo_stack_t undo_stacks[LOOPER_TRACKS];
+
+/**
+ * @brief Save current track state to undo history
+ */
+void looper_undo_push(uint8_t track) {
+  if (track >= LOOPER_TRACKS) return;
+  
+  pthread_mutex_lock(&looper_mutex);
+  
+  undo_stack_t* stack = &undo_stacks[track];
+  undo_state_t* state = &stack->states[stack->write_idx];
+  
+  // Capture current track state
+  state->loop_len_ticks = tracks[track].loop_len_ticks;
+  state->loop_beats = tracks[track].loop_beats;
+  state->quant = tracks[track].quant;
+  state->event_count = tracks[track].event_count < 256 ? tracks[track].event_count : 256;
+  state->has_data = 1;
+  
+  // Copy events
+  for (uint32_t i = 0; i < state->event_count; i++) {
+    state->events[i].tick = tracks[track].events[i].tick;
+    state->events[i].len = tracks[track].events[i].len;
+    state->events[i].b0 = tracks[track].events[i].b0;
+    state->events[i].b1 = tracks[track].events[i].b1;
+    state->events[i].b2 = tracks[track].events[i].b2;
+  }
+  
+  // Advance write position
+  stack->write_idx = (stack->write_idx + 1) % UNDO_STACK_DEPTH;
+  if (stack->count < UNDO_STACK_DEPTH) {
+    stack->count++;
+  }
+  
+  // Set undo position to new write position (redo no longer available)
+  stack->undo_idx = stack->write_idx;
+  
+  pthread_mutex_unlock(&looper_mutex);
+}
+
+/**
+ * @brief Undo last operation on track
+ */
+int looper_undo(uint8_t track) {
+  if (track >= LOOPER_TRACKS) return -1;
+  if (!looper_can_undo(track)) return -1;
+  
+  pthread_mutex_lock(&looper_mutex);
+  
+  undo_stack_t* stack = &undo_stacks[track];
+  
+  // Move back in history
+  if (stack->undo_idx == 0) {
+    stack->undo_idx = UNDO_STACK_DEPTH - 1;
+  } else {
+    stack->undo_idx--;
+  }
+  
+  // Restore state
+  undo_state_t* state = &stack->states[stack->undo_idx];
+  if (!state->has_data) {
+    pthread_mutex_unlock(&looper_mutex);
+    return -1;
+  }
+  
+  tracks[track].loop_len_ticks = state->loop_len_ticks;
+  tracks[track].loop_beats = state->loop_beats;
+  tracks[track].quant = state->quant;
+  tracks[track].event_count = state->event_count;
+  
+  // Restore events
+  for (uint32_t i = 0; i < state->event_count; i++) {
+    tracks[track].events[i].tick = state->events[i].tick;
+    tracks[track].events[i].len = state->events[i].len;
+    tracks[track].events[i].b0 = state->events[i].b0;
+    tracks[track].events[i].b1 = state->events[i].b1;
+    tracks[track].events[i].b2 = state->events[i].b2;
+  }
+  
+  pthread_mutex_unlock(&looper_mutex);
+  return 0;
+}
+
+/**
+ * @brief Redo previously undone operation
+ */
+int looper_redo(uint8_t track) {
+  if (track >= LOOPER_TRACKS) return -1;
+  if (!looper_can_redo(track)) return -1;
+  
+  pthread_mutex_lock(&looper_mutex);
+  
+  undo_stack_t* stack = &undo_stacks[track];
+  
+  // Move forward in history
+  stack->undo_idx = (stack->undo_idx + 1) % UNDO_STACK_DEPTH;
+  
+  // Restore state
+  undo_state_t* state = &stack->states[stack->undo_idx];
+  if (!state->has_data) {
+    pthread_mutex_unlock(&looper_mutex);
+    return -1;
+  }
+  
+  tracks[track].loop_len_ticks = state->loop_len_ticks;
+  tracks[track].loop_beats = state->loop_beats;
+  tracks[track].quant = state->quant;
+  tracks[track].event_count = state->event_count;
+  
+  // Restore events
+  for (uint32_t i = 0; i < state->event_count; i++) {
+    tracks[track].events[i].tick = state->events[i].tick;
+    tracks[track].events[i].len = state->events[i].len;
+    tracks[track].events[i].b0 = state->events[i].b0;
+    tracks[track].events[i].b1 = state->events[i].b1;
+    tracks[track].events[i].b2 = state->events[i].b2;
+  }
+  
+  pthread_mutex_unlock(&looper_mutex);
+  return 0;
+}
+
+/**
+ * @brief Clear undo/redo history for track
+ */
+void looper_undo_clear(uint8_t track) {
+  if (track >= LOOPER_TRACKS) return;
+  
+  pthread_mutex_lock(&looper_mutex);
+  
+  undo_stack_t* stack = &undo_stacks[track];
+  memset(stack, 0, sizeof(undo_stack_t));
+  
+  pthread_mutex_unlock(&looper_mutex);
+}
+
+/**
+ * @brief Check if undo is available
+ */
+uint8_t looper_can_undo(uint8_t track) {
+  if (track >= LOOPER_TRACKS) return 0;
+  
+  undo_stack_t* stack = &undo_stacks[track];
+  
+  // Can undo if we have states and we're not at the oldest position
+  if (stack->count == 0) return 0;
+  
+  uint8_t oldest_idx = (stack->write_idx + UNDO_STACK_DEPTH - stack->count) % UNDO_STACK_DEPTH;
+  
+  return stack->undo_idx != oldest_idx;
+}
+
+/**
+ * @brief Check if redo is available
+ */
+uint8_t looper_can_redo(uint8_t track) {
+  if (track >= LOOPER_TRACKS) return 0;
+  
+  undo_stack_t* stack = &undo_stacks[track];
+  
+  // Can redo if we're not at the most recent position
+  return stack->undo_idx != stack->write_idx && stack->count > 0;
+}
+
 

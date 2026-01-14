@@ -251,6 +251,57 @@ uint8_t looper_tempo_get_tap_count(void);
  */
 void looper_tempo_tap_reset(void);
 
+// ---- Undo/Redo System ----
+
+/**
+ * @brief Save current track state to undo history
+ * @param track Track index (0-3)
+ * 
+ * Call before operations that modify track data (record, overdub, clear, etc.)
+ * to enable undo functionality.
+ */
+void looper_undo_push(uint8_t track);
+
+/**
+ * @brief Undo last operation on track
+ * @param track Track index (0-3)
+ * @return 0 on success, -1 if no undo available
+ * 
+ * Restores the previous track state from undo history.
+ */
+int looper_undo(uint8_t track);
+
+/**
+ * @brief Redo previously undone operation
+ * @param track Track index (0-3)
+ * @return 0 on success, -1 if no redo available
+ * 
+ * Restores the next track state from redo history.
+ */
+int looper_redo(uint8_t track);
+
+/**
+ * @brief Clear undo/redo history for track
+ * @param track Track index (0-3)
+ * 
+ * Frees all undo/redo states for the specified track.
+ */
+void looper_undo_clear(uint8_t track);
+
+/**
+ * @brief Check if undo is available
+ * @param track Track index (0-3)
+ * @return 1 if undo available, 0 otherwise
+ */
+uint8_t looper_can_undo(uint8_t track);
+
+/**
+ * @brief Check if redo is available
+ * @param track Track index (0-3)
+ * @return 1 if redo available, 0 otherwise
+ */
+uint8_t looper_can_redo(uint8_t track);
+
 // ---- MIDI File Export ----
 
 /**
