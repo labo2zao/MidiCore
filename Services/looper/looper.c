@@ -54,6 +54,10 @@ static uint32_t g_acc_q16 = 0;
 
 static osMutexId_t g_mutex;
 
+// Track Mute/Solo state
+static uint8_t g_track_muted[LOOPER_TRACKS] = {0};
+static uint8_t g_track_solo[LOOPER_TRACKS] = {0};
+
 static void update_rate(void) {
   uint32_t bpm = g_tp.bpm;
   if (bpm < 20) bpm = 20;
@@ -178,6 +182,68 @@ uint8_t looper_get_mute(uint8_t track) {
   if (track >= LOOPER_TRACKS) return 0;
   return g_tr[track].mute;
 }
+
+// Track Mute/Solo Controls
+void looper_set_track_muted(uint8_t track, uint8_t muted) {
+  if (track >= LOOPER_TRACKS) return;
+  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  g_track_muted[track] = muted ? 1 : 0;
+  if (g_mutex) osMutexRelease(g_mutex);
+}
+
+uint8_t looper_is_track_muted(uint8_t track) {
+  if (track >= LOOPER_TRACKS) return 0;
+  return g_track_muted[track];
+}
+
+void looper_set_track_solo(uint8_t track, uint8_t solo) {
+  if (track >= LOOPER_TRACKS) return;
+  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  // Clear all other solo states (exclusive solo)
+  if (solo) {
+    for (uint8_t i = 0; i < LOOPER_TRACKS; i++) {
+      g_track_solo[i] = 0;
+    }
+  }
+  g_track_solo[track] = solo ? 1 : 0;
+  if (g_mutex) osMutexRelease(g_mutex);
+}
+
+uint8_t looper_is_track_soloed(uint8_t track) {
+  if (track >= LOOPER_TRACKS) return 0;
+  return g_track_solo[track];
+}
+
+void looper_clear_all_solo(void) {
+  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  for (uint8_t i = 0; i < LOOPER_TRACKS; i++) {
+    g_track_solo[i] = 0;
+  }
+  if (g_mutex) osMutexRelease(g_mutex);
+}
+
+uint8_t looper_is_track_audible(uint8_t track) {
+  if (track >= LOOPER_TRACKS) return 0;
+  
+  // Check if any track is soloed
+  uint8_t any_solo = 0;
+  for (uint8_t i = 0; i < LOOPER_TRACKS; i++) {
+    if (g_track_solo[i]) {
+      any_solo = 1;
+      break;
+    }
+  }
+  
+  // If this track is soloed, it's audible regardless of mute
+  if (g_track_solo[track]) return 1;
+  
+  // If any track is soloed and this isn't one, it's not audible
+  if (any_solo) return 0;
+  
+  // No solo active, check mute state
+  return !g_track_muted[track];
+}
+
 
 void looper_clear(uint8_t track) {
   if (track >= LOOPER_TRACKS) return;
@@ -307,10 +373,11 @@ static void note_tracker_update(looper_track_t* t, uint8_t b0, uint8_t b1, uint8
   else if (is_note_off(b0, b2)) t->active_notes[ch][b1] = 0;
 }
 
-static void emit_due_events(looper_track_t* t) {
+static void emit_due_events(looper_track_t* t, uint8_t track_idx) {
   while (t->next_idx < t->count && t->ev[t->next_idx].tick == t->play_tick) {
     looper_evt_t* e = &t->ev[t->next_idx];
-    if (!t->mute) {
+    // Check mute state and mute/solo audibility
+    if (!t->mute && looper_is_track_audible(track_idx)) {
       if (e->len == 2) emit_msg2(e->b0, e->b1);
       else emit_msg3(e->b0, e->b1, e->b2);
       if (e->len == 3) note_tracker_update(t, e->b0, e->b1, e->b2);
@@ -350,7 +417,7 @@ void looper_tick_1ms(void) {
       if (t->loop_len_ticks == 0) continue;
 
       for (uint32_t k=0; k<adv; k++) {
-        emit_due_events(t);
+        emit_due_events(t, tr);
         t->play_tick++;
         if (t->play_tick >= t->loop_len_ticks) {
           send_all_note_off(t);

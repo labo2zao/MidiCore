@@ -52,6 +52,14 @@ looper_quant_t looper_get_quant(uint8_t track);
 void looper_set_mute(uint8_t track, uint8_t mute);
 uint8_t looper_get_mute(uint8_t track);
 
+// Track Mute/Solo Controls
+void looper_set_track_muted(uint8_t track, uint8_t muted);
+uint8_t looper_is_track_muted(uint8_t track);
+void looper_set_track_solo(uint8_t track, uint8_t solo);
+uint8_t looper_is_track_soloed(uint8_t track);
+void looper_clear_all_solo(void);
+uint8_t looper_is_track_audible(uint8_t track);
+
 void looper_tick_1ms(void);
 void looper_on_router_msg(uint8_t in_node, const router_msg_t* msg);
 
