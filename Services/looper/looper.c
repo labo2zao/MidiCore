@@ -2191,4 +2191,151 @@ void looper_transpose_all_tracks(int8_t semitones) {
   osMutexRelease(g_mutex);
 }
 
+// ============================================================================
+// Randomizer Feature
+// ============================================================================
+
+// Per-track randomization parameters
+static struct {
+  uint8_t velocity_range;   // 0-64
+  uint8_t timing_range;     // 0-12 ticks
+  uint8_t note_skip_prob;   // 0-100%
+} g_randomize_params[LOOPER_TRACKS] = {0};
+
+// Simple pseudo-random number generator (LCG)
+static uint32_t g_rand_seed = 0x12345678;
+
+static uint32_t _rand_next(void) {
+  g_rand_seed = g_rand_seed * 1103515245 + 12345;
+  return (g_rand_seed / 65536) % 32768;
+}
+
+static int8_t _rand_range(int8_t min, int8_t max) {
+  if (min >= max) return min;
+  return min + (_rand_next() % (max - min + 1));
+}
+
+/**
+ * @brief Apply randomization to a track
+ */
+void looper_randomize_track(uint8_t track, uint8_t velocity_range, 
+                            uint8_t timing_range, uint8_t note_skip_prob) {
+  if (track >= LOOPER_TRACKS) return;
+  
+  // Clamp parameters to safe ranges
+  if (velocity_range > 64) velocity_range = 64;
+  if (timing_range > 12) timing_range = 12;
+  if (note_skip_prob > 100) note_skip_prob = 100;
+  
+  osMutexAcquire(g_mutex, osWaitForever);
+  
+  looper_track_t* t = &g_tr[track];
+  
+  // Seed with current system time for better randomness
+  g_rand_seed = HAL_GetTick();
+  
+  // Process all events
+  uint32_t write_idx = 0;
+  for (uint32_t i = 0; i < t->count; i++) {
+    uint8_t status = t->ev[i].b0 & 0xF0;
+    uint8_t skip_this_note = 0;
+    
+    // Check if this is a note-on event
+    if (status == 0x90 && t->ev[i].b2 > 0) {
+      // Apply note skip probability
+      if (note_skip_prob > 0) {
+        uint32_t rand_val = _rand_next() % 100;
+        if (rand_val < note_skip_prob) {
+          skip_this_note = 1;
+        }
+      }
+      
+      if (!skip_this_note) {
+        // Apply velocity randomization
+        if (velocity_range > 0) {
+          int16_t vel = (int16_t)t->ev[i].b2;
+          int8_t offset = _rand_range(-velocity_range, velocity_range);
+          vel += offset;
+          
+          // Clamp velocity to valid range (1-127)
+          if (vel < 1) vel = 1;
+          if (vel > 127) vel = 127;
+          
+          t->ev[i].b2 = (uint8_t)vel;
+        }
+        
+        // Apply timing randomization
+        if (timing_range > 0) {
+          int32_t tick = (int32_t)t->ev[i].tick;
+          int8_t offset = _rand_range(-timing_range, timing_range);
+          tick += offset;
+          
+          // Clamp to valid range (0 to loop length)
+          if (tick < 0) tick = 0;
+          if (tick >= (int32_t)t->loop_len_ticks) tick = t->loop_len_ticks - 1;
+          
+          t->ev[i].tick = (uint32_t)tick;
+        }
+        
+        // Keep this event
+        if (write_idx != i) {
+          t->ev[write_idx] = t->ev[i];
+        }
+        write_idx++;
+      }
+      // If skipping, also need to remove the corresponding note-off
+      // For simplicity, we'll keep note-offs and let hanging notes timeout
+    } else {
+      // Keep all non-note-on events (note-off, CC, etc.)
+      if (write_idx != i) {
+        t->ev[write_idx] = t->ev[i];
+      }
+      write_idx++;
+    }
+  }
+  
+  // Update event count
+  t->count = write_idx;
+  
+  // Re-sort events by tick after randomization
+  sort_events(t);
+  
+  osMutexRelease(g_mutex);
+}
+
+/**
+ * @brief Set randomization parameters for a track
+ */
+void looper_set_randomize_params(uint8_t track, uint8_t velocity_range,
+                                 uint8_t timing_range, uint8_t note_skip_prob) {
+  if (track >= LOOPER_TRACKS) return;
+  
+  // Clamp parameters
+  if (velocity_range > 64) velocity_range = 64;
+  if (timing_range > 12) timing_range = 12;
+  if (note_skip_prob > 100) note_skip_prob = 100;
+  
+  g_randomize_params[track].velocity_range = velocity_range;
+  g_randomize_params[track].timing_range = timing_range;
+  g_randomize_params[track].note_skip_prob = note_skip_prob;
+}
+
+/**
+ * @brief Get randomization parameters for a track
+ */
+void looper_get_randomize_params(uint8_t track, uint8_t* out_velocity_range,
+                                 uint8_t* out_timing_range, uint8_t* out_note_skip_prob) {
+  if (track >= LOOPER_TRACKS) return;
+  
+  if (out_velocity_range) {
+    *out_velocity_range = g_randomize_params[track].velocity_range;
+  }
+  if (out_timing_range) {
+    *out_timing_range = g_randomize_params[track].timing_range;
+  }
+  if (out_note_skip_prob) {
+    *out_note_skip_prob = g_randomize_params[track].note_skip_prob;
+  }
+}
+
 

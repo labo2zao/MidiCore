@@ -232,6 +232,45 @@ uint8_t looper_get_scene_chain(uint8_t scene);
  */
 uint8_t looper_is_scene_chain_enabled(uint8_t scene);
 
+// ---- Randomizer Feature ----
+
+/**
+ * @brief Apply randomization to a track
+ * @param track Track index (0-3)
+ * @param velocity_range Velocity randomization range (0-64, ±range from original)
+ * @param timing_range Timing randomization range in ticks (0-12, ±range from original)
+ * @param note_skip_prob Probability of skipping notes (0-100, percentage)
+ * 
+ * Adds controlled variation to a track:
+ * - Velocity: Randomly adjusts note velocities within specified range
+ * - Timing: Adds micro-timing shifts (shuffle/swing feel)
+ * - Note Skip: Randomly skips some notes for sparse variations
+ * 
+ * All values are clamped to safe ranges. Recommend pushing undo before applying.
+ */
+void looper_randomize_track(uint8_t track, uint8_t velocity_range, 
+                            uint8_t timing_range, uint8_t note_skip_prob);
+
+/**
+ * @brief Set randomization parameters for a track
+ * @param track Track index (0-3)
+ * @param velocity_range Velocity randomization (0-64)
+ * @param timing_range Timing randomization in ticks (0-12)
+ * @param note_skip_prob Note skip probability (0-100%)
+ */
+void looper_set_randomize_params(uint8_t track, uint8_t velocity_range,
+                                 uint8_t timing_range, uint8_t note_skip_prob);
+
+/**
+ * @brief Get randomization parameters for a track
+ * @param track Track index (0-3)
+ * @param out_velocity_range Velocity randomization output
+ * @param out_timing_range Timing randomization output
+ * @param out_note_skip_prob Note skip probability output
+ */
+void looper_get_randomize_params(uint8_t track, uint8_t* out_velocity_range,
+                                 uint8_t* out_timing_range, uint8_t* out_note_skip_prob);
+
 // ---- Tempo Tap Feature ----
 
 /**
