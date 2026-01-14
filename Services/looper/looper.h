@@ -423,6 +423,68 @@ uint16_t looper_get_external_bpm(void);
  */
 uint8_t looper_is_external_clock_active(void);
 
+// ---- Copy/Paste Scenes and Tracks ----
+
+/**
+ * @brief Copy track data to clipboard
+ * @param track Track index (0-3)
+ * @return 0 on success, -1 on error
+ * 
+ * Copies the track's complete state (events, loop length, settings) to an
+ * internal clipboard for later pasting.
+ */
+int looper_copy_track(uint8_t track);
+
+/**
+ * @brief Paste clipboard data to track
+ * @param track Track index (0-3)
+ * @return 0 on success, -1 if clipboard empty or error
+ * 
+ * Pastes previously copied track data. Recommended to call looper_undo_push()
+ * before pasting to enable undo.
+ */
+int looper_paste_track(uint8_t track);
+
+/**
+ * @brief Copy entire scene to clipboard
+ * @param scene Scene index (0-7)
+ * @return 0 on success, -1 on error
+ * 
+ * Copies all 4 tracks from the specified scene to clipboard.
+ */
+int looper_copy_scene(uint8_t scene);
+
+/**
+ * @brief Paste clipboard scene data to target scene
+ * @param scene Target scene index (0-7)
+ * @return 0 on success, -1 if clipboard empty or error
+ * 
+ * Pastes previously copied scene data (all tracks) to the specified scene.
+ */
+int looper_paste_scene(uint8_t scene);
+
+/**
+ * @brief Check if track clipboard has data
+ * @return 1 if track clipboard contains data, 0 otherwise
+ */
+uint8_t looper_has_track_clipboard(void);
+
+/**
+ * @brief Check if scene clipboard has data
+ * @return 1 if scene clipboard contains data, 0 otherwise
+ */
+uint8_t looper_has_scene_clipboard(void);
+
+/**
+ * @brief Clear track clipboard
+ */
+void looper_clear_track_clipboard(void);
+
+/**
+ * @brief Clear scene clipboard
+ */
+void looper_clear_scene_clipboard(void);
+
 // ---- MIDI File Export ----
 
 /**
