@@ -15,6 +15,20 @@ extern "C" {
  * and statistics.
  */
 
+// Grid subdivision types (like LoopA)
+typedef enum {
+  RHYTHM_SUBDIV_1_4 = 0,      // Quarter notes (1/4)
+  RHYTHM_SUBDIV_1_8,          // Eighth notes (1/8)
+  RHYTHM_SUBDIV_1_16,         // Sixteenth notes (1/16)
+  RHYTHM_SUBDIV_1_32,         // Thirty-second notes (1/32)
+  RHYTHM_SUBDIV_1_8T,         // Eighth note triplets (1/8T)
+  RHYTHM_SUBDIV_1_16T,        // Sixteenth note triplets (1/16T)
+  RHYTHM_SUBDIV_1_4D,         // Dotted quarter notes (1/4.)
+  RHYTHM_SUBDIV_1_8D,         // Dotted eighth notes (1/8.)
+  RHYTHM_SUBDIV_1_16D,        // Dotted sixteenth notes (1/16.)
+  RHYTHM_SUBDIV_COUNT         // Total number of subdivisions
+} rhythm_subdivision_t;
+
 // Timing evaluation results
 typedef enum {
   RHYTHM_EVAL_PERFECT = 0,    // Within perfect threshold
@@ -57,7 +71,7 @@ typedef struct {
   uint16_t off_window;        // ±ticks for "off" vs "way off" (default: 48 = 1/8 note)
   
   // Target subdivision for evaluation
-  uint8_t subdivision;        // 0=1/4, 1=1/8, 2=1/16, 3=1/32
+  uint8_t subdivision;        // See rhythm_subdivision_t enum for options
   
   // Metronome settings (linked to looper transport)
   uint16_t bpm;               // Beats per minute
@@ -153,7 +167,7 @@ void rhythm_trainer_update_tempo(uint16_t bpm, uint8_t ts_num, uint8_t ts_den);
 
 /**
  * @brief Set target subdivision for practice
- * @param subdiv 0=quarter, 1=eighth, 2=sixteenth, 3=thirty-second
+ * @param subdiv Subdivision type from rhythm_subdivision_t enum
  */
 void rhythm_trainer_set_subdivision(uint8_t subdiv);
 
@@ -162,6 +176,13 @@ void rhythm_trainer_set_subdivision(uint8_t subdiv);
  * @return Subdivision index
  */
 uint8_t rhythm_trainer_get_subdivision(void);
+
+/**
+ * @brief Get subdivision name as string
+ * @param subdiv Subdivision type
+ * @return String name ("1/4", "1/8", "1/16", "1/32", "1/8T", "1/16T", "1/4.", "1/8.", "1/16.")
+ */
+const char* rhythm_trainer_subdivision_name(uint8_t subdiv);
 
 /**
  * @brief Set timing thresholds

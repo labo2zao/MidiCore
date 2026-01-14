@@ -98,11 +98,36 @@ static uint32_t calculate_nearest_grid_tick(uint32_t note_tick, uint8_t subdivis
   uint32_t ticks_per_subdiv;
   
   switch (subdivision) {
-    case 0: ticks_per_subdiv = ticks_per_quarter; break;       // Quarter notes
-    case 1: ticks_per_subdiv = ticks_per_quarter / 2; break;   // Eighth notes
-    case 2: ticks_per_subdiv = ticks_per_quarter / 4; break;   // Sixteenth notes
-    case 3: ticks_per_subdiv = ticks_per_quarter / 8; break;   // Thirty-second notes
-    default: ticks_per_subdiv = ticks_per_quarter; break;
+    case 0: // RHYTHM_SUBDIV_1_4 - Quarter notes
+      ticks_per_subdiv = ticks_per_quarter; 
+      break;
+    case 1: // RHYTHM_SUBDIV_1_8 - Eighth notes
+      ticks_per_subdiv = ticks_per_quarter / 2; 
+      break;
+    case 2: // RHYTHM_SUBDIV_1_16 - Sixteenth notes
+      ticks_per_subdiv = ticks_per_quarter / 4; 
+      break;
+    case 3: // RHYTHM_SUBDIV_1_32 - Thirty-second notes
+      ticks_per_subdiv = ticks_per_quarter / 8; 
+      break;
+    case 4: // RHYTHM_SUBDIV_1_8T - Eighth note triplets
+      ticks_per_subdiv = (ticks_per_quarter * 2) / 3;  // 2/3 of quarter = triplet eighth
+      break;
+    case 5: // RHYTHM_SUBDIV_1_16T - Sixteenth note triplets
+      ticks_per_subdiv = ticks_per_quarter / 3;  // 1/3 of quarter = triplet sixteenth
+      break;
+    case 6: // RHYTHM_SUBDIV_1_4D - Dotted quarter notes
+      ticks_per_subdiv = (ticks_per_quarter * 3) / 2;  // 1.5x quarter
+      break;
+    case 7: // RHYTHM_SUBDIV_1_8D - Dotted eighth notes
+      ticks_per_subdiv = (ticks_per_quarter * 3) / 4;  // 3/4 of quarter
+      break;
+    case 8: // RHYTHM_SUBDIV_1_16D - Dotted sixteenth notes
+      ticks_per_subdiv = (ticks_per_quarter * 3) / 8;  // 3/8 of quarter
+      break;
+    default: 
+      ticks_per_subdiv = ticks_per_quarter; 
+      break;
   }
   
   if (ticks_per_subdiv == 0) ticks_per_subdiv = 1;
@@ -250,7 +275,7 @@ void rhythm_trainer_update_tempo(uint16_t bpm, uint8_t ts_num, uint8_t ts_den) {
  * @brief Set target subdivision for practice
  */
 void rhythm_trainer_set_subdivision(uint8_t subdiv) {
-  if (subdiv > 3) subdiv = 3;
+  if (subdiv >= 9) subdiv = 0;  // Clamp to valid range (0-8)
   
   if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
   g_config.subdivision = subdiv;
@@ -262,6 +287,24 @@ void rhythm_trainer_set_subdivision(uint8_t subdiv) {
  */
 uint8_t rhythm_trainer_get_subdivision(void) {
   return g_config.subdivision;
+}
+
+/**
+ * @brief Get subdivision name as string
+ */
+const char* rhythm_trainer_subdivision_name(uint8_t subdiv) {
+  switch (subdiv) {
+    case 0: return "1/4";     // Quarter notes
+    case 1: return "1/8";     // Eighth notes
+    case 2: return "1/16";    // Sixteenth notes
+    case 3: return "1/32";    // Thirty-second notes
+    case 4: return "1/8T";    // Eighth note triplets
+    case 5: return "1/16T";   // Sixteenth note triplets
+    case 6: return "1/4.";    // Dotted quarter notes
+    case 7: return "1/8.";    // Dotted eighth notes
+    case 8: return "1/16.";   // Dotted sixteenth notes
+    default: return "1/4";
+  }
 }
 
 /**
