@@ -58,6 +58,9 @@ static osMutexId_t g_mutex;
 static uint8_t g_track_muted[LOOPER_TRACKS] = {0};
 static uint8_t g_track_solo[LOOPER_TRACKS] = {0};
 
+// Global Transpose state
+static int8_t g_global_transpose = 0;
+
 static void update_rate(void) {
   uint32_t bpm = g_tp.bpm;
   if (bpm < 20) bpm = 20;
@@ -2128,6 +2131,64 @@ void looper_clear_scene_clipboard(void) {
   for (uint8_t i = 0; i < LOOPER_TRACKS; i++) {
     scene_clipboard.tracks[i].has_data = 0;
   }
+}
+
+// ============================================================================
+// Global Transpose Functions
+// ============================================================================
+
+/**
+ * @brief Set global transpose for all tracks
+ */
+void looper_set_global_transpose(int8_t semitones) {
+  // Clamp to reasonable range
+  if (semitones < -24) semitones = -24;
+  if (semitones > 24) semitones = 24;
+  
+  g_global_transpose = semitones;
+}
+
+/**
+ * @brief Get current global transpose value
+ */
+int8_t looper_get_global_transpose(void) {
+  return g_global_transpose;
+}
+
+/**
+ * @brief Transpose all events in all tracks by specified semitones
+ */
+void looper_transpose_all_tracks(int8_t semitones) {
+  // Clamp to reasonable range
+  if (semitones < -24) semitones = -24;
+  if (semitones > 24) semitones = 24;
+  
+  if (semitones == 0) return;  // No transpose needed
+  
+  osMutexAcquire(g_mutex, osWaitForever);
+  
+  // Transpose all tracks
+  for (uint8_t track = 0; track < LOOPER_TRACKS; track++) {
+    looper_track_t* t = &g_tr[track];
+    
+    // Transpose all note events in the track
+    for (uint32_t i = 0; i < t->count; i++) {
+      uint8_t status = t->ev[i].b0 & 0xF0;
+      
+      // Only transpose note on/off messages (0x80-0x9F)
+      if (status == 0x80 || status == 0x90) {
+        int16_t note = (int16_t)t->ev[i].b1 + semitones;
+        
+        // Clamp to valid MIDI note range (0-127)
+        if (note < 0) note = 0;
+        if (note > 127) note = 127;
+        
+        t->ev[i].b1 = (uint8_t)note;
+      }
+    }
+  }
+  
+  osMutexRelease(g_mutex);
 }
 
 

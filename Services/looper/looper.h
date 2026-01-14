@@ -485,6 +485,34 @@ void looper_clear_track_clipboard(void);
  */
 void looper_clear_scene_clipboard(void);
 
+// ---- Global Transpose ----
+
+/**
+ * @brief Set global transpose for all tracks
+ * @param semitones Transpose amount in semitones (-24 to +24, 0 = no transpose)
+ * 
+ * Applies transpose offset to all MIDI note events across all tracks.
+ * Useful for quick key changes during live performance or practice.
+ * Notes are clamped to valid MIDI range (0-127).
+ */
+void looper_set_global_transpose(int8_t semitones);
+
+/**
+ * @brief Get current global transpose value
+ * @return Current transpose in semitones (-24 to +24)
+ */
+int8_t looper_get_global_transpose(void);
+
+/**
+ * @brief Transpose all events in all tracks by specified semitones
+ * @param semitones Transpose amount in semitones (-24 to +24)
+ * 
+ * Permanently modifies all note events in all tracks by the specified interval.
+ * Recommended to call looper_undo_push() for each track before transposing.
+ * Notes are clamped to valid MIDI range (0-127).
+ */
+void looper_transpose_all_tracks(int8_t semitones);
+
 // ---- MIDI File Export ----
 
 /**
