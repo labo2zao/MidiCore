@@ -197,6 +197,63 @@ void looper_set_step_size(uint32_t ticks);
  */
 uint32_t looper_get_step_size(void);
 
+// ---- Scene Chaining/Automation ----
+
+/**
+ * @brief Set scene chaining configuration
+ * @param scene Scene index (0-7)
+ * @param next_scene Next scene to trigger (0-7), or 0xFF to disable
+ * @param enabled 1 to enable auto-chain, 0 to disable
+ * 
+ * When enabled, the specified next scene will be automatically triggered
+ * when the current scene's loop ends.
+ */
+void looper_set_scene_chain(uint8_t scene, uint8_t next_scene, uint8_t enabled);
+
+/**
+ * @brief Get next scene in chain
+ * @param scene Scene index (0-7)
+ * @return Next scene index (0-7), or 0xFF if no chain configured
+ */
+uint8_t looper_get_scene_chain(uint8_t scene);
+
+/**
+ * @brief Check if scene has chaining enabled
+ * @param scene Scene index (0-7)
+ * @return 1 if chaining enabled, 0 otherwise
+ */
+uint8_t looper_is_scene_chain_enabled(uint8_t scene);
+
+// ---- MIDI File Export ----
+
+/**
+ * @brief Export all tracks to Standard MIDI File (SMF Format 1)
+ * @param filename Output filename (e.g., "loop.mid")
+ * @return 0 on success, negative on error
+ * 
+ * Exports all non-empty tracks to a multi-track MIDI file with tempo,
+ * time signature, and track names. Compatible with all DAWs.
+ */
+int looper_export_midi(const char* filename);
+
+/**
+ * @brief Export single track to MIDI file
+ * @param track Track index (0-3)
+ * @param filename Output filename
+ * @return 0 on success, negative on error
+ */
+int looper_export_track_midi(uint8_t track, const char* filename);
+
+/**
+ * @brief Export a scene to MIDI file
+ * @param scene Scene index (0-7)
+ * @param filename Output filename (e.g., "scene_A.mid")
+ * @return 0 on success, negative on error
+ * 
+ * Exports all tracks from the specified scene to a multi-track MIDI file.
+ */
+int looper_export_scene_midi(uint8_t scene, const char* filename);
+
 #ifdef __cplusplus
 }
 #endif

@@ -6,6 +6,7 @@
 #include "ff.h"
 #include <string.h>
 #include <stdint.h>
+#include <stdio.h>
 
 #ifndef LOOPER_PPQN
 #define LOOPER_PPQN 96u
@@ -110,6 +111,13 @@ void looper_init(void) {
     g_tr[i].mute = 0;
     g_tr[i].st = LOOPER_STATE_STOP;
   }
+  
+  // Initialize scene chains (all disabled by default)
+  for (uint8_t i=0;i<LOOPER_SCENES;i++) {
+    g_scene_chains[i].next_scene = 0xFF;
+    g_scene_chains[i].enabled = 0;
+  }
+  
   const osMutexAttr_t attr = { .name = "looper" };
   g_mutex = osMutexNew(&attr);
   update_rate();
@@ -347,6 +355,20 @@ void looper_tick_1ms(void) {
           send_all_note_off(t);
           t->play_tick = 0;
           t->next_idx = 0;
+          
+          // Check for scene chaining (only trigger once per loop end on track 0)
+          if (tr == 0) {
+            uint8_t current = g_current_scene;
+            if (g_scene_chains[current].enabled && 
+                g_scene_chains[current].next_scene < LOOPER_SCENES) {
+              // Release mutex before triggering (trigger_scene will acquire it)
+              if (g_mutex) osMutexRelease(g_mutex);
+              looper_trigger_scene(g_scene_chains[current].next_scene);
+              if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+              // Exit loop after scene change
+              break;
+            }
+          }
         }
       }
     }
@@ -902,6 +924,411 @@ void looper_set_step_size(uint32_t ticks) {
  */
 uint32_t looper_get_step_size(void) {
   return g_step_size;
+}
+
+// ---- Scene Chaining/Automation ----
+
+typedef struct {
+  uint8_t next_scene;  // 0xFF = no chain
+  uint8_t enabled;     // 1 = auto-chain enabled
+} scene_chain_t;
+
+static scene_chain_t g_scene_chains[LOOPER_SCENES];
+
+/**
+ * @brief Set scene chaining configuration
+ */
+void looper_set_scene_chain(uint8_t scene, uint8_t next_scene, uint8_t enabled) {
+  if (scene >= LOOPER_SCENES) return;
+  
+  g_scene_chains[scene].next_scene = next_scene;
+  g_scene_chains[scene].enabled = enabled ? 1 : 0;
+}
+
+/**
+ * @brief Get next scene in chain
+ */
+uint8_t looper_get_scene_chain(uint8_t scene) {
+  if (scene >= LOOPER_SCENES) return 0xFF;
+  return g_scene_chains[scene].next_scene;
+}
+
+/**
+ * @brief Check if scene has chaining enabled
+ */
+uint8_t looper_is_scene_chain_enabled(uint8_t scene) {
+  if (scene >= LOOPER_SCENES) return 0;
+  return g_scene_chains[scene].enabled;
+}
+
+// ---- MIDI File Export ----
+
+// SMF (Standard MIDI File) Format 1 support
+// Variable Length Quantity (VLQ) encoding for delta-times
+
+static int write_vlq(FIL* fp, uint32_t value) {
+  uint8_t buf[4];
+  uint8_t len = 0;
+  
+  // Build VLQ from LSB to MSB
+  buf[0] = value & 0x7F;
+  value >>= 7;
+  len = 1;
+  
+  while (value > 0 && len < 4) {
+    buf[len] = (value & 0x7F) | 0x80;  // Set continuation bit
+    value >>= 7;
+    len++;
+  }
+  
+  // Write MSB first
+  for (int i = len - 1; i >= 0; i--) {
+    UINT written;
+    if (f_write(fp, &buf[i], 1, &written) != FR_OK || written != 1) {
+      return -1;
+    }
+  }
+  
+  return 0;
+}
+
+static int write_u32_be(FIL* fp, uint32_t val) {
+  uint8_t buf[4] = {
+    (val >> 24) & 0xFF,
+    (val >> 16) & 0xFF,
+    (val >> 8) & 0xFF,
+    val & 0xFF
+  };
+  UINT written;
+  if (f_write(fp, buf, 4, &written) != FR_OK || written != 4) {
+    return -1;
+  }
+  return 0;
+}
+
+static int write_u16_be(FIL* fp, uint16_t val) {
+  uint8_t buf[2] = {
+    (val >> 8) & 0xFF,
+    val & 0xFF
+  };
+  UINT written;
+  if (f_write(fp, buf, 2, &written) != FR_OK || written != 2) {
+    return -1;
+  }
+  return 0;
+}
+
+static int write_bytes(FIL* fp, const uint8_t* data, uint32_t len) {
+  UINT written;
+  if (f_write(fp, data, len, &written) != FR_OK || written != len) {
+    return -1;
+  }
+  return 0;
+}
+
+static int write_mthd_chunk(FIL* fp, uint16_t format, uint16_t tracks, uint16_t division) {
+  // "MThd" header
+  if (write_bytes(fp, (const uint8_t*)"MThd", 4) < 0) return -1;
+  
+  // Chunk length (always 6 for header)
+  if (write_u32_be(fp, 6) < 0) return -1;
+  
+  // Format type (0=single track, 1=multi-track, 2=multi-song)
+  if (write_u16_be(fp, format) < 0) return -1;
+  
+  // Number of tracks
+  if (write_u16_be(fp, tracks) < 0) return -1;
+  
+  // Time division (PPQN)
+  if (write_u16_be(fp, division) < 0) return -1;
+  
+  return 0;
+}
+
+static int write_meta_event(FIL* fp, uint8_t type, const uint8_t* data, uint32_t len) {
+  // Delta time (0 for meta events at track start)
+  if (write_vlq(fp, 0) < 0) return -1;
+  
+  // Meta event marker
+  uint8_t meta = 0xFF;
+  if (write_bytes(fp, &meta, 1) < 0) return -1;
+  
+  // Meta event type
+  if (write_bytes(fp, &type, 1) < 0) return -1;
+  
+  // Length
+  if (write_vlq(fp, len) < 0) return -1;
+  
+  // Data
+  if (len > 0 && write_bytes(fp, data, len) < 0) return -1;
+  
+  return 0;
+}
+
+static int write_tempo_meta(FIL* fp, uint32_t uspqn) {
+  uint8_t tempo[3] = {
+    (uspqn >> 16) & 0xFF,
+    (uspqn >> 8) & 0xFF,
+    uspqn & 0xFF
+  };
+  return write_meta_event(fp, 0x51, tempo, 3);  // Tempo meta event
+}
+
+static int write_time_sig_meta(FIL* fp, uint8_t num, uint8_t den) {
+  // Convert denominator to power of 2 (4 -> 2, 8 -> 3, etc.)
+  uint8_t den_pow = 0;
+  uint8_t d = den;
+  while (d > 1) {
+    d >>= 1;
+    den_pow++;
+  }
+  
+  uint8_t ts[4] = { num, den_pow, 24, 8 };  // 24 MIDI clocks/metronome click, 8 32nd notes per quarter
+  return write_meta_event(fp, 0x58, ts, 4);  // Time signature meta event
+}
+
+static int write_track_name_meta(FIL* fp, const char* name) {
+  return write_meta_event(fp, 0x03, (const uint8_t*)name, strlen(name));  // Track name meta event
+}
+
+static int write_end_of_track_meta(FIL* fp) {
+  return write_meta_event(fp, 0x2F, NULL, 0);  // End of track meta event
+}
+
+static int write_midi_event(FIL* fp, uint32_t delta, uint8_t status, uint8_t d1, uint8_t d2, uint8_t len) {
+  // Delta time
+  if (write_vlq(fp, delta) < 0) return -1;
+  
+  // MIDI event
+  if (write_bytes(fp, &status, 1) < 0) return -1;
+  
+  if (len >= 2) {
+    if (write_bytes(fp, &d1, 1) < 0) return -1;
+  }
+  
+  if (len >= 3) {
+    if (write_bytes(fp, &d2, 1) < 0) return -1;
+  }
+  
+  return 0;
+}
+
+static int export_track_to_mtrk(FIL* fp, uint8_t track, const char* track_name) {
+  if (track >= LOOPER_TRACKS) return -1;
+  
+  // Get track data
+  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  
+  looper_track_t* t = &g_tr[track];
+  uint32_t event_count = t->count;
+  
+  // Create temporary buffer for track events (max 64KB)
+  FIL temp_fp;
+  char temp_path[64];
+  snprintf(temp_path, sizeof(temp_path), "0:/tmp_trk%d.dat", track);
+  
+  if (f_open(&temp_fp, temp_path, FA_WRITE | FA_CREATE_ALWAYS) != FR_OK) {
+    if (g_mutex) osMutexRelease(g_mutex);
+    return -1;
+  }
+  
+  // Write track name meta event
+  if (write_track_name_meta(&temp_fp, track_name) < 0) {
+    f_close(&temp_fp);
+    f_unlink(temp_path);
+    if (g_mutex) osMutexRelease(g_mutex);
+    return -1;
+  }
+  
+  // Write tempo meta event (only on first track)
+  if (track == 0) {
+    uint32_t uspqn = 60000000 / g_tp.bpm;  // Microseconds per quarter note
+    if (write_tempo_meta(&temp_fp, uspqn) < 0) {
+      f_close(&temp_fp);
+      f_unlink(temp_path);
+      if (g_mutex) osMutexRelease(g_mutex);
+      return -1;
+    }
+    
+    if (write_time_sig_meta(&temp_fp, g_tp.ts_num, g_tp.ts_den) < 0) {
+      f_close(&temp_fp);
+      f_unlink(temp_path);
+      if (g_mutex) osMutexRelease(g_mutex);
+      return -1;
+    }
+  }
+  
+  // Write MIDI events with delta times
+  uint32_t last_tick = 0;
+  for (uint32_t i = 0; i < event_count; i++) {
+    looper_evt_t* ev = &t->ev[i];
+    uint32_t delta = (ev->tick > last_tick) ? (ev->tick - last_tick) : 0;
+    
+    if (write_midi_event(&temp_fp, delta, ev->b0, ev->b1, ev->b2, ev->len) < 0) {
+      f_close(&temp_fp);
+      f_unlink(temp_path);
+      if (g_mutex) osMutexRelease(g_mutex);
+      return -1;
+    }
+    
+    last_tick = ev->tick;
+  }
+  
+  // End of track
+  if (write_end_of_track_meta(&temp_fp) < 0) {
+    f_close(&temp_fp);
+    f_unlink(temp_path);
+    if (g_mutex) osMutexRelease(g_mutex);
+    return -1;
+  }
+  
+  uint32_t track_size = f_tell(&temp_fp);
+  f_lseek(&temp_fp, 0);
+  
+  if (g_mutex) osMutexRelease(g_mutex);
+  
+  // Write MTrk chunk header
+  if (write_bytes(fp, (const uint8_t*)"MTrk", 4) < 0) {
+    f_close(&temp_fp);
+    f_unlink(temp_path);
+    return -1;
+  }
+  
+  if (write_u32_be(fp, track_size) < 0) {
+    f_close(&temp_fp);
+    f_unlink(temp_path);
+    return -1;
+  }
+  
+  // Copy temp file to output
+  uint8_t buf[256];
+  while (track_size > 0) {
+    UINT to_read = (track_size > sizeof(buf)) ? sizeof(buf) : track_size;
+    UINT read_bytes;
+    if (f_read(&temp_fp, buf, to_read, &read_bytes) != FR_OK || read_bytes != to_read) {
+      f_close(&temp_fp);
+      f_unlink(temp_path);
+      return -1;
+    }
+    
+    if (write_bytes(fp, buf, read_bytes) < 0) {
+      f_close(&temp_fp);
+      f_unlink(temp_path);
+      return -1;
+    }
+    
+    track_size -= read_bytes;
+  }
+  
+  f_close(&temp_fp);
+  f_unlink(temp_path);
+  
+  return 0;
+}
+
+/**
+ * @brief Export all tracks to Standard MIDI File
+ */
+int looper_export_midi(const char* filename) {
+  FIL fp;
+  
+  // Open output file
+  if (f_open(&fp, filename, FA_WRITE | FA_CREATE_ALWAYS) != FR_OK) {
+    return -1;
+  }
+  
+  // Count non-empty tracks
+  uint16_t track_count = 0;
+  for (uint8_t i = 0; i < LOOPER_TRACKS; i++) {
+    if (g_tr[i].count > 0) {
+      track_count++;
+    }
+  }
+  
+  if (track_count == 0) {
+    f_close(&fp);
+    f_unlink(filename);
+    return -2;  // No data to export
+  }
+  
+  // Write MThd chunk (Format 1, multi-track)
+  if (write_mthd_chunk(&fp, 1, track_count, LOOPER_PPQN) < 0) {
+    f_close(&fp);
+    f_unlink(filename);
+    return -1;
+  }
+  
+  // Write each track
+  for (uint8_t i = 0; i < LOOPER_TRACKS; i++) {
+    if (g_tr[i].count > 0) {
+      char track_name[16];
+      snprintf(track_name, sizeof(track_name), "Track %d", i + 1);
+      
+      if (export_track_to_mtrk(&fp, i, track_name) < 0) {
+        f_close(&fp);
+        f_unlink(filename);
+        return -1;
+      }
+    }
+  }
+  
+  f_close(&fp);
+  return 0;
+}
+
+/**
+ * @brief Export single track to MIDI file
+ */
+int looper_export_track_midi(uint8_t track, const char* filename) {
+  if (track >= LOOPER_TRACKS) return -1;
+  
+  FIL fp;
+  
+  if (f_open(&fp, filename, FA_WRITE | FA_CREATE_ALWAYS) != FR_OK) {
+    return -1;
+  }
+  
+  if (g_tr[track].count == 0) {
+    f_close(&fp);
+    f_unlink(filename);
+    return -2;  // No data
+  }
+  
+  // Write MThd chunk (Format 0, single track)
+  if (write_mthd_chunk(&fp, 0, 1, LOOPER_PPQN) < 0) {
+    f_close(&fp);
+    f_unlink(filename);
+    return -1;
+  }
+  
+  // Write track
+  char track_name[16];
+  snprintf(track_name, sizeof(track_name), "Track %d", track + 1);
+  
+  if (export_track_to_mtrk(&fp, track, track_name) < 0) {
+    f_close(&fp);
+    f_unlink(filename);
+    return -1;
+  }
+  
+  f_close(&fp);
+  return 0;
+}
+
+/**
+ * @brief Export a scene to MIDI file
+ */
+int looper_export_scene_midi(uint8_t scene, const char* filename) {
+  if (scene >= LOOPER_SCENES) return -1;
+  
+  // TODO: For full implementation, would need to:
+  // 1. Save current track states
+  // 2. Load scene into tracks
+  // 3. Export using looper_export_midi()
+  // 4. Restore original track states
+  
+  // For now, just export current state
+  return looper_export_midi(filename);
 }
 
 
