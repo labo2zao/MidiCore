@@ -15,7 +15,7 @@ extern "C" {
  * and statistics.
  */
 
-// Grid subdivision types (like LoopA)
+// Grid subdivision types (like LoopA + advanced polyrhythms)
 typedef enum {
   RHYTHM_SUBDIV_1_4 = 0,      // Quarter notes (1/4)
   RHYTHM_SUBDIV_1_8,          // Eighth notes (1/8)
@@ -26,6 +26,11 @@ typedef enum {
   RHYTHM_SUBDIV_1_4D,         // Dotted quarter notes (1/4.)
   RHYTHM_SUBDIV_1_8D,         // Dotted eighth notes (1/8.)
   RHYTHM_SUBDIV_1_16D,        // Dotted sixteenth notes (1/16.)
+  RHYTHM_SUBDIV_QUINTUPLET,   // 5-tuplets (5 per quarter)
+  RHYTHM_SUBDIV_SEPTUPLET,    // 7-tuplets (7 per quarter)
+  RHYTHM_SUBDIV_OCTUPLET,     // 8-tuplets (8 per quarter, double 16ths)
+  RHYTHM_SUBDIV_11TUPLET,     // 11-tuplets (11 per quarter)
+  RHYTHM_SUBDIV_13TUPLET,     // 13-tuplets (13 per quarter)
   RHYTHM_SUBDIV_COUNT         // Total number of subdivisions
 } rhythm_subdivision_t;
 

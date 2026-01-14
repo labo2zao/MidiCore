@@ -125,6 +125,21 @@ static uint32_t calculate_nearest_grid_tick(uint32_t note_tick, uint8_t subdivis
     case 8: // RHYTHM_SUBDIV_1_16D - Dotted sixteenth notes
       ticks_per_subdiv = (ticks_per_quarter * 3) / 8;  // 3/8 of quarter
       break;
+    case 9: // RHYTHM_SUBDIV_QUINTUPLET - 5-tuplets (5 per quarter)
+      ticks_per_subdiv = ticks_per_quarter / 5;  // Quarter divided by 5
+      break;
+    case 10: // RHYTHM_SUBDIV_SEPTUPLET - 7-tuplets (7 per quarter)
+      ticks_per_subdiv = ticks_per_quarter / 7;  // Quarter divided by 7
+      break;
+    case 11: // RHYTHM_SUBDIV_OCTUPLET - 8-tuplets (8 per quarter)
+      ticks_per_subdiv = ticks_per_quarter / 8;  // Quarter divided by 8 (double 16ths)
+      break;
+    case 12: // RHYTHM_SUBDIV_11TUPLET - 11-tuplets (11 per quarter)
+      ticks_per_subdiv = ticks_per_quarter / 11;  // Quarter divided by 11
+      break;
+    case 13: // RHYTHM_SUBDIV_13TUPLET - 13-tuplets (13 per quarter)
+      ticks_per_subdiv = ticks_per_quarter / 13;  // Quarter divided by 13
+      break;
     default: 
       ticks_per_subdiv = ticks_per_quarter; 
       break;
@@ -303,6 +318,11 @@ const char* rhythm_trainer_subdivision_name(uint8_t subdiv) {
     case 6: return "1/4.";    // Dotted quarter notes
     case 7: return "1/8.";    // Dotted eighth notes
     case 8: return "1/16.";   // Dotted sixteenth notes
+    case 9: return "5-let";   // 5-tuplets (quintuplets)
+    case 10: return "7-let";  // 7-tuplets (septuplets)
+    case 11: return "8-let";  // 8-tuplets (octuplets)
+    case 12: return "11-let"; // 11-tuplets
+    case 13: return "13-let"; // 13-tuplets
     default: return "1/4";
   }
 }
