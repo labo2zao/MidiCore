@@ -49,6 +49,34 @@ typedef struct {
 static looper_track_t g_tr[LOOPER_TRACKS] __attribute__((section(".ccmram")));
 static looper_transport_t g_tp = { .bpm=120, .ts_num=4, .ts_den=4, .auto_loop=1 };
 
+// Footswitch mapping (8 footswitches)
+#define NUM_FOOTSWITCHES 8
+
+typedef enum {
+    FS_ACTION_NONE = 0,
+    FS_ACTION_PLAY_STOP,
+    FS_ACTION_RECORD,
+    FS_ACTION_OVERDUB,
+    FS_ACTION_UNDO,
+    FS_ACTION_REDO,
+    FS_ACTION_TAP_TEMPO,
+    FS_ACTION_SELECT_TRACK,
+    FS_ACTION_TRIGGER_SCENE,
+    FS_ACTION_MUTE_TRACK,
+    FS_ACTION_SOLO_TRACK,
+    FS_ACTION_CLEAR_TRACK,
+    FS_ACTION_QUANTIZE_TRACK
+} footswitch_action_t;
+
+typedef struct {
+    footswitch_action_t action;
+    uint8_t param;  // Track number, scene number, etc.
+    uint8_t pressed;
+    uint32_t press_time_ms;
+} footswitch_mapping_t;
+
+static footswitch_mapping_t g_footswitch[NUM_FOOTSWITCHES];
+
 static uint32_t g_ticks_per_ms_q16 = 0;
 static uint32_t g_acc_q16 = 0;
 
@@ -2573,6 +2601,168 @@ void looper_set_arp_octaves(uint8_t track, uint8_t octaves) {
 uint8_t looper_get_arp_octaves(uint8_t track) {
   if (track >= LOOPER_TRACKS) return 1;
   return g_arp_params[track].octaves;
+}
+
+// ============================================================================
+// Footswitch Mapping System
+// ============================================================================
+
+/**
+ * @brief Assign function to footswitch
+ */
+void looper_set_footswitch_action(uint8_t fs_num, footswitch_action_t action, uint8_t param) {
+  if (fs_num >= NUM_FOOTSWITCHES) return;
+  
+  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  
+  g_footswitch[fs_num].action = action;
+  g_footswitch[fs_num].param = param;
+  
+  if (g_mutex) osMutexRelease(g_mutex);
+}
+
+/**
+ * @brief Get footswitch assignment
+ */
+footswitch_action_t looper_get_footswitch_action(uint8_t fs_num, uint8_t* out_param) {
+  if (fs_num >= NUM_FOOTSWITCHES) return FS_ACTION_NONE;
+  
+  if (out_param) {
+    *out_param = g_footswitch[fs_num].param;
+  }
+  
+  return g_footswitch[fs_num].action;
+}
+
+/**
+ * @brief Process footswitch press
+ */
+void looper_footswitch_press(uint8_t fs_num) {
+  if (fs_num >= NUM_FOOTSWITCHES) return;
+  
+  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  
+  footswitch_mapping_t* fs = &g_footswitch[fs_num];
+  fs->pressed = 1;
+  fs->press_time_ms = HAL_GetTick();
+  
+  // Execute action on press
+  uint8_t track = fs->param;
+  uint8_t scene = fs->param;
+  
+  switch (fs->action) {
+    case FS_ACTION_PLAY_STOP:
+      if (track < LOOPER_TRACKS) {
+        if (g_tr[track].st == LOOPER_STATE_PLAY) {
+          looper_set_state(track, LOOPER_STATE_STOP);
+        } else {
+          looper_set_state(track, LOOPER_STATE_PLAY);
+        }
+      }
+      break;
+      
+    case FS_ACTION_RECORD:
+      if (track < LOOPER_TRACKS) {
+        if (g_tr[track].st == LOOPER_STATE_REC) {
+          looper_set_state(track, LOOPER_STATE_STOP);
+        } else {
+          looper_set_state(track, LOOPER_STATE_REC);
+        }
+      }
+      break;
+      
+    case FS_ACTION_OVERDUB:
+      if (track < LOOPER_TRACKS) {
+        if (g_tr[track].st == LOOPER_STATE_OVERDUB) {
+          looper_set_state(track, LOOPER_STATE_PLAY);
+        } else {
+          looper_set_state(track, LOOPER_STATE_OVERDUB);
+        }
+      }
+      break;
+      
+    case FS_ACTION_UNDO:
+      if (track < LOOPER_TRACKS) {
+        looper_undo(track);
+      }
+      break;
+      
+    case FS_ACTION_REDO:
+      if (track < LOOPER_TRACKS) {
+        looper_redo(track);
+      }
+      break;
+      
+    case FS_ACTION_TAP_TEMPO:
+      looper_tempo_tap();
+      break;
+      
+    case FS_ACTION_SELECT_TRACK:
+      // Track selection handled by UI layer
+      break;
+      
+    case FS_ACTION_TRIGGER_SCENE:
+      if (scene < LOOPER_SCENES) {
+        looper_trigger_scene(scene);
+      }
+      break;
+      
+    case FS_ACTION_MUTE_TRACK:
+      if (track < LOOPER_TRACKS) {
+        uint8_t is_muted = looper_is_track_muted(track);
+        looper_set_track_muted(track, !is_muted);
+      }
+      break;
+      
+    case FS_ACTION_SOLO_TRACK:
+      if (track < LOOPER_TRACKS) {
+        uint8_t is_soloed = looper_is_track_soloed(track);
+        looper_set_track_solo(track, !is_soloed);
+      }
+      break;
+      
+    case FS_ACTION_CLEAR_TRACK:
+      if (track < LOOPER_TRACKS) {
+        looper_clear(track);
+      }
+      break;
+      
+    case FS_ACTION_QUANTIZE_TRACK:
+      if (track < LOOPER_TRACKS) {
+        uint8_t res = looper_get_quantize_resolution(track);
+        looper_quantize_track(track, res);
+      }
+      break;
+      
+    case FS_ACTION_NONE:
+    default:
+      break;
+  }
+  
+  if (g_mutex) osMutexRelease(g_mutex);
+}
+
+/**
+ * @brief Process footswitch release
+ */
+void looper_footswitch_release(uint8_t fs_num) {
+  if (fs_num >= NUM_FOOTSWITCHES) return;
+  
+  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  
+  footswitch_mapping_t* fs = &g_footswitch[fs_num];
+  
+  uint32_t press_duration = HAL_GetTick() - fs->press_time_ms;
+  
+  // Check for long press (>500ms)
+  if (press_duration > 500) {
+    // Long press action (if different from short press)
+    // Currently same action, but could be extended
+  }
+  
+  fs->pressed = 0;
+  
+  if (g_mutex) osMutexRelease(g_mutex);
 }
 
 

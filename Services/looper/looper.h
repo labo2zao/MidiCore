@@ -705,6 +705,55 @@ int looper_export_track_midi(uint8_t track, const char* filename);
  */
 int looper_export_scene_midi(uint8_t scene, const char* filename);
 
+// ---- Footswitch Mapping ----
+
+/**
+ * @brief Footswitch action types
+ */
+typedef enum {
+    FS_ACTION_NONE = 0,
+    FS_ACTION_PLAY_STOP,
+    FS_ACTION_RECORD,
+    FS_ACTION_OVERDUB,
+    FS_ACTION_UNDO,
+    FS_ACTION_REDO,
+    FS_ACTION_TAP_TEMPO,
+    FS_ACTION_SELECT_TRACK,
+    FS_ACTION_TRIGGER_SCENE,
+    FS_ACTION_MUTE_TRACK,
+    FS_ACTION_SOLO_TRACK,
+    FS_ACTION_CLEAR_TRACK,
+    FS_ACTION_QUANTIZE_TRACK
+} footswitch_action_t;
+
+/**
+ * @brief Assign function to footswitch
+ * @param fs_num Footswitch number (0-7)
+ * @param action Action to assign
+ * @param param Action parameter (track number, scene number, etc.)
+ */
+void looper_set_footswitch_action(uint8_t fs_num, footswitch_action_t action, uint8_t param);
+
+/**
+ * @brief Get footswitch assignment
+ * @param fs_num Footswitch number (0-7)
+ * @param out_param Pointer to store action parameter (can be NULL)
+ * @return Assigned action
+ */
+footswitch_action_t looper_get_footswitch_action(uint8_t fs_num, uint8_t* out_param);
+
+/**
+ * @brief Process footswitch press event
+ * @param fs_num Footswitch number (0-7)
+ */
+void looper_footswitch_press(uint8_t fs_num);
+
+/**
+ * @brief Process footswitch release event
+ * @param fs_num Footswitch number (0-7)
+ */
+void looper_footswitch_release(uint8_t fs_num);
+
 #ifdef __cplusplus
 }
 #endif
