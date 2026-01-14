@@ -2483,4 +2483,96 @@ void looper_get_humanize_params(uint8_t track, uint8_t* out_velocity_amount,
   }
 }
 
+// ==================== Arpeggiator Feature ====================
+
+// Arpeggiator parameter storage
+typedef struct {
+  uint8_t enabled;
+  uint8_t pattern;         // arp_pattern_t
+  uint8_t gate_percent;    // 10-95%
+  uint8_t octaves;         // 1-4
+} arp_params_t;
+
+static arp_params_t g_arp_params[LOOPER_TRACKS] = {
+  {0, ARP_PATTERN_UP, 75, 1},
+  {0, ARP_PATTERN_UP, 75, 1},
+  {0, ARP_PATTERN_UP, 75, 1},
+  {0, ARP_PATTERN_UP, 75, 1}
+};
+
+/**
+ * @brief Enable/disable arpeggiator for a track
+ */
+void looper_set_arp_enabled(uint8_t track, uint8_t enabled) {
+  if (track >= LOOPER_TRACKS) return;
+  g_arp_params[track].enabled = enabled ? 1 : 0;
+}
+
+/**
+ * @brief Get arpeggiator enabled state
+ */
+uint8_t looper_get_arp_enabled(uint8_t track) {
+  if (track >= LOOPER_TRACKS) return 0;
+  return g_arp_params[track].enabled;
+}
+
+/**
+ * @brief Set arpeggiator pattern
+ */
+void looper_set_arp_pattern(uint8_t track, arp_pattern_t pattern) {
+  if (track >= LOOPER_TRACKS) return;
+  if (pattern > ARP_PATTERN_CHORD) pattern = ARP_PATTERN_UP;
+  g_arp_params[track].pattern = (uint8_t)pattern;
+}
+
+/**
+ * @brief Get arpeggiator pattern
+ */
+arp_pattern_t looper_get_arp_pattern(uint8_t track) {
+  if (track >= LOOPER_TRACKS) return ARP_PATTERN_UP;
+  return (arp_pattern_t)g_arp_params[track].pattern;
+}
+
+/**
+ * @brief Set arpeggiator gate length
+ */
+void looper_set_arp_gate(uint8_t track, uint8_t gate_percent) {
+  if (track >= LOOPER_TRACKS) return;
+  
+  // Clamp to valid range
+  if (gate_percent < 10) gate_percent = 10;
+  if (gate_percent > 95) gate_percent = 95;
+  
+  g_arp_params[track].gate_percent = gate_percent;
+}
+
+/**
+ * @brief Get arpeggiator gate length
+ */
+uint8_t looper_get_arp_gate(uint8_t track) {
+  if (track >= LOOPER_TRACKS) return 75;
+  return g_arp_params[track].gate_percent;
+}
+
+/**
+ * @brief Set arpeggiator octave range
+ */
+void looper_set_arp_octaves(uint8_t track, uint8_t octaves) {
+  if (track >= LOOPER_TRACKS) return;
+  
+  // Clamp to valid range
+  if (octaves < 1) octaves = 1;
+  if (octaves > 4) octaves = 4;
+  
+  g_arp_params[track].octaves = octaves;
+}
+
+/**
+ * @brief Get arpeggiator octave range
+ */
+uint8_t looper_get_arp_octaves(uint8_t track) {
+  if (track >= LOOPER_TRACKS) return 1;
+  return g_arp_params[track].octaves;
+}
+
 

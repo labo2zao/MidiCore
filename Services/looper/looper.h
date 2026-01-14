@@ -594,6 +594,87 @@ int8_t looper_get_global_transpose(void);
  */
 void looper_transpose_all_tracks(int8_t semitones);
 
+// ---- Arpeggiator Feature ----
+
+/**
+ * Arpeggiator pattern types
+ */
+typedef enum {
+  ARP_PATTERN_UP = 0,      // Ascending notes
+  ARP_PATTERN_DOWN,        // Descending notes
+  ARP_PATTERN_UPDOWN,      // Up then down (no repeat at top/bottom)
+  ARP_PATTERN_RANDOM,      // Random note order
+  ARP_PATTERN_CHORD        // All notes together (no arpeggiation)
+} arp_pattern_t;
+
+/**
+ * @brief Enable/disable arpeggiator for a track
+ * @param track Track index (0-3)
+ * @param enabled 1 to enable, 0 to disable
+ * 
+ * When enabled, held notes are arpeggiated according to the configured pattern.
+ * The arpeggiator operates in real-time during playback.
+ */
+void looper_set_arp_enabled(uint8_t track, uint8_t enabled);
+
+/**
+ * @brief Get arpeggiator enabled state
+ * @param track Track index (0-3)
+ * @return 1 if enabled, 0 otherwise
+ */
+uint8_t looper_get_arp_enabled(uint8_t track);
+
+/**
+ * @brief Set arpeggiator pattern
+ * @param track Track index (0-3)
+ * @param pattern Pattern type (see arp_pattern_t enum)
+ */
+void looper_set_arp_pattern(uint8_t track, arp_pattern_t pattern);
+
+/**
+ * @brief Get arpeggiator pattern
+ * @param track Track index (0-3)
+ * @return Current pattern type
+ */
+arp_pattern_t looper_get_arp_pattern(uint8_t track);
+
+/**
+ * @brief Set arpeggiator gate length
+ * @param track Track index (0-3)
+ * @param gate_percent Gate length as percentage of step (10-95%)
+ * 
+ * Controls how long each arpeggiated note is held.
+ * - 50% = staccato (notes are half the step duration)
+ * - 90% = legato (notes are nearly the full step duration)
+ */
+void looper_set_arp_gate(uint8_t track, uint8_t gate_percent);
+
+/**
+ * @brief Get arpeggiator gate length
+ * @param track Track index (0-3)
+ * @return Gate length percentage (10-95%)
+ */
+uint8_t looper_get_arp_gate(uint8_t track);
+
+/**
+ * @brief Set arpeggiator octave range
+ * @param track Track index (0-3)
+ * @param octaves Number of octaves (1-4)
+ * 
+ * Extends the arpeggio across multiple octaves.
+ * - 1: Single octave (original notes only)
+ * - 2: Two octaves (original + 1 octave up)
+ * - 3-4: Three or four octaves
+ */
+void looper_set_arp_octaves(uint8_t track, uint8_t octaves);
+
+/**
+ * @brief Get arpeggiator octave range
+ * @param track Track index (0-3)
+ * @return Number of octaves (1-4)
+ */
+uint8_t looper_get_arp_octaves(uint8_t track);
+
 // ---- MIDI File Export ----
 
 /**
