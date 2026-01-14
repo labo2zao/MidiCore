@@ -8,6 +8,13 @@ extern "C" {
 
 #define LOOPER_TRACKS 4
 
+// Undo/Redo configuration
+// Can be reduced to save memory (e.g., 5 levels = ~120KB, 3 levels = ~72KB)
+// Default: 10 levels (~240KB total for 4 tracks)
+#ifndef LOOPER_UNDO_STACK_DEPTH
+#define LOOPER_UNDO_STACK_DEPTH 10
+#endif
+
 typedef enum {
   LOOPER_STATE_STOP = 0,
   LOOPER_STATE_REC,
@@ -758,11 +765,22 @@ void looper_footswitch_release(uint8_t fs_num);
 
 /**
  * @brief Start MIDI learn mode for an action
- * @param action Action to map
- * @param param Action parameter (track/scene number)
+ * @param action Action to map (e.g., FS_ACTION_PLAY_STOP, FS_ACTION_RECORD)
+ * @param param Action parameter (track/scene number, 0-3 for tracks, 0-7 for scenes)
  * 
  * After calling this, the next incoming MIDI CC or Note message will be
  * mapped to the specified action. Learn mode auto-cancels after 10 seconds.
+ * 
+ * Example workflow:
+ * 1. Call looper_midi_learn_start(FS_ACTION_PLAY_STOP, 0)
+ * 2. Press a button on your MIDI controller (e.g., CC64)
+ * 3. CC64 is now mapped to Play/Stop
+ * 4. Future CC64 messages will trigger Play/Stop
+ * 
+ * Multiple mappings example:
+ * - Map CC80 to Track 1 Mute: looper_midi_learn_start(FS_ACTION_MUTE_TRACK, 0)
+ * - Map CC81 to Track 2 Mute: looper_midi_learn_start(FS_ACTION_MUTE_TRACK, 1)
+ * - Map Note C4 to Scene A: looper_midi_learn_start(FS_ACTION_TRIGGER_SCENE, 0)
  */
 void looper_midi_learn_start(footswitch_action_t action, uint8_t param);
 

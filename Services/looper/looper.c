@@ -209,6 +209,10 @@ void looper_get_transport(looper_transport_t* out) {
 }
 
 void looper_set_tempo(uint16_t bpm) {
+  // Validate BPM range (20-300 BPM as per design spec)
+  if (bpm < 20) bpm = 20;
+  if (bpm > 300) bpm = 300;
+  
   looper_transport_t t = g_tp;
   t.bpm = bpm;
   looper_set_transport(&t);
@@ -1566,7 +1570,8 @@ int looper_export_scene_midi(uint8_t scene, const char* filename) {
 // Undo/Redo System
 // ============================================================================
 
-#define UNDO_STACK_DEPTH 10
+// Use configurable undo stack depth from header
+#define UNDO_STACK_DEPTH LOOPER_UNDO_STACK_DEPTH
 
 typedef struct {
   uint32_t event_count;
@@ -2265,11 +2270,15 @@ static struct {
 } g_randomize_params[LOOPER_TRACKS] = {0};
 
 // Simple pseudo-random number generator (LCG)
-static uint32_t g_rand_seed = 0x12345678;
+// Note: Seed is initialized per randomization operation for thread safety
+static volatile uint32_t g_rand_seed = 0x12345678;
 
 static uint32_t _rand_next(void) {
-  g_rand_seed = g_rand_seed * 1103515245 + 12345;
-  return (g_rand_seed / 65536) % 32768;
+  // Thread-safe read-modify-write
+  uint32_t seed = g_rand_seed;
+  seed = seed * 1103515245 + 12345;
+  g_rand_seed = seed;
+  return (seed / 65536) % 32768;
 }
 
 static int8_t _rand_range(int8_t min, int8_t max) {
