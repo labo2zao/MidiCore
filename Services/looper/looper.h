@@ -224,6 +224,33 @@ uint8_t looper_get_scene_chain(uint8_t scene);
  */
 uint8_t looper_is_scene_chain_enabled(uint8_t scene);
 
+// ---- Tempo Tap Feature ----
+
+/**
+ * @brief Register a tempo tap event
+ * 
+ * Call this function when the user taps a button/pad in rhythm.
+ * After 2+ taps, the system calculates and applies the average BPM.
+ * Auto-resets after 2 seconds of no taps.
+ */
+void looper_tempo_tap(void);
+
+/**
+ * @brief Get current tap count
+ * @return Number of taps registered (0-8)
+ * 
+ * Useful for UI feedback to show tap progress.
+ * Returns 0 if sequence has timed out.
+ */
+uint8_t looper_tempo_get_tap_count(void);
+
+/**
+ * @brief Reset tempo tap sequence
+ * 
+ * Clears all tap data. Call this to cancel a tap sequence.
+ */
+void looper_tempo_tap_reset(void);
+
 // ---- MIDI File Export ----
 
 /**

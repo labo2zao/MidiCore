@@ -4,6 +4,7 @@
 #include "Services/humanize/humanize.h"
 #include "cmsis_os2.h"
 #include "ff.h"
+#include "stm32f4xx_hal.h"
 #include <string.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -1225,6 +1226,104 @@ static int export_track_to_mtrk(FIL* fp, uint8_t track, const char* track_name) 
   
   return 0;
 }
+
+// =====================================================================
+// Tempo Tap Feature
+// =====================================================================
+
+#define TEMPO_TAP_MAX_TAPS 8
+#define TEMPO_TAP_TIMEOUT_MS 2000
+
+static struct {
+  uint32_t timestamps[TEMPO_TAP_MAX_TAPS];  // Millisecond timestamps
+  uint8_t count;                             // Number of taps recorded
+  uint32_t last_tap_ms;                      // Last tap timestamp
+} g_tempo_tap;
+
+/**
+ * @brief Register a tempo tap event
+ * Analyzes tap intervals and calculates BPM after 2+ taps
+ */
+void looper_tempo_tap(void) {
+  uint32_t now_ms = HAL_GetTick();
+  
+  // Check for timeout (reset if > 2 seconds since last tap)
+  if (g_tempo_tap.count > 0 && (now_ms - g_tempo_tap.last_tap_ms) > TEMPO_TAP_TIMEOUT_MS) {
+    g_tempo_tap.count = 0;
+  }
+  
+  // Store tap timestamp
+  if (g_tempo_tap.count < TEMPO_TAP_MAX_TAPS) {
+    g_tempo_tap.timestamps[g_tempo_tap.count] = now_ms;
+    g_tempo_tap.count++;
+    g_tempo_tap.last_tap_ms = now_ms;
+  } else {
+    // Shift array left, add new tap at end
+    for (uint8_t i = 0; i < TEMPO_TAP_MAX_TAPS - 1; i++) {
+      g_tempo_tap.timestamps[i] = g_tempo_tap.timestamps[i + 1];
+    }
+    g_tempo_tap.timestamps[TEMPO_TAP_MAX_TAPS - 1] = now_ms;
+    g_tempo_tap.last_tap_ms = now_ms;
+  }
+  
+  // Calculate BPM after 2+ taps
+  if (g_tempo_tap.count >= 2) {
+    // Calculate average interval between taps
+    uint32_t total_interval = 0;
+    uint8_t interval_count = 0;
+    
+    for (uint8_t i = 1; i < g_tempo_tap.count; i++) {
+      uint32_t interval = g_tempo_tap.timestamps[i] - g_tempo_tap.timestamps[i - 1];
+      // Ignore intervals > 2 seconds (likely noise)
+      if (interval <= TEMPO_TAP_TIMEOUT_MS) {
+        total_interval += interval;
+        interval_count++;
+      }
+    }
+    
+    if (interval_count > 0) {
+      uint32_t avg_interval_ms = total_interval / interval_count;
+      
+      // Convert interval to BPM: BPM = 60000 / interval_ms
+      if (avg_interval_ms > 0) {
+        uint16_t new_bpm = (uint16_t)(60000 / avg_interval_ms);
+        
+        // Clamp to valid range
+        if (new_bpm < 20) new_bpm = 20;
+        if (new_bpm > 300) new_bpm = 300;
+        
+        // Apply new tempo
+        looper_set_tempo(new_bpm);
+      }
+    }
+  }
+}
+
+/**
+ * @brief Get current tap count (for UI feedback)
+ */
+uint8_t looper_tempo_get_tap_count(void) {
+  uint32_t now_ms = HAL_GetTick();
+  
+  // Auto-reset if timeout
+  if (g_tempo_tap.count > 0 && (now_ms - g_tempo_tap.last_tap_ms) > TEMPO_TAP_TIMEOUT_MS) {
+    g_tempo_tap.count = 0;
+  }
+  
+  return g_tempo_tap.count;
+}
+
+/**
+ * @brief Reset tempo tap sequence
+ */
+void looper_tempo_tap_reset(void) {
+  g_tempo_tap.count = 0;
+  g_tempo_tap.last_tap_ms = 0;
+}
+
+// =====================================================================
+// MIDI File Export
+// =====================================================================
 
 /**
  * @brief Export all tracks to Standard MIDI File
