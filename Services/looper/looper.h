@@ -15,6 +15,24 @@ extern "C" {
 #define LOOPER_UNDO_STACK_DEPTH 10
 #endif
 
+// Quick-Save Compression (optional, reduces storage by ~40-60%)
+// Enable to compress session files (adds ~10-100ms to save/load times)
+// Requires ZLIB library support in build system
+// #define LOOPER_QUICKSAVE_COMPRESS
+
+/**
+ * @note Return Value Conventions:
+ * - Functions returning 'int': 0 = success, -1 = error
+ * - Functions returning 'uint8_t': Boolean or status (0/1) or value
+ * - Functions returning specific types: Valid value or 0 on error
+ * 
+ * @note Boundary Validation:
+ * All public APIs validate input parameters:
+ * - Track indices must be 0-3 (LOOPER_TRACKS)
+ * - Scene indices must be 0-7 (LOOPER_SCENES)
+ * - Invalid parameters return default/error values
+ */
+
 typedef enum {
   LOOPER_STATE_STOP = 0,
   LOOPER_STATE_REC,
@@ -70,7 +88,20 @@ uint8_t looper_is_track_audible(uint8_t track);
 void looper_tick_1ms(void);
 void looper_on_router_msg(uint8_t in_node, const router_msg_t* msg);
 
+/**
+ * @brief Save track to file
+ * @param track Track index (0-3)
+ * @param filename File path for save
+ * @return 0 on success, -1 on error (invalid track, file error)
+ */
 int looper_save_track(uint8_t track, const char* filename);
+
+/**
+ * @brief Load track from file
+ * @param track Track index (0-3)
+ * @param filename File path to load
+ * @return 0 on success, -1 on error (invalid track, file error, corrupt data)
+ */
 int looper_load_track(uint8_t track, const char* filename);
 
 // ---- UI/Debug helpers (read/edit) ----
@@ -86,7 +117,17 @@ uint32_t looper_get_loop_len_ticks(uint8_t track);
 /** Copy events snapshot into out[]. Returns number copied. */
 uint32_t looper_export_events(uint8_t track, looper_event_view_t* out, uint32_t max);
 
-/** Edit an event (tick + bytes). Returns 0 on success. */
+/** 
+ * @brief Edit an event (tick + bytes)
+ * @param track Track index (0-3)
+ * @param idx Event index from looper_export_events()
+ * @param new_tick New tick position
+ * @param len Event length (2 or 3 bytes)
+ * @param b0 First MIDI byte
+ * @param b1 Second MIDI byte
+ * @param b2 Third MIDI byte
+ * @return 0 on success, -1 on error (invalid track, invalid index)
+ */
 int looper_edit_event(uint8_t track, uint32_t idx, uint32_t new_tick,
                       uint8_t len, uint8_t b0, uint8_t b1, uint8_t b2);
 
