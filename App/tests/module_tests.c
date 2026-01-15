@@ -302,11 +302,6 @@ void module_test_srio_run(void)
   }
 #endif
 }
-#else
-  // Module not enabled
-  for (;;) osDelay(1000);
-#endif
-}
 
 void module_test_midi_din_run(void)
 {
