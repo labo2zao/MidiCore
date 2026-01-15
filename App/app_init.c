@@ -75,6 +75,7 @@
 
 #if MODULE_ENABLE_PRESSURE
 #include "Services/pressure/pressure_i2c.h"
+#include "App/i2c_scan.h"
 #endif
 
 #if MODULE_ENABLE_HUMANIZE

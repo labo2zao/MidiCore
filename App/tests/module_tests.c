@@ -270,10 +270,10 @@ void module_test_ainser64_run(void)
 
 void module_test_srio_run(void)
 {
-#ifdef DIN_SELFTEST
+#if defined(DIN_SELFTEST) && defined(SRIO_ENABLE)
   // Use existing DIN selftest
   din_selftest_run();
-#elif MODULE_ENABLE_SRIO
+#elif MODULE_ENABLE_SRIO && defined(SRIO_ENABLE)
   srio_config_t scfg = {
     .hspi = SRIO_SPI_HANDLE,
     .din_pl_port = SRIO_DIN_PL_PORT,
@@ -293,6 +293,15 @@ void module_test_srio_run(void)
     srio_read_din(din);
     osDelay(10);
   }
+#else
+  dbg_print_test_header("SRIO Test");
+  dbg_print("ERROR: SRIO module not enabled!\n");
+  dbg_print("Please enable MODULE_ENABLE_SRIO and SRIO_ENABLE\n");
+  for (;;) {
+    osDelay(1000);
+  }
+#endif
+}
 #else
   // Module not enabled
   for (;;) osDelay(1000);
