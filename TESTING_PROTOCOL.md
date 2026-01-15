@@ -9,7 +9,7 @@
 ## Test Environment Setup
 
 ### Hardware Requirements
-- STM32F4 microcontroller with LOOPA firmware
+- STM32F4 microcontroller with LOOPer firmware
 - SSD1322 OLED display (256×64 pixels)
 - MIDI interface (IN/OUT ports)
 - 4 rotary encoders with push buttons
