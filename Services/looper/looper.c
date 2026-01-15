@@ -178,8 +178,8 @@ void looper_init(void) {
   for (uint8_t i=0;i<LOOPER_TRACKS;i++) {
     g_tr[i].quant = LOOPER_QUANT_OFF;
     g_tr[i].loop_beats = 4;
-    g_tr[i].mute = 0;
     g_tr[i].st = LOOPER_STATE_STOP;
+    g_track_muted[i] = 0;  // Initialize new mute system
   }
   
   // Initialize scene chains (all disabled by default)
@@ -239,17 +239,6 @@ void looper_set_quant(uint8_t track, looper_quant_t q) {
 looper_quant_t looper_get_quant(uint8_t track) {
   if (track >= LOOPER_TRACKS) return LOOPER_QUANT_OFF;
   return g_tr[track].quant;
-}
-
-void looper_set_mute(uint8_t track, uint8_t mute) {
-  if (track >= LOOPER_TRACKS) return;
-  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
-  g_tr[track].mute = mute ? 1 : 0;
-  if (g_mutex) osMutexRelease(g_mutex);
-}
-uint8_t looper_get_mute(uint8_t track) {
-  if (track >= LOOPER_TRACKS) return 0;
-  return g_tr[track].mute;
 }
 
 // Track Mute/Solo Controls
@@ -549,7 +538,7 @@ int looper_save_track(uint8_t track, const char* filename) {
   hdr.loop_len_ticks = t->loop_len_ticks;
   hdr.count = t->count;
   hdr.quant = (uint8_t)t->quant;
-  hdr.mute = t->mute;
+  hdr.mute = g_track_muted[track];  // Use new mute system
   hdr.ts_num = g_tp.ts_num;
   hdr.ts_den = g_tp.ts_den;
 
@@ -602,7 +591,7 @@ int looper_load_track(uint8_t track, const char* filename) {
   t->loop_len_ticks = hdr.loop_len_ticks;
   t->count = hdr.count;
   t->quant = (looper_quant_t)hdr.quant;
-  t->mute = hdr.mute;
+  g_track_muted[track] = hdr.mute;  // Load into new mute system
 
   g_tp.bpm = hdr.bpm;
   g_tp.ts_num = hdr.ts_num ? hdr.ts_num : 4;

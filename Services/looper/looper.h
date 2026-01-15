@@ -74,9 +74,6 @@ uint16_t looper_get_loop_beats(uint8_t track);
 void looper_set_quant(uint8_t track, looper_quant_t q);
 looper_quant_t looper_get_quant(uint8_t track);
 
-void looper_set_mute(uint8_t track, uint8_t mute);
-uint8_t looper_get_mute(uint8_t track);
-
 // Track Mute/Solo Controls
 void looper_set_track_muted(uint8_t track, uint8_t muted);
 uint8_t looper_is_track_muted(uint8_t track);
