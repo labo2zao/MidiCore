@@ -28,6 +28,7 @@ extern "C" {
  */
 typedef enum {
   MODULE_TEST_NONE_ID = 0,
+  MODULE_TEST_GDB_DEBUG_ID,     // Test GDB debug / UART verification
   MODULE_TEST_AINSER64_ID,      // Test AINSER64 analog inputs
   MODULE_TEST_SRIO_ID,          // Test SRIO DIN/DOUT
   MODULE_TEST_MIDI_DIN_ID,      // Test MIDI DIN I/O
@@ -68,6 +69,14 @@ const char* module_tests_get_name(module_test_t test);
 // =============================================================================
 // INDIVIDUAL MODULE TEST FUNCTIONS
 // =============================================================================
+
+/**
+ * @brief Test GDB debug and UART verification
+ * Simple test that prints to UART to verify debug connection
+ * Ideal for verifying UART is working and baud rate is correct
+ * @note This function runs forever
+ */
+void module_test_gdb_debug_run(void);
 
 /**
  * @brief Test AINSER64 module (analog inputs)

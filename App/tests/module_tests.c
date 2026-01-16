@@ -119,7 +119,9 @@ void module_tests_init(void)
 
 module_test_t module_tests_get_compile_time_selection(void)
 {
-#if defined(MODULE_TEST_AINSER64)
+#if defined(MODULE_TEST_GDB_DEBUG)
+  return MODULE_TEST_GDB_DEBUG_ID;
+#elif defined(MODULE_TEST_AINSER64)
   return MODULE_TEST_AINSER64_ID;
 #elif defined(MODULE_TEST_SRIO)
   return MODULE_TEST_SRIO_ID;
@@ -153,6 +155,10 @@ module_test_t module_tests_get_compile_time_selection(void)
 int module_tests_run(module_test_t test)
 {
   switch (test) {
+    case MODULE_TEST_GDB_DEBUG_ID:
+      module_test_gdb_debug_run();
+      break;
+      
     case MODULE_TEST_AINSER64_ID:
       module_test_ainser64_run();
       break;
@@ -204,6 +210,79 @@ int module_tests_run(module_test_t test)
 // =============================================================================
 // INDIVIDUAL MODULE TEST IMPLEMENTATIONS
 // =============================================================================
+
+void module_test_gdb_debug_run(void)
+{
+  // Simple UART verification test - ideal for GDB debugging
+  dbg_print("\r\n");
+  dbg_print("==============================================\r\n");
+  dbg_print("UART Debug Verification: OK\r\n");
+  dbg_print("==============================================\r\n");
+  dbg_print("\r\n");
+  
+  dbg_print_test_header("GDB Debug / UART Verification Test");
+  
+  dbg_print("This test confirms UART communication is working.\r\n");
+  dbg_print("\r\n");
+  dbg_print("Configuration:\r\n");
+  dbg_printf("  - UART Port: UART%d (Port %d)\r\n", TEST_DEBUG_UART_PORT + 1, TEST_DEBUG_UART_PORT);
+  dbg_printf("  - Baud Rate: %d\r\n", TEST_DEBUG_UART_BAUD);
+  dbg_print("  - Data: 8-N-1\r\n");
+  dbg_print("\r\n");
+  
+  dbg_print("Hardware Pin Mapping (MIOS32-compatible):\r\n");
+  dbg_print("  Port 0 (UART1/USART1): PA9/PA10   - MIDI OUT1/IN1\r\n");
+  dbg_print("  Port 1 (UART2/USART2): PA2/PA3    - MIDI OUT2/IN2 (Debug)\r\n");
+  dbg_print("  Port 2 (UART3/USART3): PB10/PB11  - MIDI OUT3/IN3\r\n");
+  dbg_print("  Port 3 (UART5/UART5):  PC12/PD2   - MIDI OUT4/IN4\r\n");
+  dbg_print("\r\n");
+  
+  dbg_print_separator();
+  dbg_print("Test Output - Continuous Counter\r\n");
+  dbg_print_separator();
+  dbg_print("\r\n");
+  
+  uint32_t counter = 0;
+  uint32_t last_print_ms = 0;
+  
+  for (;;) {
+    uint32_t now_ms = osKernelGetTickCount();
+    
+    // Print every 1000ms
+    if (now_ms - last_print_ms >= 1000) {
+      last_print_ms = now_ms;
+      counter++;
+      
+      // Print various formats to test output
+      dbg_printf("Count: %lu | Time: %lu ms | Hex: 0x%08lX | Status: ", 
+                 counter, now_ms, counter);
+      
+      // Test colored output indicators
+      if (counter % 3 == 0) {
+        dbg_print("OK");
+      } else if (counter % 3 == 1) {
+        dbg_print("TESTING");
+      } else {
+        dbg_print("ACTIVE");
+      }
+      
+      dbg_print("\r\n");
+      
+      // Every 10 seconds, print a detailed status
+      if (counter % 10 == 0) {
+        dbg_print("\r\n");
+        dbg_print("--- 10 Second Status ---\r\n");
+        dbg_printf("Total iterations: %lu\r\n", counter);
+        dbg_printf("FreeRTOS ticks: %lu\r\n", now_ms);
+        dbg_print("UART is functioning correctly.\r\n");
+        dbg_print("You can set breakpoints and inspect variables in GDB.\r\n");
+        dbg_print("\r\n");
+      }
+    }
+    
+    osDelay(100); // 100ms delay
+  }
+}
 
 void module_test_ainser64_run(void)
 {

@@ -648,7 +648,21 @@ static void MX_USART2_UART_Init(void)
 
   /* USER CODE END USART2_Init 1 */
   huart2.Instance = USART2;
-  huart2.Init.BaudRate = 31250;
+  
+  /* USER CODE BEGIN USART2_BaudRate */
+  // When module tests are active, use 115200 for debug output
+  // Otherwise use 31250 for MIDI
+  #if defined(MODULE_TEST_AINSER64) || defined(MODULE_TEST_SRIO) || \
+      defined(MODULE_TEST_MIDI_DIN) || defined(MODULE_TEST_ROUTER) || \
+      defined(MODULE_TEST_LOOPER) || defined(MODULE_TEST_UI) || \
+      defined(MODULE_TEST_PATCH_SD) || defined(MODULE_TEST_PRESSURE) || \
+      defined(MODULE_TEST_USB_HOST_MIDI) || defined(MODULE_TEST_GDB_DEBUG)
+  huart2.Init.BaudRate = 115200;  // Debug baud rate for tests
+  #else
+  huart2.Init.BaudRate = 31250;   // MIDI baud rate for production
+  #endif
+  /* USER CODE END USART2_BaudRate */
+  
   huart2.Init.WordLength = UART_WORDLENGTH_8B;
   huart2.Init.StopBits = UART_STOPBITS_1;
   huart2.Init.Parity = UART_PARITY_NONE;
