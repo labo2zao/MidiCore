@@ -11,7 +11,7 @@
 #include <string.h>
 
 // Conditional includes for all modules that might be tested
-#if MODULE_ENABLE_AINSER64 && MODULE_ENABLE_AIN
+#if MODULE_ENABLE_AINSER64
 #include "Hal/spi_bus.h"
 #include "Hal/ainser64_hw/hal_ainser64_hw_step.h"
 #include "Hal/uart_midi/hal_uart_midi.h"
@@ -210,7 +210,15 @@ void module_test_ainser64_run(void)
 #if defined(APP_TEST_AINSER_MIDI)
   // Use existing AINSER test
   app_test_ainser_midi_run_forever();
-#elif MODULE_ENABLE_AINSER64 && MODULE_ENABLE_AIN
+#elif MODULE_ENABLE_AINSER64
+  // Early UART verification
+  dbg_print("\r\n");
+  dbg_print("==============================================\r\n");
+  dbg_print("UART Debug Verification: OK\r\n");
+  dbg_print("==============================================\r\n");
+  dbg_print("\r\n");
+  osDelay(100); // Give time for UART transmission
+  
   // Print test header
   dbg_print_test_header("AINSER64 Module Test");
   
@@ -263,13 +271,21 @@ void module_test_ainser64_run(void)
 #else
   // Module not enabled
   dbg_print("ERROR: AINSER64 module not enabled\r\n");
-  dbg_print("Enable MODULE_ENABLE_AINSER64 and MODULE_ENABLE_AIN\r\n");
+  dbg_print("Enable MODULE_ENABLE_AINSER64 in Config/module_config.h\r\n");
   for (;;) osDelay(1000);
 #endif
 }
 
 void module_test_srio_run(void)
 {
+  // Early UART verification
+  dbg_print("\r\n");
+  dbg_print("==============================================\r\n");
+  dbg_print("UART Debug Verification: OK\r\n");
+  dbg_print("==============================================\r\n");
+  dbg_print("\r\n");
+  osDelay(100); // Give time for UART transmission
+  
 #if defined(DIN_SELFTEST) && defined(SRIO_ENABLE)
   // Use existing DIN selftest
   din_selftest_run();
@@ -305,6 +321,14 @@ void module_test_srio_run(void)
 
 void module_test_midi_din_run(void)
 {
+  // Early UART verification
+  dbg_print("\r\n");
+  dbg_print("==============================================\r\n");
+  dbg_print("UART Debug Verification: OK\r\n");
+  dbg_print("==============================================\r\n");
+  dbg_print("\r\n");
+  osDelay(100);
+  
 #if defined(APP_TEST_DIN_MIDI)
   // Use existing DIN MIDI test
   app_test_din_midi_run_forever();
@@ -322,6 +346,14 @@ void module_test_midi_din_run(void)
 
 void module_test_router_run(void)
 {
+  // Early UART verification
+  dbg_print("\r\n");
+  dbg_print("==============================================\r\n");
+  dbg_print("UART Debug Verification: OK\r\n");
+  dbg_print("==============================================\r\n");
+  dbg_print("\r\n");
+  osDelay(100);
+  
 #if MODULE_ENABLE_ROUTER
   router_init(router_send_default);
   
@@ -338,6 +370,14 @@ void module_test_router_run(void)
 
 void module_test_looper_run(void)
 {
+  // Early UART verification
+  dbg_print("\r\n");
+  dbg_print("==============================================\r\n");
+  dbg_print("UART Debug Verification: OK\r\n");
+  dbg_print("==============================================\r\n");
+  dbg_print("\r\n");
+  osDelay(100);
+  
 #ifdef LOOPER_SELFTEST
   // Use existing looper selftest
   app_start_looper_selftest();
@@ -358,6 +398,14 @@ void module_test_looper_run(void)
 
 void module_test_ui_run(void)
 {
+  // Early UART verification
+  dbg_print("\r\n");
+  dbg_print("==============================================\r\n");
+  dbg_print("UART Debug Verification: OK\r\n");
+  dbg_print("==============================================\r\n");
+  dbg_print("\r\n");
+  osDelay(100);
+  
 #if MODULE_ENABLE_UI && MODULE_ENABLE_OLED
   // Test UI drawing
   for (;;) {
@@ -372,6 +420,14 @@ void module_test_ui_run(void)
 
 int module_test_patch_sd_run(void)
 {
+  // Early UART verification
+  dbg_print("\r\n");
+  dbg_print("==============================================\r\n");
+  dbg_print("UART Debug Verification: OK\r\n");
+  dbg_print("==============================================\r\n");
+  dbg_print("\r\n");
+  osDelay(100);
+  
 #if MODULE_ENABLE_PATCH
   // Test SD card mounting
   int result = patch_sd_mount_retry(3);
@@ -389,6 +445,14 @@ int module_test_patch_sd_run(void)
 
 void module_test_pressure_run(void)
 {
+  // Early UART verification
+  dbg_print("\r\n");
+  dbg_print("==============================================\r\n");
+  dbg_print("UART Debug Verification: OK\r\n");
+  dbg_print("==============================================\r\n");
+  dbg_print("\r\n");
+  osDelay(100);
+  
 #if MODULE_ENABLE_PRESSURE
   // Test pressure sensor
   for (;;) {
@@ -403,6 +467,14 @@ void module_test_pressure_run(void)
 
 void module_test_usb_host_midi_run(void)
 {
+  // Early UART verification
+  dbg_print("\r\n");
+  dbg_print("==============================================\r\n");
+  dbg_print("UART Debug Verification: OK\r\n");
+  dbg_print("==============================================\r\n");
+  dbg_print("\r\n");
+  osDelay(100);
+  
 #if MODULE_ENABLE_USBH_MIDI
   usb_host_midi_init();
   
