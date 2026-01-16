@@ -322,23 +322,35 @@ void module_test_ainser64_run(void)
   uint32_t scan_count = 0;
   
   for (;;) {
+    // Print every 100th scan to avoid flooding
+    if ((scan_count % 100) == 0) {
+      dbg_println();
+      dbg_print("=== Scan #");
+      dbg_print_uint(scan_count);
+      dbg_print(" ===\r\n");
+      dbg_println();
+    }
+    
     for (uint8_t step = 0; step < 8; ++step) {
       uint16_t vals[8];
       if (hal_ainser64_read_bank_step(0u, step, vals) == 0) {
-        // Successfully read values
-        // Print every 100th scan to avoid flooding
+        // Successfully read values - print every 100th scan
         if ((scan_count % 100) == 0) {
-          dbg_print("Step ");
+          // Print module header (step corresponds to module)
+          dbg_print("Module ");
           dbg_print_uint(step);
-          dbg_print(": ");
+          dbg_print(" [CH");
+          if (step * 8 < 10) dbg_putc('0');
+          dbg_print_uint(step * 8);
+          dbg_print("-CH");
+          dbg_print_uint(step * 8 + 7);
+          dbg_print("]: ");
+          
+          // Print all 8 inputs for this module
           for (uint8_t ch = 0; ch < 8; ch++) {
             uint8_t idx = step * 8 + ch;
-            dbg_print("CH");
-            if (idx < 10) dbg_putc('0');
-            dbg_print_uint(idx);
-            dbg_print("=");
             dbg_print_uint(vals[ch]);
-            if (ch < 7) dbg_print(" ");
+            if (ch < 7) dbg_print(", ");
           }
           dbg_println();
         }
