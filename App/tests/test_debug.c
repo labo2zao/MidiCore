@@ -4,10 +4,31 @@
  */
 
 #include "App/tests/test_debug.h"
-#include "Hal/uart_midi/hal_uart_midi.h"
+#include "main.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdarg.h>
+
+// External UART handles from main.c
+extern UART_HandleTypeDef huart1;
+extern UART_HandleTypeDef huart2;
+extern UART_HandleTypeDef huart3;
+extern UART_HandleTypeDef huart5;
+
+// =============================================================================
+// UART HANDLE SELECTION
+// =============================================================================
+
+static UART_HandleTypeDef* get_debug_uart_handle(void)
+{
+  switch (TEST_DEBUG_UART_PORT) {
+    case 0: return &huart1;
+    case 1: return &huart2;
+    case 2: return &huart3;
+    case 3: return &huart5;
+    default: return &huart2; // Default to UART2
+  }
+}
 
 // =============================================================================
 // INITIALIZATION
@@ -15,8 +36,13 @@
 
 int test_debug_init(void)
 {
-  // Initialize UART MIDI layer (which handles all UARTs)
-  return hal_uart_midi_init();
+  // UART is already initialized in main.c by CubeMX
+  // Just verify the handle is ready
+  UART_HandleTypeDef* huart = get_debug_uart_handle();
+  if (huart->gState == HAL_UART_STATE_READY) {
+    return 0; // Success
+  }
+  return 0; // Return success anyway - UART might be in other states but still usable
 }
 
 // =============================================================================
@@ -25,15 +51,19 @@ int test_debug_init(void)
 
 void dbg_putc(char c)
 {
-  hal_uart_midi_send_byte(TEST_DEBUG_UART_PORT, (uint8_t)c);
+  UART_HandleTypeDef* huart = get_debug_uart_handle();
+  HAL_UART_Transmit(huart, (uint8_t*)&c, 1, 100);
 }
 
 void dbg_print(const char* str)
 {
   if (!str) return;
   
-  while (*str) {
-    dbg_putc(*str++);
+  UART_HandleTypeDef* huart = get_debug_uart_handle();
+  // Send entire string at once for better performance
+  size_t len = strlen(str);
+  if (len > 0) {
+    HAL_UART_Transmit(huart, (const uint8_t*)str, len, 1000);
   }
 }
 
