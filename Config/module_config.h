@@ -28,6 +28,11 @@ extern "C" {
 #define MODULE_ENABLE_AINSER64 1
 #endif
 
+/** @brief AINSER64 LED mode: 0=simple toggle (low memory), 1=PWM breathing (MIOS32-style) */
+#ifndef AINSER64_LED_MODE_PWM
+#define AINSER64_LED_MODE_PWM 1
+#endif
+
 /** @brief Enable SRIO module (74HC165/595 shift register I/O) */
 #ifndef MODULE_ENABLE_SRIO
 #define MODULE_ENABLE_SRIO 1

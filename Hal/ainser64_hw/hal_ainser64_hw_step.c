@@ -74,11 +74,21 @@ static inline uint8_t compute_link_led_bit(void)
   if (!g_link_led_enable)
     return 0;
 
+#if AINSER64_LED_MODE_PWM
   // MIOS32-style PWM breathing effect
   // Link LED will flash with PWM effect (breathing in/out over ~2 seconds)
   // This matches the behavior in MIOS32 modules/ainser/ainser.c lines 295-302
-  ++g_link_status_ctr;
-  const uint32_t pwm_period = 20;       // *50µs (per channel scan) -> 1ms period
+  //
+  // NOTE: In MIOS32, this counter increments once per complete scan of all modules (~1ms).
+  // In MidiCore with continuous scanning, we increment on every channel (8 channels per step,
+  // 8 steps = 64 increments per scan). To match MIOS32 timing, we increment every 64 calls.
+  static uint8_t call_counter = 0;
+  if (++call_counter >= 64) {
+    call_counter = 0;
+    ++g_link_status_ctr;
+  }
+  
+  const uint32_t pwm_period = 20;       // *1ms -> 20ms
   const uint32_t pwm_sweep_steps = 100; // *20ms -> 2000ms (2 second sweep)
   
   uint32_t pwm_duty = ((g_link_status_ctr / pwm_period) % pwm_sweep_steps) / (pwm_sweep_steps / pwm_period);
@@ -90,6 +100,12 @@ static inline uint8_t compute_link_led_bit(void)
   uint32_t link_status = ((g_link_status_ctr % pwm_period) > pwm_duty) ? 1 : 0;
   
   return (uint8_t)(link_status & 1u);
+#else
+  // Simple on/off toggle mode (low memory usage, ~2Hz blink)
+  // Uses system tick, not call counter, to avoid dependency on scan rate
+  uint32_t t = HAL_GetTick();
+  return (uint8_t)((t >> 8u) & 1u);  // Toggle every 256ms
+#endif
 }
 
 // -----------------------------------------------------------------------------
