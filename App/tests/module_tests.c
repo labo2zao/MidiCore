@@ -9,6 +9,7 @@
 
 #include "cmsis_os2.h"
 #include <string.h>
+#include <stdbool.h>
 
 // Conditional includes for all modules that might be tested
 #if MODULE_ENABLE_AINSER64
@@ -413,7 +414,7 @@ void module_test_srio_run(void)
              SRIO_DIN_BYTES, SRIO_DOUT_BYTES);
   dbg_printf("Total buttons: %d (8 per byte)\r\n", SRIO_DIN_BYTES * 8);
   dbg_print("Monitoring button presses (press any button)...\r\n");
-  dbg_print("Button numbers: 0-%d\r\n", (SRIO_DIN_BYTES * 8) - 1);
+  dbg_printf("Button numbers: 0-%d\r\n", (SRIO_DIN_BYTES * 8) - 1);
   dbg_print_separator();
   dbg_print("\r\n");
   
