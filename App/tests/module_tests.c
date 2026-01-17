@@ -320,8 +320,19 @@ void module_test_ainser64_run(void)
   dbg_print_separator();
   
   uint32_t scan_count = 0;
+  uint16_t all_vals[8][8]; // [step][module]
   
   for (;;) {
+    // Read all 8 steps (mux channels) for all 8 modules
+    for (uint8_t step = 0; step < 8; ++step) {
+      if (hal_ainser64_read_bank_step(0u, step, all_vals[step]) != 0) {
+        // Error reading - fill with zeros
+        for (uint8_t m = 0; m < 8; m++) {
+          all_vals[step][m] = 0;
+        }
+      }
+    }
+    
     // Print every 100th scan to avoid flooding
     if ((scan_count % 100) == 0) {
       dbg_println();
@@ -329,33 +340,23 @@ void module_test_ainser64_run(void)
       dbg_print_uint(scan_count);
       dbg_print(" ===\r\n");
       dbg_println();
-    }
-    
-    for (uint8_t step = 0; step < 8; ++step) {
-      uint16_t vals[8];
-      if (hal_ainser64_read_bank_step(0u, step, vals) == 0) {
-        // Successfully read values - print every 100th scan
-        if ((scan_count % 100) == 0) {
-          // Print module header (step corresponds to module)
-          dbg_print("Module ");
-          dbg_print_uint(step);
-          dbg_print(" [CH");
-          if (step * 8 < 10) dbg_putc('0');
-          dbg_print_uint(step * 8);
-          dbg_print("-CH");
-          dbg_print_uint(step * 8 + 7);
-          dbg_print("]: ");
-          
-          // Print all 8 inputs for this module
-          for (uint8_t ch = 0; ch < 8; ch++) {
-            uint8_t idx = step * 8 + ch;
-            dbg_print_uint(vals[ch]);
-            if (ch < 7) dbg_print(", ");
-          }
-          dbg_println();
+      
+      // Print transposed: each line is one channel across all 8 modules
+      for (uint8_t ch = 0; ch < 8; ++ch) {
+        // Print channel header
+        dbg_print("Channel ");
+        dbg_print_uint(ch);
+        dbg_print(" [M0-M7]: ");
+        
+        // Print values from all 8 modules for this channel
+        for (uint8_t module = 0; module < 8; module++) {
+          dbg_print_uint(all_vals[ch][module]);
+          if (module < 7) dbg_print(", ");
         }
+        dbg_println();
       }
     }
+    
     scan_count++;
     osDelay(10);
   }
