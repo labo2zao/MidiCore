@@ -316,14 +316,17 @@ void module_test_ainser64_run(void)
   
   dbg_print_separator();
   dbg_print("Scanning 64 channels continuously...\r\n");
+  dbg_print("Values update on every scan (no delays between channels)\r\n");
   dbg_print("Press Ctrl+C to stop\r\n");
   dbg_print_separator();
   
   uint32_t scan_count = 0;
-  uint16_t all_vals[8][8]; // [step][module]
+  uint16_t all_vals[8][8]; // [step][channel]
   
   for (;;) {
-    // Read all 8 steps (mux channels) for all 8 modules
+    // IMPORTANT: Read all 8 steps (mux channels) continuously without delays
+    // This matches MIOS32 behavior and prevents stale/discontinuous values
+    // The multiplexer needs continuous scanning to maintain stable readings
     for (uint8_t step = 0; step < 8; ++step) {
       if (hal_ainser64_read_bank_step(0u, step, all_vals[step]) != 0) {
         // Error reading - fill with zeros
@@ -331,6 +334,7 @@ void module_test_ainser64_run(void)
           all_vals[step][m] = 0;
         }
       }
+      // NO DELAY HERE - immediate next step for continuous scanning
     }
     
     // Print every 100th scan to avoid flooding
@@ -358,7 +362,10 @@ void module_test_ainser64_run(void)
     }
     
     scan_count++;
-    osDelay(10);
+    
+    // Small delay only AFTER complete scan to avoid flooding UART
+    // In production code, this delay would not be needed
+    osDelay(1); // 1ms delay between complete scans (not between channels!)
   }
 #else
   // Module not enabled

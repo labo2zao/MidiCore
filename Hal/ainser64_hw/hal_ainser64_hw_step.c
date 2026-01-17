@@ -21,9 +21,9 @@
 static const uint8_t k_default_mux_port_map[8] = { 0, 5, 2, 7, 4, 1, 6, 3 };
 static uint8_t g_mux_port_map[8];
 
-// Simple, cheap LED modulation (MIOS32 uses a PWM-modulated slow flash).
+// MIOS32-style PWM LED modulation for smooth breathing effect
 static uint8_t g_link_led_enable = 1;
-static uint16_t g_link_led_phase = 0;
+static uint16_t g_link_status_ctr = 0;
 
 // This project currently supports a single AINSER64 module on a single CS line.
 // Keeping the "module" parameter in the API allows later extension.
@@ -74,10 +74,22 @@ static inline uint8_t compute_link_led_bit(void)
   if (!g_link_led_enable)
     return 0;
 
-  // Slow blink: ~2 Hz (256ms period instead of 250ms)
-  // Optimized with bit shift for performance
-  uint32_t t = HAL_GetTick();
-  return (uint8_t)((t >> 8u) & 1u);
+  // MIOS32-style PWM breathing effect
+  // Link LED will flash with PWM effect (breathing in/out over ~2 seconds)
+  // This matches the behavior in MIOS32 modules/ainser/ainser.c lines 295-302
+  ++g_link_status_ctr;
+  const uint32_t pwm_period = 20;       // *50µs (per channel scan) -> 1ms period
+  const uint32_t pwm_sweep_steps = 100; // *20ms -> 2000ms (2 second sweep)
+  
+  uint32_t pwm_duty = ((g_link_status_ctr / pwm_period) % pwm_sweep_steps) / (pwm_sweep_steps / pwm_period);
+  
+  // Reverse direction every 2 seconds (creates breathing effect)
+  if ((g_link_status_ctr % (2 * pwm_period * pwm_sweep_steps)) > (pwm_period * pwm_sweep_steps))
+    pwm_duty = pwm_period - pwm_duty;
+  
+  uint32_t link_status = ((g_link_status_ctr % pwm_period) > pwm_duty) ? 1 : 0;
+  
+  return (uint8_t)(link_status & 1u);
 }
 
 // -----------------------------------------------------------------------------
@@ -88,7 +100,7 @@ int32_t hal_ainser64_init(void)
 {
   memcpy(g_mux_port_map, k_default_mux_port_map, sizeof(g_mux_port_map));
   g_link_led_enable = 1;
-  g_link_led_phase = 0;
+  g_link_status_ctr = 0;
 
   // SPI bus init is handled by the app (see app_init.c).
   return 0;
@@ -138,6 +150,6 @@ int32_t hal_ainser64_read_bank_step(uint8_t module, uint8_t step, uint16_t out8[
     }
     out8[ch] = sample;
   }
-  (void)g_link_led_phase; // reserved for future PWM
+  
   return 0;
 }
