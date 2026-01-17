@@ -422,13 +422,30 @@ void module_test_srio_run(void)
   uint8_t din_prev[SRIO_DIN_BYTES];
   
   // Initialize previous state
-  srio_read_din(din_prev);
+  int init_result = srio_read_din(din_prev);
+  if (init_result != 0) {
+    dbg_printf("ERROR: SRIO init read failed with code %d\r\n", init_result);
+    dbg_print("Check SPI and GPIO configuration!\r\n");
+  } else {
+    dbg_print("Initial DIN state read: ");
+    for (uint8_t i = 0; i < SRIO_DIN_BYTES; i++) {
+      dbg_printf("0x%02X ", din_prev[i]);
+    }
+    dbg_print("\r\n");
+  }
   
   uint32_t scan_counter = 0;
   uint32_t last_activity_ms = osKernelGetTickCount();
+  uint32_t last_debug_ms = osKernelGetTickCount();
   
   for (;;) {
-    srio_read_din(din);
+    int result = srio_read_din(din);
+    if (result != 0) {
+      dbg_printf("ERROR: SRIO read failed with code %d\r\n", result);
+      osDelay(1000);
+      continue;
+    }
+    
     scan_counter++;
     
     // Check for button state changes
@@ -461,11 +478,16 @@ void module_test_srio_run(void)
       last_activity_ms = osKernelGetTickCount();
     }
     
-    // Print idle message every 5 seconds if no activity
+    // Print idle message and current DIN state every 5 seconds if no activity
     uint32_t now_ms = osKernelGetTickCount();
-    if (now_ms - last_activity_ms >= 5000) {
+    if (now_ms - last_activity_ms >= 5000 && now_ms - last_debug_ms >= 5000) {
       dbg_printf("Waiting for button press... (scan count: %lu)\r\n", scan_counter);
-      last_activity_ms = now_ms;
+      dbg_print("Current DIN state: ");
+      for (uint8_t i = 0; i < SRIO_DIN_BYTES; i++) {
+        dbg_printf("0x%02X ", din[i]);
+      }
+      dbg_print("\r\n");
+      last_debug_ms = now_ms;
     }
     
     osDelay(10); // 10ms scan rate = 100 Hz
