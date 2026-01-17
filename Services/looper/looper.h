@@ -499,6 +499,77 @@ uint8_t looper_get_lfo_bpm_divisor(uint8_t track);
  */
 void looper_reset_lfo_phase(uint8_t track);
 
+// ---- Humanizer Feature ----
+
+/**
+ * @brief Enable/disable humanizer for a track
+ * @param track Track index (0-3)
+ * @param enabled 1 to enable, 0 to disable
+ * 
+ * The humanizer adds groove-aware micro-variations to velocity and timing,
+ * creating more natural, less mechanical performances.
+ */
+void looper_set_humanizer_enabled(uint8_t track, uint8_t enabled);
+
+/**
+ * @brief Check if humanizer is enabled for a track
+ * @param track Track index (0-3)
+ * @return 1 if enabled, 0 if disabled
+ */
+uint8_t looper_is_humanizer_enabled(uint8_t track);
+
+/**
+ * @brief Set velocity humanization amount
+ * @param track Track index (0-3)
+ * @param amount Velocity variation amount (0-32)
+ * 
+ * Controls how much velocity variation is applied. Higher values create
+ * more dynamic variation. On-beat notes get 20% variation, off-beat notes
+ * get 100% for groove preservation.
+ */
+void looper_set_humanizer_velocity(uint8_t track, uint8_t amount);
+
+/**
+ * @brief Get velocity humanization amount
+ * @param track Track index (0-3)
+ * @return Velocity variation amount (0-32)
+ */
+uint8_t looper_get_humanizer_velocity(uint8_t track);
+
+/**
+ * @brief Set timing humanization amount
+ * @param track Track index (0-3)
+ * @param amount Timing variation in ticks (0-6)
+ * 
+ * Controls how much timing variation is applied. Adds subtle micro-shifts
+ * to note timing for a more human feel.
+ */
+void looper_set_humanizer_timing(uint8_t track, uint8_t amount);
+
+/**
+ * @brief Get timing humanization amount
+ * @param track Track index (0-3)
+ * @return Timing variation in ticks (0-6)
+ */
+uint8_t looper_get_humanizer_timing(uint8_t track);
+
+/**
+ * @brief Set humanizer intensity
+ * @param track Track index (0-3)
+ * @param intensity Overall effect intensity (0-100%)
+ * 
+ * Master control for humanizer strength. 0% disables humanization,
+ * 100% applies full variation amounts.
+ */
+void looper_set_humanizer_intensity(uint8_t track, uint8_t intensity);
+
+/**
+ * @brief Get humanizer intensity
+ * @param track Track index (0-3)
+ * @return Overall effect intensity (0-100%)
+ */
+uint8_t looper_get_humanizer_intensity(uint8_t track);
+
 // ---- Tempo Tap Feature ----
 
 /**

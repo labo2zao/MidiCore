@@ -2402,6 +2402,7 @@ void looper_get_randomize_params(uint8_t track, uint8_t* out_velocity_range,
 
 // Humanizer parameter storage
 typedef struct {
+  uint8_t enabled;
   uint8_t velocity_amount;
   uint8_t timing_amount;
   uint8_t intensity;
@@ -3062,5 +3063,219 @@ void looper_quick_save_clear(uint8_t slot) {
   
   if (g_mutex) osMutexRelease(g_mutex);
 }
+
+// ---- Humanizer Feature Implementation ----
+
+/**
+ * @brief Enable/disable humanizer for a track
+ */
+void looper_set_humanizer_enabled(uint8_t track, uint8_t enabled) {
+  if (track >= LOOPER_TRACKS) return;
+  
+  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  
+  g_humanize_params[track].enabled = enabled ? 1 : 0;
+  
+  if (g_mutex) osMutexRelease(g_mutex);
+}
+
+/**
+ * @brief Check if humanizer is enabled for a track
+ */
+uint8_t looper_is_humanizer_enabled(uint8_t track) {
+  if (track >= LOOPER_TRACKS) return 0;
+  return g_humanize_params[track].enabled;
+}
+
+/**
+ * @brief Set velocity humanization amount
+ */
+void looper_set_humanizer_velocity(uint8_t track, uint8_t amount) {
+  if (track >= LOOPER_TRACKS) return;
+  if (amount > 32) amount = 32;
+  
+  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  
+  g_humanize_params[track].velocity_amount = amount;
+  
+  if (g_mutex) osMutexRelease(g_mutex);
+}
+
+/**
+ * @brief Get velocity humanization amount
+ */
+uint8_t looper_get_humanizer_velocity(uint8_t track) {
+  if (track >= LOOPER_TRACKS) return 0;
+  return g_humanize_params[track].velocity_amount;
+}
+
+/**
+ * @brief Set timing humanization amount
+ */
+void looper_set_humanizer_timing(uint8_t track, uint8_t amount) {
+  if (track >= LOOPER_TRACKS) return;
+  if (amount > 6) amount = 6;
+  
+  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  
+  g_humanize_params[track].timing_amount = amount;
+  
+  if (g_mutex) osMutexRelease(g_mutex);
+}
+
+/**
+ * @brief Get timing humanization amount
+ */
+uint8_t looper_get_humanizer_timing(uint8_t track) {
+  if (track >= LOOPER_TRACKS) return 0;
+  return g_humanize_params[track].timing_amount;
+}
+
+/**
+ * @brief Set humanizer intensity
+ */
+void looper_set_humanizer_intensity(uint8_t track, uint8_t intensity) {
+  if (track >= LOOPER_TRACKS) return;
+  if (intensity > 100) intensity = 100;
+  
+  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  
+  g_humanize_params[track].intensity = intensity;
+  
+  if (g_mutex) osMutexRelease(g_mutex);
+}
+
+/**
+ * @brief Get humanizer intensity
+ */
+uint8_t looper_get_humanizer_intensity(uint8_t track) {
+  if (track >= LOOPER_TRACKS) return 0;
+  return g_humanize_params[track].intensity;
+}
+
+// ---- LFO Feature Wrapper Functions ----
+
+#include "Services/lfo/lfo.h"
+
+/**
+ * @brief Enable/disable LFO for a track
+ */
+void looper_set_lfo_enabled(uint8_t track, uint8_t enabled) {
+  if (track >= LOOPER_TRACKS) return;
+  lfo_set_enabled(track, enabled);
+}
+
+/**
+ * @brief Check if LFO is enabled for a track
+ */
+uint8_t looper_is_lfo_enabled(uint8_t track) {
+  if (track >= LOOPER_TRACKS) return 0;
+  return lfo_is_enabled(track);
+}
+
+/**
+ * @brief Set LFO waveform
+ */
+void looper_set_lfo_waveform(uint8_t track, looper_lfo_waveform_t waveform) {
+  if (track >= LOOPER_TRACKS) return;
+  lfo_set_waveform(track, (lfo_waveform_t)waveform);
+}
+
+/**
+ * @brief Get current LFO waveform
+ */
+looper_lfo_waveform_t looper_get_lfo_waveform(uint8_t track) {
+  if (track >= LOOPER_TRACKS) return LOOPER_LFO_WAVEFORM_SINE;
+  return (looper_lfo_waveform_t)lfo_get_waveform(track);
+}
+
+/**
+ * @brief Set LFO rate in Hz (0.01 - 10.0 Hz)
+ */
+void looper_set_lfo_rate(uint8_t track, uint16_t rate_hundredths) {
+  if (track >= LOOPER_TRACKS) return;
+  lfo_set_rate(track, rate_hundredths);
+}
+
+/**
+ * @brief Get current LFO rate
+ */
+uint16_t looper_get_lfo_rate(uint8_t track) {
+  if (track >= LOOPER_TRACKS) return 0;
+  return lfo_get_rate(track);
+}
+
+/**
+ * @brief Set LFO depth (0-100%)
+ */
+void looper_set_lfo_depth(uint8_t track, uint8_t depth) {
+  if (track >= LOOPER_TRACKS) return;
+  lfo_set_depth(track, depth);
+}
+
+/**
+ * @brief Get current LFO depth
+ */
+uint8_t looper_get_lfo_depth(uint8_t track) {
+  if (track >= LOOPER_TRACKS) return 0;
+  return lfo_get_depth(track);
+}
+
+/**
+ * @brief Set LFO target parameter
+ */
+void looper_set_lfo_target(uint8_t track, looper_lfo_target_t target) {
+  if (track >= LOOPER_TRACKS) return;
+  lfo_set_target(track, (lfo_target_t)target);
+}
+
+/**
+ * @brief Get current LFO target
+ */
+looper_lfo_target_t looper_get_lfo_target(uint8_t track) {
+  if (track >= LOOPER_TRACKS) return LOOPER_LFO_TARGET_VELOCITY;
+  return (looper_lfo_target_t)lfo_get_target(track);
+}
+
+/**
+ * @brief Enable/disable BPM sync
+ */
+void looper_set_lfo_bpm_sync(uint8_t track, uint8_t bpm_sync) {
+  if (track >= LOOPER_TRACKS) return;
+  lfo_set_bpm_sync(track, bpm_sync);
+}
+
+/**
+ * @brief Check if BPM sync is enabled
+ */
+uint8_t looper_is_lfo_bpm_synced(uint8_t track) {
+  if (track >= LOOPER_TRACKS) return 0;
+  return lfo_is_bpm_synced(track);
+}
+
+/**
+ * @brief Set BPM sync divisor (1/4, 1/2, 1, 2, 4, 8 bars)
+ */
+void looper_set_lfo_bpm_divisor(uint8_t track, uint8_t divisor) {
+  if (track >= LOOPER_TRACKS) return;
+  lfo_set_bpm_divisor(track, divisor);
+}
+
+/**
+ * @brief Get current BPM divisor
+ */
+uint8_t looper_get_lfo_bpm_divisor(uint8_t track) {
+  if (track >= LOOPER_TRACKS) return 0;
+  return lfo_get_bpm_divisor(track);
+}
+
+/**
+ * @brief Reset LFO phase to zero
+ */
+void looper_reset_lfo_phase(uint8_t track) {
+  if (track >= LOOPER_TRACKS) return;
+  lfo_reset_phase(track);
+}
+
 
 
