@@ -389,6 +389,10 @@ void module_test_srio_run(void)
   // Use existing DIN selftest
   din_selftest_run();
 #elif MODULE_ENABLE_SRIO && defined(SRIO_ENABLE)
+  dbg_print_test_header("SRIO Module Test");
+  
+  // Initialize SRIO
+  dbg_print("Initializing SRIO...");
   srio_config_t scfg = {
     .hspi = SRIO_SPI_HANDLE,
     .din_pl_port = SRIO_DIN_PL_PORT,
@@ -402,16 +406,73 @@ void module_test_srio_run(void)
     .dout_bytes = SRIO_DOUT_BYTES,
   };
   srio_init(&scfg);
+  dbg_print(" OK\r\n");
+  
+  dbg_print_separator();
+  dbg_printf("Configuration: %d DIN bytes, %d DOUT bytes\r\n", 
+             SRIO_DIN_BYTES, SRIO_DOUT_BYTES);
+  dbg_printf("Total buttons: %d (8 per byte)\r\n", SRIO_DIN_BYTES * 8);
+  dbg_print("Monitoring button presses (press any button)...\r\n");
+  dbg_print("Button numbers: 0-%d\r\n", (SRIO_DIN_BYTES * 8) - 1);
+  dbg_print_separator();
+  dbg_print("\r\n");
   
   uint8_t din[SRIO_DIN_BYTES];
+  uint8_t din_prev[SRIO_DIN_BYTES];
+  
+  // Initialize previous state
+  srio_read_din(din_prev);
+  
+  uint32_t scan_counter = 0;
+  uint32_t last_activity_ms = osKernelGetTickCount();
+  
   for (;;) {
     srio_read_din(din);
-    osDelay(10);
+    scan_counter++;
+    
+    // Check for button state changes
+    bool changed = false;
+    for (uint8_t byte_idx = 0; byte_idx < SRIO_DIN_BYTES; byte_idx++) {
+      if (din[byte_idx] != din_prev[byte_idx]) {
+        changed = true;
+        uint8_t diff = din[byte_idx] ^ din_prev[byte_idx];
+        
+        // Check each bit in the byte
+        for (uint8_t bit = 0; bit < 8; bit++) {
+          if (diff & (1 << bit)) {
+            uint16_t button_num = (byte_idx * 8) + bit;
+            bool pressed = (din[byte_idx] & (1 << bit)) == 0; // Active low
+            
+            dbg_printf("[Scan #%lu] Button %3d: %s\r\n", 
+                       scan_counter, 
+                       button_num, 
+                       pressed ? "PRESSED " : "RELEASED");
+          }
+        }
+      }
+    }
+    
+    // Update previous state
+    if (changed) {
+      for (uint8_t i = 0; i < SRIO_DIN_BYTES; i++) {
+        din_prev[i] = din[i];
+      }
+      last_activity_ms = osKernelGetTickCount();
+    }
+    
+    // Print idle message every 5 seconds if no activity
+    uint32_t now_ms = osKernelGetTickCount();
+    if (now_ms - last_activity_ms >= 5000) {
+      dbg_printf("Waiting for button press... (scan count: %lu)\r\n", scan_counter);
+      last_activity_ms = now_ms;
+    }
+    
+    osDelay(10); // 10ms scan rate = 100 Hz
   }
 #else
   dbg_print_test_header("SRIO Test");
-  dbg_print("ERROR: SRIO module not enabled!\n");
-  dbg_print("Please enable MODULE_ENABLE_SRIO and SRIO_ENABLE\n");
+  dbg_print("ERROR: SRIO module not enabled!\r\n");
+  dbg_print("Please enable MODULE_ENABLE_SRIO and SRIO_ENABLE\r\n");
   for (;;) {
     osDelay(1000);
   }
