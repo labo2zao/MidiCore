@@ -358,6 +358,147 @@ void looper_set_humanize_params(uint8_t track, uint8_t velocity_amount,
 void looper_get_humanize_params(uint8_t track, uint8_t* out_velocity_amount,
                                 uint8_t* out_timing_amount, uint8_t* out_intensity);
 
+// ---- LFO (Low Frequency Oscillator) Feature ----
+
+// Forward declare LFO types from lfo.h
+typedef enum {
+    LOOPER_LFO_WAVEFORM_SINE = 0,
+    LOOPER_LFO_WAVEFORM_TRIANGLE,
+    LOOPER_LFO_WAVEFORM_SAW,
+    LOOPER_LFO_WAVEFORM_SQUARE,
+    LOOPER_LFO_WAVEFORM_RANDOM,
+    LOOPER_LFO_WAVEFORM_SAMPLE_HOLD
+} looper_lfo_waveform_t;
+
+typedef enum {
+    LOOPER_LFO_TARGET_VELOCITY = 0,
+    LOOPER_LFO_TARGET_TIMING,
+    LOOPER_LFO_TARGET_PITCH
+} looper_lfo_target_t;
+
+/**
+ * @brief Enable/disable LFO for a track
+ * @param track Track index (0-3)
+ * @param enabled 1 to enable, 0 to disable
+ * 
+ * LFOs provide cyclic modulation for creating evolving, dreamlike effects.
+ * Can be synced to BPM or run freely for ambient modulation.
+ */
+void looper_set_lfo_enabled(uint8_t track, uint8_t enabled);
+
+/**
+ * @brief Check if LFO is enabled for a track
+ * @param track Track index (0-3)
+ * @return 1 if enabled, 0 if disabled
+ */
+uint8_t looper_is_lfo_enabled(uint8_t track);
+
+/**
+ * @brief Set LFO waveform
+ * @param track Track index (0-3)
+ * @param waveform Waveform type (sine, triangle, saw, square, random, S&H)
+ * 
+ * Different waveforms create different modulation characteristics:
+ * - SINE: Smooth, organic modulation
+ * - TRIANGLE: Linear ramp modulation
+ * - SAW: Rising modulation
+ * - SQUARE: Stepped on/off modulation
+ * - RANDOM: Smooth random modulation (interpolated)
+ * - SAMPLE_HOLD: Stepped random modulation
+ */
+void looper_set_lfo_waveform(uint8_t track, looper_lfo_waveform_t waveform);
+
+/**
+ * @brief Get current LFO waveform
+ * @param track Track index (0-3)
+ * @return Current waveform type
+ */
+looper_lfo_waveform_t looper_get_lfo_waveform(uint8_t track);
+
+/**
+ * @brief Set LFO rate in Hz (0.01 - 10.0 Hz)
+ * @param track Track index (0-3)
+ * @param rate_hundredths Rate in 0.01Hz units (1 = 0.01Hz, 1000 = 10Hz)
+ * 
+ * Very slow rates (0.01-0.1 Hz) create "dream" effects.
+ * Faster rates (1-10 Hz) create rhythmic modulation.
+ */
+void looper_set_lfo_rate(uint8_t track, uint16_t rate_hundredths);
+
+/**
+ * @brief Get current LFO rate
+ * @param track Track index (0-3)
+ * @return Rate in 0.01Hz units
+ */
+uint16_t looper_get_lfo_rate(uint8_t track);
+
+/**
+ * @brief Set LFO modulation depth (0-100%)
+ * @param track Track index (0-3)
+ * @param depth Modulation depth percentage (0-100)
+ */
+void looper_set_lfo_depth(uint8_t track, uint8_t depth);
+
+/**
+ * @brief Get current LFO depth
+ * @param track Track index (0-3)
+ * @return Depth percentage (0-100)
+ */
+uint8_t looper_get_lfo_depth(uint8_t track);
+
+/**
+ * @brief Set LFO target parameter
+ * @param track Track index (0-3)
+ * @param target Parameter to modulate (velocity, timing, or pitch)
+ */
+void looper_set_lfo_target(uint8_t track, looper_lfo_target_t target);
+
+/**
+ * @brief Get current LFO target
+ * @param track Track index (0-3)
+ * @return Target parameter
+ */
+looper_lfo_target_t looper_get_lfo_target(uint8_t track);
+
+/**
+ * @brief Enable/disable BPM sync for LFO
+ * @param track Track index (0-3)
+ * @param bpm_sync 1 for BPM sync, 0 for free-running
+ * 
+ * When BPM synced, LFO cycles are locked to musical time (bars/beats).
+ * When free-running, LFO uses the rate_hz setting independently.
+ */
+void looper_set_lfo_bpm_sync(uint8_t track, uint8_t bpm_sync);
+
+/**
+ * @brief Check if LFO is BPM synced
+ * @param track Track index (0-3)
+ * @return 1 if BPM synced, 0 if free-running
+ */
+uint8_t looper_is_lfo_bpm_synced(uint8_t track);
+
+/**
+ * @brief Set BPM sync divisor (1, 2, 4, 8, 16, 32 bars)
+ * @param track Track index (0-3)
+ * @param divisor Number of bars for one LFO cycle
+ */
+void looper_set_lfo_bpm_divisor(uint8_t track, uint8_t divisor);
+
+/**
+ * @brief Get current BPM divisor
+ * @param track Track index (0-3)
+ * @return Bars divisor
+ */
+uint8_t looper_get_lfo_bpm_divisor(uint8_t track);
+
+/**
+ * @brief Reset LFO phase to zero
+ * @param track Track index (0-3)
+ * 
+ * Useful for synchronizing LFO start with loop playback.
+ */
+void looper_reset_lfo_phase(uint8_t track);
+
 // ---- Tempo Tap Feature ----
 
 /**
