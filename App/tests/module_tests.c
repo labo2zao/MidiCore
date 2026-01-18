@@ -516,10 +516,71 @@ void module_test_midi_din_run(void)
   // Use existing DIN MIDI test
   app_test_din_midi_run_forever();
 #elif MODULE_ENABLE_MIDI_DIN
-  // Simple MIDI echo test
+  dbg_print_test_header("MIDI DIN Module Test");
+  dbg_print("Initializing MIDI DIN service...");
+  midi_din_init();
+  dbg_print(" OK\r\n");
+  dbg_print("\r\n");
+  dbg_print("Listening for incoming MIDI bytes.\r\n");
+  dbg_print("Press keys or send MIDI data from your controller.\r\n");
+  dbg_print("Monitor output on the debug UART for activity.\r\n");
+  dbg_print_separator();
+
+  midi_din_stats_t prev_stats[MIDI_DIN_PORTS];
+  midi_din_stats_t cur_stats[MIDI_DIN_PORTS];
+  memset(prev_stats, 0, sizeof(prev_stats));
+  memset(cur_stats, 0, sizeof(cur_stats));
+
+  uint32_t last_poll_ms = osKernelGetTickCount();
+  uint32_t last_idle_ms = last_poll_ms;
+
   for (;;) {
-    osDelay(10);
-    // Could implement MIDI echo here
+    midi_din_tick();
+
+    uint32_t now_ms = osKernelGetTickCount();
+    if (now_ms - last_poll_ms >= 50) {
+      last_poll_ms = now_ms;
+      bool any_activity = false;
+
+      for (uint8_t port = 0; port < MIDI_DIN_PORTS; ++port) {
+        midi_din_get_stats(port, &cur_stats[port]);
+
+        if (cur_stats[port].rx_bytes != prev_stats[port].rx_bytes ||
+            cur_stats[port].rx_msgs != prev_stats[port].rx_msgs ||
+            cur_stats[port].rx_sysex_chunks != prev_stats[port].rx_sysex_chunks ||
+            cur_stats[port].rx_drops != prev_stats[port].rx_drops ||
+            cur_stats[port].rx_stray_data != prev_stats[port].rx_stray_data) {
+          any_activity = true;
+
+          dbg_printf("DIN%d: bytes=%lu msgs=%lu sysex=%lu drops=%lu stray=%lu",
+                     port + 1,
+                     cur_stats[port].rx_bytes,
+                     cur_stats[port].rx_msgs,
+                     cur_stats[port].rx_sysex_chunks,
+                     cur_stats[port].rx_drops,
+                     cur_stats[port].rx_stray_data);
+
+          if (cur_stats[port].last_len > 0) {
+            dbg_print(" last=");
+            dbg_print_bytes(cur_stats[port].last_bytes,
+                            cur_stats[port].last_len,
+                            ' ');
+          }
+          dbg_print("\r\n");
+
+          prev_stats[port] = cur_stats[port];
+        }
+      }
+
+      if (any_activity) {
+        last_idle_ms = now_ms;
+      } else if (now_ms - last_idle_ms >= 5000) {
+        dbg_print("Waiting for MIDI DIN input...\r\n");
+        last_idle_ms = now_ms;
+      }
+    }
+
+    osDelay(1);
   }
 #else
   // Module not enabled
