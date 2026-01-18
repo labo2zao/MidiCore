@@ -280,6 +280,9 @@ MODULE_TEST_SRIO
 # Observer les valeurs DIN en hexadécimal
 ```
 
+**Note SRIO:** Par défaut, le mapping SRIO utilise les pins compatibles MIOS32 (`MIOS_SPI1_RC2` pour `/PL`, `OLED_CS` pour `RCLK`). Si votre `main.h` définit des broches `SRIO_RC1/SRIO_RC2` différentes, ajoutez `SRIO_USE_EXPLICIT_PINS` pour les utiliser.
+`MODULE_TEST_SRIO` active automatiquement `SRIO_ENABLE` pendant la compilation.
+
 ### Test 3: MIDI DIN avec Debug Séparé
 
 ```bash
@@ -295,6 +298,10 @@ MODULE_TEST_MIDI_DIN=1
 # Observer messages debug sur UART3
 # Observer MIDI OUT sur PA9 (TX)
 ```
+
+**Sortie attendue / Expected Output:**
+- Le test `MODULE_TEST_MIDI_DIN` affiche l'activité par port (octets reçus, messages, sysex, derniers bytes) sur l'UART debug.
+- Si aucune activité n'apparaît, vérifier le port UART sélectionné et le câblage RX/TX MIDI.
 
 ## Dépannage / Troubleshooting
 
