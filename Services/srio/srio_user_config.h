@@ -26,6 +26,10 @@
 extern SPI_HandleTypeDef hspi2;
 #define SRIO_SPI_HANDLE (&hspi2)
 
+#ifndef SRIO_SPI_PRESCALER
+#define SRIO_SPI_PRESCALER SPI_BAUDRATEPRESCALER_64
+#endif
+
 // 74HC165 /PL uses RC2.
 // Default to MIOS32-compatible pins; opt into explicit SRIO_RC pins via SRIO_USE_EXPLICIT_PINS.
 #if defined(SRIO_USE_EXPLICIT_PINS) && defined(SRIO_RC2_GPIO_Port) && defined(SRIO_RC2_Pin)

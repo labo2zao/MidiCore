@@ -58,6 +58,10 @@ make CFLAGS+="-DMODULE_TEST_AINSER64"
 # Example: Test MIDI DIN module
 make CFLAGS+="-DMODULE_TEST_MIDI_DIN"
 
+# Optional: select DIN1 UART (0-3) for MIDI IN/OUT
+# (avoid UART2 if it is used for debug at 115200 during tests)
+make CFLAGS+="-DMODULE_TEST_MIDI_DIN -DTEST_MIDI_DIN_UART_PORT=2"
+
 # You can also use =1 syntax if preferred
 make CFLAGS+="-DMODULE_TEST_SRIO=1"
 ```
@@ -125,6 +129,7 @@ make CFLAGS+="-DMODULE_TEST_SRIO"
 - By default, MIOS32-compatible pins are used (`MIOS_SPI1_RC2` and `OLED_CS`).
 - Define `SRIO_USE_EXPLICIT_PINS` to force `SRIO_RC2` (`/PL`) and `SRIO_RC1` (`RCLK`) instead.
 - `MODULE_TEST_SRIO` automatically enables `SRIO_ENABLE` for the build.
+- If the chain is unstable, reduce SRIO SPI speed with `SRIO_SPI_PRESCALER` (default: 64).
 
 ### Example 3: Test MIDI Router
 

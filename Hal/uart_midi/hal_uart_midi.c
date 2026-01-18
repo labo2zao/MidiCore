@@ -3,7 +3,7 @@
 // Design goals (STM32F4/F7 portable):
 // - interrupt-driven RX with a small ring buffer per port
 // - simple blocking TX (good enough for bring-up/testing)
-// - keep USART1 free for debug UART (115200)
+// - allow selecting the primary DIN UART via TEST_MIDI_DIN_UART_PORT
 
 #include "hal_uart_midi.h"
 
@@ -36,16 +36,31 @@
 #define MIDI_DIN_PORTS 4
 #endif
 
-extern UART_HandleTypeDef huart2; // USART2 (31250)
-extern UART_HandleTypeDef huart3; // USART3 (31250)
-extern UART_HandleTypeDef huart5; // UART5  (31250)
+extern UART_HandleTypeDef huart1; // USART1
+extern UART_HandleTypeDef huart2; // USART2
+extern UART_HandleTypeDef huart3; // USART3
+extern UART_HandleTypeDef huart5; // UART5
 
-static UART_HandleTypeDef* const s_midi_uarts[MIDI_DIN_PORTS] = {
-    &huart2, // Port 0 -> DIN1 (primary)  [MIOS32 UART0]
-    &huart3, // Port 1 -> DIN2            [MIOS32 UART1]
-    &huart5, // Port 2 -> DIN3            [MIOS32 UART3]
-    NULL,    // Port 3 -> unused for now
-};
+#ifndef MIDI_DIN_PRIMARY_UART_PORT
+#ifdef TEST_MIDI_DIN_UART_PORT
+#define MIDI_DIN_PRIMARY_UART_PORT TEST_MIDI_DIN_UART_PORT
+#else
+#define MIDI_DIN_PRIMARY_UART_PORT 1
+#endif
+#endif
+
+static UART_HandleTypeDef* midi_uart_from_index(uint8_t idx)
+{
+  switch (idx) {
+    case 0: return &huart1;
+    case 1: return &huart2;
+    case 2: return &huart3;
+    case 3: return &huart5;
+    default: return NULL;
+  }
+}
+
+static UART_HandleTypeDef* s_midi_uarts[MIDI_DIN_PORTS];
 
 // ---- RX ring buffer ---------------------------------------------------------
 
@@ -85,6 +100,11 @@ static void start_rx_it(int port)
 
 HAL_StatusTypeDef hal_uart_midi_init(void)
 {
+  s_midi_uarts[0] = midi_uart_from_index(MIDI_DIN_PRIMARY_UART_PORT);
+  s_midi_uarts[1] = &huart3; // Port 1 -> DIN2 [MIOS32 UART1]
+  s_midi_uarts[2] = &huart5; // Port 2 -> DIN3 [MIOS32 UART3]
+  s_midi_uarts[3] = NULL;
+
   memset(s_rx, 0, sizeof(s_rx));
 
   for (int p = 0; p < MIDI_DIN_PORTS; ++p) {

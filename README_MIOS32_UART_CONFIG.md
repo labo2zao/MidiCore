@@ -282,26 +282,28 @@ MODULE_TEST_SRIO
 
 **Note SRIO:** Par défaut, le mapping SRIO utilise les pins compatibles MIOS32 (`MIOS_SPI1_RC2` pour `/PL`, `OLED_CS` pour `RCLK`). Si votre `main.h` définit des broches `SRIO_RC1/SRIO_RC2` différentes, ajoutez `SRIO_USE_EXPLICIT_PINS` pour les utiliser.
 `MODULE_TEST_SRIO` active automatiquement `SRIO_ENABLE` pendant la compilation.
+Si la lecture DIN est instable, réduisez la vitesse SPI avec `SRIO_SPI_PRESCALER` (défaut: 64).
 
 ### Test 3: MIDI DIN avec Debug Séparé
 
 ```bash
 # Configuration
-TEST_DEBUG_UART_PORT=2      # UART3 pour debug
-TEST_MIDI_DIN_UART_PORT=0   # UART1 pour MIDI
+TEST_DEBUG_UART_PORT=1      # UART2 pour debug
+TEST_MIDI_DIN_UART_PORT=2   # UART3 pour MIDI
 MODULE_TEST_MIDI_DIN=1
 
 # Connecter:
-# - Debug sur PB10/PB11 (UART3)
-# - MIDI sur PA9/PA10 (UART1)
-# Envoyer MIDI vers PA10 (RX)
-# Observer messages debug sur UART3
-# Observer MIDI OUT sur PA9 (TX)
+# - Debug sur PA2/PA3 (UART2)
+# - MIDI sur PB10/PB11 (UART3)
+# Envoyer MIDI vers RX de l'UART3
+# Observer messages debug sur UART2
+# Observer MIDI OUT sur TX de l'UART3
 ```
 
 **Sortie attendue / Expected Output:**
 - Le test `MODULE_TEST_MIDI_DIN` affiche l'activité par port (octets reçus, messages, sysex, derniers bytes) sur l'UART debug.
 - Si aucune activité n'apparaît, vérifier le port UART sélectionné et le câblage RX/TX MIDI.
+- Le driver MIDI DIN utilise `TEST_MIDI_DIN_UART_PORT` (si défini) pour sélectionner l'UART du port DIN1.
 
 ## Dépannage / Troubleshooting
 
