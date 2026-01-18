@@ -3,6 +3,7 @@
 // SRIO SPI wiring for MBHP_CORE_STM32F4-style pins.
 //
 // Enable by adding compiler symbol: SRIO_ENABLE
+// MODULE_TEST_SRIO automatically enables SRIO when running the module test.
 //
 // IMPORTANT: MIOS32 SPI numbering is different from STM32 SPI numbering!
 // SRIO uses MIOS32_SPI1 which maps to:
@@ -14,6 +15,10 @@
 
 #include "main.h"
 #include "stm32f4xx_hal.h"
+
+#if defined(MODULE_TEST_SRIO) && !defined(SRIO_ENABLE)
+#define SRIO_ENABLE 1
+#endif
 
 #ifdef SRIO_ENABLE
 
