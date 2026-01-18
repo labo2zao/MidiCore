@@ -120,6 +120,11 @@ make CFLAGS+="-DMODULE_TEST_SRIO"
 - Hexadecimal dump of DIN register values
 - Values change when buttons are pressed/released
 
+**Troubleshooting:**
+- If nothing changes, verify `/PL` and `RCLK` pin mapping in `main.h`.
+- By default, MIOS32-compatible pins are used (`MIOS_SPI1_RC2` and `OLED_CS`).
+- Define `SRIO_USE_EXPLICIT_PINS` to force `SRIO_RC2` (`/PL`) and `SRIO_RC1` (`RCLK`) instead.
+
 ### Example 3: Test MIDI Router
 
 ```bash
