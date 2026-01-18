@@ -419,17 +419,16 @@ void module_test_srio_run(void)
   dbg_print("\r\n");
   
   uint8_t din[SRIO_DIN_BYTES];
-  uint8_t din_prev[SRIO_DIN_BYTES];
   
-  // Initialize previous state
-  int init_result = srio_read_din(din_prev);
+  // Initialize first state
+  int init_result = srio_read_din(din);
   if (init_result != 0) {
     dbg_printf("ERROR: SRIO init read failed with code %d\r\n", init_result);
     dbg_print("Check SPI and GPIO configuration!\r\n");
   } else {
     dbg_print("Initial DIN state read: ");
     for (uint8_t i = 0; i < SRIO_DIN_BYTES; i++) {
-      dbg_printf("0x%02X ", din_prev[i]);
+      dbg_printf("0x%02X ", din[i]);
     }
     dbg_print("\r\n");
   }
@@ -448,33 +447,29 @@ void module_test_srio_run(void)
     
     scan_counter++;
     
-    // Check for button state changes
+    // Check for button state changes using MIOS32-style change flags.
     bool changed = false;
     for (uint8_t byte_idx = 0; byte_idx < SRIO_DIN_BYTES; byte_idx++) {
-      if (din[byte_idx] != din_prev[byte_idx]) {
-        changed = true;
-        uint8_t diff = din[byte_idx] ^ din_prev[byte_idx];
-        
-        // Check each bit in the byte
-        for (uint8_t bit = 0; bit < 8; bit++) {
-          if (diff & (1 << bit)) {
-            uint16_t button_num = (byte_idx * 8) + bit;
-            bool pressed = (din[byte_idx] & (1 << bit)) == 0; // Active low
-            
-            dbg_printf("[Scan #%lu] Button %3d: %s\r\n", 
-                       scan_counter, 
-                       button_num, 
-                       pressed ? "PRESSED " : "RELEASED");
-          }
+      uint8_t diff = srio_din_changed_get_and_clear(byte_idx, 0xFF);
+      if (!diff) continue;
+      changed = true;
+
+      uint8_t state = srio_din_get(byte_idx);
+      // Check each bit in the byte
+      for (uint8_t bit = 0; bit < 8; bit++) {
+        if (diff & (1 << bit)) {
+          uint16_t button_num = (byte_idx * 8) + bit;
+          bool pressed = (state & (1 << bit)) == 0; // Active low
+          
+          dbg_printf("[Scan #%lu] Button %3d: %s\r\n", 
+                     scan_counter, 
+                     button_num, 
+                     pressed ? "PRESSED " : "RELEASED");
         }
       }
     }
     
-    // Update previous state
     if (changed) {
-      for (uint8_t i = 0; i < SRIO_DIN_BYTES; i++) {
-        din_prev[i] = din[i];
-      }
       last_activity_ms = osKernelGetTickCount();
     }
     
@@ -484,7 +479,7 @@ void module_test_srio_run(void)
       dbg_printf("Waiting for button press... (scan count: %lu)\r\n", scan_counter);
       dbg_print("Current DIN state: ");
       for (uint8_t i = 0; i < SRIO_DIN_BYTES; i++) {
-        dbg_printf("0x%02X ", din[i]);
+        dbg_printf("0x%02X ", srio_din_get(i));
       }
       dbg_print("\r\n");
       last_debug_ms = now_ms;
