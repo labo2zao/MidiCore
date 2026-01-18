@@ -1,4 +1,5 @@
 #include "Services/srio/srio.h"
+#include "Services/srio/srio_user_config.h"
 
 // Include project HAL umbrella via main.h for portability (F4/F7/H7).
 #include "main.h"
