@@ -509,6 +509,9 @@ void module_test_srio_run(void)
   dbg_printf("Total buttons: %d (8 per byte)\r\n", SRIO_DIN_BYTES * 8);
   dbg_print("Monitoring button presses (press any button)...\r\n");
   dbg_printf("Button numbers: 0-%d\r\n", (SRIO_DIN_BYTES * 8) - 1);
+  dbg_print("\r\n");
+  dbg_print("TEST MODE: Will print ALL raw values (no change detection)\r\n");
+  dbg_print("Press a button and watch for hex values to change from 0xFF\r\n");
   dbg_print_separator();
   dbg_print("\r\n");
   
@@ -544,15 +547,15 @@ void module_test_srio_run(void)
     
     scan_counter++;
     
-    // Debug: Print raw values every 100 scans to see if they change
-    if ((scan_counter % 100) == 0) {
-      dbg_printf("[Debug Scan #%lu] Raw DIN: ", scan_counter);
+    // AGGRESSIVE DEBUG: Print raw values EVERY scan for first 20 scans, then every 10 scans
+    if (scan_counter <= 20 || (scan_counter % 10) == 0) {
+      dbg_printf("[Scan %lu] Raw: ", scan_counter);
       for (uint8_t i = 0; i < SRIO_DIN_BYTES; i++) {
-        dbg_printf("0x%02X ", din[i]);
+        dbg_printf("%02X ", din[i]);
       }
-      dbg_print("| Internal: ");
+      dbg_print("| Int: ");
       for (uint8_t i = 0; i < SRIO_DIN_BYTES; i++) {
-        dbg_printf("0x%02X ", srio_din_get(i));
+        dbg_printf("%02X ", srio_din_get(i));
       }
       dbg_print("\r\n");
     }
