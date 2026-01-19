@@ -129,7 +129,8 @@ make CFLAGS+="-DMODULE_TEST_SRIO"
 - By default, MIOS32-compatible pins are used (`MIOS_SPI1_RC2` and `OLED_CS`).
 - Define `SRIO_USE_EXPLICIT_PINS` to force `SRIO_RC2` (`/PL`) and `SRIO_RC1` (`RCLK`) instead.
 - `MODULE_TEST_SRIO` automatically enables `SRIO_ENABLE` for the build.
-- If the chain is unstable, reduce SRIO SPI speed with `SRIO_SPI_PRESCALER` (default: 64).
+- The SRIO test prints SPI CPOL/CPHA and prescaler alongside the pinout; SRIO defaults to MIOS32 mode (CPOL=LOW, CPHA=2EDGE) and prescaler 128 unless overridden.
+- If the chain is unstable, reduce SRIO SPI speed with `SRIO_SPI_PRESCALER` (default: 128).
 
 ### Example 3: Test MIDI Router
 
