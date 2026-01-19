@@ -110,7 +110,7 @@ int srio_read_din(uint8_t* out) {
 #else
   HAL_GPIO_WritePin(g.din_pl_port, g.din_pl_pin, GPIO_PIN_SET);
 #endif
-  // Increased delay for /PL pulse width - ensure 74HC165 has time to load
+  // Increased delay from 8 to 16 NOPs for /PL pulse width - ensure 74HC165 has time to load
   for (volatile uint8_t i = 0; i < 16; ++i) { __NOP(); }
 #if SRIO_DIN_PL_ACTIVE_LOW
   HAL_GPIO_WritePin(g.din_pl_port, g.din_pl_pin, GPIO_PIN_SET);
