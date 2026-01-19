@@ -23,6 +23,7 @@
 extern "C" {
 #endif
 
+#include "main.h"
 #include <stdint.h>
 #include <stdarg.h>
 
@@ -214,6 +215,29 @@ void dbg_print_config_info(void);
  * @brief Print a separator line
  */
 void dbg_print_separator(void);
+
+/**
+ * @brief Print SPI pinout with SCK/MISO/MOSI and RC1/RC2 pins.
+ * @param label Optional label for the pinout (can be NULL)
+ * @param hspi SPI handle for instance name
+ * @param sck_port SCK GPIO port (NULL if not available)
+ * @param sck_pin SCK GPIO pin (0 if not available)
+ * @param miso_port MISO GPIO port (NULL if not available)
+ * @param miso_pin MISO GPIO pin (0 if not available)
+ * @param mosi_port MOSI GPIO port (NULL if not available)
+ * @param mosi_pin MOSI GPIO pin (0 if not available)
+ * @param rc1_port RC1 GPIO port (NULL if not available)
+ * @param rc1_pin RC1 GPIO pin (0 if not available)
+ * @param rc2_port RC2 GPIO port (NULL if not available)
+ * @param rc2_pin RC2 GPIO pin (0 if not available)
+ */
+void gdb_ptin_SPI_Pinout(const char* label,
+                         SPI_HandleTypeDef* hspi,
+                         GPIO_TypeDef* sck_port, uint16_t sck_pin,
+                         GPIO_TypeDef* miso_port, uint16_t miso_pin,
+                         GPIO_TypeDef* mosi_port, uint16_t mosi_pin,
+                         GPIO_TypeDef* rc1_port, uint16_t rc1_pin,
+                         GPIO_TypeDef* rc2_port, uint16_t rc2_pin);
 
 #ifdef __cplusplus
 }
