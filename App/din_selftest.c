@@ -48,10 +48,6 @@ void din_selftest_run(void)
     .dout_bytes = SRIO_DOUT_BYTES,
   };
   srio_init(&scfg);
-#else
-  uart_puts("[DIN] ERROR: SRIO_ENABLE not defined at compile time.\r\n");
-  for(;;) osDelay(1000);
-#endif
 
   uint8_t din[SRIO_DIN_BYTES];
 
@@ -69,4 +65,8 @@ void din_selftest_run(void)
     }
     osDelay(50);
   }
+#else
+  uart_puts("[DIN] ERROR: SRIO_ENABLE not defined at compile time.\r\n");
+  for(;;) osDelay(1000);
+#endif
 }

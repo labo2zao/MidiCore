@@ -13,6 +13,8 @@
 
 #pragma once
 
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -24,6 +26,11 @@ extern "C" {
 /** @brief Enable AINSER64 analog input module (MCP3208 + 74HC4051) */
 #ifndef MODULE_ENABLE_AINSER64
 #define MODULE_ENABLE_AINSER64 1
+#endif
+
+/** @brief AINSER64 LED mode: 0=simple toggle (low memory), 1=PWM breathing (MIOS32-style) */
+#ifndef AINSER64_LED_MODE_PWM
+#define AINSER64_LED_MODE_PWM 1
 #endif
 
 /** @brief Enable SRIO module (74HC165/595 shift register I/O) */

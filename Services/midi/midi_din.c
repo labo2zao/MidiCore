@@ -62,7 +62,6 @@ static void dispatch_short_msg(uint8_t port, const uint8_t* bytes, uint8_t len)
   if (!bytes || len == 0) return;
 
   router_msg_t msg;
-  msg.src = (router_node_t)(ROUTER_NODE_DIN_IN1 + port);
 
   if (len == 1) {
     msg.type = ROUTER_MSG_1B;
@@ -94,7 +93,6 @@ static void dispatch_sysex_chunk(uint8_t port, const uint8_t* data, uint16_t len
     return;
 
   router_msg_t msg;
-  msg.src = (router_node_t)(ROUTER_NODE_DIN_IN1 + port);
   msg.type = ROUTER_MSG_SYSEX;
   msg.data = data;
   msg.len = len;

@@ -7,9 +7,11 @@ static osMutexId_t g_spi1_mutex;
 static osMutexId_t g_spi2_mutex;
 static osMutexId_t g_spi3_mutex;
 
-// Safe defaults (tune later)
+// Safe defaults (tuned to match MIOS32)
+// AINSER: MIOS32 uses prescaler 64 @ 120 MHz = 1.875 MHz (max 2 MHz per MCP3208 datasheet)
+// For STM32F407 @ 168 MHz: prescaler 64 gives 168/64 = 2.625 MHz (still within MCP3208 spec)
 static uint32_t presc_sd   = SPI_BAUDRATEPRESCALER_4;
-static uint32_t presc_ain  = SPI_BAUDRATEPRESCALER_8;
+static uint32_t presc_ain  = SPI_BAUDRATEPRESCALER_64;
 static uint32_t presc_oled = SPI_BAUDRATEPRESCALER_8;
 
 static void cs_high(spibus_dev_t dev) {
