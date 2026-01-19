@@ -32,9 +32,19 @@ void srio_init(const srio_config_t* cfg);
 int  srio_read_din(uint8_t* out);
 int  srio_write_dout(const uint8_t* in);
 void srio_set_dout_enable(uint8_t enable);
+int  srio_scan(void);
 
 uint16_t srio_din_bytes(void);
 uint16_t srio_dout_bytes(void);
+
+// MIOS32-inspired helpers for DIN state/changes.
+uint8_t srio_din_get(uint16_t sr);
+uint8_t srio_din_changed_get_and_clear(uint16_t sr, uint8_t mask);
+
+// Debounce handling (milliseconds; 0 disables debouncing).
+uint16_t srio_debounce_get(void);
+void srio_debounce_set(uint16_t debounce_ms);
+void srio_debounce_start(void);
 
 #ifdef __cplusplus
 }
