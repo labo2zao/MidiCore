@@ -31,6 +31,17 @@ static void srio_set_spi_prescaler(SPI_HandleTypeDef* hspi, uint32_t prescaler)
   if (!hspi) return;
   __HAL_SPI_DISABLE(hspi);
   MODIFY_REG(hspi->Instance->CR1, SPI_CR1_BR, prescaler);
+  hspi->Init.BaudRatePrescaler = prescaler;
+  __HAL_SPI_ENABLE(hspi);
+}
+
+static void srio_set_spi_mode(SPI_HandleTypeDef* hspi, uint32_t cpol, uint32_t cpha)
+{
+  if (!hspi) return;
+  __HAL_SPI_DISABLE(hspi);
+  MODIFY_REG(hspi->Instance->CR1, SPI_CR1_CPOL | SPI_CR1_CPHA, cpol | cpha);
+  hspi->Init.CLKPolarity = cpol;
+  hspi->Init.CLKPhase = cpha;
   __HAL_SPI_ENABLE(hspi);
 }
 
