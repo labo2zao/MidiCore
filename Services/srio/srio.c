@@ -1,5 +1,6 @@
 #include "Services/srio/srio.h"
 #include "Services/srio/srio_user_config.h"
+#include "Config/module_config.h"
 
 // Include project HAL umbrella via main.h for portability (F4/F7/H7).
 #include "main.h"
@@ -29,11 +30,29 @@ static void srio_set_spi_prescaler(SPI_HandleTypeDef* hspi, uint32_t prescaler)
   __HAL_SPI_ENABLE(hspi);
 }
 
+static void srio_set_spi_mode(SPI_HandleTypeDef* hspi, uint32_t cpol, uint32_t cpha)
+{
+  if (!hspi) return;
+  __HAL_SPI_DISABLE(hspi);
+  MODIFY_REG(hspi->Instance->CR1, SPI_CR1_CPOL | SPI_CR1_CPHA, cpol | cpha);
+  __HAL_SPI_ENABLE(hspi);
+}
+
 void srio_init(const srio_config_t* cfg) {
   if (cfg) g = *cfg;
   g_inited = (g.hspi && g.din_pl_port && g.din_bytes) ? 1u : 0u;
 
+#if SRIO_APPLY_SPI_CONFIG
+#if MODULE_ENABLE_AINSER64
+  if (g.hspi != &hspi3) {
+    srio_set_spi_mode(g.hspi, SRIO_SPI_CPOL, SRIO_SPI_CPHA);
+    srio_set_spi_prescaler(g.hspi, SRIO_SPI_PRESCALER);
+  }
+#else
+  srio_set_spi_mode(g.hspi, SRIO_SPI_CPOL, SRIO_SPI_CPHA);
   srio_set_spi_prescaler(g.hspi, SRIO_SPI_PRESCALER);
+#endif
+#endif
 
   // Ensure sane idle levels (MIOS32-style expects DIN /PL idle high)
   if (g.din_pl_port) HAL_GPIO_WritePin(g.din_pl_port, g.din_pl_pin, GPIO_PIN_SET);
