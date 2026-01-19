@@ -27,12 +27,26 @@ extern SPI_HandleTypeDef hspi2;
 #define SRIO_SPI_HANDLE (&hspi2)
 
 #ifndef SRIO_SPI_PRESCALER
-#define SRIO_SPI_PRESCALER SPI_BAUDRATEPRESCALER_64
+// Match MIOS32 default: CLK1_PHASE1 with prescaler 128.
+#define SRIO_SPI_PRESCALER SPI_BAUDRATEPRESCALER_128
+#endif
+
+#ifndef SRIO_APPLY_SPI_CONFIG
+// Set to 0 if you must avoid changing SPI settings at runtime.
+#define SRIO_APPLY_SPI_CONFIG 1
+#endif
+
+#ifndef SRIO_SPI_CPOL
+#define SRIO_SPI_CPOL SPI_POLARITY_HIGH
+#endif
+
+#ifndef SRIO_SPI_CPHA
+#define SRIO_SPI_CPHA SPI_PHASE_2EDGE
 #endif
 
 // 74HC165 /PL uses RC2.
-// Default to MIOS32-compatible pins; opt into explicit SRIO_RC pins via SRIO_USE_EXPLICIT_PINS.
-#if defined(SRIO_USE_EXPLICIT_PINS) && defined(SRIO_RC2_GPIO_Port) && defined(SRIO_RC2_Pin)
+// Prefer explicit SRIO_RC pins when available, otherwise fall back to MIOS32-compatible pins.
+#if defined(SRIO_RC2_GPIO_Port) && defined(SRIO_RC2_Pin)
 #define SRIO_DIN_PL_PORT SRIO_RC2_GPIO_Port
 #define SRIO_DIN_PL_PIN  SRIO_RC2_Pin
 #else
@@ -41,8 +55,8 @@ extern SPI_HandleTypeDef hspi2;
 #endif
 
 // 74HC595 RCLK uses RC1.
-// Default to MIOS32-compatible pins; opt into explicit SRIO_RC pins via SRIO_USE_EXPLICIT_PINS.
-#if defined(SRIO_USE_EXPLICIT_PINS) && defined(SRIO_RC1_GPIO_Port) && defined(SRIO_RC1_Pin)
+// Prefer explicit SRIO_RC pins when available, otherwise fall back to MIOS32-compatible pins.
+#if defined(SRIO_RC1_GPIO_Port) && defined(SRIO_RC1_Pin)
 #define SRIO_DOUT_RCLK_PORT SRIO_RC1_GPIO_Port
 #define SRIO_DOUT_RCLK_PIN  SRIO_RC1_Pin
 #else
