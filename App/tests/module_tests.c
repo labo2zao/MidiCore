@@ -410,6 +410,31 @@ void module_test_srio_run(void)
   dbg_print(" OK\r\n");
   
   dbg_print_separator();
+  GPIO_TypeDef* sck_port = NULL;
+  uint16_t sck_pin = 0;
+  GPIO_TypeDef* miso_port = NULL;
+  uint16_t miso_pin = 0;
+  GPIO_TypeDef* mosi_port = NULL;
+  uint16_t mosi_pin = 0;
+#ifdef MIOS_SPI1_SCK_GPIO_Port
+  sck_port = MIOS_SPI1_SCK_GPIO_Port;
+  sck_pin = MIOS_SPI1_SCK_Pin;
+#endif
+#ifdef MIOS_SPI1_MISO_GPIO_Port
+  miso_port = MIOS_SPI1_MISO_GPIO_Port;
+  miso_pin = MIOS_SPI1_MISO_Pin;
+#endif
+#ifdef MIOS_SPI1_S0_GPIO_Port
+  mosi_port = MIOS_SPI1_S0_GPIO_Port;
+  mosi_pin = MIOS_SPI1_S0_Pin;
+#endif
+  gdb_ptin_SPI_Pinout("SRIO", SRIO_SPI_HANDLE,
+                      sck_port, sck_pin,
+                      miso_port, miso_pin,
+                      mosi_port, mosi_pin,
+                      SRIO_DOUT_RCLK_PORT, SRIO_DOUT_RCLK_PIN,
+                      SRIO_DIN_PL_PORT, SRIO_DIN_PL_PIN);
+  dbg_print_separator();
   dbg_printf("Configuration: %d DIN bytes, %d DOUT bytes\r\n", 
              SRIO_DIN_BYTES, SRIO_DOUT_BYTES);
   dbg_printf("Total buttons: %d (8 per byte)\r\n", SRIO_DIN_BYTES * 8);
