@@ -220,3 +220,159 @@ void dbg_print_config_info(void)
   dbg_println();
   dbg_print_separator();
 }
+
+static const char* gpio_port_name(GPIO_TypeDef* port)
+{
+  if (port == GPIOA) return "GPIOA";
+  if (port == GPIOB) return "GPIOB";
+  if (port == GPIOC) return "GPIOC";
+  if (port == GPIOD) return "GPIOD";
+  if (port == GPIOE) return "GPIOE";
+  if (port == GPIOF) return "GPIOF";
+  if (port == GPIOG) return "GPIOG";
+  if (port == GPIOH) return "GPIOH";
+  if (port == GPIOI) return "GPIOI";
+  return "GPIO?";
+}
+
+static int gpio_pin_index(uint16_t pin)
+{
+  for (int i = 0; i < 16; i++) {
+    if (pin & (1u << i)) {
+      return i;
+    }
+  }
+  return -1;
+}
+
+static const char* spi_cpol_name(SPI_HandleTypeDef* hspi);
+static const char* spi_cpha_name(SPI_HandleTypeDef* hspi);
+static const char* spi_prescaler_name(SPI_HandleTypeDef* hspi);
+
+static void dbg_print_gpio_pin(const char* label,
+                               GPIO_TypeDef* port,
+                               uint16_t pin,
+                               SPI_HandleTypeDef* hspi)
+{
+  dbg_print("  ");
+  dbg_print(label);
+  dbg_print(": ");
+
+  if (!port || !pin) {
+    dbg_print("n/a");
+  } else {
+    dbg_print(gpio_port_name(port));
+
+    int index = gpio_pin_index(pin);
+    if (index >= 0) {
+      dbg_print_uint((uint32_t)index);
+    } else {
+      dbg_print("0x");
+      dbg_print_hex16(pin);
+    }
+  }
+  if (hspi) {
+    dbg_print(" (CPOL=");
+    dbg_print(spi_cpol_name(hspi));
+    dbg_print(", CPHA=");
+    dbg_print(spi_cpha_name(hspi));
+    dbg_print(", Prescaler=");
+    dbg_print(spi_prescaler_name(hspi));
+    dbg_print(")");
+  }
+  dbg_print("\r\n");
+}
+
+static const char* spi_instance_name(SPI_HandleTypeDef* hspi)
+{
+  if (!hspi || !hspi->Instance) {
+    return "UNKNOWN";
+  }
+  if (hspi->Instance == SPI1) return "SPI1";
+  if (hspi->Instance == SPI2) return "SPI2";
+  if (hspi->Instance == SPI3) return "SPI3";
+  return "SPI?";
+}
+
+static const char* spi_cpol_name(SPI_HandleTypeDef* hspi)
+{
+  if (!hspi) {
+    return "n/a";
+  }
+  switch (hspi->Init.CLKPolarity) {
+    case SPI_POLARITY_LOW:
+      return "LOW";
+    case SPI_POLARITY_HIGH:
+      return "HIGH";
+    default:
+      return "UNKNOWN";
+  }
+}
+
+static const char* spi_cpha_name(SPI_HandleTypeDef* hspi)
+{
+  if (!hspi) {
+    return "n/a";
+  }
+  switch (hspi->Init.CLKPhase) {
+    case SPI_PHASE_1EDGE:
+      return "1EDGE";
+    case SPI_PHASE_2EDGE:
+      return "2EDGE";
+    default:
+      return "UNKNOWN";
+  }
+}
+
+static const char* spi_prescaler_name(SPI_HandleTypeDef* hspi)
+{
+  if (!hspi) {
+    return "n/a";
+  }
+  switch (hspi->Init.BaudRatePrescaler) {
+    case SPI_BAUDRATEPRESCALER_2:
+      return "2";
+    case SPI_BAUDRATEPRESCALER_4:
+      return "4";
+    case SPI_BAUDRATEPRESCALER_8:
+      return "8";
+    case SPI_BAUDRATEPRESCALER_16:
+      return "16";
+    case SPI_BAUDRATEPRESCALER_32:
+      return "32";
+    case SPI_BAUDRATEPRESCALER_64:
+      return "64";
+    case SPI_BAUDRATEPRESCALER_128:
+      return "128";
+    case SPI_BAUDRATEPRESCALER_256:
+      return "256";
+    default:
+      return "UNKNOWN";
+  }
+}
+
+void gdb_ptin_SPI_Pinout(const char* label,
+                         SPI_HandleTypeDef* hspi,
+                         GPIO_TypeDef* sck_port, uint16_t sck_pin,
+                         GPIO_TypeDef* miso_port, uint16_t miso_pin,
+                         GPIO_TypeDef* mosi_port, uint16_t mosi_pin,
+                         GPIO_TypeDef* rc1_port, uint16_t rc1_pin,
+                         GPIO_TypeDef* rc2_port, uint16_t rc2_pin)
+{
+  dbg_print("SPI Pinout");
+  if (label && label[0] != '\0') {
+    dbg_print(" (");
+    dbg_print(label);
+    dbg_print(")");
+  }
+  dbg_print(":\r\n");
+  dbg_printf("  SPI Instance: %s\r\n", spi_instance_name(hspi));
+  dbg_printf("  SPI CPOL: %s\r\n", spi_cpol_name(hspi));
+  dbg_printf("  SPI CPHA: %s\r\n", spi_cpha_name(hspi));
+  dbg_printf("  SPI Prescaler: %s\r\n", spi_prescaler_name(hspi));
+  dbg_print_gpio_pin("SPI SCK", sck_port, sck_pin, hspi);
+  dbg_print_gpio_pin("SPI MISO", miso_port, miso_pin, hspi);
+  dbg_print_gpio_pin("SPI MOSI", mosi_port, mosi_pin, hspi);
+  dbg_print_gpio_pin("SPI RC1", rc1_port, rc1_pin, hspi);
+  dbg_print_gpio_pin("SPI RC2", rc2_port, rc2_pin, hspi);
+}
