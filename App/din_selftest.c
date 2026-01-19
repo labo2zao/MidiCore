@@ -31,7 +31,8 @@ void din_selftest_run(void)
   hal_uart_midi_init();
 
   uart_puts("\r\n[DIN] selftest start\r\n");
-  uart_puts("SRIO: SPI2 PB13/PB14/PB15, RC1=PB12 (OLED_CS), RC2=PD10 (MIOS_SPI1_RC2)\r\n");
+  uart_puts("SRIO: SPI2 PB13/PB14/PB15, RC1=PA15, RC2=PE1\r\n");
+  uart_puts("Tip: if you use MIOS32-style single RC line, set SRIO_RC2 to same pin as RC1.\r\n");
 
 #ifdef SRIO_ENABLE
   srio_config_t scfg = {
