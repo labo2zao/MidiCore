@@ -418,17 +418,15 @@ void module_test_srio_run(void)
   dbg_print_separator();
   dbg_print("\r\n");
   
-  uint8_t din[SRIO_DIN_BYTES];
-  
   // Initialize first state
-  int init_result = srio_read_din(din);
+  int init_result = srio_scan();
   if (init_result != 0) {
     dbg_printf("ERROR: SRIO init read failed with code %d\r\n", init_result);
     dbg_print("Check SPI and GPIO configuration!\r\n");
   } else {
     dbg_print("Initial DIN state read: ");
     for (uint8_t i = 0; i < SRIO_DIN_BYTES; i++) {
-      dbg_printf("0x%02X ", din[i]);
+      dbg_printf("0x%02X ", srio_din_get(i));
     }
     dbg_print("\r\n");
   }
@@ -438,7 +436,7 @@ void module_test_srio_run(void)
   uint32_t last_debug_ms = osKernelGetTickCount();
   
   for (;;) {
-    int result = srio_read_din(din);
+    int result = srio_scan();
     if (result != 0) {
       dbg_printf("ERROR: SRIO read failed with code %d\r\n", result);
       osDelay(1000);
