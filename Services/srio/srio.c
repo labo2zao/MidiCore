@@ -17,6 +17,10 @@ static uint8_t* g_din = NULL;
 static uint8_t* g_din_buffer = NULL;
 static uint8_t* g_din_changed = NULL;
 
+#if MODULE_ENABLE_AINSER64
+extern SPI_HandleTypeDef hspi3;
+#endif
+
 static inline void gpio_write(GPIO_TypeDef* port, uint16_t pin, GPIO_PinState st) {
   if (!port) return;
   HAL_GPIO_WritePin(port, pin, st);
