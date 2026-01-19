@@ -45,14 +45,6 @@ static void srio_set_spi_mode(SPI_HandleTypeDef* hspi, uint32_t cpol, uint32_t c
   __HAL_SPI_ENABLE(hspi);
 }
 
-static void srio_set_spi_mode(SPI_HandleTypeDef* hspi, uint32_t cpol, uint32_t cpha)
-{
-  if (!hspi) return;
-  __HAL_SPI_DISABLE(hspi);
-  MODIFY_REG(hspi->Instance->CR1, SPI_CR1_CPOL | SPI_CR1_CPHA, cpol | cpha);
-  __HAL_SPI_ENABLE(hspi);
-}
-
 void srio_init(const srio_config_t* cfg) {
   if (cfg) g = *cfg;
   g_inited = (g.hspi && g.din_pl_port && g.din_bytes) ? 1u : 0u;
@@ -70,7 +62,13 @@ void srio_init(const srio_config_t* cfg) {
 #endif
 
   // Ensure sane idle levels (MIOS32-style expects DIN /PL idle high)
-  if (g.din_pl_port) HAL_GPIO_WritePin(g.din_pl_port, g.din_pl_pin, GPIO_PIN_SET);
+  if (g.din_pl_port) {
+#if SRIO_DIN_PL_ACTIVE_LOW
+    HAL_GPIO_WritePin(g.din_pl_port, g.din_pl_pin, GPIO_PIN_SET);
+#else
+    HAL_GPIO_WritePin(g.din_pl_port, g.din_pl_pin, GPIO_PIN_RESET);
+#endif
+  }
   if (g.dout_rclk_port) HAL_GPIO_WritePin(g.dout_rclk_port, g.dout_rclk_pin, GPIO_PIN_RESET);
   srio_set_dout_enable(1);
 
@@ -107,9 +105,17 @@ int srio_read_din(uint8_t* out) {
   if (!g_inited || !out) return -1;
 
   // Latch DIN parallel inputs into 165 shift regs: /PL low pulse (idle high).
+#if SRIO_DIN_PL_ACTIVE_LOW
   HAL_GPIO_WritePin(g.din_pl_port, g.din_pl_pin, GPIO_PIN_RESET);
-  for (volatile uint8_t i = 0; i < 8; ++i) { __NOP(); }
+#else
   HAL_GPIO_WritePin(g.din_pl_port, g.din_pl_pin, GPIO_PIN_SET);
+#endif
+  for (volatile uint8_t i = 0; i < 8; ++i) { __NOP(); }
+#if SRIO_DIN_PL_ACTIVE_LOW
+  HAL_GPIO_WritePin(g.din_pl_port, g.din_pl_pin, GPIO_PIN_SET);
+#else
+  HAL_GPIO_WritePin(g.din_pl_port, g.din_pl_pin, GPIO_PIN_RESET);
+#endif
 
   // Optimize: no need to clear buffer, will be overwritten
   // Clock out data via SPI with dummy bytes.

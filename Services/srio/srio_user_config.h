@@ -45,6 +45,11 @@ extern SPI_HandleTypeDef hspi2;
 #define SRIO_SPI_CPHA SPI_PHASE_2EDGE
 #endif
 
+// 74HC165 /PL is active-low in MIOS32 wiring. Set to 0 if your board inverts RC2.
+#ifndef SRIO_DIN_PL_ACTIVE_LOW
+#define SRIO_DIN_PL_ACTIVE_LOW 1
+#endif
+
 // 74HC165 /PL uses RC2 and 74HC595 RCLK uses RC1.
 // Default to MIOS32-compatible pins; opt into explicit SRIO_RC pins via SRIO_USE_EXPLICIT_PINS.
 #if defined(SRIO_USE_EXPLICIT_PINS) && defined(SRIO_RC1_GPIO_Port) && defined(SRIO_RC1_Pin) \

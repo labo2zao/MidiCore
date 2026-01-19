@@ -654,6 +654,43 @@ void module_test_midi_din_run(void)
             dbg_print_bytes(cur_stats[port].last_bytes,
                             cur_stats[port].last_len,
                             ' ');
+            uint8_t status = cur_stats[port].last_bytes[0];
+            if (status >= 0x80) {
+              const char* label = "UNKNOWN";
+              uint8_t channel = (uint8_t)((status & 0x0F) + 1);
+              switch (status & 0xF0) {
+                case 0x80: label = "NOTE_OFF"; break;
+                case 0x90: label = "NOTE_ON"; break;
+                case 0xA0: label = "POLY_AFTERTOUCH"; break;
+                case 0xB0: label = "CONTROL_CHANGE"; break;
+                case 0xC0: label = "PROGRAM_CHANGE"; break;
+                case 0xD0: label = "CHANNEL_AFTERTOUCH"; break;
+                case 0xE0: label = "PITCH_BEND"; break;
+                case 0xF0:
+                  switch (status) {
+                    case 0xF0: label = "SYSEX_START"; break;
+                    case 0xF1: label = "MTC_QUARTER_FRAME"; break;
+                    case 0xF2: label = "SONG_POSITION"; break;
+                    case 0xF3: label = "SONG_SELECT"; break;
+                    case 0xF6: label = "TUNE_REQUEST"; break;
+                    case 0xF8: label = "CLOCK"; break;
+                    case 0xFA: label = "START"; break;
+                    case 0xFB: label = "CONTINUE"; break;
+                    case 0xFC: label = "STOP"; break;
+                    case 0xFE: label = "ACTIVE_SENSE"; break;
+                    case 0xFF: label = "RESET"; break;
+                    default: label = "SYSTEM"; break;
+                  }
+                  break;
+                default:
+                  label = "UNKNOWN";
+                  break;
+              }
+              dbg_printf(" msg=%s", label);
+              if (status < 0xF0) {
+                dbg_printf(" ch=%u", channel);
+              }
+            }
           }
           dbg_print("\r\n");
 
