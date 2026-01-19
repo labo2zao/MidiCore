@@ -45,6 +45,14 @@ static void srio_set_spi_mode(SPI_HandleTypeDef* hspi, uint32_t cpol, uint32_t c
   __HAL_SPI_ENABLE(hspi);
 }
 
+static void srio_set_spi_mode(SPI_HandleTypeDef* hspi, uint32_t cpol, uint32_t cpha)
+{
+  if (!hspi) return;
+  __HAL_SPI_DISABLE(hspi);
+  MODIFY_REG(hspi->Instance->CR1, SPI_CR1_CPOL | SPI_CR1_CPHA, cpol | cpha);
+  __HAL_SPI_ENABLE(hspi);
+}
+
 void srio_init(const srio_config_t* cfg) {
   if (cfg) g = *cfg;
   g_inited = (g.hspi && g.din_pl_port && g.din_bytes) ? 1u : 0u;
