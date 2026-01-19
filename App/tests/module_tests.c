@@ -21,6 +21,75 @@
 #if MODULE_ENABLE_SRIO
 #include "Services/srio/srio.h"
 #include "Services/srio/srio_user_config.h"
+
+static const char* gpio_port_name(GPIO_TypeDef* port)
+{
+  if (port == GPIOA) return "GPIOA";
+  if (port == GPIOB) return "GPIOB";
+  if (port == GPIOC) return "GPIOC";
+  if (port == GPIOD) return "GPIOD";
+  if (port == GPIOE) return "GPIOE";
+  if (port == GPIOF) return "GPIOF";
+  if (port == GPIOG) return "GPIOG";
+  if (port == GPIOH) return "GPIOH";
+  if (port == GPIOI) return "GPIOI";
+  return "GPIO?";
+}
+
+static int gpio_pin_index(uint16_t pin)
+{
+  for (int i = 0; i < 16; i++) {
+    if (pin & (1u << i)) {
+      return i;
+    }
+  }
+  return -1;
+}
+
+static void dbg_print_gpio_pin(const char* label, GPIO_TypeDef* port, uint16_t pin)
+{
+  dbg_print("  ");
+  dbg_print(label);
+  dbg_print(": ");
+  dbg_print(gpio_port_name(port));
+
+  int index = gpio_pin_index(pin);
+  if (index >= 0) {
+    dbg_print_uint((uint32_t)index);
+  } else {
+    dbg_print("0x");
+    dbg_print_hex16(pin);
+  }
+  dbg_print("\r\n");
+}
+
+static const char* spi_instance_name(SPI_HandleTypeDef* hspi)
+{
+  if (!hspi || !hspi->Instance) {
+    return "UNKNOWN";
+  }
+  if (hspi->Instance == SPI1) return "SPI1";
+  if (hspi->Instance == SPI2) return "SPI2";
+  if (hspi->Instance == SPI3) return "SPI3";
+  return "SPI?";
+}
+
+static void dbg_print_srio_pinout(void)
+{
+  dbg_print("SRIO Pinout:\r\n");
+  dbg_printf("  SPI Instance: %s\r\n", spi_instance_name(SRIO_SPI_HANDLE));
+#ifdef MIOS_SPI1_SCK_GPIO_Port
+  dbg_print_gpio_pin("SPI SCK", MIOS_SPI1_SCK_GPIO_Port, MIOS_SPI1_SCK_Pin);
+#endif
+#ifdef MIOS_SPI1_MISO_GPIO_Port
+  dbg_print_gpio_pin("SPI MISO", MIOS_SPI1_MISO_GPIO_Port, MIOS_SPI1_MISO_Pin);
+#endif
+#ifdef MIOS_SPI1_S0_GPIO_Port
+  dbg_print_gpio_pin("SPI MOSI", MIOS_SPI1_S0_GPIO_Port, MIOS_SPI1_S0_Pin);
+#endif
+  dbg_print_gpio_pin("DIN /PL (RC2)", SRIO_DIN_PL_PORT, SRIO_DIN_PL_PIN);
+  dbg_print_gpio_pin("DOUT RCLK (RC1)", SRIO_DOUT_RCLK_PORT, SRIO_DOUT_RCLK_PIN);
+}
 #endif
 
 #if MODULE_ENABLE_MIDI_DIN
