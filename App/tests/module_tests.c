@@ -544,6 +544,19 @@ void module_test_srio_run(void)
     
     scan_counter++;
     
+    // Debug: Print raw values every 100 scans to see if they change
+    if ((scan_counter % 100) == 0) {
+      dbg_printf("[Debug Scan #%lu] Raw DIN: ", scan_counter);
+      for (uint8_t i = 0; i < SRIO_DIN_BYTES; i++) {
+        dbg_printf("0x%02X ", din[i]);
+      }
+      dbg_print("| Internal: ");
+      for (uint8_t i = 0; i < SRIO_DIN_BYTES; i++) {
+        dbg_printf("0x%02X ", srio_din_get(i));
+      }
+      dbg_print("\r\n");
+    }
+    
     // Check for button state changes using MIOS32-style change flags.
     bool changed = false;
     for (uint8_t byte_idx = 0; byte_idx < SRIO_DIN_BYTES; byte_idx++) {
