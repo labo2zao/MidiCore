@@ -15,7 +15,6 @@ static uint16_t g_debounce_ctr = 0;
 static uint8_t* g_din = NULL;
 static uint8_t* g_din_buffer = NULL;
 static uint8_t* g_din_changed = NULL;
-static uint8_t* g_dummy = NULL;
 
 static inline void gpio_write(GPIO_TypeDef* port, uint16_t pin, GPIO_PinState st) {
   if (!port) return;
@@ -37,11 +36,8 @@ void srio_init(const srio_config_t* cfg) {
   srio_set_spi_prescaler(g.hspi, SRIO_SPI_PRESCALER);
 
   // Ensure sane idle levels (MIOS32-style expects DIN /PL idle high)
-  const bool shared_rc = (g.din_pl_port == g.dout_rclk_port) && (g.din_pl_pin == g.dout_rclk_pin);
   if (g.din_pl_port) HAL_GPIO_WritePin(g.din_pl_port, g.din_pl_pin, GPIO_PIN_SET);
-  if (g.dout_rclk_port && !shared_rc) {
-    HAL_GPIO_WritePin(g.dout_rclk_port, g.dout_rclk_pin, GPIO_PIN_RESET);
-  }
+  if (g.dout_rclk_port) HAL_GPIO_WritePin(g.dout_rclk_port, g.dout_rclk_pin, GPIO_PIN_RESET);
   srio_set_dout_enable(1);
 
   g_num_sr = (uint8_t)g.din_bytes;
@@ -51,16 +47,13 @@ void srio_init(const srio_config_t* cfg) {
   static uint8_t din[SRIO_DIN_BYTES];
   static uint8_t din_buffer[SRIO_DIN_BYTES];
   static uint8_t din_changed[SRIO_DIN_BYTES];
-  static uint8_t dummy[SRIO_DIN_BYTES];
   g_din = din;
   g_din_buffer = din_buffer;
   g_din_changed = din_changed;
-  g_dummy = dummy;
   for (uint8_t i = 0; i < g_num_sr; ++i) {
     g_din[i] = 0xFFu;
     g_din_buffer[i] = 0xFFu;
     g_din_changed[i] = 0u;
-    g_dummy[i] = 0x00u;
   }
 }
 
@@ -79,14 +72,41 @@ void srio_set_dout_enable(uint8_t enable) {
 int srio_read_din(uint8_t* out) {
   if (!g_inited || !out) return -1;
 
-  int result = srio_scan();
-  if (result != 0) return result;
+  // Latch DIN parallel inputs into 165 shift regs: /PL low pulse (idle high).
+  HAL_GPIO_WritePin(g.din_pl_port, g.din_pl_pin, GPIO_PIN_RESET);
+  for (volatile uint8_t i = 0; i < 8; ++i) { __NOP(); }
+  HAL_GPIO_WritePin(g.din_pl_port, g.din_pl_pin, GPIO_PIN_SET);
 
-  if (g_din_buffer) {
+  // Optimize: no need to clear buffer, will be overwritten
+  // Clock out data via SPI with dummy bytes.
+  uint8_t dummy = 0x00;
+  for (uint16_t i = 0; i < g.din_bytes; i++) {
+    if (HAL_SPI_TransmitReceive(g.hspi, &dummy, &out[i], 1, 10) != HAL_OK) return -2;
+  }
+
+  if (g_din && g_din_buffer && g_din_changed) {
     for (uint8_t i = 0; i < g_num_sr; ++i) {
-      out[i] = g_din_buffer[i];
+      g_din_buffer[i] = out[i];
+    }
+
+    if (g_debounce_time && g_debounce_ctr) {
+      --g_debounce_ctr;
+      for (uint8_t i = 0; i < g_num_sr; ++i) {
+        g_din[i] ^= g_din_changed[i];
+        g_din_changed[i] = 0u;
+      }
+    } else {
+      for (uint8_t i = 0; i < g_num_sr; ++i) {
+        uint8_t change_mask = g_din[i] ^ g_din_buffer[i];
+        g_din_changed[i] |= change_mask;
+        g_din[i] = g_din_buffer[i];
+        if (change_mask && g_debounce_time) {
+          g_debounce_ctr = g_debounce_time;
+        }
+      }
     }
   }
+
   return 0;
 }
 
@@ -97,52 +117,10 @@ int srio_write_dout(const uint8_t* in) {
   // Shift out to 595 chain.
   if (HAL_SPI_Transmit(g.hspi, (uint8_t*)in, g.dout_bytes, 10) != HAL_OK) return -2;
 
-  const bool shared_rc = (g.din_pl_port == g.dout_rclk_port) && (g.din_pl_pin == g.dout_rclk_pin);
-  if (shared_rc) {
-    // Latch without leaving /PL low on shared RC lines.
-    HAL_GPIO_WritePin(g.dout_rclk_port, g.dout_rclk_pin, GPIO_PIN_RESET);
-    __NOP(); __NOP(); __NOP();
-    HAL_GPIO_WritePin(g.dout_rclk_port, g.dout_rclk_pin, GPIO_PIN_SET);
-  } else {
-    // Latch: RCLK rising edge (idle low).
-    HAL_GPIO_WritePin(g.dout_rclk_port, g.dout_rclk_pin, GPIO_PIN_SET);
-    __NOP(); __NOP(); __NOP();
-    HAL_GPIO_WritePin(g.dout_rclk_port, g.dout_rclk_pin, GPIO_PIN_RESET);
-  }
-
-  return 0;
-}
-
-int srio_scan(void)
-{
-  if (!g_inited || !g_din_buffer || !g_dummy) return -1;
-
-  // Latch DIN parallel inputs into 165 shift regs: /PL low pulse (idle high).
-  HAL_GPIO_WritePin(g.din_pl_port, g.din_pl_pin, GPIO_PIN_RESET);
-  for (volatile uint8_t i = 0; i < 8; ++i) { __NOP(); }
-  HAL_GPIO_WritePin(g.din_pl_port, g.din_pl_pin, GPIO_PIN_SET);
-
-  if (HAL_SPI_TransmitReceive(g.hspi, g_dummy, g_din_buffer, g.din_bytes, 10) != HAL_OK) return -2;
-
-  if (!g_din || !g_din_changed) return 0;
-
-  if (g_debounce_time && g_debounce_ctr) {
-    --g_debounce_ctr;
-    for (uint8_t i = 0; i < g_num_sr; ++i) {
-      g_din[i] ^= g_din_changed[i];
-      g_din_changed[i] = 0u;
-    }
-    return 0;
-  }
-
-  for (uint8_t i = 0; i < g_num_sr; ++i) {
-    uint8_t change_mask = g_din[i] ^ g_din_buffer[i];
-    g_din_changed[i] |= change_mask;
-    g_din[i] = g_din_buffer[i];
-    if (change_mask && g_debounce_time) {
-      g_debounce_ctr = g_debounce_time;
-    }
-  }
+  // Latch: RCLK rising edge (idle low).
+  HAL_GPIO_WritePin(g.dout_rclk_port, g.dout_rclk_pin, GPIO_PIN_SET);
+  __NOP(); __NOP(); __NOP();
+  HAL_GPIO_WritePin(g.dout_rclk_port, g.dout_rclk_pin, GPIO_PIN_RESET);
 
   return 0;
 }

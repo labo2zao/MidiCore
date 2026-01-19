@@ -30,14 +30,14 @@ extern SPI_HandleTypeDef hspi2;
 #define SRIO_SPI_PRESCALER SPI_BAUDRATEPRESCALER_64
 #endif
 
-// 74HC165 /PL uses the same RC pin as DOUT RCLK in MIOS32 setups.
-// Default to MIOS32-compatible RC pin; opt into explicit SRIO_RC pins via SRIO_USE_EXPLICIT_PINS.
+// 74HC165 /PL uses RC2.
+// Default to MIOS32-compatible pins; opt into explicit SRIO_RC pins via SRIO_USE_EXPLICIT_PINS.
 #if defined(SRIO_USE_EXPLICIT_PINS) && defined(SRIO_RC2_GPIO_Port) && defined(SRIO_RC2_Pin)
 #define SRIO_DIN_PL_PORT SRIO_RC2_GPIO_Port
 #define SRIO_DIN_PL_PIN  SRIO_RC2_Pin
 #else
-#define SRIO_DIN_PL_PORT OLED_CS_GPIO_Port
-#define SRIO_DIN_PL_PIN  OLED_CS_Pin
+#define SRIO_DIN_PL_PORT MIOS_SPI1_RC2_GPIO_Port
+#define SRIO_DIN_PL_PIN  MIOS_SPI1_RC2_Pin
 #endif
 
 // 74HC595 RCLK uses RC1.

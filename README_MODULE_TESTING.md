@@ -126,11 +126,10 @@ make CFLAGS+="-DMODULE_TEST_SRIO"
 
 **Troubleshooting:**
 - If nothing changes, verify `/PL` and `RCLK` pin mapping in `main.h`.
-- By default, MIOS32-compatible pins are used (RC pin on SPI1, mapped to `OLED_CS` here).
+- By default, MIOS32-compatible pins are used (`MIOS_SPI1_RC2` and `OLED_CS`).
 - Define `SRIO_USE_EXPLICIT_PINS` to force `SRIO_RC2` (`/PL`) and `SRIO_RC1` (`RCLK`) instead.
 - `MODULE_TEST_SRIO` automatically enables `SRIO_ENABLE` for the build.
 - If the chain is unstable, reduce SRIO SPI speed with `SRIO_SPI_PRESCALER` (default: 64).
-- If `/PL` and `RCLK` share the same RC pin (DINX4 wiring), the line must idle high; the driver now avoids forcing it low.
 
 ### Example 3: Test MIDI Router
 

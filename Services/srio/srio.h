@@ -32,7 +32,6 @@ void srio_init(const srio_config_t* cfg);
 int  srio_read_din(uint8_t* out);
 int  srio_write_dout(const uint8_t* in);
 void srio_set_dout_enable(uint8_t enable);
-int  srio_scan(void);
 
 uint16_t srio_din_bytes(void);
 uint16_t srio_dout_bytes(void);
