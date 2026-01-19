@@ -410,6 +410,31 @@ void module_test_srio_run(void)
   dbg_print(" OK\r\n");
   
   dbg_print_separator();
+  GPIO_TypeDef* sck_port = NULL;
+  uint16_t sck_pin = 0;
+  GPIO_TypeDef* miso_port = NULL;
+  uint16_t miso_pin = 0;
+  GPIO_TypeDef* mosi_port = NULL;
+  uint16_t mosi_pin = 0;
+#ifdef MIOS_SPI1_SCK_GPIO_Port
+  sck_port = MIOS_SPI1_SCK_GPIO_Port;
+  sck_pin = MIOS_SPI1_SCK_Pin;
+#endif
+#ifdef MIOS_SPI1_MISO_GPIO_Port
+  miso_port = MIOS_SPI1_MISO_GPIO_Port;
+  miso_pin = MIOS_SPI1_MISO_Pin;
+#endif
+#ifdef MIOS_SPI1_S0_GPIO_Port
+  mosi_port = MIOS_SPI1_S0_GPIO_Port;
+  mosi_pin = MIOS_SPI1_S0_Pin;
+#endif
+  gdb_ptin_SPI_Pinout("SRIO", SRIO_SPI_HANDLE,
+                      sck_port, sck_pin,
+                      miso_port, miso_pin,
+                      mosi_port, mosi_pin,
+                      SRIO_DOUT_RCLK_PORT, SRIO_DOUT_RCLK_PIN,
+                      SRIO_DIN_PL_PORT, SRIO_DIN_PL_PIN);
+  dbg_print_separator();
   dbg_printf("Configuration: %d DIN bytes, %d DOUT bytes\r\n", 
              SRIO_DIN_BYTES, SRIO_DOUT_BYTES);
   dbg_printf("Total buttons: %d (8 per byte)\r\n", SRIO_DIN_BYTES * 8);
@@ -560,6 +585,43 @@ void module_test_midi_din_run(void)
             dbg_print_bytes(cur_stats[port].last_bytes,
                             cur_stats[port].last_len,
                             ' ');
+            uint8_t status = cur_stats[port].last_bytes[0];
+            if (status >= 0x80) {
+              const char* label = "UNKNOWN";
+              uint8_t channel = (uint8_t)((status & 0x0F) + 1);
+              switch (status & 0xF0) {
+                case 0x80: label = "NOTE_OFF"; break;
+                case 0x90: label = "NOTE_ON"; break;
+                case 0xA0: label = "POLY_AFTERTOUCH"; break;
+                case 0xB0: label = "CONTROL_CHANGE"; break;
+                case 0xC0: label = "PROGRAM_CHANGE"; break;
+                case 0xD0: label = "CHANNEL_AFTERTOUCH"; break;
+                case 0xE0: label = "PITCH_BEND"; break;
+                case 0xF0:
+                  switch (status) {
+                    case 0xF0: label = "SYSEX_START"; break;
+                    case 0xF1: label = "MTC_QUARTER_FRAME"; break;
+                    case 0xF2: label = "SONG_POSITION"; break;
+                    case 0xF3: label = "SONG_SELECT"; break;
+                    case 0xF6: label = "TUNE_REQUEST"; break;
+                    case 0xF8: label = "CLOCK"; break;
+                    case 0xFA: label = "START"; break;
+                    case 0xFB: label = "CONTINUE"; break;
+                    case 0xFC: label = "STOP"; break;
+                    case 0xFE: label = "ACTIVE_SENSE"; break;
+                    case 0xFF: label = "RESET"; break;
+                    default: label = "SYSTEM"; break;
+                  }
+                  break;
+                default:
+                  label = "UNKNOWN";
+                  break;
+              }
+              dbg_printf(" msg=%s", label);
+              if (status < 0xF0) {
+                dbg_printf(" ch=%u", channel);
+              }
+            }
           }
           dbg_print("\r\n");
 

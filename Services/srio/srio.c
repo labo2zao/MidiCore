@@ -1,5 +1,6 @@
 #include "Services/srio/srio.h"
 #include "Services/srio/srio_user_config.h"
+#include "Config/module_config.h"
 
 // Include project HAL umbrella via main.h for portability (F4/F7/H7).
 #include "main.h"
@@ -16,6 +17,10 @@ static uint8_t* g_din = NULL;
 static uint8_t* g_din_buffer = NULL;
 static uint8_t* g_din_changed = NULL;
 
+#if MODULE_ENABLE_AINSER64
+extern SPI_HandleTypeDef hspi3;
+#endif
+
 static inline void gpio_write(GPIO_TypeDef* port, uint16_t pin, GPIO_PinState st) {
   if (!port) return;
   HAL_GPIO_WritePin(port, pin, st);
@@ -26,6 +31,17 @@ static void srio_set_spi_prescaler(SPI_HandleTypeDef* hspi, uint32_t prescaler)
   if (!hspi) return;
   __HAL_SPI_DISABLE(hspi);
   MODIFY_REG(hspi->Instance->CR1, SPI_CR1_BR, prescaler);
+  hspi->Init.BaudRatePrescaler = prescaler;
+  __HAL_SPI_ENABLE(hspi);
+}
+
+static void srio_set_spi_mode(SPI_HandleTypeDef* hspi, uint32_t cpol, uint32_t cpha)
+{
+  if (!hspi) return;
+  __HAL_SPI_DISABLE(hspi);
+  MODIFY_REG(hspi->Instance->CR1, SPI_CR1_CPOL | SPI_CR1_CPHA, cpol | cpha);
+  hspi->Init.CLKPolarity = cpol;
+  hspi->Init.CLKPhase = cpha;
   __HAL_SPI_ENABLE(hspi);
 }
 
@@ -33,10 +49,26 @@ void srio_init(const srio_config_t* cfg) {
   if (cfg) g = *cfg;
   g_inited = (g.hspi && g.din_pl_port && g.din_bytes) ? 1u : 0u;
 
+#if SRIO_APPLY_SPI_CONFIG
+#if MODULE_ENABLE_AINSER64
+  if (g.hspi != &hspi3) {
+    srio_set_spi_mode(g.hspi, SRIO_SPI_CPOL, SRIO_SPI_CPHA);
+    srio_set_spi_prescaler(g.hspi, SRIO_SPI_PRESCALER);
+  }
+#else
+  srio_set_spi_mode(g.hspi, SRIO_SPI_CPOL, SRIO_SPI_CPHA);
   srio_set_spi_prescaler(g.hspi, SRIO_SPI_PRESCALER);
+#endif
+#endif
 
   // Ensure sane idle levels (MIOS32-style expects DIN /PL idle high)
-  if (g.din_pl_port) HAL_GPIO_WritePin(g.din_pl_port, g.din_pl_pin, GPIO_PIN_SET);
+  if (g.din_pl_port) {
+#if SRIO_DIN_PL_ACTIVE_LOW
+    HAL_GPIO_WritePin(g.din_pl_port, g.din_pl_pin, GPIO_PIN_SET);
+#else
+    HAL_GPIO_WritePin(g.din_pl_port, g.din_pl_pin, GPIO_PIN_RESET);
+#endif
+  }
   if (g.dout_rclk_port) HAL_GPIO_WritePin(g.dout_rclk_port, g.dout_rclk_pin, GPIO_PIN_RESET);
   srio_set_dout_enable(1);
 
@@ -73,9 +105,17 @@ int srio_read_din(uint8_t* out) {
   if (!g_inited || !out) return -1;
 
   // Latch DIN parallel inputs into 165 shift regs: /PL low pulse (idle high).
+#if SRIO_DIN_PL_ACTIVE_LOW
   HAL_GPIO_WritePin(g.din_pl_port, g.din_pl_pin, GPIO_PIN_RESET);
-  for (volatile uint8_t i = 0; i < 8; ++i) { __NOP(); }
+#else
   HAL_GPIO_WritePin(g.din_pl_port, g.din_pl_pin, GPIO_PIN_SET);
+#endif
+  for (volatile uint8_t i = 0; i < 8; ++i) { __NOP(); }
+#if SRIO_DIN_PL_ACTIVE_LOW
+  HAL_GPIO_WritePin(g.din_pl_port, g.din_pl_pin, GPIO_PIN_SET);
+#else
+  HAL_GPIO_WritePin(g.din_pl_port, g.din_pl_pin, GPIO_PIN_RESET);
+#endif
 
   // Optimize: no need to clear buffer, will be overwritten
   // Clock out data via SPI with dummy bytes.

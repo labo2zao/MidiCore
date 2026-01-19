@@ -129,7 +129,9 @@ make CFLAGS+="-DMODULE_TEST_SRIO"
 - By default, MIOS32-compatible pins are used (`MIOS_SPI1_RC2` and `OLED_CS`).
 - Define `SRIO_USE_EXPLICIT_PINS` to force `SRIO_RC2` (`/PL`) and `SRIO_RC1` (`RCLK`) instead.
 - `MODULE_TEST_SRIO` automatically enables `SRIO_ENABLE` for the build.
-- If the chain is unstable, reduce SRIO SPI speed with `SRIO_SPI_PRESCALER` (default: 64).
+- The SRIO test prints SPI CPOL/CPHA and prescaler alongside the pinout; SRIO defaults to MIOS32 mode (CPOL=LOW, CPHA=2EDGE) and prescaler 128 unless overridden.
+- If DIN reads stay fixed (e.g., always `0xFF`), verify `/PL` polarity; set `SRIO_DIN_PL_ACTIVE_LOW=0` if RC2 is inverted on your board.
+- If the chain is unstable, reduce SRIO SPI speed with `SRIO_SPI_PRESCALER` (default: 128).
 
 ### Example 3: Test MIDI Router
 
@@ -144,7 +146,23 @@ make CFLAGS+="-DMODULE_TEST_ROUTER=1"
 - MIDI messages routed according to configuration
 - Can test different routing rules
 
-### Example 4: Test Looper
+### Example 4: Test MIDI DIN
+
+```bash
+# Compile with MIDI DIN test
+make CFLAGS+="-DMODULE_TEST_MIDI_DIN"
+
+# Optional: choose DIN UART port (0-3) if needed
+make CFLAGS+="-DMODULE_TEST_MIDI_DIN -DTEST_MIDI_DIN_UART_PORT=2"
+
+# Send MIDI notes into the DIN input and monitor the debug output
+```
+
+**Expected Output:**
+- Incoming MIDI DIN events logged over the debug UART
+- MIDI echo/through behavior if enabled by the test
+
+### Example 5: Test Looper
 
 ```bash
 # Compile with Looper test
@@ -161,6 +179,58 @@ make CFLAGS+="-DMODULE_TEST_LOOPER=1"
 **Expected Output:**
 - Looper cycles through REC → PLAY → STOP states
 - MIDI events recorded and played back
+
+### Example 6: Test UI (OLED)
+
+```bash
+# Compile with UI test
+make CFLAGS+="-DMODULE_TEST_UI=1"
+
+# Observe the OLED for status updates
+```
+
+**Expected Output:**
+- OLED initializes and renders test UI screens
+- Buttons/encoders update the UI if connected
+
+### Example 7: Test Patch/SD
+
+```bash
+# Compile with Patch/SD test
+make CFLAGS+="-DMODULE_TEST_PATCH_SD=1"
+
+# Insert SD card with patches and monitor UART output
+```
+
+**Expected Output:**
+- SD card mount status reported
+- Patch list/load feedback printed to UART
+
+### Example 8: Test Pressure Sensor
+
+```bash
+# Compile with pressure sensor test
+make CFLAGS+="-DMODULE_TEST_PRESSURE=1"
+
+# Ensure I2C pressure sensor is connected
+```
+
+**Expected Output:**
+- Pressure readings printed to UART
+- Values change with applied pressure
+
+### Example 9: Test USB Host MIDI
+
+```bash
+# Compile with USB Host MIDI test
+make CFLAGS+="-DMODULE_TEST_USB_HOST_MIDI=1"
+
+# Connect a class-compliant USB MIDI device
+```
+
+**Expected Output:**
+- USB device enumeration messages
+- Incoming MIDI events printed to UART
 
 ## Production Mode (Default)
 
