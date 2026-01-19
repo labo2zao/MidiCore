@@ -110,12 +110,15 @@ int srio_read_din(uint8_t* out) {
 #else
   HAL_GPIO_WritePin(g.din_pl_port, g.din_pl_pin, GPIO_PIN_SET);
 #endif
-  for (volatile uint8_t i = 0; i < 8; ++i) { __NOP(); }
+  // Increased delay for /PL pulse width - ensure 74HC165 has time to load
+  for (volatile uint8_t i = 0; i < 16; ++i) { __NOP(); }
 #if SRIO_DIN_PL_ACTIVE_LOW
   HAL_GPIO_WritePin(g.din_pl_port, g.din_pl_pin, GPIO_PIN_SET);
 #else
   HAL_GPIO_WritePin(g.din_pl_port, g.din_pl_pin, GPIO_PIN_RESET);
 #endif
+  // Small delay after releasing /PL before starting SPI clock
+  for (volatile uint8_t i = 0; i < 8; ++i) { __NOP(); }
 
   // Optimize: no need to clear buffer, will be overwritten
   // Clock out data via SPI with dummy bytes.
