@@ -478,6 +478,9 @@ void module_test_srio_run(void)
   srio_init(&scfg);
   dbg_print(" OK\r\n");
   
+  // Allow time for /PL pin to stabilize at idle HIGH before first read
+  osDelay(10);
+  
   dbg_print_separator();
   GPIO_TypeDef* sck_port = NULL;
   uint16_t sck_pin = 0;
@@ -518,6 +521,11 @@ void module_test_srio_run(void)
   uint8_t din[SRIO_DIN_BYTES];
   
   // Initialize first state
+  dbg_print("Testing /PL pin control before first read...\r\n");
+  dbg_printf("  /PL pin should idle at: %s\r\n", SRIO_DIN_PL_ACTIVE_LOW ? "HIGH (GPIO_PIN_SET)" : "LOW (GPIO_PIN_RESET)");
+  dbg_print("  About to pulse /PL for DIN latch...\r\n");
+  osDelay(100); // Give time to see on scope
+  
   int init_result = srio_read_din(din);
   if (init_result != 0) {
     dbg_printf("ERROR: SRIO init read failed with code %d\r\n", init_result);
