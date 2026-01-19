@@ -44,22 +44,17 @@ extern SPI_HandleTypeDef hspi2;
 #define SRIO_SPI_CPHA SPI_PHASE_2EDGE
 #endif
 
-// 74HC165 /PL uses RC2.
-// Prefer explicit SRIO_RC pins when available, otherwise fall back to MIOS32-compatible pins.
-#if defined(SRIO_RC2_GPIO_Port) && defined(SRIO_RC2_Pin)
+// 74HC165 /PL uses RC2 and 74HC595 RCLK uses RC1.
+// Default to MIOS32-compatible pins; opt into explicit SRIO_RC pins via SRIO_USE_EXPLICIT_PINS.
+#if defined(SRIO_USE_EXPLICIT_PINS) && defined(SRIO_RC1_GPIO_Port) && defined(SRIO_RC1_Pin) \
+  && defined(SRIO_RC2_GPIO_Port) && defined(SRIO_RC2_Pin)
 #define SRIO_DIN_PL_PORT SRIO_RC2_GPIO_Port
 #define SRIO_DIN_PL_PIN  SRIO_RC2_Pin
-#else
-#define SRIO_DIN_PL_PORT MIOS_SPI1_RC2_GPIO_Port
-#define SRIO_DIN_PL_PIN  MIOS_SPI1_RC2_Pin
-#endif
-
-// 74HC595 RCLK uses RC1.
-// Prefer explicit SRIO_RC pins when available, otherwise fall back to MIOS32-compatible pins.
-#if defined(SRIO_RC1_GPIO_Port) && defined(SRIO_RC1_Pin)
 #define SRIO_DOUT_RCLK_PORT SRIO_RC1_GPIO_Port
 #define SRIO_DOUT_RCLK_PIN  SRIO_RC1_Pin
 #else
+#define SRIO_DIN_PL_PORT MIOS_SPI1_RC2_GPIO_Port
+#define SRIO_DIN_PL_PIN  MIOS_SPI1_RC2_Pin
 #define SRIO_DOUT_RCLK_PORT OLED_CS_GPIO_Port
 #define SRIO_DOUT_RCLK_PIN  OLED_CS_Pin
 #endif
