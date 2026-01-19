@@ -525,6 +525,9 @@ void module_test_srio_run(void)
       dbg_printf("0x%02X ", din[i]);
     }
     dbg_print("\r\n");
+    dbg_print("Expected: 0xFF 0xFF... (all buttons released with pull-ups)\r\n");
+    dbg_print("If you see 0x00: inputs may be inverted or no pull-ups\r\n");
+    dbg_print("If you see other values: some buttons may be stuck\r\n");
   }
   
   uint32_t scan_counter = 0;
@@ -574,6 +577,11 @@ void module_test_srio_run(void)
       dbg_print("Current DIN state: ");
       for (uint8_t i = 0; i < SRIO_DIN_BYTES; i++) {
         dbg_printf("0x%02X ", srio_din_get(i));
+      }
+      dbg_print("\r\n");
+      dbg_print("Raw last read: ");
+      for (uint8_t i = 0; i < SRIO_DIN_BYTES; i++) {
+        dbg_printf("0x%02X ", din[i]);
       }
       dbg_print("\r\n");
       last_debug_ms = now_ms;
