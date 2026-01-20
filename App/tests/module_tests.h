@@ -35,7 +35,16 @@ typedef enum {
   MODULE_TEST_MIDI_DIN_ID,      // Test MIDI DIN I/O
   MODULE_TEST_ROUTER_ID,        // Test MIDI router
   MODULE_TEST_LOOPER_ID,        // Test looper recording/playback
-  MODULE_TEST_UI_ID,            // Test UI/OLED
+  MODULE_TEST_LFO_ID,           // Test LFO module (waveforms, modulation)
+  MODULE_TEST_HUMANIZER_ID,     // Test Humanizer module (velocity/timing)
+  MODULE_TEST_UI_ID,            // Test UI/OLED (general)
+  MODULE_TEST_UI_PAGE_SONG_ID,      // Test Song Mode UI page
+  MODULE_TEST_UI_PAGE_MIDI_MONITOR_ID, // Test MIDI Monitor UI page
+  MODULE_TEST_UI_PAGE_SYSEX_ID,     // Test SysEx UI page
+  MODULE_TEST_UI_PAGE_CONFIG_ID,    // Test Config Editor UI page
+  MODULE_TEST_UI_PAGE_LIVEFX_ID,    // Test LiveFX UI page
+  MODULE_TEST_UI_PAGE_RHYTHM_ID,    // Test Rhythm Trainer UI page
+  MODULE_TEST_UI_PAGE_HUMANIZER_ID, // Test Humanizer/LFO UI page
   MODULE_TEST_PATCH_SD_ID,      // Test patch loading from SD
   MODULE_TEST_PRESSURE_ID,      // Test pressure sensor I2C
   MODULE_TEST_USB_HOST_MIDI_ID, // Test USB Host MIDI
@@ -205,10 +214,40 @@ void module_test_router_run(void);
 void module_test_looper_run(void);
 
 /**
- * @brief Test UI module (OLED display)
- * Tests graphics primitives, pages, encoders
+ * @brief Test LFO module
+ * 
+ * Tests the Low Frequency Oscillator module functionality:
+ * - All 6 waveforms (sine, triangle, saw, square, random, sample & hold)
+ * - Rate control (0.01 - 10.0 Hz)
+ * - Depth control (0 - 100%)
+ * - BPM sync modes (free-running and synced to tempo)
+ * - Modulation targets (velocity, timing, pitch)
+ * - Phase reset functionality
+ * 
+ * Outputs waveform values to UART for verification.
+ * Can be visualized using a serial plotter or oscilloscope.
+ * 
  * @note This function runs forever
  */
+void module_test_lfo_run(void);
+
+/**
+ * @brief Test Humanizer module
+ * 
+ * Tests the MIDI humanization module:
+ * - Velocity humanization (0-32 range)
+ * - Timing humanization (0-6 ticks)
+ * - Intensity control (0-100%)
+ * - Groove-aware micro-variations
+ * - Enable/disable functionality
+ * 
+ * Sends test MIDI notes through the humanizer and outputs
+ * the modified velocity/timing values to UART for verification.
+ * 
+ * @note This function runs forever
+ */
+void module_test_humanizer_run(void);
+
 /**
  * @brief Test UI/OLED module
  * 
@@ -240,6 +279,102 @@ void module_test_looper_run(void);
  * then test with actual buttons/encoders.
  */
 void module_test_ui_run(void);
+
+/**
+ * @brief Test Song Mode UI page
+ * 
+ * Tests the Song Mode page which displays:
+ * - Scene grid (A-H scenes)
+ * - 4-track clip matrix
+ * - Active scene indicator
+ * - Scene playback controls
+ * 
+ * Tests button navigation, scene selection, and visual rendering.
+ * 
+ * @note This function runs forever
+ */
+void module_test_ui_page_song_run(void);
+
+/**
+ * @brief Test MIDI Monitor UI page
+ * 
+ * Tests the MIDI Monitor page which displays:
+ * - Real-time MIDI message stream
+ * - Message type (Note On/Off, CC, etc.)
+ * - Channel, data bytes
+ * - Message timestamps
+ * 
+ * Simulates MIDI messages and verifies display updates.
+ * 
+ * @note This function runs forever
+ */
+void module_test_ui_page_midi_monitor_run(void);
+
+/**
+ * @brief Test SysEx UI page
+ * 
+ * Tests the SysEx management page:
+ * - SysEx message display
+ * - Send/receive functionality
+ * - Message formatting
+ * - Navigation controls
+ * 
+ * @note This function runs forever
+ */
+void module_test_ui_page_sysex_run(void);
+
+/**
+ * @brief Test Config Editor UI page
+ * 
+ * Tests the system configuration page:
+ * - Parameter editing (MIDI channel, clock source, etc.)
+ * - Value adjustment with encoder
+ * - Save/load configuration
+ * - Navigation through config sections
+ * 
+ * @note This function runs forever
+ */
+void module_test_ui_page_config_run(void);
+
+/**
+ * @brief Test LiveFX UI page
+ * 
+ * Tests the Live Effects page:
+ * - Transpose control
+ * - Velocity scaling
+ * - Scale/chord modes
+ * - Real-time parameter adjustment
+ * 
+ * @note This function runs forever
+ */
+void module_test_ui_page_livefx_run(void);
+
+/**
+ * @brief Test Rhythm Trainer UI page
+ * 
+ * Tests the Rhythm Trainer page:
+ * - Rhythm subdivision display (1/16, 1/8, 1/4, etc.)
+ * - Metronome click visualization
+ * - Timing accuracy feedback
+ * - Practice mode controls
+ * 
+ * @note This function runs forever
+ */
+void module_test_ui_page_rhythm_run(void);
+
+/**
+ * @brief Test Humanizer/LFO UI page
+ * 
+ * Tests the combined Humanizer/LFO control page:
+ * - Humanizer parameters (velocity, timing, intensity)
+ * - LFO parameters (waveform, rate, depth, target)
+ * - Mode switching between Humanizer and LFO views
+ * - BPM sync toggle
+ * - Visual waveform representation
+ * 
+ * @note This function runs forever
+ */
+void module_test_ui_page_humanizer_run(void);
 
 /**
  * @brief Test Patch/SD module

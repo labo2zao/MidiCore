@@ -91,6 +91,16 @@ extern "C" {
 #define MODULE_ENABLE_LOOPER 1
 #endif
 
+/** @brief Enable LFO service (Low Frequency Oscillator for modulation) */
+#ifndef MODULE_ENABLE_LFO
+#define MODULE_ENABLE_LFO 1
+#endif
+
+/** @brief Enable Humanizer service (MIDI humanization/groove) */
+#ifndef MODULE_ENABLE_HUMANIZER
+#define MODULE_ENABLE_HUMANIZER 1
+#endif
+
 /** @brief Enable Patch management (SD card patch loading/saving) */
 #ifndef MODULE_ENABLE_PATCH
 #define MODULE_ENABLE_PATCH 1

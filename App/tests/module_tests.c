@@ -145,12 +145,23 @@ extern void app_start_looper_selftest(void);
 
 static const char* test_names[] = {
   "NONE",
+  "GDB_DEBUG",
   "AINSER64",
   "SRIO",
+  "SRIO_DOUT",
   "MIDI_DIN",
   "ROUTER",
   "LOOPER",
+  "LFO",
+  "HUMANIZER",
   "UI",
+  "UI_PAGE_SONG",
+  "UI_PAGE_MIDI_MONITOR",
+  "UI_PAGE_SYSEX",
+  "UI_PAGE_CONFIG",
+  "UI_PAGE_LIVEFX",
+  "UI_PAGE_RHYTHM",
+  "UI_PAGE_HUMANIZER",
   "PATCH_SD",
   "PRESSURE",
   "USB_HOST_MIDI",
@@ -191,13 +202,46 @@ module_test_t module_tests_get_compile_time_selection(void)
   return MODULE_TEST_AINSER64_ID;
 #elif defined(MODULE_TEST_SRIO)
   return MODULE_TEST_SRIO_ID;
+#elif defined(MODULE_TEST_SRIO_DOUT)
+  return MODULE_TEST_SRIO_DOUT_ID;
 #elif defined(MODULE_TEST_MIDI_DIN) || defined(APP_TEST_DIN_MIDI)
   return MODULE_TEST_MIDI_DIN_ID;
 #elif defined(MODULE_TEST_ROUTER)
   return MODULE_TEST_ROUTER_ID;
 #elif defined(MODULE_TEST_LOOPER) || defined(LOOPER_SELFTEST)
   return MODULE_TEST_LOOPER_ID;
+#elif defined(MODULE_TEST_LFO)
+  return MODULE_TEST_LFO_ID;
+#elif defined(MODULE_TEST_HUMANIZER)
+  return MODULE_TEST_HUMANIZER_ID;
 #elif defined(MODULE_TEST_UI)
+  return MODULE_TEST_UI_ID;
+#elif defined(MODULE_TEST_UI_PAGE_SONG)
+  return MODULE_TEST_UI_PAGE_SONG_ID;
+#elif defined(MODULE_TEST_UI_PAGE_MIDI_MONITOR)
+  return MODULE_TEST_UI_PAGE_MIDI_MONITOR_ID;
+#elif defined(MODULE_TEST_UI_PAGE_SYSEX)
+  return MODULE_TEST_UI_PAGE_SYSEX_ID;
+#elif defined(MODULE_TEST_UI_PAGE_CONFIG)
+  return MODULE_TEST_UI_PAGE_CONFIG_ID;
+#elif defined(MODULE_TEST_UI_PAGE_LIVEFX)
+  return MODULE_TEST_UI_PAGE_LIVEFX_ID;
+#elif defined(MODULE_TEST_UI_PAGE_RHYTHM)
+  return MODULE_TEST_UI_PAGE_RHYTHM_ID;
+#elif defined(MODULE_TEST_UI_PAGE_HUMANIZER)
+  return MODULE_TEST_UI_PAGE_HUMANIZER_ID;
+#elif defined(MODULE_TEST_PATCH_SD)
+  return MODULE_TEST_PATCH_SD_ID;
+#elif defined(MODULE_TEST_PRESSURE)
+  return MODULE_TEST_PRESSURE_ID;
+#elif defined(MODULE_TEST_USB_HOST_MIDI)
+  return MODULE_TEST_USB_HOST_MIDI_ID;
+#elif defined(MODULE_TEST_ALL)
+  return MODULE_TEST_ALL_ID;
+#else
+  return MODULE_TEST_NONE_ID;
+#endif
+}
   return MODULE_TEST_UI_ID;
 #elif defined(MODULE_TEST_PATCH_SD)
   return MODULE_TEST_PATCH_SD_ID;
