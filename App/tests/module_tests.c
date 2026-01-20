@@ -523,7 +523,19 @@ void module_test_srio_run(void)
   // Initialize first state
   dbg_print("Testing /PL pin control before first read...\r\n");
   dbg_printf("  /PL pin should idle at: %s\r\n", SRIO_DIN_PL_ACTIVE_LOW ? "HIGH (GPIO_PIN_SET)" : "LOW (GPIO_PIN_RESET)");
+  dbg_printf("  DIN /PL pin: %s Pin %d\r\n", 
+             SRIO_DIN_PL_PORT == GPIOB ? "GPIOB" : SRIO_DIN_PL_PORT == GPIOD ? "GPIOD" : "GPIO?",
+             SRIO_DIN_PL_PIN);
+  dbg_printf("  DOUT RCLK pin: %s Pin %d\r\n",
+             SRIO_DOUT_RCLK_PORT == GPIOB ? "GPIOB" : SRIO_DOUT_RCLK_PORT == GPIOD ? "GPIOD" : "GPIO?",
+             SRIO_DOUT_RCLK_PIN);
   dbg_print("  About to pulse /PL for DIN latch...\r\n");
+  dbg_print("\r\n");
+  dbg_print("IMPORTANT: Verify your hardware uses these pins for SRIO:\r\n");
+  dbg_print("  - 74HC165 /PL (pin 1) should connect to the DIN /PL pin above\r\n");
+  dbg_print("  - 74HC595 RCLK (pin 12) should connect to the DOUT RCLK pin above\r\n");
+  dbg_print("  - If pins are wrong, SRIO will not work!\r\n");
+  dbg_print("\r\n");
   osDelay(100); // Give time to see on scope
   
   int init_result = srio_read_din(din);
