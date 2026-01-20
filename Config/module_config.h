@@ -244,13 +244,11 @@ extern "C" {
 #define MODULE_ENABLE_MIDI_DIN_DEBUG 0  // Disabled by default
 #endif
 
-/** @brief Enable Looper self-test */
-#ifndef MODULE_ENABLE_LOOPER_SELFTEST
-#define MODULE_ENABLE_LOOPER_SELFTEST 0  // Disabled by default
-#endif
-
 // NOTE: DIN_SELFTEST has been removed - use MODULE_TEST_SRIO instead
 // The old DIN_SELFTEST was superseded by the comprehensive MODULE_TEST_SRIO test
+
+// NOTE: MODULE_ENABLE_LOOPER_SELFTEST has been removed - use MODULE_TEST_LOOPER instead
+// The old LOOPER_SELFTEST was replaced by the new MODULE_TEST_LOOPER test framework
 
 // =============================================================================
 // CONFIGURATION VALIDATION

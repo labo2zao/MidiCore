@@ -47,8 +47,8 @@ Tous les modules sont configurés dans le fichier **`Config/module_config.h`**.
 #### Debug/Test
 - `MODULE_ENABLE_AIN_RAW_DEBUG` - Debug ADC (UART)
 - `MODULE_ENABLE_MIDI_DIN_DEBUG` - Debug MIDI DIN
-- `MODULE_ENABLE_LOOPER_SELFTEST` - Test auto looper
-- `MODULE_ENABLE_DIN_SELFTEST` - Test auto DIN
+
+**Note**: `MODULE_ENABLE_LOOPER_SELFTEST` and `MODULE_ENABLE_DIN_SELFTEST` have been deprecated. Use the new test framework with `MODULE_TEST_LOOPER` and `MODULE_TEST_SRIO` instead. See `README_MODULE_TESTING.md`.
 
 ## Utilisation
 
@@ -74,8 +74,9 @@ Dans les paramètres de votre projet CubeIDE:
 ```
 MODULE_ENABLE_OLED=0
 MODULE_ENABLE_USB_MIDI=0
-MODULE_ENABLE_LOOPER_SELFTEST=0
 ```
+
+**Note**: Use the new test framework (`MODULE_TEST_*`) instead of deprecated test flags. See `README_MODULE_TESTING.md`.
 
 ### Méthode 3: Makefile
 
@@ -135,8 +136,9 @@ Résultat: Visualisation sur OLED des événements AIN
 // Tous les modules à 1 sauf debug
 #define MODULE_ENABLE_AIN_RAW_DEBUG 0
 #define MODULE_ENABLE_MIDI_DIN_DEBUG 0
-#define MODULE_ENABLE_LOOPER_SELFTEST 0
-#define MODULE_ENABLE_DIN_SELFTEST 0
+
+// Note: MODULE_ENABLE_LOOPER_SELFTEST and MODULE_ENABLE_DIN_SELFTEST are deprecated
+// Use MODULE_TEST_* defines instead (see README_MODULE_TESTING.md)
 ```
 
 ## Dépendances entre Modules
@@ -179,10 +181,11 @@ MODULE_ENABLE_DIN_SELFTEST=1
 MODULE_ENABLE_ROUTER=1
 MODULE_ENABLE_MIDI_DIN=1
 MODULE_ENABLE_LOOPER=1
-MODULE_ENABLE_LOOPER_SELFTEST=1
 MODULE_ENABLE_PATCH=1  # Pour save/load
 # Autres selon besoin
 ```
+
+**Note**: Pour tester Looper, utilisez `MODULE_TEST_LOOPER` au lieu de l'ancien `MODULE_ENABLE_LOOPER_SELFTEST`. Voir `README_MODULE_TESTING.md` pour plus de détails.
 
 ## Diagnostics
 

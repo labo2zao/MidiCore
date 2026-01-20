@@ -105,10 +105,6 @@
 
 #include "App/midi_io_task.h"
 
-#if MODULE_ENABLE_LOOPER_SELFTEST
-#include "App/looper_selftest.h"
-#endif
-
 #include "cmsis_os2.h"
 #include <string.h>
 
@@ -307,10 +303,6 @@ void app_init_and_start(void)
 #endif
 
   app_start_midi_io_task();
-
-#if MODULE_ENABLE_LOOPER_SELFTEST
-  app_start_looper_selftest();
-#endif
 }
 
 static void AinTask(void *argument)
