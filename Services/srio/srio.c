@@ -104,44 +104,34 @@ void srio_set_dout_enable(uint8_t enable) {
 int srio_read_din(uint8_t* out) {
   if (!g_inited || !out) return -1;
 
-  // MIOS32-style scan sequence: Control BOTH RC1 (DOUT RCLK) and RC2 (DIN /PL)
+  // MIOS32 DIN scan: DIN and DOUT are INDEPENDENT modules
+  // Only pulse RC2 (/PL) for DIN, do NOT touch RC1 (DOUT is separate)
   
-  // 1. Set RCLK (RC1) LOW to prepare 74HC595 for shift-in
-  if (g.dout_rclk_port) {
-    HAL_GPIO_WritePin(g.dout_rclk_port, g.dout_rclk_pin, GPIO_PIN_RESET);
-  }
-  
-  // 2. Pulse /PL (RC2) to latch 74HC165 parallel inputs: HIGH→LOW→HIGH
+  // Pulse /PL (RC2) to latch 74HC165 parallel inputs: idle HIGH → LOW → HIGH
 #if SRIO_DIN_PL_ACTIVE_LOW
   HAL_GPIO_WritePin(g.din_pl_port, g.din_pl_pin, GPIO_PIN_RESET);  // Active LOW
 #else
   HAL_GPIO_WritePin(g.din_pl_port, g.din_pl_pin, GPIO_PIN_SET);
 #endif
-  for (volatile uint16_t i = 0; i < 10; ++i) { __NOP(); }  // /PL pulse width
+  for (volatile uint16_t i = 0; i < 10; ++i) { __NOP(); }  // /PL pulse width (~60ns)
   
 #if SRIO_DIN_PL_ACTIVE_LOW
   HAL_GPIO_WritePin(g.din_pl_port, g.din_pl_pin, GPIO_PIN_SET);     // Release
 #else
   HAL_GPIO_WritePin(g.din_pl_port, g.din_pl_pin, GPIO_PIN_RESET);
 #endif
-  for (volatile uint16_t i = 0; i < 10; ++i) { __NOP(); }  // Setup time
+  for (volatile uint16_t i = 0; i < 10; ++i) { __NOP(); }  // Setup time before SPI
   
-  // 3. SPI transfer: CRITICAL - do ONE BULK transfer, not byte-by-byte!
-  // MIOS32 does a single DMA/bulk transfer which keeps CLK running continuously
-  // Byte-by-byte transfers cause CLK gaps that confuse the 74HC165
-  static uint8_t dout_dummy[32] = {0};  // DOUT data (all zeros = LEDs off)
+  // Single bulk SPI transfer (not byte-by-byte loop)
+  // CRITICAL: One continuous SPI transfer keeps CLK running, preventing 74HC165 desync
+  static uint8_t dout_dummy[32] = {0};  // Dummy DOUT data for full-duplex SPI
   
-  // Single bulk SPI transfer for all bytes
   if (HAL_SPI_TransmitReceive(g.hspi, dout_dummy, out, g.din_bytes, 100) != HAL_OK) {
     return -2;
   }
   
-  // 4. Pulse RCLK (RC1) HIGH to latch shifted-out DOUT data into 74HC595 outputs
-  if (g.dout_rclk_port) {
-    HAL_GPIO_WritePin(g.dout_rclk_port, g.dout_rclk_pin, GPIO_PIN_SET);
-    for (volatile uint16_t i = 0; i < 10; ++i) { __NOP(); }  // Latch pulse width
-    HAL_GPIO_WritePin(g.dout_rclk_port, g.dout_rclk_pin, GPIO_PIN_RESET);  // Back to idle LOW
-  }
+  return 0;
+}
 
   if (g_din && g_din_buffer && g_din_changed) {
     for (uint8_t i = 0; i < g_num_sr; ++i) {
