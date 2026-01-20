@@ -130,9 +130,7 @@ int srio_read_din(uint8_t* out) {
     return -2;
   }
   
-  return 0;
-}
-
+  // Update internal DIN buffers with change detection
   if (g_din && g_din_buffer && g_din_changed) {
     for (uint8_t i = 0; i < g_num_sr; ++i) {
       g_din_buffer[i] = out[i];
