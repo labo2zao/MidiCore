@@ -1,7 +1,7 @@
 #include "Services/ui/ui_page_rhythm.h"
 #include "Services/ui/ui.h"
 #include "Services/rhythm_trainer/rhythm_trainer.h"
-#include "Services/gfx/gfx.h"
+#include "Services/ui/ui_gfx.h"
 #include <stdio.h>
 #include <string.h>
 

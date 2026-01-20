@@ -53,7 +53,7 @@ static const char* get_category_name(config_category_t cat) {
 static uint8_t get_param_count(config_category_t cat) {
   switch (cat) {
     case CONFIG_CAT_DIN: return 3;
-    case CONFIG_CAT_AINSER: return 3;
+    case CONFIG_CAT_AINSER: return 2;
     case CONFIG_CAT_AIN: return 2;
     case CONFIG_CAT_SYSTEM: return 0;
     default: return 0;
