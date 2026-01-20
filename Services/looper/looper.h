@@ -333,9 +333,7 @@ void looper_get_randomize_params(uint8_t track, uint8_t* out_velocity_range,
  * Differs from Randomizer: Musical and groove-preserving vs. chaotic.
  * Recommend pushing undo before applying.
  */
-void looper_human
-
-ize_track(uint8_t track, uint8_t velocity_amount,
+void looper_humanize_track(uint8_t track, uint8_t velocity_amount,
                            uint8_t timing_amount, uint8_t intensity);
 
 /**
