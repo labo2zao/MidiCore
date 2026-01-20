@@ -19,6 +19,20 @@
 extern "C" {
 #endif
 
+/* Check if USB Device Core is available */
+#if defined(__has_include)
+#  if __has_include("usbd_ioreq.h")
+#    define USBD_CORE_AVAILABLE 1
+#  else
+#    define USBD_CORE_AVAILABLE 0
+#  endif
+#else
+/* Compiler doesn't support __has_include */
+#  define USBD_CORE_AVAILABLE 1
+#endif
+
+#if USBD_CORE_AVAILABLE
+
 #include "usbd_ioreq.h"
 
 /* MIDI Device Class Codes */
@@ -86,5 +100,21 @@ uint8_t USBD_MIDI_SendData(USBD_HandleTypeDef *pdev, uint8_t cable, uint8_t *dat
 #ifdef __cplusplus
 }
 #endif
+
+#else /* !USBD_CORE_AVAILABLE */
+
+/* Stub declarations when USB Device Core is not available */
+#warning "USB Device Core library not found. Generate code with CubeMX to enable USB MIDI Device."
+
+/* Minimal type definitions to allow compilation */
+typedef struct { uint8_t dummy; } USBD_MIDI_HandleTypeDef;
+typedef struct { uint8_t dummy; } USBD_MIDI_EventPacket_t;
+typedef struct { void (*Init)(void); void (*DeInit)(void); void (*DataOut)(void*); } USBD_MIDI_ItfTypeDef;
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* USBD_CORE_AVAILABLE */
 
 #endif  /* __USBD_MIDI_H */
