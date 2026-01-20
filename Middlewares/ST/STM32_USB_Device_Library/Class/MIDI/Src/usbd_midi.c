@@ -16,8 +16,69 @@
 #include "usbd_ctlreq.h"
 #include <string.h>
 
-/* Calculate descriptor size - needed for compilation */
-#define USB_MIDI_CONFIG_DESC_SIZ  (9 + 9 + 9 + 9 + 7 + (6 * MIDI_NUM_PORTS) + (9 * MIDI_NUM_PORTS * 2) + 9 + (5 + MIDI_NUM_PORTS) + 9 + (5 + MIDI_NUM_PORTS))
+/* MIDI Status Byte Constants */
+#define MIDI_STATUS_NOTE_OFF             0x80
+#define MIDI_STATUS_NOTE_ON              0x90
+#define MIDI_STATUS_POLY_AFTERTOUCH      0xA0
+#define MIDI_STATUS_CONTROL_CHANGE       0xB0
+#define MIDI_STATUS_PROGRAM_CHANGE       0xC0
+#define MIDI_STATUS_CHANNEL_AFTERTOUCH   0xD0
+#define MIDI_STATUS_PITCH_BEND           0xE0
+#define MIDI_STATUS_SYSTEM               0xF0
+
+/* MIDI System Messages */
+#define MIDI_SYSEX_START                 0xF0
+#define MIDI_MTC_QUARTER_FRAME           0xF1
+#define MIDI_SONG_POSITION                0xF2
+#define MIDI_SONG_SELECT                 0xF3
+#define MIDI_TUNE_REQUEST                0xF6
+#define MIDI_SYSEX_END                   0xF7
+#define MIDI_TIMING_CLOCK                0xF8
+#define MIDI_START                       0xFA
+#define MIDI_CONTINUE                    0xFB
+#define MIDI_STOP                        0xFC
+#define MIDI_ACTIVE_SENSING              0xFE
+#define MIDI_SYSTEM_RESET                0xFF
+
+/* USB MIDI Code Index Number (CIN) Constants */
+#define MIDI_CIN_MISCELLANEOUS           0x0F  /* Miscellaneous function codes */
+#define MIDI_CIN_CABLE_EVENT             0x0F  /* Cable events */
+#define MIDI_CIN_2BYTE_SYSTEM            0x02  /* 2-byte System Common */
+#define MIDI_CIN_3BYTE_SYSTEM            0x03  /* 3-byte System Common */
+#define MIDI_CIN_SYSEX_START             0x04  /* SysEx starts or continues */
+#define MIDI_CIN_SYSEX_END_1BYTE         0x05  /* SysEx ends with 1 byte */
+#define MIDI_CIN_SYSEX_END_2BYTE         0x06  /* SysEx ends with 2 bytes */
+#define MIDI_CIN_SYSEX_END_3BYTE         0x07  /* SysEx ends with 3 bytes */
+#define MIDI_CIN_NOTE_OFF                0x08  /* Note Off */
+#define MIDI_CIN_NOTE_ON                 0x09  /* Note On */
+#define MIDI_CIN_POLY_AFTERTOUCH         0x0A  /* Poly-KeyPress */
+#define MIDI_CIN_CONTROL_CHANGE          0x0B  /* Control Change */
+#define MIDI_CIN_PROGRAM_CHANGE          0x0C  /* Program Change */
+#define MIDI_CIN_CHANNEL_AFTERTOUCH      0x0D  /* Channel Pressure */
+#define MIDI_CIN_PITCH_BEND              0x0E  /* Pitch Bend Change */
+
+/* Descriptor Size Constants (for readability) */
+#define USB_DESC_SIZE_CONFIGURATION      9      /* Configuration descriptor */
+#define USB_DESC_SIZE_INTERFACE          9      /* Interface descriptor */
+#define USB_DESC_SIZE_ENDPOINT           9      /* Endpoint descriptor */
+#define USB_DESC_SIZE_JACK_IN            6      /* MIDI IN Jack descriptor */
+#define USB_DESC_SIZE_JACK_OUT           9      /* MIDI OUT Jack descriptor */
+#define USB_DESC_SIZE_CS_INTERFACE       7      /* Class-specific Interface Header */
+#define USB_DESC_SIZE_CS_ENDPOINT_BASE   5      /* Class-specific Endpoint (base, + num jacks) */
+
+/* Calculate descriptor size - MIOS32 style */
+#define USB_MIDI_JACKS_PER_PORT          4      /* Each port has 4 jacks (Embedded IN/OUT, External IN/OUT) */
+#define USB_MIDI_JACK_DESC_SIZE_PER_PORT ((USB_DESC_SIZE_JACK_IN * 2) + (USB_DESC_SIZE_JACK_OUT * 2))
+#define USB_MIDI_CONFIG_DESC_SIZ         (USB_DESC_SIZE_CONFIGURATION + \
+                                          USB_DESC_SIZE_INTERFACE + \
+                                          USB_DESC_SIZE_CS_INTERFACE + \
+                                          USB_DESC_SIZE_INTERFACE + \
+                                          USB_DESC_SIZE_CS_INTERFACE + \
+                                          (MIDI_NUM_PORTS * USB_MIDI_JACK_DESC_SIZE_PER_PORT) + \
+                                          USB_DESC_SIZE_ENDPOINT + \
+                                          (USB_DESC_SIZE_CS_ENDPOINT_BASE + MIDI_NUM_PORTS) + \
+                                          USB_DESC_SIZE_ENDPOINT + \
+                                          (USB_DESC_SIZE_CS_ENDPOINT_BASE + MIDI_NUM_PORTS))
 
 /* Private function prototypes */
 static uint8_t USBD_MIDI_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx);
@@ -527,7 +588,7 @@ uint8_t USBD_MIDI_SendData(USBD_HandleTypeDef *pdev, uint8_t cable, uint8_t *dat
   
   /* Build USB MIDI packet (4 bytes) */
   uint8_t packet[4];
-  uint8_t cin = 0x0F; /* Miscellaneous function code */
+  uint8_t cin = MIDI_CIN_MISCELLANEOUS; /* Default: Miscellaneous function code */
   
   /* Determine Code Index Number based on status byte */
   if (length >= 1 && (data[0] & 0x80))
@@ -535,28 +596,28 @@ uint8_t USBD_MIDI_SendData(USBD_HandleTypeDef *pdev, uint8_t cable, uint8_t *dat
     uint8_t status = data[0] & 0xF0;
     switch (status)
     {
-      case 0x80: cin = 0x08; break; /* Note Off */
-      case 0x90: cin = 0x09; break; /* Note On */
-      case 0xA0: cin = 0x0A; break; /* Poly Aftertouch */
-      case 0xB0: cin = 0x0B; break; /* Control Change */
-      case 0xC0: cin = 0x0C; break; /* Program Change */
-      case 0xD0: cin = 0x0D; break; /* Channel Aftertouch */
-      case 0xE0: cin = 0x0E; break; /* Pitch Bend */
-      case 0xF0:
+      case MIDI_STATUS_NOTE_OFF:          cin = MIDI_CIN_NOTE_OFF; break;
+      case MIDI_STATUS_NOTE_ON:           cin = MIDI_CIN_NOTE_ON; break;
+      case MIDI_STATUS_POLY_AFTERTOUCH:   cin = MIDI_CIN_POLY_AFTERTOUCH; break;
+      case MIDI_STATUS_CONTROL_CHANGE:    cin = MIDI_CIN_CONTROL_CHANGE; break;
+      case MIDI_STATUS_PROGRAM_CHANGE:    cin = MIDI_CIN_PROGRAM_CHANGE; break;
+      case MIDI_STATUS_CHANNEL_AFTERTOUCH: cin = MIDI_CIN_CHANNEL_AFTERTOUCH; break;
+      case MIDI_STATUS_PITCH_BEND:        cin = MIDI_CIN_PITCH_BEND; break;
+      case MIDI_STATUS_SYSTEM:
         switch (data[0])
         {
-          case 0xF0: cin = 0x04; break; /* SysEx Start */
-          case 0xF1: cin = 0x02; break; /* MTC Quarter Frame */
-          case 0xF2: cin = 0x03; break; /* Song Position */
-          case 0xF3: cin = 0x02; break; /* Song Select */
-          case 0xF6: cin = 0x05; break; /* Tune Request */
-          case 0xF7: cin = 0x05; break; /* SysEx End */
-          case 0xF8: cin = 0x0F; break; /* Timing Clock */
-          case 0xFA: cin = 0x0F; break; /* Start */
-          case 0xFB: cin = 0x0F; break; /* Continue */
-          case 0xFC: cin = 0x0F; break; /* Stop */
-          case 0xFE: cin = 0x0F; break; /* Active Sensing */
-          case 0xFF: cin = 0x0F; break; /* System Reset */
+          case MIDI_SYSEX_START:        cin = MIDI_CIN_SYSEX_START; break;
+          case MIDI_MTC_QUARTER_FRAME:  cin = MIDI_CIN_2BYTE_SYSTEM; break;
+          case MIDI_SONG_POSITION:      cin = MIDI_CIN_3BYTE_SYSTEM; break;
+          case MIDI_SONG_SELECT:        cin = MIDI_CIN_2BYTE_SYSTEM; break;
+          case MIDI_TUNE_REQUEST:       cin = MIDI_CIN_SYSEX_END_1BYTE; break;
+          case MIDI_SYSEX_END:          cin = MIDI_CIN_SYSEX_END_1BYTE; break;
+          case MIDI_TIMING_CLOCK:       cin = MIDI_CIN_MISCELLANEOUS; break;
+          case MIDI_START:              cin = MIDI_CIN_MISCELLANEOUS; break;
+          case MIDI_CONTINUE:           cin = MIDI_CIN_MISCELLANEOUS; break;
+          case MIDI_STOP:               cin = MIDI_CIN_MISCELLANEOUS; break;
+          case MIDI_ACTIVE_SENSING:     cin = MIDI_CIN_MISCELLANEOUS; break;
+          case MIDI_SYSTEM_RESET:       cin = MIDI_CIN_MISCELLANEOUS; break;
         }
         break;
     }
