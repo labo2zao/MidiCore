@@ -216,10 +216,25 @@ int srio_read_din(uint8_t* out) {
   // copy/or buffered DIN values/changed flags
   // Update internal DIN buffers with change detection (matches MIOS32 exactly)
   if (g_din && g_din_buffer && g_din_changed) {
+    // STEP 1: ALWAYS copy buffered DIN values and detect changes (matches MIOS32)
+    // This must happen BEFORE debounce logic is applied
+    uint8_t any_change = 0;
     for (uint8_t i = 0; i < g_num_sr; ++i) {
       g_din_buffer[i] = out[i];
+      uint8_t change_mask = g_din[i] ^ g_din_buffer[i]; // these are the changed pins
+      g_din_changed[i] |= change_mask;
+      g_din[i] = g_din_buffer[i];
+      if (change_mask) {
+        any_change = 1;
+      }
     }
-
+    
+    // STEP 2: Start debounce counter if any change detected (matches MIOS32_SRIO_DebounceStart)
+    if (any_change && g_debounce_time) {
+      g_debounce_ctr = g_debounce_time;
+    }
+    
+    // STEP 3: Apply debounce XOR trick if counter is active (matches MIOS32)
     // As long as debounce counter is != 0, clear all "changed" flags to ignore button movements 
     // at this time. In order to ensure, that a new final state of a button won't get lost, 
     // the DIN values are XORed with the "changed" flags (yes, this idea is ill, but it works! :)
@@ -230,16 +245,7 @@ int srio_read_din(uint8_t* out) {
       --g_debounce_ctr;
       for (uint8_t i = 0; i < g_num_sr; ++i) {
         g_din[i] ^= g_din_changed[i];
-        g_din_changed[i] = 0u;
-      }
-    } else {
-      for (uint8_t i = 0; i < g_num_sr; ++i) {
-        uint8_t change_mask = g_din[i] ^ g_din_buffer[i]; // these are the changed pins
-        g_din_changed[i] |= change_mask;
-        g_din[i] = g_din_buffer[i];
-        if (change_mask && g_debounce_time) {
-          g_debounce_ctr = g_debounce_time;
-        }
+        g_din_changed[i] = 0;
       }
     }
   }
