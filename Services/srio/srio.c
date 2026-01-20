@@ -104,33 +104,40 @@ void srio_set_dout_enable(uint8_t enable) {
 int srio_read_din(uint8_t* out) {
   if (!g_inited || !out) return -1;
 
-  // Latch DIN parallel inputs into 165 shift regs: /PL low pulse (idle high).
-  // Use microsecond delays like MIOS32 does (relying on function call overhead)
+  // MIOS32-style scan sequence: Control BOTH RC1 (DOUT RCLK) and RC2 (DIN /PL)
+  
+  // 1. Set RCLK (RC1) LOW to prepare 74HC595 for shift-in
+  if (g.dout_rclk_port) {
+    HAL_GPIO_WritePin(g.dout_rclk_port, g.dout_rclk_pin, GPIO_PIN_RESET);
+  }
+  
+  // 2. Pulse /PL (RC2) to latch 74HC165 parallel inputs: HIGH→LOW→HIGH
 #if SRIO_DIN_PL_ACTIVE_LOW
-  HAL_GPIO_WritePin(g.din_pl_port, g.din_pl_pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(g.din_pl_port, g.din_pl_pin, GPIO_PIN_RESET);  // Active LOW
 #else
   HAL_GPIO_WritePin(g.din_pl_port, g.din_pl_pin, GPIO_PIN_SET);
 #endif
-  // MIOS32 uses function call overhead for delays - we use explicit microsecond delay
-  // 74HC165 /PL pulse width minimum: 20ns, but we need time for signal propagation
-  for (volatile uint16_t i = 0; i < 10; ++i) { __NOP(); }  // ~60ns minimum delay
+  for (volatile uint16_t i = 0; i < 10; ++i) { __NOP(); }  // /PL pulse width
   
 #if SRIO_DIN_PL_ACTIVE_LOW
-  HAL_GPIO_WritePin(g.din_pl_port, g.din_pl_pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(g.din_pl_port, g.din_pl_pin, GPIO_PIN_SET);     // Release
 #else
   HAL_GPIO_WritePin(g.din_pl_port, g.din_pl_pin, GPIO_PIN_RESET);
 #endif
-  // Small delay after releasing /PL before starting SPI clock (setup time)
-  for (volatile uint16_t i = 0; i < 10; ++i) { __NOP(); }  // ~60ns minimum delay
-
-  // IMPORTANT: MIOS32 sends DOUT data while receiving DIN in one combined transfer
-  // We simulate this by sending a buffer of 0x00 bytes (LEDs off state)
-  // This is critical - sending the same dummy byte repeatedly may not work properly
-  static uint8_t dout_dummy[32] = {0}; // Static buffer initialized to 0x00
+  for (volatile uint16_t i = 0; i < 10; ++i) { __NOP(); }  // Setup time
   
-  // Clock out data via SPI - send DOUT dummy data while receiving DIN
+  // 3. SPI transfer: send DOUT data while receiving DIN (MIOS32 combined scan)
+  // Use dummy DOUT buffer (all zeros = LEDs off) for now
+  static uint8_t dout_dummy[32] = {0};
   for (uint16_t i = 0; i < g.din_bytes; i++) {
     if (HAL_SPI_TransmitReceive(g.hspi, &dout_dummy[i], &out[i], 1, 10) != HAL_OK) return -2;
+  }
+  
+  // 4. Pulse RCLK (RC1) HIGH to latch shifted-out DOUT data into 74HC595 outputs
+  if (g.dout_rclk_port) {
+    HAL_GPIO_WritePin(g.dout_rclk_port, g.dout_rclk_pin, GPIO_PIN_SET);
+    for (volatile uint16_t i = 0; i < 10; ++i) { __NOP(); }  // Latch pulse width
+    HAL_GPIO_WritePin(g.dout_rclk_port, g.dout_rclk_pin, GPIO_PIN_RESET);  // Back to idle LOW
   }
 
   if (g_din && g_din_buffer && g_din_changed) {
