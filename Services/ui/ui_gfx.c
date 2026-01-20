@@ -71,3 +71,19 @@ void ui_gfx_text(int x, int y, const char* s, uint8_t gray) {
     s++;
   }
 }
+
+void ui_gfx_fill_rect(int x, int y, int w, int h, uint8_t gray) {
+  ui_gfx_rect(x, y, w, h, gray);
+}
+
+void ui_gfx_hline(int x, int y, int w, uint8_t gray) {
+  for (int xx = 0; xx < w; xx++) {
+    ui_gfx_pixel(x + xx, y, gray);
+  }
+}
+
+void ui_gfx_vline(int x, int y, int h, uint8_t gray) {
+  for (int yy = 0; yy < h; yy++) {
+    ui_gfx_pixel(x, y + yy, gray);
+  }
+}

@@ -1,7 +1,7 @@
 #include "Services/ui/ui_page_rhythm.h"
 #include "Services/ui/ui.h"
 #include "Services/rhythm_trainer/rhythm_trainer.h"
-#include "Services/gfx/gfx.h"
+#include "Services/ui/ui_gfx.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -63,7 +63,7 @@ static void draw_measure_bar(uint8_t x, uint8_t y, uint8_t width, uint8_t height
   int32_t last_error = rhythm_trainer_get_last_error();
   
   // Draw background bar
-  gfx_draw_rect(x, y, width, height, 8);
+  ui_gfx_rect(x, y, width, height, 8);
   
   // Calculate subdivisions based on setting
   uint8_t num_subdivs = 4;  // Quarter notes (1/4)
@@ -82,7 +82,7 @@ static void draw_measure_bar(uint8_t x, uint8_t y, uint8_t width, uint8_t height
     uint8_t marker_height = (i % 4 == 0) ? height : height / 2;
     uint8_t marker_y = (i % 4 == 0) ? y : y + height / 4;
     
-    gfx_draw_vline(marker_x, marker_y, marker_height, 12);
+    ui_gfx_vline(marker_x, marker_y, marker_height, 12);
   }
   
   // Draw threshold zones around beat markers
@@ -101,12 +101,12 @@ static void draw_measure_bar(uint8_t x, uint8_t y, uint8_t width, uint8_t height
     
     // Draw good zone (dim)
     if (beat_x >= good_px) {
-      gfx_fill_rect(beat_x - good_px, y + height + 2, good_px * 2, 3, 6);
+      ui_gfx_fill_rect(beat_x - good_px, y + height + 2, good_px * 2, 3, 6);
     }
     
     // Draw perfect zone (bright) on top
     if (beat_x >= perfect_px) {
-      gfx_fill_rect(beat_x - perfect_px, y + height + 2, perfect_px * 2, 3, 12);
+      ui_gfx_fill_rect(beat_x - perfect_px, y + height + 2, perfect_px * 2, 3, 12);
     }
   }
   
@@ -133,7 +133,7 @@ static void draw_measure_bar(uint8_t x, uint8_t y, uint8_t width, uint8_t height
     else brightness = 6;
     
     // Triangle marker pointing down
-    gfx_fill_rect(hit_x - 1, y - 3, 3, 3, brightness);
+    ui_gfx_fill_rect(hit_x - 1, y - 3, 3, 3, brightness);
   }
 }
 
@@ -148,20 +148,20 @@ static void draw_statistics(uint8_t x, uint8_t y) {
   
   // Accuracy percentage (large)
   snprintf(buf, sizeof(buf), "%d%%", stats.accuracy_percent);
-  gfx_text(x, y, buf, GFX_FONT_LARGE);
+  ui_gfx_text(x, y, buf, GFX_FONT_LARGE);
   
   // Note counts
   uint8_t row_y = y + 20;
   snprintf(buf, sizeof(buf), "P:%lu G:%lu", stats.perfect_count, stats.good_count);
-  gfx_text(x, row_y, buf, GFX_FONT_SMALL);
+  ui_gfx_text(x, row_y, buf, GFX_FONT_SMALL);
   
   row_y += 10;
   snprintf(buf, sizeof(buf), "E:%lu L:%lu", stats.early_count, stats.late_count);
-  gfx_text(x, row_y, buf, GFX_FONT_SMALL);
+  ui_gfx_text(x, row_y, buf, GFX_FONT_SMALL);
   
   row_y += 10;
   snprintf(buf, sizeof(buf), "Total: %lu", stats.total_notes);
-  gfx_text(x, row_y, buf, GFX_FONT_SMALL);
+  ui_gfx_text(x, row_y, buf, GFX_FONT_SMALL);
 }
 
 /**
@@ -178,32 +178,32 @@ static void draw_parameters(uint8_t x, uint8_t y) {
   const char* diff_names[] = {"EASY", "MEDIUM", "HARD", "EXPERT"};
   uint8_t highlight = (s_edit_mode && s_selected_param == PARAM_DIFFICULTY) ? 1 : 0;
   snprintf(buf, sizeof(buf), "%sDifficulty: %s", highlight ? ">" : " ", diff_names[s_difficulty]);
-  gfx_text(x, row_y, buf, GFX_FONT_SMALL);
+  ui_gfx_text(x, row_y, buf, GFX_FONT_SMALL);
   row_y += 10;
   
   // Subdivision
   const char* subdiv_names[] = {"1/4", "1/8", "1/16", "1/32"};
   highlight = (s_edit_mode && s_selected_param == PARAM_SUBDIVISION) ? 1 : 0;
   snprintf(buf, sizeof(buf), "%sSubdiv: %s", highlight ? ">" : " ", subdiv_names[config.subdivision]);
-  gfx_text(x, row_y, buf, GFX_FONT_SMALL);
+  ui_gfx_text(x, row_y, buf, GFX_FONT_SMALL);
   row_y += 10;
   
   // Perfect window (only show in custom mode)
   highlight = (s_edit_mode && s_selected_param == PARAM_PERFECT) ? 1 : 0;
   snprintf(buf, sizeof(buf), "%sPerfect: %dtk", highlight ? ">" : " ", config.perfect_window);
-  gfx_text(x, row_y, buf, GFX_FONT_SMALL);
+  ui_gfx_text(x, row_y, buf, GFX_FONT_SMALL);
   row_y += 10;
   
   // Good window (only show in custom mode)
   highlight = (s_edit_mode && s_selected_param == PARAM_GOOD) ? 1 : 0;
   snprintf(buf, sizeof(buf), "%sGood: %dtk", highlight ? ">" : " ", config.good_window);
-  gfx_text(x, row_y, buf, GFX_FONT_SMALL);
+  ui_gfx_text(x, row_y, buf, GFX_FONT_SMALL);
   row_y += 10;
   
   // Adaptive mode
   highlight = (s_edit_mode && s_selected_param == PARAM_ADAPTIVE) ? 1 : 0;
   snprintf(buf, sizeof(buf), "%sAdaptive: %s", highlight ? ">" : " ", config.adaptive ? "ON" : "OFF");
-  gfx_text(x, row_y, buf, GFX_FONT_SMALL);
+  ui_gfx_text(x, row_y, buf, GFX_FONT_SMALL);
   row_y += 10;
   
   // Feedback mode
@@ -212,7 +212,7 @@ static void draw_parameters(uint8_t x, uint8_t y) {
   uint8_t feedback_mode = rhythm_trainer_get_feedback_mode();
   if (feedback_mode > RHYTHM_FEEDBACK_WARNING) feedback_mode = RHYTHM_FEEDBACK_NONE;
   snprintf(buf, sizeof(buf), "%sFeedback: %s", highlight ? ">" : " ", feedback_names[feedback_mode]);
-  gfx_text(x, row_y, buf, GFX_FONT_SMALL);
+  ui_gfx_text(x, row_y, buf, GFX_FONT_SMALL);
 }
 
 /**
@@ -220,17 +220,17 @@ static void draw_parameters(uint8_t x, uint8_t y) {
  */
 void ui_page_rhythm_update(uint8_t force_redraw) {
   if (force_redraw) {
-    gfx_clear();
+    ui_gfx_clear(0);
   }
   
   // Header
-  gfx_text(0, 0, "RHYTHM TRAINER", GFX_FONT_NORMAL);
+  ui_gfx_text(0, 0, "RHYTHM TRAINER", GFX_FONT_NORMAL);
   
   uint8_t enabled = rhythm_trainer_get_enabled();
-  gfx_text(150, 0, enabled ? "[ON]" : "[OFF]", GFX_FONT_SMALL);
+  ui_gfx_text(150, 0, enabled ? "[ON]" : "[OFF]", GFX_FONT_SMALL);
   
   // Draw page indicator
-  gfx_text(240, 0, "RHYT", GFX_FONT_SMALL);
+  ui_gfx_text(240, 0, "RHYT", GFX_FONT_SMALL);
   
   // Main content area
   if (enabled) {
@@ -243,40 +243,40 @@ void ui_page_rhythm_update(uint8_t force_redraw) {
     
     // Left: Evaluation display
     const char* eval_label = rhythm_trainer_eval_name(last_eval);
-    gfx_text(10, 28, eval_label, GFX_FONT_LARGE);
+    ui_gfx_text(10, 28, eval_label, GFX_FONT_LARGE);
     
     // Show timing error in ms
     char buf[16];
     float error_ms = (float)last_error * 1000.0f / (96.0f * 2.0f);  // Approximate @ 120bpm
     snprintf(buf, sizeof(buf), "%+.1fms", error_ms);
-    gfx_text(10, 40, buf, GFX_FONT_SMALL);
+    ui_gfx_text(10, 40, buf, GFX_FONT_SMALL);
     
     // Right: Statistics (compact)
     rhythm_stats_t stats;
     rhythm_trainer_get_stats(&stats);
     
     snprintf(buf, sizeof(buf), "Accuracy: %d%%", stats.accuracy_percent);
-    gfx_text(120, 28, buf, GFX_FONT_SMALL);
+    ui_gfx_text(120, 28, buf, GFX_FONT_SMALL);
     
     snprintf(buf, sizeof(buf), "P:%lu G:%lu", stats.perfect_count, stats.good_count);
-    gfx_text(120, 36, buf, GFX_FONT_SMALL);
+    ui_gfx_text(120, 36, buf, GFX_FONT_SMALL);
     
     snprintf(buf, sizeof(buf), "E:%lu L:%lu O:%lu", stats.early_count, stats.late_count, stats.off_count);
-    gfx_text(120, 44, buf, GFX_FONT_SMALL);
+    ui_gfx_text(120, 44, buf, GFX_FONT_SMALL);
   } else {
-    gfx_text(10, 25, "Trainer disabled", GFX_FONT_NORMAL);
-    gfx_text(10, 38, "Press BTN3 to enable", GFX_FONT_SMALL);
+    ui_gfx_text(10, 25, "Trainer disabled", GFX_FONT_NORMAL);
+    ui_gfx_text(10, 38, "Press BTN3 to enable", GFX_FONT_SMALL);
   }
   
   // Bottom: Parameters (always visible)
-  gfx_draw_hline(0, 50, 256, 8);
+  ui_gfx_hline(0, 50, 256, 8);
   draw_parameters(5, 52);
   
   // Footer: Button labels
-  gfx_text(0, 56, s_edit_mode ? "VIEW" : "EDIT", GFX_FONT_SMALL);
-  gfx_text(40, 56, "RESET", GFX_FONT_SMALL);
-  gfx_text(80, 56, enabled ? "OFF" : "ON", GFX_FONT_SMALL);
-  gfx_text(220, 56, "PAGE", GFX_FONT_SMALL);
+  ui_gfx_text(0, 56, s_edit_mode ? "VIEW" : "EDIT", GFX_FONT_SMALL);
+  ui_gfx_text(40, 56, "RESET", GFX_FONT_SMALL);
+  ui_gfx_text(80, 56, enabled ? "OFF" : "ON", GFX_FONT_SMALL);
+  ui_gfx_text(220, 56, "PAGE", GFX_FONT_SMALL);
 }
 
 /**

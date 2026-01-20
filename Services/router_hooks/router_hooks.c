@@ -41,13 +41,19 @@ uint8_t router_hooks_get_track_map(uint8_t out_node) {
 
 /**
  * @brief Router tap hook - called for incoming messages (before routing)
- * Captures messages for MIDI Monitor and SysEx viewer
+ * Captures messages for MIDI Monitor, SysEx viewer, and Looper
  */
 void router_tap_hook(uint8_t in_node, const router_msg_t* msg) {
   if (!msg) return;
   
   // Update timestamp (approximate)
   g_timestamp_ms = osKernelGetTickCount();
+  
+  // Forward to looper (for recording)
+  #if MODULE_ENABLE_LOOPER
+  extern void looper_on_router_msg(uint8_t in_node, const router_msg_t* msg);
+  looper_on_router_msg(in_node, msg);
+  #endif
   
   // Capture for MIDI Monitor
   if (msg->type == ROUTER_MSG_SYSEX) {
