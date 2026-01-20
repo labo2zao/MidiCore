@@ -82,6 +82,10 @@
 #include "Services/humanize/humanize.h"
 #endif
 
+#if MODULE_ENABLE_LFO
+#include "Services/lfo/lfo.h"
+#endif
+
 #include "App/ain_midi_task.h"
 
 #if MODULE_ENABLE_AIN_RAW_DEBUG
@@ -233,16 +237,11 @@ void app_init_and_start(void)
   looper_init();
 #endif
 
-// Initialize LFO and Humanizer modules (used by looper)
 #if MODULE_ENABLE_LFO
-  #include "Services/lfo/lfo.h"
   lfo_init();
 #endif
 
-#if MODULE_ENABLE_HUMANIZER
-  #include "Services/humanize/humanize.h"
-  humanize_init();
-#endif
+// Note: humanize_init() is already called earlier in the init sequence (line ~204)
 
 #if MODULE_ENABLE_UI
   ui_init();
