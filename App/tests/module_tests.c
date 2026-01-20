@@ -135,10 +135,6 @@ extern void app_test_din_midi_run_forever(void);
 extern void app_test_ainser_midi_run_forever(void);
 #endif
 
-#ifdef DIN_SELFTEST
-extern void din_selftest_run(void);
-#endif
-
 #ifdef LOOPER_SELFTEST
 extern void app_start_looper_selftest(void);
 #endif
@@ -455,10 +451,7 @@ void module_test_srio_run(void)
   dbg_print("\r\n");
   osDelay(100); // Give time for UART transmission
   
-#if defined(DIN_SELFTEST) && defined(SRIO_ENABLE)
-  // Use existing DIN selftest
-  din_selftest_run();
-#elif MODULE_ENABLE_SRIO && defined(SRIO_ENABLE)
+#if MODULE_ENABLE_SRIO && defined(SRIO_ENABLE)
   dbg_print_test_header("SRIO Module Test");
   
   // Initialize SRIO

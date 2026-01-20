@@ -189,10 +189,8 @@ extern "C" {
 #define MODULE_ENABLE_LOOPER_SELFTEST 0  // Disabled by default
 #endif
 
-/** @brief Enable DIN self-test */
-#ifndef MODULE_ENABLE_DIN_SELFTEST
-#define MODULE_ENABLE_DIN_SELFTEST 0  // Disabled by default
-#endif
+// NOTE: DIN_SELFTEST has been removed - use MODULE_TEST_SRIO instead
+// The old DIN_SELFTEST was superseded by the comprehensive MODULE_TEST_SRIO test
 
 // =============================================================================
 // CONFIGURATION VALIDATION
