@@ -52,22 +52,6 @@ static looper_transport_t g_tp = { .bpm=120, .ts_num=4, .ts_den=4, .auto_loop=1 
 // Footswitch mapping (8 footswitches)
 #define NUM_FOOTSWITCHES 8
 
-typedef enum {
-    FS_ACTION_NONE = 0,
-    FS_ACTION_PLAY_STOP,
-    FS_ACTION_RECORD,
-    FS_ACTION_OVERDUB,
-    FS_ACTION_UNDO,
-    FS_ACTION_REDO,
-    FS_ACTION_TAP_TEMPO,
-    FS_ACTION_SELECT_TRACK,
-    FS_ACTION_TRIGGER_SCENE,
-    FS_ACTION_MUTE_TRACK,
-    FS_ACTION_SOLO_TRACK,
-    FS_ACTION_CLEAR_TRACK,
-    FS_ACTION_QUANTIZE_TRACK
-} footswitch_action_t;
-
 typedef struct {
     footswitch_action_t action;
     uint8_t param;  // Track number, scene number, etc.
