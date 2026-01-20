@@ -6,9 +6,8 @@
 // If the USB Host middleware is not present, the code builds as a stub anyway.
 #define ENABLE_USBH_MIDI 1
 
-// Router node ids for USB host (must match your router DSL config if you use it)
-#define ROUTER_NODE_USBH_IN   12
-#define ROUTER_NODE_USBH_OUT  13
+// Note: Router node IDs (ROUTER_NODE_USBH_IN, ROUTER_NODE_USBH_OUT, etc.) 
+// are now defined in router_config.h as enum values
 
 // -----------------------------------------------------------------------------
 // Debug helpers
