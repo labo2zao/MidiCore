@@ -123,11 +123,14 @@ int srio_read_din(uint8_t* out) {
   // Small delay after releasing /PL before starting SPI clock (setup time)
   for (volatile uint16_t i = 0; i < 10; ++i) { __NOP(); }  // ~60ns minimum delay
 
-  // Optimize: no need to clear buffer, will be overwritten
-  // Clock out data via SPI with dummy bytes.
-  uint8_t dummy = 0x00;
+  // IMPORTANT: MIOS32 sends DOUT data while receiving DIN in one combined transfer
+  // We simulate this by sending a buffer of 0x00 bytes (LEDs off state)
+  // This is critical - sending the same dummy byte repeatedly may not work properly
+  static uint8_t dout_dummy[32] = {0}; // Static buffer initialized to 0x00
+  
+  // Clock out data via SPI - send DOUT dummy data while receiving DIN
   for (uint16_t i = 0; i < g.din_bytes; i++) {
-    if (HAL_SPI_TransmitReceive(g.hspi, &dummy, &out[i], 1, 10) != HAL_OK) return -2;
+    if (HAL_SPI_TransmitReceive(g.hspi, &dout_dummy[i], &out[i], 1, 10) != HAL_OK) return -2;
   }
 
   if (g_din && g_din_buffer && g_din_changed) {
