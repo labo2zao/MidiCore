@@ -36,8 +36,10 @@ USB_OTG_FS.VirtualMode = OTG_FS
 **Settings:**
 - Mode: OTG_FS (not Host_Only, not Device_Only)
 - Enable ID pin: PA10 (already configured)
-- Enable VBUS sensing: Yes
+- VBUS sensing: **Optional** (enable if available, disable if not supported)
 - PHY Interface: Embedded
+
+**Important**: VBUS sensing is optional. ID pin (PA10) is required for mode detection.
 
 ### 1.3 Add USB_DEVICE Middleware
 
