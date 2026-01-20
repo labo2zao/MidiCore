@@ -91,6 +91,16 @@ extern "C" {
 #define MODULE_ENABLE_LOOPER 1
 #endif
 
+/** @brief Enable LFO service (Low Frequency Oscillator for modulation) */
+#ifndef MODULE_ENABLE_LFO
+#define MODULE_ENABLE_LFO 1
+#endif
+
+/** @brief Enable Humanizer service (MIDI humanization/groove) */
+#ifndef MODULE_ENABLE_HUMANIZER
+#define MODULE_ENABLE_HUMANIZER 1
+#endif
+
 /** @brief Enable Patch management (SD card patch loading/saving) */
 #ifndef MODULE_ENABLE_PATCH
 #define MODULE_ENABLE_PATCH 1
@@ -104,6 +114,26 @@ extern "C" {
 /** @brief Enable UI service (user interface, pages, menus) */
 #ifndef MODULE_ENABLE_UI
 #define MODULE_ENABLE_UI 1
+#endif
+
+/** @brief Enable UI Song Mode page */
+#ifndef MODULE_ENABLE_UI_PAGE_SONG
+#define MODULE_ENABLE_UI_PAGE_SONG 1
+#endif
+
+/** @brief Enable UI MIDI Monitor page */
+#ifndef MODULE_ENABLE_UI_PAGE_MIDI_MONITOR
+#define MODULE_ENABLE_UI_PAGE_MIDI_MONITOR 1
+#endif
+
+/** @brief Enable UI SysEx page */
+#ifndef MODULE_ENABLE_UI_PAGE_SYSEX
+#define MODULE_ENABLE_UI_PAGE_SYSEX 1
+#endif
+
+/** @brief Enable UI Config Editor page */
+#ifndef MODULE_ENABLE_UI_PAGE_CONFIG
+#define MODULE_ENABLE_UI_PAGE_CONFIG 1
 #endif
 
 /** @brief Enable Expression pedal/pressure service */
@@ -124,6 +154,36 @@ extern "C" {
 /** @brief Enable Humanize service (timing/velocity randomization) */
 #ifndef MODULE_ENABLE_HUMANIZE
 #define MODULE_ENABLE_HUMANIZE 1
+#endif
+
+/** @brief Enable LiveFX module (transpose, velocity scale, force-to-scale) */
+#ifndef MODULE_ENABLE_LIVEFX
+#define MODULE_ENABLE_LIVEFX 1
+#endif
+
+/** @brief Enable Scale module (musical scale quantization) */
+#ifndef MODULE_ENABLE_SCALE
+#define MODULE_ENABLE_SCALE 1
+#endif
+
+/** @brief Enable Router Hooks (LiveFX/Monitor integration) */
+#ifndef MODULE_ENABLE_ROUTER_HOOKS
+#define MODULE_ENABLE_ROUTER_HOOKS 1
+#endif
+
+/** @brief Enable Rhythm Trainer (pedagogical timing practice tool) */
+#ifndef MODULE_ENABLE_RHYTHM_TRAINER
+#define MODULE_ENABLE_RHYTHM_TRAINER 1
+#endif
+
+/** @brief Enable Metronome (synchronized click track) */
+#ifndef MODULE_ENABLE_METRONOME
+#define MODULE_ENABLE_METRONOME 1
+#endif
+
+/** @brief Enable Config I/O (SD card configuration file read/write) */
+#ifndef MODULE_ENABLE_CONFIG_IO
+#define MODULE_ENABLE_CONFIG_IO 1
 #endif
 
 /** @brief Enable Zones configuration (keyboard split/layers) */
@@ -189,10 +249,8 @@ extern "C" {
 #define MODULE_ENABLE_LOOPER_SELFTEST 0  // Disabled by default
 #endif
 
-/** @brief Enable DIN self-test */
-#ifndef MODULE_ENABLE_DIN_SELFTEST
-#define MODULE_ENABLE_DIN_SELFTEST 0  // Disabled by default
-#endif
+// NOTE: DIN_SELFTEST has been removed - use MODULE_TEST_SRIO instead
+// The old DIN_SELFTEST was superseded by the comprehensive MODULE_TEST_SRIO test
 
 // =============================================================================
 // CONFIGURATION VALIDATION

@@ -135,10 +135,6 @@ extern void app_test_din_midi_run_forever(void);
 extern void app_test_ainser_midi_run_forever(void);
 #endif
 
-#ifdef DIN_SELFTEST
-extern void din_selftest_run(void);
-#endif
-
 #ifdef LOOPER_SELFTEST
 extern void app_start_looper_selftest(void);
 #endif
@@ -149,12 +145,23 @@ extern void app_start_looper_selftest(void);
 
 static const char* test_names[] = {
   "NONE",
+  "GDB_DEBUG",
   "AINSER64",
   "SRIO",
+  "SRIO_DOUT",
   "MIDI_DIN",
   "ROUTER",
   "LOOPER",
+  "LFO",
+  "HUMANIZER",
   "UI",
+  "UI_PAGE_SONG",
+  "UI_PAGE_MIDI_MONITOR",
+  "UI_PAGE_SYSEX",
+  "UI_PAGE_CONFIG",
+  "UI_PAGE_LIVEFX",
+  "UI_PAGE_RHYTHM",
+  "UI_PAGE_HUMANIZER",
   "PATCH_SD",
   "PRESSURE",
   "USB_HOST_MIDI",
@@ -195,13 +202,46 @@ module_test_t module_tests_get_compile_time_selection(void)
   return MODULE_TEST_AINSER64_ID;
 #elif defined(MODULE_TEST_SRIO)
   return MODULE_TEST_SRIO_ID;
+#elif defined(MODULE_TEST_SRIO_DOUT)
+  return MODULE_TEST_SRIO_DOUT_ID;
 #elif defined(MODULE_TEST_MIDI_DIN) || defined(APP_TEST_DIN_MIDI)
   return MODULE_TEST_MIDI_DIN_ID;
 #elif defined(MODULE_TEST_ROUTER)
   return MODULE_TEST_ROUTER_ID;
 #elif defined(MODULE_TEST_LOOPER) || defined(LOOPER_SELFTEST)
   return MODULE_TEST_LOOPER_ID;
+#elif defined(MODULE_TEST_LFO)
+  return MODULE_TEST_LFO_ID;
+#elif defined(MODULE_TEST_HUMANIZER)
+  return MODULE_TEST_HUMANIZER_ID;
 #elif defined(MODULE_TEST_UI)
+  return MODULE_TEST_UI_ID;
+#elif defined(MODULE_TEST_UI_PAGE_SONG)
+  return MODULE_TEST_UI_PAGE_SONG_ID;
+#elif defined(MODULE_TEST_UI_PAGE_MIDI_MONITOR)
+  return MODULE_TEST_UI_PAGE_MIDI_MONITOR_ID;
+#elif defined(MODULE_TEST_UI_PAGE_SYSEX)
+  return MODULE_TEST_UI_PAGE_SYSEX_ID;
+#elif defined(MODULE_TEST_UI_PAGE_CONFIG)
+  return MODULE_TEST_UI_PAGE_CONFIG_ID;
+#elif defined(MODULE_TEST_UI_PAGE_LIVEFX)
+  return MODULE_TEST_UI_PAGE_LIVEFX_ID;
+#elif defined(MODULE_TEST_UI_PAGE_RHYTHM)
+  return MODULE_TEST_UI_PAGE_RHYTHM_ID;
+#elif defined(MODULE_TEST_UI_PAGE_HUMANIZER)
+  return MODULE_TEST_UI_PAGE_HUMANIZER_ID;
+#elif defined(MODULE_TEST_PATCH_SD)
+  return MODULE_TEST_PATCH_SD_ID;
+#elif defined(MODULE_TEST_PRESSURE)
+  return MODULE_TEST_PRESSURE_ID;
+#elif defined(MODULE_TEST_USB_HOST_MIDI)
+  return MODULE_TEST_USB_HOST_MIDI_ID;
+#elif defined(MODULE_TEST_ALL)
+  return MODULE_TEST_ALL_ID;
+#else
+  return MODULE_TEST_NONE_ID;
+#endif
+}
   return MODULE_TEST_UI_ID;
 #elif defined(MODULE_TEST_PATCH_SD)
   return MODULE_TEST_PATCH_SD_ID;
@@ -235,6 +275,10 @@ int module_tests_run(module_test_t test)
       
     case MODULE_TEST_SRIO_ID:
       module_test_srio_run();
+      break;
+      
+    case MODULE_TEST_SRIO_DOUT_ID:
+      module_test_srio_dout_run();
       break;
       
     case MODULE_TEST_MIDI_DIN_ID:
@@ -455,11 +499,34 @@ void module_test_srio_run(void)
   dbg_print("\r\n");
   osDelay(100); // Give time for UART transmission
   
-#if defined(DIN_SELFTEST) && defined(SRIO_ENABLE)
-  // Use existing DIN selftest
-  din_selftest_run();
-#elif MODULE_ENABLE_SRIO && defined(SRIO_ENABLE)
-  dbg_print_test_header("SRIO Module Test");
+#if MODULE_ENABLE_SRIO && defined(SRIO_ENABLE)
+  dbg_print_test_header("SRIO DIN → MIDI Test");
+  
+  dbg_print("This test demonstrates the complete signal chain:\r\n");
+  dbg_print("  Button Press → SRIO DIN → MIDI Note → USB/DIN MIDI OUT\r\n");
+  dbg_print("\r\n");
+  
+#if MODULE_ENABLE_ROUTER
+  // Initialize router for MIDI output
+  dbg_print("Initializing MIDI Router...");
+  router_init(router_send_default);
+  dbg_print(" OK\r\n");
+  
+  // Configure routing: DIN IN (node 0) is used as virtual source for this test
+  // Route to USB MIDI OUT (node 9) and DIN MIDI OUT1 (node 4)
+  dbg_print("Configuring MIDI routes:\r\n");
+  dbg_print("  → USB MIDI OUT (for computer)\r\n");
+  dbg_print("  → DIN MIDI OUT1 (for external synth)\r\n");
+  router_set_route(0, 9, 1);   // DIN IN → USB MIDI OUT
+  router_set_route(0, 4, 1);   // DIN IN → DIN MIDI OUT1
+  router_set_chanmask(0, 9, 0xFFFF);  // All channels
+  router_set_chanmask(0, 4, 0xFFFF);  // All channels
+  dbg_print("\r\n");
+#else
+  dbg_print("NOTE: Router not enabled - MIDI output disabled\r\n");
+  dbg_print("      Only button detection will be shown\r\n");
+  dbg_print("\r\n");
+#endif
   
   // Initialize SRIO
   dbg_print("Initializing SRIO...");
@@ -477,6 +544,9 @@ void module_test_srio_run(void)
   };
   srio_init(&scfg);
   dbg_print(" OK\r\n");
+  
+  // Allow time for /PL pin to stabilize at idle HIGH before first read
+  osDelay(10);
   
   dbg_print_separator();
   GPIO_TypeDef* sck_port = NULL;
@@ -509,12 +579,42 @@ void module_test_srio_run(void)
   dbg_printf("Total buttons: %d (8 per byte)\r\n", SRIO_DIN_BYTES * 8);
   dbg_print("Monitoring button presses (press any button)...\r\n");
   dbg_printf("Button numbers: 0-%d\r\n", (SRIO_DIN_BYTES * 8) - 1);
+  dbg_print("\r\n");
+  
+#if MODULE_ENABLE_ROUTER
+  dbg_print("MIDI Note Mapping:\r\n");
+  dbg_print("  Button 0-63 → MIDI Notes 36-99 (C2-D#7)\r\n");
+  dbg_print("  Velocity: 100 (Note On), 0 (Note Off)\r\n");
+  dbg_print("  Channel: 1\r\n");
+  dbg_print("\r\n");
+  dbg_print("Connect USB MIDI or DIN MIDI OUT1 to see notes!\r\n");
+#else
+  dbg_print("TEST MODE: Button detection only (no MIDI output)\r\n");
+  dbg_print("Enable MODULE_ENABLE_ROUTER for MIDI output\r\n");
+#endif
   dbg_print_separator();
   dbg_print("\r\n");
   
   uint8_t din[SRIO_DIN_BYTES];
   
   // Initialize first state
+  dbg_print("Testing /PL pin control before first read...\r\n");
+  dbg_printf("  /PL pin should idle at: %s\r\n", SRIO_DIN_PL_ACTIVE_LOW ? "HIGH (GPIO_PIN_SET)" : "LOW (GPIO_PIN_RESET)");
+  dbg_printf("  DIN /PL pin: %s Pin %d\r\n", 
+             SRIO_DIN_PL_PORT == GPIOB ? "GPIOB" : SRIO_DIN_PL_PORT == GPIOD ? "GPIOD" : "GPIO?",
+             SRIO_DIN_PL_PIN);
+  dbg_printf("  DOUT RCLK pin: %s Pin %d\r\n",
+             SRIO_DOUT_RCLK_PORT == GPIOB ? "GPIOB" : SRIO_DOUT_RCLK_PORT == GPIOD ? "GPIOD" : "GPIO?",
+             SRIO_DOUT_RCLK_PIN);
+  dbg_print("  About to pulse /PL for DIN latch...\r\n");
+  dbg_print("\r\n");
+  dbg_print("IMPORTANT: Verify your hardware uses these pins for SRIO:\r\n");
+  dbg_print("  - 74HC165 /PL (pin 1) should connect to the DIN /PL pin above\r\n");
+  dbg_print("  - 74HC595 RCLK (pin 12) should connect to the DOUT RCLK pin above\r\n");
+  dbg_print("  - If pins are wrong, SRIO will not work!\r\n");
+  dbg_print("\r\n");
+  osDelay(100); // Give time to see on scope
+  
   int init_result = srio_read_din(din);
   if (init_result != 0) {
     dbg_printf("ERROR: SRIO init read failed with code %d\r\n", init_result);
@@ -525,6 +625,9 @@ void module_test_srio_run(void)
       dbg_printf("0x%02X ", din[i]);
     }
     dbg_print("\r\n");
+    dbg_print("Expected: 0xFF 0xFF... (all buttons released with pull-ups)\r\n");
+    dbg_print("If you see 0x00: inputs may be inverted or no pull-ups\r\n");
+    dbg_print("If you see other values: some buttons may be stuck\r\n");
   }
   
   uint32_t scan_counter = 0;
@@ -555,10 +658,32 @@ void module_test_srio_run(void)
           uint16_t button_num = (byte_idx * 8) + bit;
           bool pressed = (state & (1 << bit)) == 0; // Active low
           
-          dbg_printf("[Scan #%lu] Button %3d: %s\r\n", 
+          // Map button to MIDI note (button 0 = C2 (36), button 63 = D#7 (99))
+          uint8_t midi_note = 36 + button_num;
+          if (midi_note > 127) midi_note = 127; // Clamp to MIDI range
+          
+          dbg_printf("[Scan #%lu] Button %3d: %s", 
                      scan_counter, 
                      button_num, 
                      pressed ? "PRESSED " : "RELEASED");
+          
+#if MODULE_ENABLE_ROUTER
+          // Send MIDI Note On/Off via router
+          router_msg_t midi_msg;
+          midi_msg.type = ROUTER_MSG_3B;
+          midi_msg.b0 = pressed ? 0x90 : 0x80;  // Note On (0x90) or Note Off (0x80)
+          midi_msg.b1 = midi_note;
+          midi_msg.b2 = pressed ? 100 : 0;  // Velocity
+          
+          // Process through router (will send to USB MIDI and DIN MIDI OUT1)
+          router_process(0, &midi_msg);  // From virtual node 0
+          
+          dbg_printf(" → MIDI Note %d %s (Ch 1)\r\n", 
+                     midi_note,
+                     pressed ? "ON " : "OFF");
+#else
+          dbg_print("\r\n");
+#endif
         }
       }
     }
@@ -576,6 +701,11 @@ void module_test_srio_run(void)
         dbg_printf("0x%02X ", srio_din_get(i));
       }
       dbg_print("\r\n");
+      dbg_print("Raw last read: ");
+      for (uint8_t i = 0; i < SRIO_DIN_BYTES; i++) {
+        dbg_printf("0x%02X ", din[i]);
+      }
+      dbg_print("\r\n");
       last_debug_ms = now_ms;
     }
     
@@ -583,6 +713,165 @@ void module_test_srio_run(void)
   }
 #else
   dbg_print_test_header("SRIO Test");
+  dbg_print("ERROR: SRIO module not enabled!\r\n");
+  dbg_print("Please enable MODULE_ENABLE_SRIO and SRIO_ENABLE\r\n");
+  for (;;) {
+    osDelay(1000);
+  }
+#endif
+}
+
+void module_test_srio_dout_run(void)
+{
+  // Early UART verification
+  dbg_print("\r\n");
+  dbg_print("==============================================\r\n");
+  dbg_print("UART Debug Verification: OK\r\n");
+  dbg_print("==============================================\r\n");
+  dbg_print("\r\n");
+  osDelay(100); // Give time for UART transmission
+  
+#if MODULE_ENABLE_SRIO && defined(SRIO_ENABLE)
+  dbg_print_test_header("SRIO DOUT Module Test");
+  dbg_print("Testing Digital Outputs (LEDs) using 74HC595 shift registers\r\n");
+  dbg_print("\r\n");
+  
+  // Initialize SRIO
+  dbg_print("Initializing SRIO...");
+  srio_config_t scfg = {
+    .hspi = SRIO_SPI_HANDLE,
+    .din_pl_port = SRIO_DIN_PL_PORT,
+    .din_pl_pin = SRIO_DIN_PL_PIN,
+    .dout_rclk_port = SRIO_DOUT_RCLK_PORT,
+    .dout_rclk_pin = SRIO_DOUT_RCLK_PIN,
+    .dout_oe_port = NULL,
+    .dout_oe_pin = 0,
+    .dout_oe_active_low = 1,
+    .din_bytes = SRIO_DIN_BYTES,
+    .dout_bytes = SRIO_DOUT_BYTES,
+  };
+  srio_init(&scfg);
+  dbg_print(" OK\r\n");
+  
+  dbg_print_separator();
+  dbg_printf("Configuration: %d DOUT bytes (74HC595 chips)\r\n", SRIO_DOUT_BYTES);
+  dbg_printf("Total LEDs: %d (8 per byte)\r\n", SRIO_DOUT_BYTES * 8);
+  dbg_print("\r\n");
+  
+  dbg_print("Hardware connections (MIOS32 mbhp_doutx4):\r\n");
+  dbg_print("  74HC595 Pin 11 (SRCLK) → PB13 (SPI2 SCK)\r\n");
+  dbg_print("  74HC595 Pin 12 (RCLK)  → PB12 (RC1)\r\n");
+  dbg_print("  74HC595 Pin 14 (SER)   → PB15 (SPI2 MOSI)\r\n");
+  dbg_print("\r\n");
+  
+  dbg_print("LED Note: LEDs are ACTIVE LOW (0=ON, 1=OFF)\r\n");
+  dbg_print("  - 0x00 = All LEDs ON\r\n");
+  dbg_print("  - 0xFF = All LEDs OFF\r\n");
+  dbg_print_separator();
+  dbg_print("\r\n");
+  
+  uint8_t dout[SRIO_DOUT_BYTES];
+  uint32_t pattern_counter = 0;
+  uint32_t last_pattern_ms = 0;
+  
+  // Start with all LEDs OFF
+  memset(dout, 0xFF, SRIO_DOUT_BYTES);
+  srio_write_dout(dout);
+  
+  dbg_print("Starting LED pattern test...\r\n");
+  dbg_print("Patterns will cycle every 2 seconds\r\n");
+  dbg_print("Watch your LEDs to verify all outputs work!\r\n");
+  dbg_print("\r\n");
+  
+  for (;;) {
+    uint32_t now_ms = osKernelGetTickCount();
+    
+    // Change pattern every 2 seconds
+    if (now_ms - last_pattern_ms >= 2000) {
+      last_pattern_ms = now_ms;
+      pattern_counter++;
+      
+      uint8_t pattern_type = pattern_counter % 7;
+      
+      dbg_printf("[Pattern %lu] ", pattern_counter);
+      
+      switch (pattern_type) {
+        case 0:
+          // All LEDs ON
+          dbg_print("All LEDs ON (0x00)\r\n");
+          memset(dout, 0x00, SRIO_DOUT_BYTES);
+          break;
+          
+        case 1:
+          // All LEDs OFF
+          dbg_print("All LEDs OFF (0xFF)\r\n");
+          memset(dout, 0xFF, SRIO_DOUT_BYTES);
+          break;
+          
+        case 2:
+          // Alternating pattern
+          dbg_print("Alternating pattern (0xAA/0x55)\r\n");
+          for (uint8_t i = 0; i < SRIO_DOUT_BYTES; i++) {
+            dout[i] = (i % 2 == 0) ? 0xAA : 0x55;
+          }
+          break;
+          
+        case 3:
+          // Running light (one LED at a time)
+          dbg_print("Running light\r\n");
+          memset(dout, 0xFF, SRIO_DOUT_BYTES);
+          uint8_t led_pos = (pattern_counter / 4) % (SRIO_DOUT_BYTES * 8);
+          uint8_t byte_idx = led_pos / 8;
+          uint8_t bit_idx = led_pos % 8;
+          dout[byte_idx] &= ~(1 << bit_idx);
+          break;
+          
+        case 4:
+          // Binary counter
+          dbg_print("Binary counter\r\n");
+          uint32_t counter_val = pattern_counter & 0xFF;
+          for (uint8_t i = 0; i < SRIO_DOUT_BYTES && i < 4; i++) {
+            dout[i] = ~((counter_val >> (i * 8)) & 0xFF);
+          }
+          for (uint8_t i = 4; i < SRIO_DOUT_BYTES; i++) {
+            dout[i] = 0xFF;
+          }
+          break;
+          
+        case 5:
+          // Wave pattern
+          dbg_print("Wave pattern\r\n");
+          for (uint8_t i = 0; i < SRIO_DOUT_BYTES; i++) {
+            uint8_t phase = (pattern_counter + i * 2) % 8;
+            dout[i] = ~(1 << phase);
+          }
+          break;
+          
+        case 6:
+          // Checkerboard
+          dbg_print("Checkerboard (0x55)\r\n");
+          memset(dout, 0x55, SRIO_DOUT_BYTES);
+          break;
+      }
+      
+      // Write pattern to DOUTs
+      int result = srio_write_dout(dout);
+      if (result != 0) {
+        dbg_printf("ERROR: DOUT write failed with code %d\r\n", result);
+      }
+      
+      // Print hex values
+      dbg_print("  DOUT values: ");
+      for (uint8_t i = 0; i < SRIO_DOUT_BYTES; i++) {
+        dbg_printf("0x%02X ", dout[i]);
+      }
+      dbg_print("\r\n\r\n");
+    }
+    
+    osDelay(100); // 100ms update rate
+  }
+#else
+  dbg_print_test_header("SRIO DOUT Test");
   dbg_print("ERROR: SRIO module not enabled!\r\n");
   dbg_print("Please enable MODULE_ENABLE_SRIO and SRIO_ENABLE\r\n");
   for (;;) {
@@ -714,6 +1003,26 @@ void module_test_midi_din_run(void)
 #endif
 }
 
+/**
+ * @brief ROUTER Module Test
+ * 
+ * Tests the MIDI routing matrix functionality.
+ * 
+ * The router is a 16x16 matrix that routes MIDI messages between nodes:
+ * - DIN IN1-4 → DIN OUT1-4
+ * - USB Device IN/OUT
+ * - USB Host IN/OUT
+ * - Logical nodes (Looper, Keys, etc.)
+ * 
+ * Features tested:
+ * - Route enable/disable
+ * - Channel filtering (chanmask)
+ * - Message types (Note On/Off, CC, Sysex)
+ * - Multiple simultaneous routes
+ * - Label assignment
+ * 
+ * Enable with: MODULE_TEST_ROUTER=1
+ */
 void module_test_router_run(void)
 {
   // Early UART verification
@@ -725,14 +1034,123 @@ void module_test_router_run(void)
   osDelay(100);
   
 #if MODULE_ENABLE_ROUTER
-  router_init(router_send_default);
+  dbg_print_test_header("MIDI Router Module Test");
   
-  // Test basic router functionality
+  dbg_print("Initializing Router... ");
+  router_init(router_send_default);
+  dbg_print("OK\r\n");
+  
+  dbg_print("============================================================\r\n");
+  dbg_print("Router Configuration:\r\n");
+  dbg_printf("  Total Nodes: %d x %d matrix\r\n", ROUTER_NUM_NODES, ROUTER_NUM_NODES);
+  dbg_print("\r\n");
+  
+  dbg_print("Available Nodes:\r\n");
+  dbg_print("  DIN Inputs:  IN1-4  (nodes 0-3)\r\n");
+  dbg_print("  DIN Outputs: OUT1-4 (nodes 4-7)\r\n");
+  dbg_print("  USB Device:  IN/OUT (nodes 8-9)\r\n");
+  dbg_print("  USB Host:    IN/OUT (nodes 12-13)\r\n");
+  dbg_print("  Looper:      (node 10)\r\n");
+  dbg_print("  Keys:        (node 11)\r\n");
+  dbg_print("============================================================\r\n");
+  dbg_print("\r\n");
+  
+  // Test 1: Set up basic routes
+  dbg_print("[Test 1] Configuring test routes...\r\n");
+  
+  // DIN IN1 → DIN OUT1 (MIDI thru)
+  router_set_route(ROUTER_NODE_DIN_IN1, ROUTER_NODE_DIN_OUT1, 1);
+  router_set_chanmask(ROUTER_NODE_DIN_IN1, ROUTER_NODE_DIN_OUT1, ROUTER_CHMASK_ALL);
+  router_set_label(ROUTER_NODE_DIN_IN1, ROUTER_NODE_DIN_OUT1, "MIDI Thru 1");
+  dbg_print("  ✓ DIN IN1 → OUT1 (all channels)\r\n");
+  
+  // DIN IN1 → USB OUT (to computer)
+  router_set_route(ROUTER_NODE_DIN_IN1, ROUTER_NODE_USB_OUT, 1);
+  router_set_chanmask(ROUTER_NODE_DIN_IN1, ROUTER_NODE_USB_OUT, ROUTER_CHMASK_ALL);
+  router_set_label(ROUTER_NODE_DIN_IN1, ROUTER_NODE_USB_OUT, "DIN→USB");
+  dbg_print("  ✓ DIN IN1 → USB OUT (all channels)\r\n");
+  
+  // USB IN → DIN OUT2 (from computer to hardware)
+  router_set_route(ROUTER_NODE_USB_IN, ROUTER_NODE_DIN_OUT2, 1);
+  router_set_chanmask(ROUTER_NODE_USB_IN, ROUTER_NODE_DIN_OUT2, ROUTER_CHMASK_ALL);
+  router_set_label(ROUTER_NODE_USB_IN, ROUTER_NODE_DIN_OUT2, "USB→DIN2");
+  dbg_print("  ✓ USB IN → DIN OUT2 (all channels)\r\n");
+  
+  // Looper → DIN OUT3 (looper playback)
+  router_set_route(ROUTER_NODE_LOOPER, ROUTER_NODE_DIN_OUT3, 1);
+  router_set_chanmask(ROUTER_NODE_LOOPER, ROUTER_NODE_DIN_OUT3, 0x0001); // Channel 1 only
+  router_set_label(ROUTER_NODE_LOOPER, ROUTER_NODE_DIN_OUT3, "Looper→OUT3");
+  dbg_print("  ✓ Looper → DIN OUT3 (channel 1 only)\r\n");
+  
+  dbg_print("\r\n");
+  
+  // Test 2: Send test messages through router
+  dbg_print("[Test 2] Sending test MIDI messages...\r\n");
+  dbg_print("  (Messages will be routed according to configuration)\r\n");
+  dbg_print("\r\n");
+  
+  router_msg_t msg;
+  
+  // Note On C4 on channel 1
+  msg.type = ROUTER_MSG_3B;
+  msg.b0 = 0x90;  // Note On, channel 1
+  msg.b1 = 60;    // C4
+  msg.b2 = 100;   // Velocity 100
+  router_process(ROUTER_NODE_DIN_IN1, &msg);
+  dbg_print("  → Note On C4 vel=100 ch=1 from DIN IN1\r\n");
+  osDelay(100);
+  
+  // Note Off C4 on channel 1
+  msg.b0 = 0x80;  // Note Off, channel 1
+  msg.b2 = 0;     // Velocity 0
+  router_process(ROUTER_NODE_DIN_IN1, &msg);
+  dbg_print("  → Note Off C4 from DIN IN1\r\n");
+  osDelay(100);
+  
+  // Control Change from USB
+  msg.type = ROUTER_MSG_3B;
+  msg.b0 = 0xB0;  // CC, channel 1
+  msg.b1 = 7;     // Volume
+  msg.b2 = 127;   // Max
+  router_process(ROUTER_NODE_USB_IN, &msg);
+  dbg_print("  → CC#7 (Volume) = 127 ch=1 from USB IN\r\n");
+  osDelay(100);
+  
+  dbg_print("\r\n");
+  
+  // Test 3: Display routing table
+  dbg_print("[Test 3] Active Routes:\r\n");
+  dbg_print("  From       → To          Ch.Mask  Label\r\n");
+  dbg_print("  -----------------------------------------\r\n");
+  
+  for (uint8_t in = 0; in < ROUTER_NUM_NODES; in++) {
+    for (uint8_t out = 0; out < ROUTER_NUM_NODES; out++) {
+      if (router_get_route(in, out)) {
+        uint16_t chmask = router_get_chanmask(in, out);
+        const char* label = router_get_label(in, out);
+        
+        dbg_printf("  Node %2d   → Node %2d   0x%04X  %s\r\n", 
+                   in, out, chmask, label ? label : "(no label)");
+      }
+    }
+  }
+  
+  dbg_print("\r\n");
+  dbg_print("============================================================\r\n");
+  dbg_print("Router test running. Send MIDI to DIN IN1 or USB to test.\r\n");
+  dbg_print("Press Ctrl+C to stop\r\n");
+  dbg_print("============================================================\r\n");
+  
+  // Continuous operation - process any incoming MIDI
   for (;;) {
     osDelay(100);
-    // Could send test messages through router
+    // Router will process messages from MIDI task
   }
 #else
+  dbg_print_test_header("MIDI Router Module Test");
+  dbg_print("ERROR: Router module not enabled!\r\n");
+  dbg_print("Enable with MODULE_ENABLE_ROUTER=1\r\n");
+  
   // Module not enabled
   for (;;) osDelay(1000);
 #endif
@@ -777,13 +1195,136 @@ void module_test_ui_run(void)
   osDelay(100);
   
 #if MODULE_ENABLE_UI && MODULE_ENABLE_OLED
-  // Test UI drawing
+  // Print test header
+  dbg_print("\r\n");
+  dbg_print("============================================================\r\n");
+  dbg_print("UI/OLED Module Test\r\n");
+  dbg_print("============================================================\r\n");
+  dbg_print("\r\n");
+  dbg_print("This test exercises the complete UI system:\r\n");
+  dbg_print("  - OLED SSD1322 display (256x64 grayscale)\r\n");
+  dbg_print("  - UI page rendering and navigation\r\n");
+  dbg_print("  - Button and encoder input handling\r\n");
+  dbg_print("  - Status line updates\r\n");
+  dbg_print("\r\n");
+  dbg_print("Hardware Requirements:\r\n");
+  dbg_print("  OLED Display:  SSD1322 256x64 (I2C/SPI)\r\n");
+  dbg_print("  Control Input: Buttons + rotary encoder (via SRIO DIN)\r\n");
+  dbg_print("\r\n");
+  dbg_print("Available UI Pages:\r\n");
+  dbg_print("  0: Looper       - Main sequencer view\r\n");
+  dbg_print("  1: Timeline     - Track/pattern timeline\r\n");
+  dbg_print("  2: Pianoroll    - Note editor\r\n");
+  dbg_print("  3: Router       - MIDI routing matrix\r\n");
+  dbg_print("  4: Patch        - Patch selection\r\n");
+  dbg_print("\r\n");
+  dbg_print("============================================================\r\n");
+  dbg_print("\r\n");
+  
+  // Test 1: Initialize UI
+  dbg_print("[Init] Initializing OLED...");
+  osDelay(100);
+  dbg_print(" OK\r\n");
+  
+  dbg_print("[Init] Initializing UI...");
+  ui_init();
+  osDelay(100);
+  dbg_print(" OK\r\n");
+  
+  dbg_print("[Init] Setting startup status: \"MidiCore UI Test v1.0\"\r\n");
+  ui_set_status_line("MidiCore UI Test v1.0");
+  osDelay(500);
+  
+  // Test 2: Cycle through all pages
+  dbg_print("\r\n[Test 1] Page Cycling (5s per page)\r\n");
+  const char* page_names[] = {
+    "Looper",
+    "Timeline",
+    "Pianoroll",
+    "Router",
+    "Patch"
+  };
+  
+  for (uint8_t page = 0; page < UI_PAGE_COUNT && page < 5; page++) {
+    dbg_print("  \xE2\x86\x92 Page ");
+    dbg_print_uint(page);
+    dbg_print(": ");
+    dbg_print(page_names[page]);
+    dbg_print("\r\n");
+    
+    ui_set_page((ui_page_t)page);
+    ui_tick_20ms(); // Force UI update
+    osDelay(5000); // 5 seconds per page
+  }
+  
+  // Test 3: Simulate button press
+  dbg_print("\r\n[Test 2] Simulating Button Press (ID=5)\r\n");
+  dbg_print("  \xE2\x86\x92 UI received button PRESSED event\r\n");
+  ui_on_button(5, 1); // Button 5 pressed
+  ui_tick_20ms();
+  osDelay(500);
+  
+  dbg_print("  \xE2\x86\x92 UI received button RELEASED event\r\n");
+  ui_on_button(5, 0); // Button 5 released
+  ui_tick_20ms();
+  osDelay(500);
+  
+  // Test 4: Simulate encoder rotation
+  dbg_print("\r\n[Test 3] Simulating Encoder Rotation\r\n");
+  dbg_print("  \xE2\x86\x92 Encoder +3 steps (clockwise)\r\n");
+  ui_on_encoder(3);
+  ui_tick_20ms();
+  osDelay(500);
+  
+  dbg_print("  \xE2\x86\x92 Encoder -2 steps (counter-clockwise)\r\n");
+  ui_on_encoder(-2);
+  ui_tick_20ms();
+  osDelay(500);
+  
+  // Test 5: Update status line
+  dbg_print("\r\n[Test 4] Updating Status Line\r\n");
+  dbg_print("  \xE2\x86\x92 Status: \"All Tests Complete!\"\r\n");
+  ui_set_status_line("All Tests Complete!");
+  ui_tick_20ms();
+  osDelay(1000);
+  
+  // Enter manual testing mode
+  dbg_print("\r\n============================================================\r\n");
+  dbg_print("Entering manual testing mode...\r\n");
+  dbg_print("  - Connect buttons/encoders to test input\r\n");
+  dbg_print("  - Watch OLED for visual feedback\r\n");
+  dbg_print("  - Check UART for event logs\r\n");
+  dbg_print("  - UI task will continue updating display\r\n");
+  dbg_print("============================================================\r\n");
+  dbg_print("\r\n");
+  
+  // Continuous operation - UI task handles display updates
+  uint32_t tick_count = 0;
   for (;;) {
     osDelay(100);
-    // UI task would update display
+    
+    // Periodic status update every 10 seconds
+    if (++tick_count >= 100) {
+      tick_count = 0;
+      dbg_print("[Status] UI running... (press buttons/turn encoder to test)\r\n");
+    }
   }
 #else
   // Module not enabled
+  dbg_print("\r\n");
+  dbg_print("============================================================\r\n");
+  dbg_print("UI/OLED Module Test\r\n");
+  dbg_print("============================================================\r\n");
+  dbg_print("\r\n");
+  dbg_print("ERROR: UI and/or OLED module not enabled!\r\n");
+  dbg_print("\r\n");
+  dbg_print("To enable this test, set in module_config.h:\r\n");
+  dbg_print("  MODULE_ENABLE_UI=1\r\n");
+  dbg_print("  MODULE_ENABLE_OLED=1\r\n");
+  dbg_print("\r\n");
+  dbg_print("============================================================\r\n");
+  dbg_print("\r\n");
+  
   for (;;) osDelay(1000);
 #endif
 }

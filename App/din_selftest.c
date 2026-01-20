@@ -1,3 +1,20 @@
+/**
+ * @file din_selftest.c
+ * @brief DEPRECATED: Legacy DIN test - use MODULE_TEST_SRIO instead
+ * 
+ * This file contains the old DIN self-test which has been superseded by
+ * the comprehensive MODULE_TEST_SRIO test in App/tests/module_tests.c
+ * 
+ * The new test provides:
+ * - Full button press/release detection
+ * - Debounce support (MIOS32-compatible)
+ * - Comprehensive diagnostics
+ * - Pin mapping verification
+ * 
+ * This legacy code is kept for reference only.
+ * To use the new test, set: MODULE_TEST_SRIO=1
+ */
+
 #include "App/din_selftest.h"
 
 #include "Hal/uart_midi/hal_uart_midi.h"

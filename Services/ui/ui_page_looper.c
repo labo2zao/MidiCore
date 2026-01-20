@@ -40,7 +40,7 @@ void ui_page_looper_render(uint32_t now_ms) {
     looper_state_t st = looper_get_state(t);
     uint16_t beats = looper_get_loop_beats(t);
     looper_quant_t q = looper_get_quant(t);
-    uint8_t mute = looper_get_mute(t);
+    uint8_t mute = looper_is_track_muted(t);
 
     snprintf(line, sizeof(line), "%cT%u %-4s L:%u Q:%s M:%u",
              (t==sel_track)?'>':' ', (unsigned)(t+1), st_name(st),
@@ -58,7 +58,7 @@ void ui_page_looper_on_button(uint8_t id, uint8_t pressed) {
     case 1: looper_set_state(sel_track, LOOPER_STATE_REC); break;
     case 2: looper_set_state(sel_track, LOOPER_STATE_PLAY); break;
     case 3: looper_set_state(sel_track, LOOPER_STATE_STOP); break;
-    case 4: looper_set_mute(sel_track, (uint8_t)!looper_get_mute(sel_track)); break;
+    case 4: looper_set_track_muted(sel_track, (uint8_t)!looper_is_track_muted(sel_track)); break;
     default: break;
   }
 }

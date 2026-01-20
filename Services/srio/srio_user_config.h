@@ -37,8 +37,8 @@ extern SPI_HandleTypeDef hspi2;
 #endif
 
 #ifndef SRIO_SPI_CPOL
-// MIOS32 SRIO default: CPOL=0 (LOW), CPHA=1 (2EDGE).
-#define SRIO_SPI_CPOL SPI_POLARITY_LOW
+// MIOS32 SRIO default: CLK1_PHASE1 = CPOL=1 (HIGH), CPHA=1 (2EDGE).
+#define SRIO_SPI_CPOL SPI_POLARITY_HIGH
 #endif
 
 #ifndef SRIO_SPI_CPHA
