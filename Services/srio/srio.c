@@ -126,11 +126,14 @@ int srio_read_din(uint8_t* out) {
 #endif
   for (volatile uint16_t i = 0; i < 10; ++i) { __NOP(); }  // Setup time
   
-  // 3. SPI transfer: send DOUT data while receiving DIN (MIOS32 combined scan)
-  // Use dummy DOUT buffer (all zeros = LEDs off) for now
-  static uint8_t dout_dummy[32] = {0};
-  for (uint16_t i = 0; i < g.din_bytes; i++) {
-    if (HAL_SPI_TransmitReceive(g.hspi, &dout_dummy[i], &out[i], 1, 10) != HAL_OK) return -2;
+  // 3. SPI transfer: CRITICAL - do ONE BULK transfer, not byte-by-byte!
+  // MIOS32 does a single DMA/bulk transfer which keeps CLK running continuously
+  // Byte-by-byte transfers cause CLK gaps that confuse the 74HC165
+  static uint8_t dout_dummy[32] = {0};  // DOUT data (all zeros = LEDs off)
+  
+  // Single bulk SPI transfer for all bytes
+  if (HAL_SPI_TransmitReceive(g.hspi, dout_dummy, out, g.din_bytes, 100) != HAL_OK) {
+    return -2;
   }
   
   // 4. Pulse RCLK (RC1) HIGH to latch shifted-out DOUT data into 74HC595 outputs
