@@ -233,6 +233,17 @@ void app_init_and_start(void)
   looper_init();
 #endif
 
+// Initialize LFO and Humanizer modules (used by looper)
+#if MODULE_ENABLE_LFO
+  #include "Services/lfo/lfo.h"
+  lfo_init();
+#endif
+
+#if MODULE_ENABLE_HUMANIZER
+  #include "Services/humanize/humanize.h"
+  humanize_init();
+#endif
+
 #if MODULE_ENABLE_UI
   ui_init();
 #endif
