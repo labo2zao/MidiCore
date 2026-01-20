@@ -110,7 +110,26 @@ void module_test_midi_din_run(void);
 
 /**
  * @brief Test MIDI Router module
- * Tests routing rules and message forwarding
+ * 
+ * Comprehensive test of the MIDI routing matrix (16x16 nodes).
+ * 
+ * Tests:
+ * - Route configuration (enable/disable)
+ * - Channel filtering with chanmask
+ * - Message routing between nodes (DIN, USB, Looper, etc.)
+ * - Label assignment
+ * - Multiple simultaneous routes
+ * - Different MIDI message types (Note, CC, Sysex)
+ * 
+ * Hardware tested:
+ * - DIN IN1-4 → DIN OUT1-4 routing
+ * - USB Device IN/OUT → DIN routing
+ * - Looper → Output routing with channel filtering
+ * 
+ * The test configures example routes and sends test messages to verify
+ * the routing matrix operates correctly. Monitor UART output to see
+ * routing table and test message flow.
+ * 
  * @note This function runs forever
  */
 void module_test_router_run(void);

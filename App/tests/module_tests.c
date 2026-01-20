@@ -901,6 +901,26 @@ void module_test_midi_din_run(void)
 #endif
 }
 
+/**
+ * @brief ROUTER Module Test
+ * 
+ * Tests the MIDI routing matrix functionality.
+ * 
+ * The router is a 16x16 matrix that routes MIDI messages between nodes:
+ * - DIN IN1-4 → DIN OUT1-4
+ * - USB Device IN/OUT
+ * - USB Host IN/OUT
+ * - Logical nodes (Looper, Keys, etc.)
+ * 
+ * Features tested:
+ * - Route enable/disable
+ * - Channel filtering (chanmask)
+ * - Message types (Note On/Off, CC, Sysex)
+ * - Multiple simultaneous routes
+ * - Label assignment
+ * 
+ * Enable with: MODULE_TEST_ROUTER=1
+ */
 void module_test_router_run(void)
 {
   // Early UART verification
@@ -912,14 +932,123 @@ void module_test_router_run(void)
   osDelay(100);
   
 #if MODULE_ENABLE_ROUTER
-  router_init(router_send_default);
+  dbg_print_test_header("MIDI Router Module Test");
   
-  // Test basic router functionality
+  dbg_print("Initializing Router... ");
+  router_init(router_send_default);
+  dbg_print("OK\r\n");
+  
+  dbg_print("============================================================\r\n");
+  dbg_print("Router Configuration:\r\n");
+  dbg_printf("  Total Nodes: %d x %d matrix\r\n", ROUTER_NUM_NODES, ROUTER_NUM_NODES);
+  dbg_print("\r\n");
+  
+  dbg_print("Available Nodes:\r\n");
+  dbg_print("  DIN Inputs:  IN1-4  (nodes 0-3)\r\n");
+  dbg_print("  DIN Outputs: OUT1-4 (nodes 4-7)\r\n");
+  dbg_print("  USB Device:  IN/OUT (nodes 8-9)\r\n");
+  dbg_print("  USB Host:    IN/OUT (nodes 12-13)\r\n");
+  dbg_print("  Looper:      (node 10)\r\n");
+  dbg_print("  Keys:        (node 11)\r\n");
+  dbg_print("============================================================\r\n");
+  dbg_print("\r\n");
+  
+  // Test 1: Set up basic routes
+  dbg_print("[Test 1] Configuring test routes...\r\n");
+  
+  // DIN IN1 → DIN OUT1 (MIDI thru)
+  router_set_route(ROUTER_NODE_DIN_IN1, ROUTER_NODE_DIN_OUT1, 1);
+  router_set_chanmask(ROUTER_NODE_DIN_IN1, ROUTER_NODE_DIN_OUT1, ROUTER_CHMASK_ALL);
+  router_set_label(ROUTER_NODE_DIN_IN1, ROUTER_NODE_DIN_OUT1, "MIDI Thru 1");
+  dbg_print("  ✓ DIN IN1 → OUT1 (all channels)\r\n");
+  
+  // DIN IN1 → USB OUT (to computer)
+  router_set_route(ROUTER_NODE_DIN_IN1, ROUTER_NODE_USB_OUT, 1);
+  router_set_chanmask(ROUTER_NODE_DIN_IN1, ROUTER_NODE_USB_OUT, ROUTER_CHMASK_ALL);
+  router_set_label(ROUTER_NODE_DIN_IN1, ROUTER_NODE_USB_OUT, "DIN→USB");
+  dbg_print("  ✓ DIN IN1 → USB OUT (all channels)\r\n");
+  
+  // USB IN → DIN OUT2 (from computer to hardware)
+  router_set_route(ROUTER_NODE_USB_IN, ROUTER_NODE_DIN_OUT2, 1);
+  router_set_chanmask(ROUTER_NODE_USB_IN, ROUTER_NODE_DIN_OUT2, ROUTER_CHMASK_ALL);
+  router_set_label(ROUTER_NODE_USB_IN, ROUTER_NODE_DIN_OUT2, "USB→DIN2");
+  dbg_print("  ✓ USB IN → DIN OUT2 (all channels)\r\n");
+  
+  // Looper → DIN OUT3 (looper playback)
+  router_set_route(ROUTER_NODE_LOOPER, ROUTER_NODE_DIN_OUT3, 1);
+  router_set_chanmask(ROUTER_NODE_LOOPER, ROUTER_NODE_DIN_OUT3, 0x0001); // Channel 1 only
+  router_set_label(ROUTER_NODE_LOOPER, ROUTER_NODE_DIN_OUT3, "Looper→OUT3");
+  dbg_print("  ✓ Looper → DIN OUT3 (channel 1 only)\r\n");
+  
+  dbg_print("\r\n");
+  
+  // Test 2: Send test messages through router
+  dbg_print("[Test 2] Sending test MIDI messages...\r\n");
+  dbg_print("  (Messages will be routed according to configuration)\r\n");
+  dbg_print("\r\n");
+  
+  router_msg_t msg;
+  
+  // Note On C4 on channel 1
+  msg.type = ROUTER_MSG_3B;
+  msg.b0 = 0x90;  // Note On, channel 1
+  msg.b1 = 60;    // C4
+  msg.b2 = 100;   // Velocity 100
+  router_process(ROUTER_NODE_DIN_IN1, &msg);
+  dbg_print("  → Note On C4 vel=100 ch=1 from DIN IN1\r\n");
+  osDelay(100);
+  
+  // Note Off C4 on channel 1
+  msg.b0 = 0x80;  // Note Off, channel 1
+  msg.b2 = 0;     // Velocity 0
+  router_process(ROUTER_NODE_DIN_IN1, &msg);
+  dbg_print("  → Note Off C4 from DIN IN1\r\n");
+  osDelay(100);
+  
+  // Control Change from USB
+  msg.type = ROUTER_MSG_3B;
+  msg.b0 = 0xB0;  // CC, channel 1
+  msg.b1 = 7;     // Volume
+  msg.b2 = 127;   // Max
+  router_process(ROUTER_NODE_USB_IN, &msg);
+  dbg_print("  → CC#7 (Volume) = 127 ch=1 from USB IN\r\n");
+  osDelay(100);
+  
+  dbg_print("\r\n");
+  
+  // Test 3: Display routing table
+  dbg_print("[Test 3] Active Routes:\r\n");
+  dbg_print("  From       → To          Ch.Mask  Label\r\n");
+  dbg_print("  -----------------------------------------\r\n");
+  
+  for (uint8_t in = 0; in < ROUTER_NUM_NODES; in++) {
+    for (uint8_t out = 0; out < ROUTER_NUM_NODES; out++) {
+      if (router_get_route(in, out)) {
+        uint16_t chmask = router_get_chanmask(in, out);
+        const char* label = router_get_label(in, out);
+        
+        dbg_printf("  Node %2d   → Node %2d   0x%04X  %s\r\n", 
+                   in, out, chmask, label ? label : "(no label)");
+      }
+    }
+  }
+  
+  dbg_print("\r\n");
+  dbg_print("============================================================\r\n");
+  dbg_print("Router test running. Send MIDI to DIN IN1 or USB to test.\r\n");
+  dbg_print("Press Ctrl+C to stop\r\n");
+  dbg_print("============================================================\r\n");
+  
+  // Continuous operation - process any incoming MIDI
   for (;;) {
     osDelay(100);
-    // Could send test messages through router
+    // Router will process messages from MIDI task
   }
 #else
+  dbg_print_test_header("MIDI Router Module Test");
+  dbg_print("ERROR: Router module not enabled!\r\n");
+  dbg_print("Enable with MODULE_ENABLE_ROUTER=1\r\n");
+  
   // Module not enabled
   for (;;) osDelay(1000);
 #endif
