@@ -78,8 +78,9 @@ You need:
 2. **Change USB Mode**:
    - Left panel → Connectivity → **USB_OTG_FS**
    - Mode: Change from **"Host_Only"** to **"OTG_FS"**
-   - ✅ Enable VBUS sensing
-   - ✅ ID pin: PA10 (already set)
+   - ID pin: PA10 (already set)
+   - VBUS sensing: **Optional** (enable if you can, disable if grayed out)
+   - **Note**: VBUS sensing is optional. ID pin is what matters for mode switching.
 
 3. **Add USB_DEVICE**:
    - Left panel → Middleware → **USB_DEVICE**
