@@ -107,6 +107,25 @@ static uint8_t g_track_solo[LOOPER_TRACKS] = {0};
 // Global Transpose state
 static int8_t g_global_transpose = 0;
 
+// Scene storage: snapshot of track states
+typedef struct {
+  uint8_t has_clip;
+  uint16_t loop_beats;
+  uint16_t loop_len_ticks;
+  looper_state_t saved_state;
+} scene_slot_t;
+
+static scene_slot_t g_scenes[LOOPER_SCENES][LOOPER_TRACKS];
+static uint8_t g_current_scene = 0;
+
+// Scene Chaining/Automation
+typedef struct {
+  uint8_t next_scene;  // 0xFF = no chain
+  uint8_t enabled;     // 1 = auto-chain enabled
+} scene_chain_t;
+
+static scene_chain_t g_scene_chains[LOOPER_SCENES];
+
 static void update_rate(void) {
   uint32_t bpm = g_tp.bpm;
   if (bpm < 20) bpm = 20;
@@ -700,20 +719,6 @@ int looper_delete_event(uint8_t track, uint32_t idx) {
 
 // ---- Song Mode / Scene Management ----
 
-// Scene storage: snapshot of track states
-typedef struct {
-  uint8_t has_clip;
-  uint16_t loop_beats;
-  uint16_t loop_len_ticks;
-  looper_state_t saved_state;
-  // For simplicity, we don't copy the full event buffer here
-  // Just track metadata. In a full implementation, you'd need
-  // to save/restore event data or reference stored clips.
-} scene_slot_t;
-
-static scene_slot_t g_scenes[LOOPER_SCENES][LOOPER_TRACKS];
-static uint8_t g_current_scene = 0;
-
 /**
  * @brief Get clip info for a specific scene and track
  */
@@ -905,7 +910,7 @@ uint32_t looper_step_forward(uint8_t track, uint32_t ticks) {
       msg.b2 = t->ev[i].b2;
       
       // Send immediately (no delay in step mode)
-      midi_delayq_push(&msg, 0);
+      midi_delayq_send(ROUTER_NODE_LOOPER, &msg, 0);
     }
   }
   
@@ -981,7 +986,7 @@ uint32_t looper_step_backward(uint8_t track, uint32_t ticks) {
         msg.b0 = 0x80 | ch;  // Note Off
         msg.b1 = note;
         msg.b2 = 0;
-        midi_delayq_push(&msg, 0);
+        midi_delayq_send(ROUTER_NODE_LOOPER, &msg, 0);
         t->active_notes[ch][note] = 0;
       }
     }
@@ -1037,13 +1042,6 @@ uint32_t looper_get_step_size(void) {
 }
 
 // ---- Scene Chaining/Automation ----
-
-typedef struct {
-  uint8_t next_scene;  // 0xFF = no chain
-  uint8_t enabled;     // 1 = auto-chain enabled
-} scene_chain_t;
-
-static scene_chain_t g_scene_chains[LOOPER_SCENES];
 
 /**
  * @brief Set scene chaining configuration
@@ -1575,25 +1573,25 @@ static undo_stack_t undo_stacks[LOOPER_TRACKS];
 void looper_undo_push(uint8_t track) {
   if (track >= LOOPER_TRACKS) return;
   
-  pthread_mutex_lock(&looper_mutex);
+  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
   
   undo_stack_t* stack = &undo_stacks[track];
   undo_state_t* state = &stack->states[stack->write_idx];
   
   // Capture current track state
-  state->loop_len_ticks = tracks[track].loop_len_ticks;
-  state->loop_beats = tracks[track].loop_beats;
-  state->quant = tracks[track].quant;
-  state->event_count = tracks[track].event_count < 256 ? tracks[track].event_count : 256;
+  state->loop_len_ticks = g_tr[track].loop_len_ticks;
+  state->loop_beats = g_tr[track].loop_beats;
+  state->quant = g_tr[track].quant;
+  state->event_count = g_tr[track].count < 256 ? g_tr[track].count : 256;
   state->has_data = 1;
   
   // Copy events
   for (uint32_t i = 0; i < state->event_count; i++) {
-    state->events[i].tick = tracks[track].events[i].tick;
-    state->events[i].len = tracks[track].events[i].len;
-    state->events[i].b0 = tracks[track].events[i].b0;
-    state->events[i].b1 = tracks[track].events[i].b1;
-    state->events[i].b2 = tracks[track].events[i].b2;
+    state->events[i].tick = g_tr[track].ev[i].tick;
+    state->events[i].len = g_tr[track].ev[i].len;
+    state->events[i].b0 = g_tr[track].ev[i].b0;
+    state->events[i].b1 = g_tr[track].ev[i].b1;
+    state->events[i].b2 = g_tr[track].ev[i].b2;
   }
   
   // Advance write position
@@ -1605,7 +1603,7 @@ void looper_undo_push(uint8_t track) {
   // Set undo position to new write position (redo no longer available)
   stack->undo_idx = stack->write_idx;
   
-  pthread_mutex_unlock(&looper_mutex);
+  if (g_mutex) osMutexRelease(g_mutex);
 }
 
 /**
@@ -1615,7 +1613,7 @@ int looper_undo(uint8_t track) {
   if (track >= LOOPER_TRACKS) return -1;
   if (!looper_can_undo(track)) return -1;
   
-  pthread_mutex_lock(&looper_mutex);
+  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
   
   undo_stack_t* stack = &undo_stacks[track];
   
@@ -1629,25 +1627,25 @@ int looper_undo(uint8_t track) {
   // Restore state
   undo_state_t* state = &stack->states[stack->undo_idx];
   if (!state->has_data) {
-    pthread_mutex_unlock(&looper_mutex);
+    if (g_mutex) osMutexRelease(g_mutex);
     return -1;
   }
   
-  tracks[track].loop_len_ticks = state->loop_len_ticks;
-  tracks[track].loop_beats = state->loop_beats;
-  tracks[track].quant = state->quant;
-  tracks[track].event_count = state->event_count;
+  g_tr[track].loop_len_ticks = state->loop_len_ticks;
+  g_tr[track].loop_beats = state->loop_beats;
+  g_tr[track].quant = state->quant;
+  g_tr[track].count = state->event_count;
   
   // Restore events
   for (uint32_t i = 0; i < state->event_count; i++) {
-    tracks[track].events[i].tick = state->events[i].tick;
-    tracks[track].events[i].len = state->events[i].len;
-    tracks[track].events[i].b0 = state->events[i].b0;
-    tracks[track].events[i].b1 = state->events[i].b1;
-    tracks[track].events[i].b2 = state->events[i].b2;
+    g_tr[track].ev[i].tick = state->events[i].tick;
+    g_tr[track].ev[i].len = state->events[i].len;
+    g_tr[track].ev[i].b0 = state->events[i].b0;
+    g_tr[track].ev[i].b1 = state->events[i].b1;
+    g_tr[track].ev[i].b2 = state->events[i].b2;
   }
   
-  pthread_mutex_unlock(&looper_mutex);
+  if (g_mutex) osMutexRelease(g_mutex);
   return 0;
 }
 
@@ -1658,7 +1656,7 @@ int looper_redo(uint8_t track) {
   if (track >= LOOPER_TRACKS) return -1;
   if (!looper_can_redo(track)) return -1;
   
-  pthread_mutex_lock(&looper_mutex);
+  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
   
   undo_stack_t* stack = &undo_stacks[track];
   
@@ -1668,25 +1666,25 @@ int looper_redo(uint8_t track) {
   // Restore state
   undo_state_t* state = &stack->states[stack->undo_idx];
   if (!state->has_data) {
-    pthread_mutex_unlock(&looper_mutex);
+    if (g_mutex) osMutexRelease(g_mutex);
     return -1;
   }
   
-  tracks[track].loop_len_ticks = state->loop_len_ticks;
-  tracks[track].loop_beats = state->loop_beats;
-  tracks[track].quant = state->quant;
-  tracks[track].event_count = state->event_count;
+  g_tr[track].loop_len_ticks = state->loop_len_ticks;
+  g_tr[track].loop_beats = state->loop_beats;
+  g_tr[track].quant = state->quant;
+  g_tr[track].count = state->event_count;
   
   // Restore events
   for (uint32_t i = 0; i < state->event_count; i++) {
-    tracks[track].events[i].tick = state->events[i].tick;
-    tracks[track].events[i].len = state->events[i].len;
-    tracks[track].events[i].b0 = state->events[i].b0;
-    tracks[track].events[i].b1 = state->events[i].b1;
-    tracks[track].events[i].b2 = state->events[i].b2;
+    g_tr[track].ev[i].tick = state->events[i].tick;
+    g_tr[track].ev[i].len = state->events[i].len;
+    g_tr[track].ev[i].b0 = state->events[i].b0;
+    g_tr[track].ev[i].b1 = state->events[i].b1;
+    g_tr[track].ev[i].b2 = state->events[i].b2;
   }
   
-  pthread_mutex_unlock(&looper_mutex);
+  if (g_mutex) osMutexRelease(g_mutex);
   return 0;
 }
 
@@ -1696,12 +1694,12 @@ int looper_redo(uint8_t track) {
 void looper_undo_clear(uint8_t track) {
   if (track >= LOOPER_TRACKS) return;
   
-  pthread_mutex_lock(&looper_mutex);
+  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
   
   undo_stack_t* stack = &undo_stacks[track];
   memset(stack, 0, sizeof(undo_stack_t));
   
-  pthread_mutex_unlock(&looper_mutex);
+  if (g_mutex) osMutexRelease(g_mutex);
 }
 
 /**
@@ -1755,14 +1753,14 @@ void looper_quantize_track(uint8_t track, uint8_t resolution) {
   if (track >= LOOPER_TRACKS) return;
   if (resolution >= QUANT_RESOLUTIONS) resolution = 2; // Default to 1/16
   
-  pthread_mutex_lock(&looper_mutex);
+  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
   
   uint16_t grid_size = quant_grid_ticks[resolution];
-  track_t* t = &tracks[track];
+  looper_track_t* t = &g_tr[track];
   
   // Quantize each event's timestamp
-  for (uint32_t i = 0; i < t->event_count; i++) {
-    uint32_t original_tick = t->events[i].tick;
+  for (uint32_t i = 0; i < t->count; i++) {
+    uint32_t original_tick = t->ev[i].tick;
     
     // Calculate nearest grid position
     // Formula: quantized = round(original / grid) * grid
@@ -1774,23 +1772,23 @@ void looper_quantize_track(uint8_t track, uint8_t resolution) {
       quantized_tick = t->loop_len_ticks - 1;
     }
     
-    t->events[i].tick = quantized_tick;
+    t->ev[i].tick = quantized_tick;
   }
   
   // Events may need re-sorting after quantization
   // Simple bubble sort for simplicity (could optimize later)
-  for (uint32_t i = 0; i < t->event_count - 1; i++) {
-    for (uint32_t j = 0; j < t->event_count - i - 1; j++) {
-      if (t->events[j].tick > t->events[j + 1].tick) {
+  for (uint32_t i = 0; i < t->count - 1; i++) {
+    for (uint32_t j = 0; j < t->count - i - 1; j++) {
+      if (t->ev[j].tick > t->ev[j + 1].tick) {
         // Swap events
-        looper_event_t temp = t->events[j];
-        t->events[j] = t->events[j + 1];
-        t->events[j + 1] = temp;
+        looper_evt_t temp = t->ev[j];
+        t->ev[j] = t->ev[j + 1];
+        t->ev[j + 1] = temp;
       }
     }
   }
   
-  pthread_mutex_unlock(&looper_mutex);
+  if (g_mutex) osMutexRelease(g_mutex);
 }
 
 /**
