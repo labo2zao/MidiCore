@@ -209,6 +209,36 @@ void module_test_looper_run(void);
  * Tests graphics primitives, pages, encoders
  * @note This function runs forever
  */
+/**
+ * @brief Test UI/OLED module
+ * 
+ * Tests the complete UI system including OLED display, page navigation,
+ * button/encoder input handling, and status line updates.
+ * 
+ * Features tested:
+ * - OLED SSD1322 display initialization and rendering
+ * - UI page cycling (Looper, Timeline, Pianoroll, Router, Patch)
+ * - Button input simulation and handling
+ * - Rotary encoder input simulation
+ * - Status line updates
+ * - Graphics rendering
+ * 
+ * Hardware requirements:
+ * - OLED Display: SSD1322 256x64 (grayscale)
+ * - Control Input: Buttons + rotary encoder (via SRIO or GPIO)
+ * 
+ * Test sequence:
+ * 1. Initialize OLED and UI subsystem
+ * 2. Cycle through all available UI pages (auto-demo)
+ * 3. Simulate button presses
+ * 4. Simulate encoder rotation
+ * 5. Update status messages
+ * 6. Enter manual testing mode for visual verification
+ * 
+ * Usage: Enable MODULE_TEST_UI=1 in test configuration
+ * Connect OLED display and observe automatic page cycling,
+ * then test with actual buttons/encoders.
+ */
 void module_test_ui_run(void);
 
 /**

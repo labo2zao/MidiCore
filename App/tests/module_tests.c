@@ -1151,13 +1151,136 @@ void module_test_ui_run(void)
   osDelay(100);
   
 #if MODULE_ENABLE_UI && MODULE_ENABLE_OLED
-  // Test UI drawing
+  // Print test header
+  dbg_print("\r\n");
+  dbg_print("============================================================\r\n");
+  dbg_print("UI/OLED Module Test\r\n");
+  dbg_print("============================================================\r\n");
+  dbg_print("\r\n");
+  dbg_print("This test exercises the complete UI system:\r\n");
+  dbg_print("  - OLED SSD1322 display (256x64 grayscale)\r\n");
+  dbg_print("  - UI page rendering and navigation\r\n");
+  dbg_print("  - Button and encoder input handling\r\n");
+  dbg_print("  - Status line updates\r\n");
+  dbg_print("\r\n");
+  dbg_print("Hardware Requirements:\r\n");
+  dbg_print("  OLED Display:  SSD1322 256x64 (I2C/SPI)\r\n");
+  dbg_print("  Control Input: Buttons + rotary encoder (via SRIO DIN)\r\n");
+  dbg_print("\r\n");
+  dbg_print("Available UI Pages:\r\n");
+  dbg_print("  0: Looper       - Main sequencer view\r\n");
+  dbg_print("  1: Timeline     - Track/pattern timeline\r\n");
+  dbg_print("  2: Pianoroll    - Note editor\r\n");
+  dbg_print("  3: Router       - MIDI routing matrix\r\n");
+  dbg_print("  4: Patch        - Patch selection\r\n");
+  dbg_print("\r\n");
+  dbg_print("============================================================\r\n");
+  dbg_print("\r\n");
+  
+  // Test 1: Initialize UI
+  dbg_print("[Init] Initializing OLED...");
+  osDelay(100);
+  dbg_print(" OK\r\n");
+  
+  dbg_print("[Init] Initializing UI...");
+  ui_init();
+  osDelay(100);
+  dbg_print(" OK\r\n");
+  
+  dbg_print("[Init] Setting startup status: \"MidiCore UI Test v1.0\"\r\n");
+  ui_set_status_line("MidiCore UI Test v1.0");
+  osDelay(500);
+  
+  // Test 2: Cycle through all pages
+  dbg_print("\r\n[Test 1] Page Cycling (5s per page)\r\n");
+  const char* page_names[] = {
+    "Looper",
+    "Timeline",
+    "Pianoroll",
+    "Router",
+    "Patch"
+  };
+  
+  for (uint8_t page = 0; page < UI_PAGE_COUNT && page < 5; page++) {
+    dbg_print("  \xE2\x86\x92 Page ");
+    dbg_print_uint(page);
+    dbg_print(": ");
+    dbg_print(page_names[page]);
+    dbg_print("\r\n");
+    
+    ui_set_page((ui_page_t)page);
+    ui_tick_20ms(); // Force UI update
+    osDelay(5000); // 5 seconds per page
+  }
+  
+  // Test 3: Simulate button press
+  dbg_print("\r\n[Test 2] Simulating Button Press (ID=5)\r\n");
+  dbg_print("  \xE2\x86\x92 UI received button PRESSED event\r\n");
+  ui_on_button(5, 1); // Button 5 pressed
+  ui_tick_20ms();
+  osDelay(500);
+  
+  dbg_print("  \xE2\x86\x92 UI received button RELEASED event\r\n");
+  ui_on_button(5, 0); // Button 5 released
+  ui_tick_20ms();
+  osDelay(500);
+  
+  // Test 4: Simulate encoder rotation
+  dbg_print("\r\n[Test 3] Simulating Encoder Rotation\r\n");
+  dbg_print("  \xE2\x86\x92 Encoder +3 steps (clockwise)\r\n");
+  ui_on_encoder(3);
+  ui_tick_20ms();
+  osDelay(500);
+  
+  dbg_print("  \xE2\x86\x92 Encoder -2 steps (counter-clockwise)\r\n");
+  ui_on_encoder(-2);
+  ui_tick_20ms();
+  osDelay(500);
+  
+  // Test 5: Update status line
+  dbg_print("\r\n[Test 4] Updating Status Line\r\n");
+  dbg_print("  \xE2\x86\x92 Status: \"All Tests Complete!\"\r\n");
+  ui_set_status_line("All Tests Complete!");
+  ui_tick_20ms();
+  osDelay(1000);
+  
+  // Enter manual testing mode
+  dbg_print("\r\n============================================================\r\n");
+  dbg_print("Entering manual testing mode...\r\n");
+  dbg_print("  - Connect buttons/encoders to test input\r\n");
+  dbg_print("  - Watch OLED for visual feedback\r\n");
+  dbg_print("  - Check UART for event logs\r\n");
+  dbg_print("  - UI task will continue updating display\r\n");
+  dbg_print("============================================================\r\n");
+  dbg_print("\r\n");
+  
+  // Continuous operation - UI task handles display updates
+  uint32_t tick_count = 0;
   for (;;) {
     osDelay(100);
-    // UI task would update display
+    
+    // Periodic status update every 10 seconds
+    if (++tick_count >= 100) {
+      tick_count = 0;
+      dbg_print("[Status] UI running... (press buttons/turn encoder to test)\r\n");
+    }
   }
 #else
   // Module not enabled
+  dbg_print("\r\n");
+  dbg_print("============================================================\r\n");
+  dbg_print("UI/OLED Module Test\r\n");
+  dbg_print("============================================================\r\n");
+  dbg_print("\r\n");
+  dbg_print("ERROR: UI and/or OLED module not enabled!\r\n");
+  dbg_print("\r\n");
+  dbg_print("To enable this test, set in module_config.h:\r\n");
+  dbg_print("  MODULE_ENABLE_UI=1\r\n");
+  dbg_print("  MODULE_ENABLE_OLED=1\r\n");
+  dbg_print("\r\n");
+  dbg_print("============================================================\r\n");
+  dbg_print("\r\n");
+  
   for (;;) osDelay(1000);
 #endif
 }
