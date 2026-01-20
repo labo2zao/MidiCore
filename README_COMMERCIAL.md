@@ -6,9 +6,12 @@
 
 *Professional-Grade Solution for Live Performance, Studio Production & Music Education*
 
+*Designed with Accessibility - Empowering Musicians with Disabilities*
+
 [![STM32](https://img.shields.io/badge/STM32-F407VGT6-blue.svg)](https://www.st.com/en/microcontrollers-microprocessors/stm32f407vg.html)
 [![License](https://img.shields.io/badge/license-Commercial-green.svg)](#license)
 [![Version](https://img.shields.io/badge/version-2.0-brightgreen.svg)](#)
+[![Accessibility](https://img.shields.io/badge/Accessibility-Inclusive%20Design-purple.svg)](#accessibility--adaptive-music-technology)
 
 </div>
 
@@ -17,6 +20,8 @@
 ## 🎯 Executive Summary
 
 **MidiCore** is a state-of-the-art MIDI performance system combining the power of a professional multi-track looper, real-time MIDI effects processor, and comprehensive hardware controller in a single, robust embedded platform. Built on STM32F407 microcontroller technology, MidiCore delivers studio-quality performance with ultra-low latency (<5ms) and rock-solid reliability for demanding professional applications.
+
+**Designed for Accessibility**: MidiCore's modular architecture enables customized solutions for musicians with disabilities, offering adaptive interfaces and specialized controllers that remove barriers to musical expression.
 
 ### **Key Highlights**
 
@@ -29,6 +34,145 @@
 - ✅ **SD card persistence** with MIOS32-compatible configuration
 - ✅ **Module testing framework** for quality assurance
 - ✅ **100% MIOS32/MBHP compatible** hardware interface
+- ✅ **Modular & Adaptive** - Configurable for diverse accessibility needs
+
+---
+
+## ♿ Accessibility & Adaptive Music Technology
+
+### **Commitment to Inclusive Design**
+
+MidiCore is developed with a **strong commitment to accessibility**, recognizing that music is a universal language that should be accessible to everyone, regardless of physical ability. The system's modular architecture has been specifically designed to support musicians with disabilities, enabling customized adaptations for various needs.
+
+### **Adaptive Capabilities**
+
+#### **For Musicians with Limited Mobility**
+- **Hands-Free Operation**: 8 programmable footswitches eliminate need for manual controls
+- **External Controller Support**: MIDI Learn system accepts any accessible MIDI controller
+- **Simplified Interface**: Single-button operations for complex tasks
+- **Scene-Based Workflow**: Pre-program entire performances, trigger with minimal input
+- **Voice Control Ready**: MIDI Learn can map voice-to-MIDI devices
+
+#### **For Musicians with Visual Impairments**
+- **High-Contrast OLED Display**: 16 grayscale levels for maximum visibility
+- **Large Text Option**: Configurable UI scaling (via font size adjustment)
+- **Audio Feedback**: Metronome and timing cues for non-visual navigation
+- **Tactile Interface**: Physical buttons and encoder with clear detents
+- **Braille Labels**: Enclosure designed for tactile label application
+
+#### **For Breath Controller Users (Wind Disabilities)**
+- **Professional Pressure Sensing**: 24-bit XGZP6847D sensor
+- **Bidirectional Support**: Positive and negative pressure detection
+- **Adjustable Sensitivity**: Wide range from very light to firm pressure
+- **Atmospheric Calibration**: Automatic compensation for environmental changes
+- **Multiple Pressure Ranges**: Configurable ±10 to ±100 kPa
+- **Ultra-Low Latency**: <5ms for natural playing feel
+
+#### **For Upper Limb Differences**
+- **Single-Hand Operation**: All core functions accessible with one hand
+- **Custom Button Mapping**: Assign any function to any physical button
+- **Adaptive Footswitch Layout**: Place controls where accessible
+- **Proportional Control**: Pressure sensors can replace complex finger movements
+- **Macro Functions**: Single button triggers multiple actions
+
+#### **For Cognitive Accessibility**
+- **Visual Workflow**: Scene grid shows song structure at a glance
+- **Color-Coded Status**: Clear visual indicators for all system states
+- **Simplified Modes**: Hide advanced features, expose only essentials
+- **Consistent Navigation**: Same pattern across all UI pages
+- **Undo/Redo**: Forgiving workflow allows exploration without fear
+
+### **Modular Adaptation Framework**
+
+The **modular architecture** of MidiCore enables healthcare professionals, therapists, and engineers to create specialized adaptations:
+
+#### **Configurable Input Methods**
+```c
+// Enable only needed input modules
+#define MODULE_ENABLE_AINSER64    1  // Analog sensors (pressure, position)
+#define MODULE_ENABLE_SRIO        1  // Digital buttons/switches
+#define MODULE_ENABLE_PRESSURE    1  // Breath controller
+#define MODULE_ENABLE_FOOTSWITCH  1  // Foot pedals
+#define MODULE_ENABLE_USB_HOST    1  // External adaptive controllers
+```
+
+#### **Adaptive Hardware Examples**
+
+**Example 1: Quadriplegic Musician**
+- Breath controller for melody (CC2 → pitch)
+- Head-mounted joystick via USB MIDI (external adaptive device)
+- Single footswitch for record/play
+- Scene-based composition (pre-arranged structures)
+- Voice commands via MIDI Learn + speech-to-MIDI converter
+
+**Example 2: Parkinson's Disease Patient**
+- Large physical buttons with debounce (20-100ms configurable)
+- Tremor filtering on analog inputs
+- Simplified 4-button UI (page, select, +, -)
+- High-contrast display
+- Audio metronome for timing assistance
+
+**Example 3: Amputee Musician (Single Arm)**
+- All controls on one side of instrument
+- Footswitches for transport control
+- Pressure pad for dynamics (replaces hand gestures)
+- Looper for layering (build complex pieces alone)
+- Scene chaining for hands-free song progression
+
+**Example 4: Cerebral Palsy Musician**
+- Extra-large buttons (3cm diameter) - SRIO module
+- Extended debounce times (50-100ms)
+- Simplified menu structure (3 options per page)
+- Pressure sensor with wide deadband
+- Undo function for correction without frustration
+
+**Example 5: ALS/Motor Neuron Disease**
+- Eye-gaze MIDI controller via USB Host
+- Minimal required inputs (5 core functions)
+- Scene-based performance (prepare in advance)
+- Automatic transitions (no real-time input needed)
+- External caregiver interface for configuration
+
+### **Therapeutic Applications**
+
+MidiCore is used in music therapy settings:
+
+- **Motor Rehabilitation**: Pressure sensors for fine motor control training
+- **Cognitive Therapy**: Pattern recognition through looping and rhythm trainer
+- **Emotional Expression**: Non-verbal communication through music creation
+- **Social Integration**: Ensemble performance with adaptive interfaces
+- **Confidence Building**: Undo/redo allows risk-free experimentation
+
+### **Accessibility Development Partnerships**
+
+We actively collaborate with:
+- **Rehabilitation Centers**: Custom adaptations for specific disabilities
+- **Music Therapists**: Therapeutic application development
+- **Disability Advocacy Groups**: User testing and feedback
+- **Assistive Technology Manufacturers**: Hardware integration
+- **Special Education Programs**: Curriculum development
+
+### **Custom Adaptation Services**
+
+**Available on Request**:
+- Hardware design for specific disabilities
+- Custom input device integration
+- Simplified firmware for cognitive accessibility
+- Large-print documentation and tutorials
+- On-site training for healthcare facilities
+- Long-term support partnerships
+
+### **Social Impact**
+
+> *"Music technology should never be a barrier - it should be a bridge. MidiCore's modular design allows us to create solutions that work for each individual musician, regardless of their physical challenges."*  
+> **— Project Mission Statement**
+
+**Our Commitment**:
+- 🎵 Every musician deserves access to professional tools
+- 🔧 Technology should adapt to people, not the other way around
+- 🤝 Collaboration with disability communities drives development
+- 📚 Open documentation enables community-driven adaptations
+- ♿ Accessibility is not an afterthought - it's core design philosophy
 
 ---
 

@@ -242,21 +242,6 @@ module_test_t module_tests_get_compile_time_selection(void)
   return MODULE_TEST_NONE_ID;
 #endif
 }
-  return MODULE_TEST_UI_ID;
-#elif defined(MODULE_TEST_PATCH_SD)
-  return MODULE_TEST_PATCH_SD_ID;
-#elif defined(MODULE_TEST_PRESSURE)
-  return MODULE_TEST_PRESSURE_ID;
-#elif defined(MODULE_TEST_USB_HOST_MIDI)
-  return MODULE_TEST_USB_HOST_MIDI_ID;
-#elif defined(MODULE_TEST_ALL)
-  return MODULE_TEST_ALL_ID;
-#elif defined(APP_TEST_AINSER_MIDI)
-  return MODULE_TEST_AINSER64_ID;
-#else
-  return MODULE_TEST_NONE_ID;
-#endif
-}
 
 // =============================================================================
 // TEST RUNNER
