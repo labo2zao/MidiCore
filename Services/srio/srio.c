@@ -130,6 +130,21 @@ int srio_read_din(uint8_t* out) {
     return -2;
   }
   
+  // MIOS32 CRITICAL: Pulse RC AGAIN AFTER SPI transfer!
+  // This latches DOUT shift register outputs (even if no actual DOUT hardware present)
+#if SRIO_DIN_PL_ACTIVE_LOW
+  HAL_GPIO_WritePin(g.din_pl_port, g.din_pl_pin, GPIO_PIN_RESET);  // Pulse LOW
+#else
+  HAL_GPIO_WritePin(g.din_pl_port, g.din_pl_pin, GPIO_PIN_SET);
+#endif
+  for (volatile uint16_t i = 0; i < 10; ++i) { __NOP(); }
+  
+#if SRIO_DIN_PL_ACTIVE_LOW
+  HAL_GPIO_WritePin(g.din_pl_port, g.din_pl_pin, GPIO_PIN_SET);     // Back to idle
+#else
+  HAL_GPIO_WritePin(g.din_pl_port, g.din_pl_pin, GPIO_PIN_RESET);
+#endif
+  
   // Update internal DIN buffers with change detection
   if (g_din && g_din_buffer && g_din_changed) {
     for (uint8_t i = 0; i < g_num_sr; ++i) {
