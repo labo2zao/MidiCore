@@ -58,7 +58,6 @@ void config_set_defaults(config_t* c) {
   c->instrument_auto_loop = 0;
 
   c->ainser_enable = 0;
-  c->ainser_i2c_addr = 0x48;
   c->ainser_scan_ms = 5;
 }
 
@@ -120,7 +119,6 @@ static void set_key(config_t* c, const char* key_in, const char* v) {
 
   // AINSER placeholders
   if (!strcmp(key,"AINSER_ENABLE")) { if (!parse_u32(v,&u)) c->ainser_enable = u?1:0; return; }
-  if (!strcmp(key,"AINSER_I2C_ADDR")) { if (!parse_u32(v,&u)) c->ainser_i2c_addr = (uint8_t)(u & 0x7F); return; }
   if (!strcmp(key,"AINSER_SCAN_MS")) { if (!parse_u32(v,&u)) c->ainser_scan_ms = (uint16_t)u; return; }
 // --- Global / Safety ---
 if (!strcmp(key, "GLOBAL_SAFE_MODE") || !strcmp(key, "SAFE_MODE")) {

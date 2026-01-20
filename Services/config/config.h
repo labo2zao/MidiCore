@@ -42,7 +42,6 @@ typedef struct {
 
   // --- AINSER placeholders ---
   uint8_t  ainser_enable;
-  uint8_t  ainser_i2c_addr;
   uint16_t ainser_scan_ms;
 } config_t;
 

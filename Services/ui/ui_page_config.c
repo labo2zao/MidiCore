@@ -149,10 +149,8 @@ void ui_page_config_render(uint32_t now_ms) {
     case CONFIG_CAT_AINSER:
       render_param_line(y, "AINSER_ENABLE", config_data.ainser.ainser_enable, 
                        current_param == 0, 0);
-      render_param_line(y + 8, "AINSER_I2C_ADDR", config_data.ainser.ainser_i2c_addr, 
-                       current_param == 1, 1);
-      render_param_line(y + 16, "AINSER_SCAN_MS", config_data.ainser.ainser_scan_ms, 
-                       current_param == 2, 0);
+      render_param_line(y + 8, "AINSER_SCAN_MS", config_data.ainser.ainser_scan_ms, 
+                       current_param == 1, 0);
       break;
       
     case CONFIG_CAT_AIN:
@@ -259,10 +257,6 @@ void ui_page_config_on_encoder(int8_t delta) {
             config_data.ainser.ainser_enable = !config_data.ainser.ainser_enable;
             break;
           case 1:
-            if (delta > 0 && config_data.ainser.ainser_i2c_addr < 0x7F) config_data.ainser.ainser_i2c_addr++;
-            else if (delta < 0 && config_data.ainser.ainser_i2c_addr > 0x08) config_data.ainser.ainser_i2c_addr--;
-            break;
-          case 2:
             if (delta > 0 && config_data.ainser.ainser_scan_ms < 100) config_data.ainser.ainser_scan_ms++;
             else if (delta < 0 && config_data.ainser.ainser_scan_ms > 1) config_data.ainser.ainser_scan_ms--;
             break;
