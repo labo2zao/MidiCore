@@ -456,7 +456,33 @@ void module_test_srio_run(void)
   osDelay(100); // Give time for UART transmission
   
 #if MODULE_ENABLE_SRIO && defined(SRIO_ENABLE)
-  dbg_print_test_header("SRIO Module Test");
+  dbg_print_test_header("SRIO DIN → MIDI Test");
+  
+  dbg_print("This test demonstrates the complete signal chain:\r\n");
+  dbg_print("  Button Press → SRIO DIN → MIDI Note → USB/DIN MIDI OUT\r\n");
+  dbg_print("\r\n");
+  
+#if MODULE_ENABLE_ROUTER
+  // Initialize router for MIDI output
+  dbg_print("Initializing MIDI Router...");
+  router_init(router_send_default);
+  dbg_print(" OK\r\n");
+  
+  // Configure routing: DIN IN (node 0) is used as virtual source for this test
+  // Route to USB MIDI OUT (node 9) and DIN MIDI OUT1 (node 4)
+  dbg_print("Configuring MIDI routes:\r\n");
+  dbg_print("  → USB MIDI OUT (for computer)\r\n");
+  dbg_print("  → DIN MIDI OUT1 (for external synth)\r\n");
+  router_set_route(0, 9, 1);   // DIN IN → USB MIDI OUT
+  router_set_route(0, 4, 1);   // DIN IN → DIN MIDI OUT1
+  router_set_chanmask(0, 9, 0xFFFF);  // All channels
+  router_set_chanmask(0, 4, 0xFFFF);  // All channels
+  dbg_print("\r\n");
+#else
+  dbg_print("NOTE: Router not enabled - MIDI output disabled\r\n");
+  dbg_print("      Only button detection will be shown\r\n");
+  dbg_print("\r\n");
+#endif
   
   // Initialize SRIO
   dbg_print("Initializing SRIO...");
@@ -510,8 +536,18 @@ void module_test_srio_run(void)
   dbg_print("Monitoring button presses (press any button)...\r\n");
   dbg_printf("Button numbers: 0-%d\r\n", (SRIO_DIN_BYTES * 8) - 1);
   dbg_print("\r\n");
-  dbg_print("TEST MODE: Will print ALL raw values (no change detection)\r\n");
-  dbg_print("Press a button and watch for hex values to change from 0xFF\r\n");
+  
+#if MODULE_ENABLE_ROUTER
+  dbg_print("MIDI Note Mapping:\r\n");
+  dbg_print("  Button 0-63 → MIDI Notes 36-99 (C2-D#7)\r\n");
+  dbg_print("  Velocity: 100 (Note On), 0 (Note Off)\r\n");
+  dbg_print("  Channel: 1\r\n");
+  dbg_print("\r\n");
+  dbg_print("Connect USB MIDI or DIN MIDI OUT1 to see notes!\r\n");
+#else
+  dbg_print("TEST MODE: Button detection only (no MIDI output)\r\n");
+  dbg_print("Enable MODULE_ENABLE_ROUTER for MIDI output\r\n");
+#endif
   dbg_print_separator();
   dbg_print("\r\n");
   
@@ -578,10 +614,32 @@ void module_test_srio_run(void)
           uint16_t button_num = (byte_idx * 8) + bit;
           bool pressed = (state & (1 << bit)) == 0; // Active low
           
-          dbg_printf("[Scan #%lu] Button %3d: %s\r\n", 
+          // Map button to MIDI note (button 0 = C2 (36), button 63 = D#7 (99))
+          uint8_t midi_note = 36 + button_num;
+          if (midi_note > 127) midi_note = 127; // Clamp to MIDI range
+          
+          dbg_printf("[Scan #%lu] Button %3d: %s", 
                      scan_counter, 
                      button_num, 
                      pressed ? "PRESSED " : "RELEASED");
+          
+#if MODULE_ENABLE_ROUTER
+          // Send MIDI Note On/Off via router
+          router_msg_t midi_msg;
+          midi_msg.type = ROUTER_MSG_3B;
+          midi_msg.b0 = pressed ? 0x90 : 0x80;  // Note On (0x90) or Note Off (0x80)
+          midi_msg.b1 = midi_note;
+          midi_msg.b2 = pressed ? 100 : 0;  // Velocity
+          
+          // Process through router (will send to USB MIDI and DIN MIDI OUT1)
+          router_process(0, &midi_msg);  // From virtual node 0
+          
+          dbg_printf(" → MIDI Note %d %s (Ch 1)\r\n", 
+                     midi_note,
+                     pressed ? "ON " : "OFF");
+#else
+          dbg_print("\r\n");
+#endif
         }
       }
     }
