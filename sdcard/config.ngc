@@ -1,0 +1,63 @@
+# MidiCore Configuration File
+# Compatible with MIDIbox NG .NGC format
+# Copy this file to SD card root as: 0:/config.ngc
+
+# DIN Module Configuration (Digital Inputs via SRIO)
+SRIO_DIN_ENABLE = 1
+SRIO_DIN_BYTES = 8
+DIN_INVERT_DEFAULT = 0
+DIN_DEBOUNCE_MS = 20
+
+# AINSER Module Configuration (Analog Inputs via SPI)
+AINSER_ENABLE = 1
+AINSER_SCAN_MS = 5
+AINSER_DEADBAND = 2
+
+# AIN Module Configuration (Built-in ADC Analog Inputs)
+AIN_ENABLE = 1
+AIN_VELOCITY_ENABLE = 1
+AIN_CALIBRATE_AUTO = 1
+AIN_SCAN_MS = 10
+AIN_DEADBAND = 2
+
+# MIDI Settings
+MIDI_DEFAULT_CHANNEL = 0
+MIDI_VELOCITY_CURVE = 0
+
+# Pressure Module Configuration (Breath Controller)
+# XGZP6847D I2C pressure sensor (0x58 address)
+PRESSURE_ENABLE = 0
+PRESSURE_I2C_BUS = 2
+PRESSURE_ADDR = 0x58
+PRESSURE_TYPE = 2
+PRESSURE_MAP_MODE = 1
+PRESSURE_INTERVAL_MS = 5
+PMIN_PA = -40000
+PMAX_PA = 40000
+ATM0_PA = 0
+
+# Expression Module Configuration
+# Maps pressure to MIDI CC with curve and smoothing
+EXPRESSION_ENABLE = 0
+EXPRESSION_MIDI_CH = 0
+BIDIR = 0
+CC = 11
+CC_PUSH = 11
+CC_PULL = 2
+OUT_MIN = 0
+OUT_MAX = 127
+RATE_MS = 20
+SMOOTH = 200
+DEADBAND_CC = 2
+HYST_CC = 1
+CURVE = 1
+CURVE_PARAM = 180
+ZERO_DEADBAND_PA = 500
+
+# Calibration Configuration
+# One-shot calibration at boot
+CALIBRATION_ENABLE = 0
+ATM_MS = 600
+EXT_MS = 5000
+MARGIN_RAW = 60
+CAL_KEEP_FILES = 1

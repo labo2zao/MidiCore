@@ -1,0 +1,23 @@
+# Minimal MidiCore Configuration
+# Basic hardware setup for testing
+
+# DIN Module (1 byte = 8 buttons)
+SRIO_DIN_ENABLE = 1
+SRIO_DIN_BYTES = 1
+DIN_INVERT_DEFAULT = 0
+DIN_DEBOUNCE_MS = 20
+
+# AINSER Disabled
+AINSER_ENABLE = 0
+
+# AIN Disabled
+AIN_ENABLE = 0
+
+# MIDI Defaults
+MIDI_DEFAULT_CHANNEL = 0
+MIDI_VELOCITY_CURVE = 0
+
+# Pressure/Expression Disabled
+PRESSURE_ENABLE = 0
+EXPRESSION_ENABLE = 0
+CALIBRATION_ENABLE = 0

@@ -106,6 +106,26 @@ extern "C" {
 #define MODULE_ENABLE_UI 1
 #endif
 
+/** @brief Enable UI Song Mode page */
+#ifndef MODULE_ENABLE_UI_PAGE_SONG
+#define MODULE_ENABLE_UI_PAGE_SONG 1
+#endif
+
+/** @brief Enable UI MIDI Monitor page */
+#ifndef MODULE_ENABLE_UI_PAGE_MIDI_MONITOR
+#define MODULE_ENABLE_UI_PAGE_MIDI_MONITOR 1
+#endif
+
+/** @brief Enable UI SysEx page */
+#ifndef MODULE_ENABLE_UI_PAGE_SYSEX
+#define MODULE_ENABLE_UI_PAGE_SYSEX 1
+#endif
+
+/** @brief Enable UI Config Editor page */
+#ifndef MODULE_ENABLE_UI_PAGE_CONFIG
+#define MODULE_ENABLE_UI_PAGE_CONFIG 1
+#endif
+
 /** @brief Enable Expression pedal/pressure service */
 #ifndef MODULE_ENABLE_EXPRESSION
 #define MODULE_ENABLE_EXPRESSION 1
@@ -124,6 +144,36 @@ extern "C" {
 /** @brief Enable Humanize service (timing/velocity randomization) */
 #ifndef MODULE_ENABLE_HUMANIZE
 #define MODULE_ENABLE_HUMANIZE 1
+#endif
+
+/** @brief Enable LiveFX module (transpose, velocity scale, force-to-scale) */
+#ifndef MODULE_ENABLE_LIVEFX
+#define MODULE_ENABLE_LIVEFX 1
+#endif
+
+/** @brief Enable Scale module (musical scale quantization) */
+#ifndef MODULE_ENABLE_SCALE
+#define MODULE_ENABLE_SCALE 1
+#endif
+
+/** @brief Enable Router Hooks (LiveFX/Monitor integration) */
+#ifndef MODULE_ENABLE_ROUTER_HOOKS
+#define MODULE_ENABLE_ROUTER_HOOKS 1
+#endif
+
+/** @brief Enable Rhythm Trainer (pedagogical timing practice tool) */
+#ifndef MODULE_ENABLE_RHYTHM_TRAINER
+#define MODULE_ENABLE_RHYTHM_TRAINER 1
+#endif
+
+/** @brief Enable Metronome (synchronized click track) */
+#ifndef MODULE_ENABLE_METRONOME
+#define MODULE_ENABLE_METRONOME 1
+#endif
+
+/** @brief Enable Config I/O (SD card configuration file read/write) */
+#ifndef MODULE_ENABLE_CONFIG_IO
+#define MODULE_ENABLE_CONFIG_IO 1
 #endif
 
 /** @brief Enable Zones configuration (keyboard split/layers) */

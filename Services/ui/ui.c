@@ -5,6 +5,12 @@
 #include "Services/ui/ui_page_looper.h"
 #include "Services/ui/ui_page_looper_timeline.h"
 #include "Services/ui/ui_page_looper_pianoroll.h"
+#include "Services/ui/ui_page_song.h"
+#include "Services/ui/ui_page_midi_monitor.h"
+#include "Services/ui/ui_page_sysex.h"
+#include "Services/ui/ui_page_config.h"
+#include "Services/ui/ui_page_livefx.h"
+#include "Services/ui/ui_page_rhythm.h"
 #include "Services/ui/ui_state.h"
 #include "Services/ui/chord_cfg.h"
 #include "Hal/oled_ssd1322/oled_ssd1322.h"
@@ -58,10 +64,15 @@ void ui_set_chord_mode(uint8_t en) { g_chord_mode = en ? 1 : 0; ui_state_mark_di
 
 void ui_on_button(uint8_t id, uint8_t pressed) {
   if (pressed && id == 5) {
-    // cycle pages: OVERVIEW -> TIMELINE -> PIANOROLL -> OVERVIEW
+    // cycle pages: OVERVIEW -> TIMELINE -> PIANOROLL -> SONG -> MIDI_MONITOR -> SYSEX -> CONFIG -> LIVEFX -> RHYTHM -> OVERVIEW
     if (g_page == UI_PAGE_LOOPER) g_page = UI_PAGE_LOOPER_TL;
     else if (g_page == UI_PAGE_LOOPER_TL) g_page = UI_PAGE_LOOPER_PR;
-    else if (g_page == UI_PAGE_LOOPER_PR) g_page = UI_PAGE_LOOPER;
+    else if (g_page == UI_PAGE_LOOPER_PR) g_page = UI_PAGE_SONG;
+    else if (g_page == UI_PAGE_SONG) g_page = UI_PAGE_MIDI_MONITOR;
+    else if (g_page == UI_PAGE_MIDI_MONITOR) g_page = UI_PAGE_SYSEX;
+    else if (g_page == UI_PAGE_SYSEX) g_page = UI_PAGE_CONFIG;
+    else if (g_page == UI_PAGE_CONFIG) g_page = UI_PAGE_LIVEFX;
+    else if (g_page == UI_PAGE_LIVEFX) g_page = UI_PAGE_RHYTHM;
     else g_page = UI_PAGE_LOOPER;
     return;
   }
@@ -72,7 +83,13 @@ ui_gfx_rect(0, 0, OLED_W, 12, 0); // clear header band (black)
 char line1[64];
 const char* page = (g_page == UI_PAGE_LOOPER) ? "LOOP" :
                    (g_page == UI_PAGE_LOOPER_TL) ? "TIME" :
-                   (g_page == UI_PAGE_LOOPER_PR) ? "PIANO" : "UI";
+                   (g_page == UI_PAGE_LOOPER_PR) ? "PIANO" :
+                   (g_page == UI_PAGE_SONG) ? "SONG" :
+                   (g_page == UI_PAGE_MIDI_MONITOR) ? "MMON" :
+                   (g_page == UI_PAGE_SYSEX) ? "SYSX" :
+                   (g_page == UI_PAGE_CONFIG) ? "CONF" :
+                   (g_page == UI_PAGE_LIVEFX) ? "LFXC" :
+                   (g_page == UI_PAGE_RHYTHM) ? "RHYT" : "UI";
 // Bank | Patch | Page
 snprintf(line1, sizeof(line1), "%s:%s  %s", g_bank_label, g_patch_label, page);
 ui_gfx_text(0, 2, line1, 15);
@@ -81,6 +98,12 @@ ui_gfx_text(0, 2, line1, 15);
     case UI_PAGE_LOOPER: ui_page_looper_on_button(id, pressed); break;
     case UI_PAGE_LOOPER_TL: ui_page_looper_timeline_on_button(id, pressed); break;
     case UI_PAGE_LOOPER_PR: ui_page_looper_pianoroll_on_button(id, pressed); break;
+    case UI_PAGE_SONG: ui_page_song_on_button(id, pressed); break;
+    case UI_PAGE_MIDI_MONITOR: ui_page_midi_monitor_on_button(id, pressed); break;
+    case UI_PAGE_SYSEX: ui_page_sysex_on_button(id, pressed); break;
+    case UI_PAGE_CONFIG: ui_page_config_on_button(id, pressed); break;
+    case UI_PAGE_LIVEFX: ui_page_livefx_on_button(id, pressed); break;
+    case UI_PAGE_RHYTHM: ui_page_rhythm_button(id); break;
     default: break;
   }
 }
@@ -91,7 +114,13 @@ ui_gfx_rect(0, 0, OLED_W, 12, 0); // clear header band (black)
 char line1[64];
 const char* page = (g_page == UI_PAGE_LOOPER) ? "LOOP" :
                    (g_page == UI_PAGE_LOOPER_TL) ? "TIME" :
-                   (g_page == UI_PAGE_LOOPER_PR) ? "PIANO" : "UI";
+                   (g_page == UI_PAGE_LOOPER_PR) ? "PIANO" :
+                   (g_page == UI_PAGE_SONG) ? "SONG" :
+                   (g_page == UI_PAGE_MIDI_MONITOR) ? "MMON" :
+                   (g_page == UI_PAGE_SYSEX) ? "SYSX" :
+                   (g_page == UI_PAGE_CONFIG) ? "CONF" :
+                   (g_page == UI_PAGE_LIVEFX) ? "LFXC" :
+                   (g_page == UI_PAGE_RHYTHM) ? "RHYT" : "UI";
 // Bank | Patch | Page
 snprintf(line1, sizeof(line1), "%s:%s  %s", g_bank_label, g_patch_label, page);
 ui_gfx_text(0, 2, line1, 15);
@@ -100,6 +129,12 @@ ui_gfx_text(0, 2, line1, 15);
     case UI_PAGE_LOOPER: ui_page_looper_on_encoder(delta); break;
     case UI_PAGE_LOOPER_TL: ui_page_looper_timeline_on_encoder(delta); break;
     case UI_PAGE_LOOPER_PR: ui_page_looper_pianoroll_on_encoder(delta); break;
+    case UI_PAGE_SONG: ui_page_song_on_encoder(delta); break;
+    case UI_PAGE_MIDI_MONITOR: ui_page_midi_monitor_on_encoder(delta); break;
+    case UI_PAGE_SYSEX: ui_page_sysex_on_encoder(delta); break;
+    case UI_PAGE_CONFIG: ui_page_config_on_encoder(delta); break;
+    case UI_PAGE_LIVEFX: ui_page_livefx_on_encoder(delta); break;
+    case UI_PAGE_RHYTHM: ui_page_rhythm_encoder(delta); break;
     default: break;
   }
 }
@@ -114,7 +149,13 @@ ui_gfx_rect(0, 0, OLED_W, 12, 0); // clear header band (black)
 char line1[64];
 const char* page = (g_page == UI_PAGE_LOOPER) ? "LOOP" :
                    (g_page == UI_PAGE_LOOPER_TL) ? "TIME" :
-                   (g_page == UI_PAGE_LOOPER_PR) ? "PIANO" : "UI";
+                   (g_page == UI_PAGE_LOOPER_PR) ? "PIANO" :
+                   (g_page == UI_PAGE_SONG) ? "SONG" :
+                   (g_page == UI_PAGE_MIDI_MONITOR) ? "MMON" :
+                   (g_page == UI_PAGE_SYSEX) ? "SYSX" :
+                   (g_page == UI_PAGE_CONFIG) ? "CONF" :
+                   (g_page == UI_PAGE_LIVEFX) ? "LFXC" :
+                   (g_page == UI_PAGE_RHYTHM) ? "RHYT" : "UI";
 // Bank | Patch | Page
 snprintf(line1, sizeof(line1), "%s:%s  %s", g_bank_label, g_patch_label, page);
 ui_gfx_text(0, 2, line1, 15);
@@ -123,6 +164,12 @@ ui_gfx_text(0, 2, line1, 15);
     case UI_PAGE_LOOPER: ui_page_looper_render(g_ms); break;
     case UI_PAGE_LOOPER_TL: ui_page_looper_timeline_render(g_ms); break;
     case UI_PAGE_LOOPER_PR: ui_page_looper_pianoroll_render(g_ms); break;
+    case UI_PAGE_SONG: ui_page_song_render(g_ms); break;
+    case UI_PAGE_MIDI_MONITOR: ui_page_midi_monitor_render(g_ms); break;
+    case UI_PAGE_SYSEX: ui_page_sysex_render(g_ms); break;
+    case UI_PAGE_CONFIG: ui_page_config_render(g_ms); break;
+    case UI_PAGE_LIVEFX: ui_page_livefx_render(g_ms); break;
+    case UI_PAGE_RHYTHM: ui_page_rhythm_update(0); break;
     default: break;
   }
 

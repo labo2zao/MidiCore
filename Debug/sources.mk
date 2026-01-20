@@ -46,6 +46,7 @@ Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang \
 Services/ain \
 Services/ainser \
 Services/config \
+Services/config_io \
 Services/din \
 Services/dout \
 Services/dream \
@@ -54,13 +55,18 @@ Services/fs \
 Services/humanize \
 Services/input \
 Services/instrument \
+Services/livefx \
 Services/log \
 Services/looper \
+Services/metronome \
 Services/midi \
 Services/patch \
 Services/pressure \
+Services/rhythm_trainer \
 Services/router \
+Services/router_hooks \
 Services/safe \
+Services/scale \
 Services/srio \
 Services/system \
 Services/ui \
