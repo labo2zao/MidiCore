@@ -30,7 +30,8 @@ typedef enum {
   MODULE_TEST_NONE_ID = 0,
   MODULE_TEST_GDB_DEBUG_ID,     // Test GDB debug / UART verification
   MODULE_TEST_AINSER64_ID,      // Test AINSER64 analog inputs
-  MODULE_TEST_SRIO_ID,          // Test SRIO DIN/DOUT
+  MODULE_TEST_SRIO_ID,          // Test SRIO DIN (Digital Inputs)
+  MODULE_TEST_SRIO_DOUT_ID,     // Test SRIO DOUT (Digital Outputs - LEDs)
   MODULE_TEST_MIDI_DIN_ID,      // Test MIDI DIN I/O
   MODULE_TEST_ROUTER_ID,        // Test MIDI router
   MODULE_TEST_LOOPER_ID,        // Test looper recording/playback
@@ -86,11 +87,19 @@ void module_test_gdb_debug_run(void);
 void module_test_ainser64_run(void);
 
 /**
- * @brief Test SRIO module (shift register I/O)
- * Reads DIN inputs and toggles DOUT outputs
+ * @brief Test SRIO DIN module (Digital Inputs - buttons)
+ * Reads button inputs from 74HC165 shift registers
  * @note This function runs forever
  */
 void module_test_srio_run(void);
+
+/**
+ * @brief Test SRIO DOUT module (Digital Outputs - LEDs)
+ * Cycles through LED patterns on 74HC595 shift registers
+ * Tests all DOUT bytes with various patterns to verify hardware
+ * @note This function runs forever
+ */
+void module_test_srio_dout_run(void);
 
 /**
  * @brief Test MIDI DIN module

@@ -233,6 +233,10 @@ int module_tests_run(module_test_t test)
       module_test_srio_run();
       break;
       
+    case MODULE_TEST_SRIO_DOUT_ID:
+      module_test_srio_dout_run();
+      break;
+      
     case MODULE_TEST_MIDI_DIN_ID:
       module_test_midi_din_run();
       break;
@@ -607,6 +611,165 @@ void module_test_srio_run(void)
   }
 #else
   dbg_print_test_header("SRIO Test");
+  dbg_print("ERROR: SRIO module not enabled!\r\n");
+  dbg_print("Please enable MODULE_ENABLE_SRIO and SRIO_ENABLE\r\n");
+  for (;;) {
+    osDelay(1000);
+  }
+#endif
+}
+
+void module_test_srio_dout_run(void)
+{
+  // Early UART verification
+  dbg_print("\r\n");
+  dbg_print("==============================================\r\n");
+  dbg_print("UART Debug Verification: OK\r\n");
+  dbg_print("==============================================\r\n");
+  dbg_print("\r\n");
+  osDelay(100); // Give time for UART transmission
+  
+#if MODULE_ENABLE_SRIO && defined(SRIO_ENABLE)
+  dbg_print_test_header("SRIO DOUT Module Test");
+  dbg_print("Testing Digital Outputs (LEDs) using 74HC595 shift registers\r\n");
+  dbg_print("\r\n");
+  
+  // Initialize SRIO
+  dbg_print("Initializing SRIO...");
+  srio_config_t scfg = {
+    .hspi = SRIO_SPI_HANDLE,
+    .din_pl_port = SRIO_DIN_PL_PORT,
+    .din_pl_pin = SRIO_DIN_PL_PIN,
+    .dout_rclk_port = SRIO_DOUT_RCLK_PORT,
+    .dout_rclk_pin = SRIO_DOUT_RCLK_PIN,
+    .dout_oe_port = NULL,
+    .dout_oe_pin = 0,
+    .dout_oe_active_low = 1,
+    .din_bytes = SRIO_DIN_BYTES,
+    .dout_bytes = SRIO_DOUT_BYTES,
+  };
+  srio_init(&scfg);
+  dbg_print(" OK\r\n");
+  
+  dbg_print_separator();
+  dbg_printf("Configuration: %d DOUT bytes (74HC595 chips)\r\n", SRIO_DOUT_BYTES);
+  dbg_printf("Total LEDs: %d (8 per byte)\r\n", SRIO_DOUT_BYTES * 8);
+  dbg_print("\r\n");
+  
+  dbg_print("Hardware connections (MIOS32 mbhp_doutx4):\r\n");
+  dbg_print("  74HC595 Pin 11 (SRCLK) → PB13 (SPI2 SCK)\r\n");
+  dbg_print("  74HC595 Pin 12 (RCLK)  → PB12 (RC1)\r\n");
+  dbg_print("  74HC595 Pin 14 (SER)   → PB15 (SPI2 MOSI)\r\n");
+  dbg_print("\r\n");
+  
+  dbg_print("LED Note: LEDs are ACTIVE LOW (0=ON, 1=OFF)\r\n");
+  dbg_print("  - 0x00 = All LEDs ON\r\n");
+  dbg_print("  - 0xFF = All LEDs OFF\r\n");
+  dbg_print_separator();
+  dbg_print("\r\n");
+  
+  uint8_t dout[SRIO_DOUT_BYTES];
+  uint32_t pattern_counter = 0;
+  uint32_t last_pattern_ms = 0;
+  
+  // Start with all LEDs OFF
+  memset(dout, 0xFF, SRIO_DOUT_BYTES);
+  srio_write_dout(dout);
+  
+  dbg_print("Starting LED pattern test...\r\n");
+  dbg_print("Patterns will cycle every 2 seconds\r\n");
+  dbg_print("Watch your LEDs to verify all outputs work!\r\n");
+  dbg_print("\r\n");
+  
+  for (;;) {
+    uint32_t now_ms = osKernelGetTickCount();
+    
+    // Change pattern every 2 seconds
+    if (now_ms - last_pattern_ms >= 2000) {
+      last_pattern_ms = now_ms;
+      pattern_counter++;
+      
+      uint8_t pattern_type = pattern_counter % 7;
+      
+      dbg_printf("[Pattern %lu] ", pattern_counter);
+      
+      switch (pattern_type) {
+        case 0:
+          // All LEDs ON
+          dbg_print("All LEDs ON (0x00)\r\n");
+          memset(dout, 0x00, SRIO_DOUT_BYTES);
+          break;
+          
+        case 1:
+          // All LEDs OFF
+          dbg_print("All LEDs OFF (0xFF)\r\n");
+          memset(dout, 0xFF, SRIO_DOUT_BYTES);
+          break;
+          
+        case 2:
+          // Alternating pattern
+          dbg_print("Alternating pattern (0xAA/0x55)\r\n");
+          for (uint8_t i = 0; i < SRIO_DOUT_BYTES; i++) {
+            dout[i] = (i % 2 == 0) ? 0xAA : 0x55;
+          }
+          break;
+          
+        case 3:
+          // Running light (one LED at a time)
+          dbg_print("Running light\r\n");
+          memset(dout, 0xFF, SRIO_DOUT_BYTES);
+          uint8_t led_pos = (pattern_counter / 4) % (SRIO_DOUT_BYTES * 8);
+          uint8_t byte_idx = led_pos / 8;
+          uint8_t bit_idx = led_pos % 8;
+          dout[byte_idx] &= ~(1 << bit_idx);
+          break;
+          
+        case 4:
+          // Binary counter
+          dbg_print("Binary counter\r\n");
+          uint32_t counter_val = pattern_counter & 0xFF;
+          for (uint8_t i = 0; i < SRIO_DOUT_BYTES && i < 4; i++) {
+            dout[i] = ~((counter_val >> (i * 8)) & 0xFF);
+          }
+          for (uint8_t i = 4; i < SRIO_DOUT_BYTES; i++) {
+            dout[i] = 0xFF;
+          }
+          break;
+          
+        case 5:
+          // Wave pattern
+          dbg_print("Wave pattern\r\n");
+          for (uint8_t i = 0; i < SRIO_DOUT_BYTES; i++) {
+            uint8_t phase = (pattern_counter + i * 2) % 8;
+            dout[i] = ~(1 << phase);
+          }
+          break;
+          
+        case 6:
+          // Checkerboard
+          dbg_print("Checkerboard (0x55)\r\n");
+          memset(dout, 0x55, SRIO_DOUT_BYTES);
+          break;
+      }
+      
+      // Write pattern to DOUTs
+      int result = srio_write_dout(dout);
+      if (result != 0) {
+        dbg_printf("ERROR: DOUT write failed with code %d\r\n", result);
+      }
+      
+      // Print hex values
+      dbg_print("  DOUT values: ");
+      for (uint8_t i = 0; i < SRIO_DOUT_BYTES; i++) {
+        dbg_printf("0x%02X ", dout[i]);
+      }
+      dbg_print("\r\n\r\n");
+    }
+    
+    osDelay(100); // 100ms update rate
+  }
+#else
+  dbg_print_test_header("SRIO DOUT Test");
   dbg_print("ERROR: SRIO module not enabled!\r\n");
   dbg_print("Please enable MODULE_ENABLE_SRIO and SRIO_ENABLE\r\n");
   for (;;) {
