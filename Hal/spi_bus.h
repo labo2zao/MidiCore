@@ -6,7 +6,7 @@
 typedef enum {
   SPIBUS_DEV_SD = 0,
   SPIBUS_DEV_AIN,
-  SPIBUS_DEV_OLED,
+  // Note: OLED uses software SPI (bit-bang), not hardware SPI bus
 } spibus_dev_t;
 
 void spibus_init(void);
