@@ -12,7 +12,7 @@
   ******************************************************************************
   */
 
-#include "usbd_midi.h"
+#include "../Inc/usbd_midi.h"
 #include "usbd_ctlreq.h"
 #include <string.h>
 
