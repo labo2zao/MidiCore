@@ -1,0 +1,121 @@
+```
+==============================================================================
+  USB MIDI Configuration Descriptor Structure (4-port interface)
+==============================================================================
+
+┌─────────────────────────────────────────────────────────────────────┐
+│ Configuration Descriptor                                    9 bytes │
+│ ┌─────────────────────────────────────────────────────────────────┐ │
+│ │ bLength:         0x09                                           │ │
+│ │ bDescriptorType: 0x02 (Configuration)                           │ │
+│ │ wTotalLength:    0x00DB (219 bytes) ← CRITICAL! Was 0xD9 (217) │ │
+│ │ bNumInterfaces:  0x02                                           │ │
+│ │ ...                                                             │ │
+│ └─────────────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────┐
+│ Interface Association Descriptor (IAD)                      8 bytes │
+│ ┌─────────────────────────────────────────────────────────────────┐ │
+│ │ bLength:             0x08                                       │ │
+│ │ bDescriptorType:     0x0B (IAD)                                 │ │
+│ │ bFunctionClass:      0x01 (Audio)                               │ │
+│ │ bFunctionSubClass:   0x01 (Audio Control) ← NOT 0x03!          │ │
+│ └─────────────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────┐
+│ Audio Control (AC) Interface                                9 bytes │
+│ ┌─────────────────────────────────────────────────────────────────┐ │
+│ │ bLength:            0x09                                        │ │
+│ │ bDescriptorType:    0x04 (Interface)                            │ │
+│ │ bInterfaceNumber:   0x00                                        │ │
+│ │ bInterfaceClass:    0x01 (Audio)                                │ │
+│ │ bInterfaceSubClass: 0x01 (Audio Control)                        │ │
+│ │ bNumEndpoints:      0x00 (no endpoints)                         │ │
+│ └─────────────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────┐
+│ Class-Specific AC Interface Header                          9 bytes │
+│ ┌─────────────────────────────────────────────────────────────────┐ │
+│ │ bLength:         0x09  ← THE BUG WAS HERE!                      │ │
+│ │ bDescriptorType: 0x24 (CS_INTERFACE)                            │ │
+│ │ bDescriptorSubtype: 0x01 (HEADER)                               │ │
+│ │ bcdADC:          0x0100 (1.00)                                  │ │
+│ │ wTotalLength:    0x0009 (9 bytes - just this header)            │ │
+│ │ bInCollection:   0x01 ← These fields make it 9 bytes, not 7!   │ │
+│ │ baInterfaceNr:   0x01 ←                                         │ │
+│ └─────────────────────────────────────────────────────────────────┘ │
+│                                                                     │
+│ ⚠️  BUG: Was calculated as 7 bytes (USB_DESC_SIZE_CS_INTERFACE)    │
+│ ✅  FIX: Now calculated as 9 bytes (USB_DESC_SIZE_CS_AC_INTERFACE) │
+└─────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────┐
+│ MIDI Streaming (MS) Interface                                9 bytes│
+│ ┌─────────────────────────────────────────────────────────────────┐ │
+│ │ bLength:            0x09                                        │ │
+│ │ bDescriptorType:    0x04 (Interface)                            │ │
+│ │ bInterfaceNumber:   0x01                                        │ │
+│ │ bInterfaceClass:    0x01 (Audio)                                │ │
+│ │ bInterfaceSubClass: 0x03 (MIDI Streaming)                       │ │
+│ │ bNumEndpoints:      0x02 (IN + OUT)                             │ │
+│ └─────────────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────┐
+│ Class-Specific MS Interface Header                          7 bytes │
+│ ┌─────────────────────────────────────────────────────────────────┐ │
+│ │ bLength:         0x07  ← This one is correctly 7 bytes          │ │
+│ │ bDescriptorType: 0x24 (CS_INTERFACE)                            │ │
+│ │ bDescriptorSubtype: 0x01 (MS_HEADER)                            │ │
+│ │ bcdMSC:          0x0100 (1.00)                                  │ │
+│ │ wTotalLength:    0x00A8 (168 bytes of jacks+endpoints)          │ │
+│ └─────────────────────────────────────────────────────────────────┘ │
+│                                                                     │
+│ ✅  Correctly uses USB_DESC_SIZE_CS_MS_INTERFACE = 7 bytes         │
+└─────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────┐
+│ MIDI Jack Descriptors (4 ports)                           132 bytes │
+│ ┌─────────────────────────────────────────────────────────────────┐ │
+│ │ External IN Jacks  (4 × 6 bytes)  = 24 bytes                   │ │
+│ │ Embedded IN Jacks  (4 × 9 bytes)  = 36 bytes                   │ │
+│ │ Embedded OUT Jacks (4 × 9 bytes)  = 36 bytes                   │ │
+│ │ External OUT Jacks (4 × 9 bytes)  = 36 bytes                   │ │
+│ └─────────────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────┐
+│ Endpoint Descriptors                                        36 bytes│
+│ ┌─────────────────────────────────────────────────────────────────┐ │
+│ │ Bulk OUT Endpoint (Standard)       = 9 bytes                   │ │
+│ │ CS Bulk OUT Endpoint (MS_GENERAL)  = 9 bytes (5 + 4 jacks)     │ │
+│ │ Bulk IN Endpoint (Standard)        = 9 bytes                   │ │
+│ │ CS Bulk IN Endpoint (MS_GENERAL)   = 9 bytes (5 + 4 jacks)     │ │
+│ └─────────────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────────┘
+
+==============================================================================
+TOTAL: 219 bytes (0xDB)
+==============================================================================
+
+Breakdown:
+  9  + 8  + 9  + 9  + 9  + 7  + 168 = 219 bytes
+  ↑    ↑    ↑    ↑    ↑    ↑    ↑
+  │    │    │    │    │    │    └─── MS Jacks + Endpoints
+  │    │    │    │    │    └──────── CS MS Header (7 bytes)
+  │    │    │    │    └───────────── MS Interface
+  │    │    │    └────────────────── CS AC Header (9 bytes) ← THE FIX!
+  │    │    └─────────────────────── AC Interface
+  │    └──────────────────────────── IAD
+  └───────────────────────────────── Configuration
+
+Before Fix: 9 + 8 + 9 + 7 + 9 + 7 + 168 = 217 bytes ❌ (2 bytes short!)
+After Fix:  9 + 8 + 9 + 9 + 9 + 7 + 168 = 219 bytes ✅ (CORRECT!)
+
+Windows Error 0xC00000E5 = CONFIGURATION_DESCRIPTOR_VALIDATION_FAILURE
+Cause: wTotalLength (217) didn't match actual data (219)
+Fix: Use correct 9-byte size for CS AC Header
+```
