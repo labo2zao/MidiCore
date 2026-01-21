@@ -25,6 +25,14 @@ static void cmd_data(uint8_t c, uint8_t d) {
   dc_cmd();
 }
 
+static void cmd_data2(uint8_t c, uint8_t d1, uint8_t d2) {
+  cmd(c);
+  dc_data();
+  uint8_t data[2] = {d1, d2};
+  spibus_tx(SPIBUS_DEV_OLED, data, 2, 20);
+  dc_cmd();
+}
+
 static void reset_pulse(void) {
   HAL_GPIO_WritePin(OLED_RST_GPIO_Port, OLED_RST_Pin, GPIO_PIN_RESET);
   delay_us(2000);
@@ -53,19 +61,19 @@ void oled_init(void) {
   
   cmd_data(0xA1, 0x00); // Set Display Start Line - Start line = 0
   
-  cmd(0xA0); // Set Re-map and Dual COM Line mode
-  cmd(0x14); // Enable Column Address Re-map, Disable Nibble Re-map
-  cmd(0x11); // Enable Dual COM mode (for 64 MUX)
+  cmd_data2(0xA0, 0x14, 0x11); // Set Re-map and Dual COM Line mode
+                                 // 0x14: Enable Column Address Re-map, Disable Nibble Re-map
+                                 // 0x11: Enable Dual COM mode (for 64 MUX)
   
   cmd_data(0xB5, 0x00); // Set GPIO - GPIO0, GPIO1 = HiZ (disabled)
   
   cmd_data(0xAB, 0x01); // Function Selection - Enable internal VDD regulator
   
-  cmd(0xB4); // Display Enhancement A
-  cmd(0xA0); // Enable external VSL
-  cmd(0xFD); // Enhanced low GS display quality
+  cmd_data2(0xB4, 0xA0, 0xFD); // Display Enhancement A
+                                 // 0xA0: Enable external VSL
+                                 // 0xFD: Enhanced low GS display quality
   
-  cmd_data(0xC1, 0x7F); // Set Contrast Current - Medium-high contrast
+  cmd_data(0xC1, 0x9F); // Set Contrast Current - Higher contrast
   
   cmd_data(0xC7, 0x0F); // Master Contrast Current Control - Maximum
   
@@ -73,9 +81,9 @@ void oled_init(void) {
   
   cmd_data(0xB1, 0xE2); // Set Phase Length - Phase 1 = 5 DCLKs, Phase 2 = 14 DCLKs
   
-  cmd(0xD1); // Display Enhancement B
-  cmd(0x82); // Normal enhancement
-  cmd(0x20); // Reserved
+  cmd_data2(0xD1, 0x82, 0x20); // Display Enhancement B
+                                 // 0x82: Normal enhancement
+                                 // 0x20: Reserved
   
   cmd_data(0xBB, 0x1F); // Set Pre-charge voltage - 0.60 x VCC
   
@@ -93,7 +101,13 @@ void oled_init(void) {
 
   delay_us(100000); // Wait 100ms for display to stabilize
   
+  // Fill with test pattern to verify display is working
   oled_clear();
+  uint8_t* fb_ptr = oled_framebuffer();
+  // Create a checkerboard pattern for visibility test
+  for (int i = 0; i < 1024; i++) {
+    fb_ptr[i] = 0xFF; // Fill first 1KB with white pixels
+  }
   oled_flush();
 }
 
