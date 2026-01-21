@@ -184,13 +184,21 @@ USBD_StatusTypeDef USBD_LL_Init(USBD_HandleTypeDef *pdev)
   hpcd_USB_OTG_FS.Init.Sof_enable = DISABLE;
   hpcd_USB_OTG_FS.Init.low_power_enable = DISABLE;
   hpcd_USB_OTG_FS.Init.lpm_enable = DISABLE;
-  hpcd_USB_OTG_FS.Init.vbus_sensing_enable = DISABLE;
+  hpcd_USB_OTG_FS.Init.vbus_sensing_enable = DISABLE;  /* No VBUS sense on STM32F407 */
   hpcd_USB_OTG_FS.Init.use_dedicated_ep1 = DISABLE;
   
   if (HAL_PCD_Init(&hpcd_USB_OTG_FS) != HAL_OK)
   {
     Error_Handler();
   }
+  
+  /* CRITICAL FIX for STM32F407: Force B-Device session valid when VBUS sensing disabled */
+  /* This is required because without VBUS detection, the USB core won't start */
+  USB_OTG_FS->GCCFG |= USB_OTG_GCCFG_NOVBUSSENS;  /* Disable VBUS sensing */
+  USB_OTG_FS->GCCFG &= ~USB_OTG_GCCFG_VBUSBSEN;   /* Disable VBUS "B" sensing */
+  USB_OTG_FS->GCCFG &= ~USB_OTG_GCCFG_VBUSASEN;   /* Disable VBUS "A" sensing */
+  USB_OTG_FS->GOTGCTL |= USB_OTG_GOTGCTL_BVALOEN; /* Enable B-device valid override */
+  USB_OTG_FS->GOTGCTL |= USB_OTG_GOTGCTL_BVALOVAL;/* Force B-session valid */
   
   /* Allocate endpoints for MIDI */
   HAL_PCDEx_SetRxFiFo(&hpcd_USB_OTG_FS, 0x80);
