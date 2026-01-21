@@ -24,6 +24,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "Config/module_config.h"  // MUST be first to define MODULE_ENABLE_* macros
 #include "App/app_entry.h"
 
 #include "App/tests/app_test_din_midi.h"
@@ -151,9 +152,13 @@ int main(void)
   MX_CAN1_Init();
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
-
+#if MODULE_ENABLE_USB_MIDI
+  MX_USB_DEVICE_Init();
+  extern void usb_midi_init(void);
+  usb_midi_init();
+#endif
   /* USER CODE END 2 */
-
+  //while(1) { HAL_Delay(1000); } // STOP ICI
   /* Init scheduler */
   osKernelInitialize();
 
@@ -874,12 +879,14 @@ static void MX_GPIO_Init(void)
 /* USER CODE END Header_StartDefaultTask */
 void StartDefaultTask(void *argument)
 {
-  /* init code for USB_HOST */
-  MX_USB_HOST_Init();
   /* USER CODE BEGIN 5 */
   
-  // Init USB Host MIDI wrapper (no-op if USBH MIDI module not enabled)
+  /* init code for USB_HOST - only if enabled */
+#if MODULE_ENABLE_USBH_MIDI
+  MX_USB_HOST_Init();
+  // Init USB Host MIDI wrapper
   usb_host_midi_init();
+#endif
   
   // Check if a module test was selected at compile time
   module_test_t selected_test = module_tests_get_compile_time_selection();

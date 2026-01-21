@@ -1,8 +1,0 @@
-../Services/ui/ui_actions_stubs.c:6:28:ui_prev_page	1
-../Services/ui/ui_actions_stubs.c:7:28:ui_next_page	1
-../Services/ui/ui_actions_stubs.c:8:28:ui_cursor_move	1
-../Services/ui/ui_actions_stubs.c:9:28:ui_zoom	1
-../Services/ui/ui_actions_stubs.c:10:28:ui_quantize	1
-../Services/ui/ui_actions_stubs.c:11:28:ui_delete	1
-../Services/ui/ui_actions_stubs.c:12:28:ui_toggle_chord_mode	1
-../Services/ui/ui_actions_stubs.c:13:28:ui_toggle_auto_loop	1

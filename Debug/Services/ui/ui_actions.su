@@ -1,9 +1,0 @@
-../Services/ui/ui_actions.c:29:13:trim	32	static
-../Services/ui/ui_actions.c:34:13:upcase	24	static
-../Services/ui/ui_actions.c:36:20:parse_action	88	static
-../Services/ui/ui_actions.c:67:6:ui_actions_defaults	16	static
-../Services/ui/ui_actions.c:88:13:apply_action	16	static
-../Services/ui/ui_actions.c:122:13:set_key	104	static
-../Services/ui/ui_actions.c:142:5:ui_actions_load	776	static
-../Services/ui/ui_actions.c:190:6:ui_actions_on_encoder	16	static
-../Services/ui/ui_actions.c:196:6:ui_actions_on_button	16	static
