@@ -1451,6 +1451,12 @@ void module_test_usb_device_midi_run(void)
   // Built-in USB Device MIDI test
   dbg_print_test_header("USB Device MIDI Test");
   
+  dbg_print("Configuration:\r\n");
+  dbg_printf("  - UART Port: UART%d (Port %d)\r\n", TEST_DEBUG_UART_PORT + 1, TEST_DEBUG_UART_PORT);
+  dbg_printf("  - Baud Rate: %d\r\n", TEST_DEBUG_UART_BAUD);
+  dbg_print("  - Data: 8-N-1\r\n");
+  dbg_print("\r\n");
+  
   dbg_print("Initializing USB Device MIDI...");
   usb_midi_init();
   dbg_print(" OK\r\n");
