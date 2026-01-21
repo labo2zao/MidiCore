@@ -14,15 +14,14 @@
 #include "main.h"  /* For Error_Handler */
 
 /* Define missing USB_OTG_GOTGCTL register bits for STM32F407 B-session override */
-/* These are not defined in standard STM32 headers but are documented in reference manual */
+/* These are not defined in standard STM32 headers but are documented in RM0090 Reference Manual */
+/* GOTGCTL register bit 6: BVALOEN - B-peripheral session valid override enable */
+/* GOTGCTL register bit 7: BVALOVAL - B-peripheral session valid override value */
 #ifndef USB_OTG_GOTGCTL_BVALOEN
-#define USB_OTG_GOTGCTL_BVALOEN_Pos    (6U)
-#define USB_OTG_GOTGCTL_BVALOEN        (0x1UL << USB_OTG_GOTGCTL_BVALOEN_Pos)  /* B-peripheral session valid override enable */
+  #define USB_OTG_GOTGCTL_BVALOEN    (1UL << 6)  /* Bit 6 */
 #endif
-
 #ifndef USB_OTG_GOTGCTL_BVALOVAL
-#define USB_OTG_GOTGCTL_BVALOVAL_Pos   (7U)
-#define USB_OTG_GOTGCTL_BVALOVAL       (0x1UL << USB_OTG_GOTGCTL_BVALOVAL_Pos) /* B-peripheral session valid override value */
+  #define USB_OTG_GOTGCTL_BVALOVAL   (1UL << 7)  /* Bit 7 */
 #endif
 
 /* USB Device handle */

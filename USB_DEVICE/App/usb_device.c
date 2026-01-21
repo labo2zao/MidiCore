@@ -10,6 +10,7 @@
 #include "usbd_core.h"
 #include "usbd_desc.h"
 #include "usbd_midi.h"
+#include "main.h"  /* For Error_Handler */
 
 /* USB Device Core handle declaration */
 USBD_HandleTypeDef hUsbDeviceFS;
