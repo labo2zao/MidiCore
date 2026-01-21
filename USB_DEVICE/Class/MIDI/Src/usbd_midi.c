@@ -607,9 +607,23 @@ uint8_t USBD_MIDI_SendData(USBD_HandleTypeDef *pdev, uint8_t cable, uint8_t *dat
     return USBD_BUSY;
   }
   
-  /* Build USB MIDI packet (4 bytes) */
-  uint8_t packet[4];
+  /* Check if endpoint is busy before sending */
+  if (pdev->ep_in[MIDI_IN_EP & 0x0F].status == USBD_BUSY)
+  {
+    return USBD_BUSY;
+  }
+  
+  /* Ignore incomplete/invalid SysEx messages that could crash DAW */
+  if (length >= 1 && data[0] == MIDI_SYSEX_START && length < 3)
+  {
+    /* Single F0 byte without continuation - ignore it */
+    return USBD_OK;
+  }
+  
+  /* Build USB MIDI packet (4 bytes) - initialize all to 0 */
+  uint8_t packet[4] = {0, 0, 0, 0};
   uint8_t cin = MIDI_CIN_MISCELLANEOUS; /* Default: Miscellaneous function code */
+  uint8_t valid_bytes = 3; /* Number of valid MIDI bytes (default 3) */
   
   /* Determine Code Index Number based on status byte */
   if (length >= 1 && (data[0] & 0x80))
@@ -617,38 +631,60 @@ uint8_t USBD_MIDI_SendData(USBD_HandleTypeDef *pdev, uint8_t cable, uint8_t *dat
     uint8_t status = data[0] & 0xF0;
     switch (status)
     {
-      case MIDI_STATUS_NOTE_OFF:          cin = MIDI_CIN_NOTE_OFF; break;
-      case MIDI_STATUS_NOTE_ON:           cin = MIDI_CIN_NOTE_ON; break;
-      case MIDI_STATUS_POLY_AFTERTOUCH:   cin = MIDI_CIN_POLY_AFTERTOUCH; break;
-      case MIDI_STATUS_CONTROL_CHANGE:    cin = MIDI_CIN_CONTROL_CHANGE; break;
-      case MIDI_STATUS_PROGRAM_CHANGE:    cin = MIDI_CIN_PROGRAM_CHANGE; break;
-      case MIDI_STATUS_CHANNEL_AFTERTOUCH: cin = MIDI_CIN_CHANNEL_AFTERTOUCH; break;
-      case MIDI_STATUS_PITCH_BEND:        cin = MIDI_CIN_PITCH_BEND; break;
+      case MIDI_STATUS_NOTE_OFF:          cin = MIDI_CIN_NOTE_OFF; valid_bytes = 3; break;
+      case MIDI_STATUS_NOTE_ON:           cin = MIDI_CIN_NOTE_ON; valid_bytes = 3; break;
+      case MIDI_STATUS_POLY_AFTERTOUCH:   cin = MIDI_CIN_POLY_AFTERTOUCH; valid_bytes = 3; break;
+      case MIDI_STATUS_CONTROL_CHANGE:    cin = MIDI_CIN_CONTROL_CHANGE; valid_bytes = 3; break;
+      case MIDI_STATUS_PROGRAM_CHANGE:    cin = MIDI_CIN_PROGRAM_CHANGE; valid_bytes = 2; break;
+      case MIDI_STATUS_CHANNEL_AFTERTOUCH: cin = MIDI_CIN_CHANNEL_AFTERTOUCH; valid_bytes = 2; break;
+      case MIDI_STATUS_PITCH_BEND:        cin = MIDI_CIN_PITCH_BEND; valid_bytes = 3; break;
       case MIDI_STATUS_SYSTEM:
         switch (data[0])
         {
-          case MIDI_SYSEX_START:        cin = MIDI_CIN_SYSEX_START; break;
-          case MIDI_MTC_QUARTER_FRAME:  cin = MIDI_CIN_2BYTE_SYSTEM; break;
-          case MIDI_SONG_POSITION:      cin = MIDI_CIN_3BYTE_SYSTEM; break;
-          case MIDI_SONG_SELECT:        cin = MIDI_CIN_2BYTE_SYSTEM; break;
-          case MIDI_TUNE_REQUEST:       cin = MIDI_CIN_SYSEX_END_1BYTE; break;
-          case MIDI_SYSEX_END:          cin = MIDI_CIN_SYSEX_END_1BYTE; break;
-          case MIDI_TIMING_CLOCK:       cin = MIDI_CIN_MISCELLANEOUS; break;
-          case MIDI_START:              cin = MIDI_CIN_MISCELLANEOUS; break;
-          case MIDI_CONTINUE:           cin = MIDI_CIN_MISCELLANEOUS; break;
-          case MIDI_STOP:               cin = MIDI_CIN_MISCELLANEOUS; break;
-          case MIDI_ACTIVE_SENSING:     cin = MIDI_CIN_MISCELLANEOUS; break;
-          case MIDI_SYSTEM_RESET:       cin = MIDI_CIN_MISCELLANEOUS; break;
+          case MIDI_SYSEX_START:        
+            /* SysEx start: check if it's complete in this packet */
+            if (length >= 3 && data[length-1] == MIDI_SYSEX_END)
+            {
+              /* Complete SysEx in one packet */
+              cin = (length == 3) ? MIDI_CIN_SYSEX_END_3BYTE : MIDI_CIN_SYSEX_START;
+            }
+            else
+            {
+              /* SysEx continues */
+              cin = MIDI_CIN_SYSEX_START;
+            }
+            valid_bytes = 3;
+            break;
+          case MIDI_MTC_QUARTER_FRAME:  cin = MIDI_CIN_2BYTE_SYSTEM; valid_bytes = 2; break;
+          case MIDI_SONG_POSITION:      cin = MIDI_CIN_3BYTE_SYSTEM; valid_bytes = 3; break;
+          case MIDI_SONG_SELECT:        cin = MIDI_CIN_2BYTE_SYSTEM; valid_bytes = 2; break;
+          case MIDI_TUNE_REQUEST:       cin = MIDI_CIN_SYSEX_END_1BYTE; valid_bytes = 1; break;
+          case MIDI_SYSEX_END:          cin = MIDI_CIN_SYSEX_END_1BYTE; valid_bytes = 1; break;
+          case MIDI_TIMING_CLOCK:       cin = MIDI_CIN_MISCELLANEOUS; valid_bytes = 1; break;
+          case MIDI_START:              cin = MIDI_CIN_MISCELLANEOUS; valid_bytes = 1; break;
+          case MIDI_CONTINUE:           cin = MIDI_CIN_MISCELLANEOUS; valid_bytes = 1; break;
+          case MIDI_STOP:               cin = MIDI_CIN_MISCELLANEOUS; valid_bytes = 1; break;
+          case MIDI_ACTIVE_SENSING:     cin = MIDI_CIN_MISCELLANEOUS; valid_bytes = 1; break;
+          case MIDI_SYSTEM_RESET:       cin = MIDI_CIN_MISCELLANEOUS; valid_bytes = 1; break;
         }
         break;
     }
   }
   
+  /* Clamp length to valid_bytes */
+  if (length > valid_bytes)
+  {
+    length = valid_bytes;
+  }
+  
   /* Pack cable number and CIN into header */
   packet[0] = (cable << 4) | cin;
-  packet[1] = (length >= 1) ? data[0] : 0;
-  packet[2] = (length >= 2) ? data[1] : 0;
-  packet[3] = (length >= 3) ? data[2] : 0;
+  
+  /* Copy only valid bytes, rest stay 0 */
+  for (uint8_t i = 0; i < length && i < 3; i++)
+  {
+    packet[i + 1] = data[i];
+  }
   
   /* Transmit packet */
   USBD_LL_Transmit(pdev, MIDI_IN_EP, packet, 4);
