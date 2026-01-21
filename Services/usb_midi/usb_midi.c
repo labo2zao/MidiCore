@@ -54,11 +54,6 @@ void usb_midi_send_packet(uint8_t cin, uint8_t b0, uint8_t b1, uint8_t b2) {
 }
 
 void usb_midi_rx_packet(const uint8_t packet4[4]) {
-  /* DEBUG: Force print to verify function is called */
-  extern UART_HandleTypeDef huart2;
-  static const char dbg_msg[] = "RXP!";
-  HAL_UART_Transmit(&huart2, (const uint8_t*)dbg_msg, 4, 10);
-  
   /* Call debug hook if defined (for test modules) */
   usb_midi_rx_debug_hook(packet4);
   
@@ -87,11 +82,6 @@ static void USBD_MIDI_DeInit_Callback(void) {
 }
 
 static void USBD_MIDI_DataOut_Callback(USBD_MIDI_EventPacket_t *packet) {
-  /* DEBUG: Force print to verify callback is called */
-  extern UART_HandleTypeDef huart2;
-  static const char dbg_msg[] = "CB!";
-  HAL_UART_Transmit(&huart2, (const uint8_t*)dbg_msg, 3, 10);
-  
   /* Forward packet to application layer (4-byte USB MIDI packet) */
   usb_midi_rx_packet((uint8_t*)packet);
 }
