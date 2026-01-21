@@ -244,6 +244,23 @@ extern "C" {
 #define MODULE_ENABLE_MIDI_DIN_DEBUG 0  // Disabled by default
 #endif
 
+/** @brief Enable USB MIDI debug output via UART
+ * 
+ * When enabled, outputs detailed USB enumeration and descriptor information
+ * to UART for troubleshooting USB device issues.
+ * 
+ * To enable:
+ * 1. Set this to 1, OR
+ * 2. Uncomment #define USBD_MIDI_DEBUG in USB_DEVICE/Class/MIDI/Inc/usbd_midi_debug.h
+ * 
+ * Requires: printf redirected to UART
+ * Output: USB setup requests, descriptor dumps, enumeration state
+ * Usage: See Docs/USB_DEBUG_UART_QUICKSTART.md
+ */
+#ifndef MODULE_ENABLE_USB_MIDI_DEBUG
+#define MODULE_ENABLE_USB_MIDI_DEBUG 0  // Disabled by default (verbose UART output)
+#endif
+
 // NOTE: DIN_SELFTEST has been removed - use MODULE_TEST_SRIO instead
 // The old DIN_SELFTEST was superseded by the comprehensive MODULE_TEST_SRIO test
 

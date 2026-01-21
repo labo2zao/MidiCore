@@ -4,7 +4,28 @@
 
 This guide shows you how to enable USB debug output via UART - it's very simple!
 
-## Step 1: Enable Debug Output
+## Step 1: Enable Debug Output (Choose ONE Method)
+
+### Method 1: Via Module Config (Recommended for Project Integration)
+
+Open the file: `Config/module_config.h`
+
+Find this section:
+```c
+/** @brief Enable USB MIDI debug output via UART */
+#ifndef MODULE_ENABLE_USB_MIDI_DEBUG
+#define MODULE_ENABLE_USB_MIDI_DEBUG 0  // Disabled by default
+#endif
+```
+
+**Change the 0 to 1**:
+```c
+#ifndef MODULE_ENABLE_USB_MIDI_DEBUG
+#define MODULE_ENABLE_USB_MIDI_DEBUG 1  // ENABLED for debugging
+#endif
+```
+
+### Method 2: Directly in Debug Header (Quick Testing)
 
 Open the file: `USB_DEVICE/Class/MIDI/Inc/usbd_midi_debug.h`
 
@@ -26,7 +47,7 @@ Find this section near the top:
 /* ============================================ */
 ```
 
-That's it! No build flags or project settings needed.
+**Note:** Method 1 is recommended for integration with your project. Method 2 is quicker for one-off testing.
 
 ## Step 2: Add Debug Calls to USB Code
 
