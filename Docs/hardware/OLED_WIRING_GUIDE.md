@@ -17,38 +17,53 @@ The MidiCore default configuration uses an SSD1322 256×64 grayscale OLED displa
 
 ### Hardware Connector
 
-**Connector J1** on the board provides the OLED interface signals.
+**Connector J1** on the board provides the OLED interface signals. J1 is a 16-pin connector that supports both SPI and parallel modes.
 
 For detailed J1 pinout specifications, see [J1 Connector Pinout](J1_OLED_CONNECTOR_PINOUT.md).
 
-### Pin Configuration
+### Pin Configuration (SPI Mode - 7 connections used)
 
 Located in: `Config/oled_pins.h`
 
-| Signal | STM32 Pin | Connector | SPI Function | Description |
-|--------|-----------|-----------|--------------|-------------|
-| **SPI2_SCK** | PB13 | J1 | Clock | SPI clock signal |
-| **SPI2_MOSI** | PB15 | J1 | Data Out | SPI data to display |
-| **OLED_CS** | PB12 | J1 | Chip Select | Active low |
-| **OLED_DC** | PC4 | J1 | Data/Command | Low=Command, High=Data |
-| **OLED_RST** | PC5 | J1 | Reset | Active low reset |
+| J1 Pin | Signal | STM32 Pin | SPI Function | Description |
+|--------|--------|-----------|--------------|-------------|
+| **1** | GND | GND | Ground | Ground reference |
+| **2** | VCC_IN | 3.3V | Power | 3.3V power supply |
+| **4** | CLK | PB13 | SPI2_SCK | SPI clock signal |
+| **5** | DIN | PB15 | SPI2_MOSI | SPI data to display |
+| **14** | D/C# | PC4 | Data/Command | Low=Command, High=Data (active low) |
+| **15** | Res# | PC5 | Reset | Reset signal (active low) |
+| **16** | CS# | PB12 | Chip Select | Chip select (active low) |
+
+**Note**: Pins 3, 6-13 are not used in SPI mode. Pin 3 is NC (not connected), pins 6-9 are parallel data (D2-D5), and pins 12-13 are parallel control (E/RD#, R/W#).
 
 ### Wiring Diagram (SSD1322)
 
 ```
-STM32F407VGT6    Connector J1        SSD1322 OLED
-┌─────────────┐  ┌────────┐         ┌──────────────┐
-│             │  │   J1   │         │              │
-│    PB13 ────┼──┤   SCK  ├─────────┤ SCK  (CLK)   │
-│    PB15 ────┼──┤  MOSI  ├─────────┤ MOSI (DIN)   │
-│    PB12 ────┼──┤   CS   ├─────────┤ CS   (/CS)   │
-│    PC4  ────┼──┤   DC   ├─────────┤ DC   (D/C)   │
-│    PC5  ────┼──┤   RST  ├─────────┤ RST  (/RES)  │
-│             │  │        │         │              │
-│    GND  ────┼──┤  GND   ├─────────┤ GND          │
-│    3.3V ────┼──┤  VDD   ├─────────┤ VDD          │
-│             │  │        │         │              │
-└─────────────┘  └────────┘         └──────────────┘
+STM32F407VGT6         J1 Connector (16-pin)      SSD1322 OLED
+┌─────────────┐       Pin  Signal               ┌──────────────┐
+│             │        1   GND    ──────────────┤ GND          │
+│    GND  ────┼────────┘                        │              │
+│             │        2   VCC_IN ──────────────┤ VDD          │
+│    3.3V ────┼────────┘                        │              │
+│             │        3   NC                   │              │
+│             │        4   CLK    ──────────────┤ SCK  (CLK)   │
+│    PB13 ────┼────────┘                        │              │
+│             │        5   DIN    ──────────────┤ MOSI (DIN)   │
+│    PB15 ────┼────────┘                        │              │
+│             │      6-9   D2-D5  (not used)    │              │
+│             │    10-11   -      (not used)    │              │
+│             │       12   E/RD#  (not used)    │              │
+│             │       13   R/W#   (not used)    │              │
+│             │       14   D/C#   ──────────────┤ DC   (D/C)   │
+│    PC4  ────┼────────┘                        │              │
+│             │       15   Res#   ──────────────┤ RST  (/RES)  │
+│    PC5  ────┼────────┘                        │              │
+│             │       16   CS#    ──────────────┤ CS   (/CS)   │
+│    PB12 ────┼────────┘                        │              │
+└─────────────┘                                 └──────────────┘
+
+Active connections (7 wires): Pins 1, 2, 4, 5, 14, 15, 16
 ```
 
 ### SPI Configuration
@@ -92,34 +107,47 @@ For MIOS32/LoopA compatibility with SSD1306 displays, use the wiring specified i
 
 ### Hardware Connector
 
-**Connector J1** provides the standard MBHP/MIOS32 OLED interface.
+**Connector J1** provides the standard MBHP/MIOS32 OLED interface (16-pin connector, 7 wires used in SPI mode).
 
-### SSD1306 Pin Configuration
+### SSD1306 Pin Configuration (SPI Mode)
 
-| Signal | STM32 Pin | Connector | Function | Description |
-|--------|-----------|-----------|----------|-------------|
-| **SCK** | PB13 (SPI2) | J1 | Clock | SPI clock |
-| **MOSI** | PB15 (SPI2) | J1 | Data | SPI data |
-| **CS** | PB12 | J1 | Chip Select | Active low |
-| **DC** | PC4 | J1 | Data/Command | Low=Command, High=Data |
-| **RST** | PC5 | J1 | Reset | Active low reset |
+| J1 Pin | Signal | STM32 Pin | Function | Description |
+|--------|--------|-----------|----------|-------------|
+| **1** | GND | GND | Ground | Ground reference |
+| **2** | VCC_IN | 3.3V | Power | 3.3V power supply |
+| **4** | CLK | PB13 (SPI2) | Clock | SPI clock |
+| **5** | DIN | PB15 (SPI2) | Data | SPI data |
+| **14** | D/C# | PC4 | Data/Command | Low=Command, High=Data (active low) |
+| **15** | Res# | PC5 | Reset | Reset signal (active low) |
+| **16** | CS# | PB12 | Chip Select | Chip select (active low) |
 
 ### Wiring Diagram (SSD1306 - LoopA Style)
 
 ```
-STM32F407VGT6    Connector J1        SSD1306 OLED
-┌─────────────┐  ┌────────┐         ┌──────────────┐
-│             │  │   J1   │         │              │
-│    PB13 ────┼──┤   SCK  ├─────────┤ D0   (SCK)   │
-│    PB15 ────┼──┤  MOSI  ├─────────┤ D1   (MOSI)  │
-│    PB12 ────┼──┤   CS   ├─────────┤ CS   (/CS)   │
-│    PC4  ────┼──┤   DC   ├─────────┤ DC   (D/C)   │
-│    PC5  ────┼──┤   RST  ├─────────┤ RES  (/RES)  │
-│             │  │        │         │              │
-│    GND  ────┼──┤  GND   ├─────────┤ GND          │
-│    3.3V ────┼──┤  VDD   ├─────────┤ VCC (3.3V)   │
-│             │  │        │         │              │
-└─────────────┘  └────────┘         └──────────────┘
+STM32F407VGT6         J1 Connector (16-pin)      SSD1306 OLED
+┌─────────────┐       Pin  Signal               ┌──────────────┐
+│             │        1   GND    ──────────────┤ GND          │
+│    GND  ────┼────────┘                        │              │
+│             │        2   VCC_IN ──────────────┤ VCC (3.3V)   │
+│    3.3V ────┼────────┘                        │              │
+│             │        3   NC                   │              │
+│             │        4   CLK    ──────────────┤ D0   (SCK)   │
+│    PB13 ────┼────────┘                        │              │
+│             │        5   DIN    ──────────────┤ D1   (MOSI)  │
+│    PB15 ────┼────────┘                        │              │
+│             │      6-9   D2-D5  (not used)    │              │
+│             │    10-11   -      (not used)    │              │
+│             │       12   E/RD#  (not used)    │              │
+│             │       13   R/W#   (not used)    │              │
+│             │       14   D/C#   ──────────────┤ DC   (D/C)   │
+│    PC4  ────┼────────┘                        │              │
+│             │       15   Res#   ──────────────┤ RES  (/RES)  │
+│    PC5  ────┼────────┘                        │              │
+│             │       16   CS#    ──────────────┤ CS   (/CS)   │
+│    PB12 ────┼────────┘                        │              │
+└─────────────┘                                 └──────────────┘
+
+Active connections (7 wires): Pins 1, 2, 4, 5, 14, 15, 16
 ```
 
 ### MBHP Compatibility Notes
@@ -146,19 +174,22 @@ STM32F407VGT6    Connector J1        SSD1306 OLED
 
 MidiCore is designed to be compatible with MBHP_CORE_STM32F4 hardware:
 
-- **Connector J1**: OLED display connector (standard MBHP assignment)
-- **J10A/J10B Pins**: SPI2 bus signals routed to J1
-- **Control Signals**: Standard D/C and RST pins on J1
-- **Power**: 3.3V from STM32 board via J1
+- **Connector J1**: 16-pin OLED display connector (standard MBHP assignment)
+- **J10A/J10B Pins**: SPI2 bus signals routed to J1 pins 4, 5
+- **Control Signals**: Standard D/C# and Res# pins on J1 pins 14, 15
+- **Power**: 3.3V from STM32 board via J1 pins 1, 2
+- **SPI Mode**: 7-wire connection using pins 1, 2, 4, 5, 14, 15, 16
 
 ### Connection Checklist
 
-- [ ] SPI2 pins connected (SCK, MOSI)
-- [ ] Chip Select (CS) connected to PB12
-- [ ] Data/Command (DC) connected to PC4
-- [ ] Reset (RST) connected to PC5
-- [ ] Ground (GND) connected
-- [ ] Power (VCC/VDD) connected to 3.3V
+- [ ] J1 pin 1 (GND) connected to display GND
+- [ ] J1 pin 2 (VCC_IN) connected to display VDD/VCC
+- [ ] J1 pin 4 (CLK) connected to display SCK/CLK
+- [ ] J1 pin 5 (DIN) connected to display MOSI/DIN
+- [ ] J1 pin 14 (D/C#) connected to display D/C
+- [ ] J1 pin 15 (Res#) connected to display RST/RES
+- [ ] J1 pin 16 (CS#) connected to display CS
+- [ ] Pins 3, 6-13 left unconnected (not used in SPI mode)
 - [ ] Pull-up resistors on CS line (optional, helps noise immunity)
 
 ### Testing

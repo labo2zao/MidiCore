@@ -5,72 +5,101 @@ This document provides the detailed pinout for the J1 OLED connector on MidiCore
 ## Connector Overview
 
 **Connector**: J1  
+**Type**: 16-pin header  
 **Purpose**: OLED Display Interface  
+**Modes**: SPI (4-wire) or Parallel (8080/6800)  
 **Standard**: MBHP/MIOS32 Compatible  
 **Voltage**: 3.3V Logic  
 
-## J1 Pinout Table
+## J1 Complete Pinout Table
 
-| Pin | Signal Name | STM32 Pin | Function | Direction | Description |
-|-----|-------------|-----------|----------|-----------|-------------|
-| 1 | VDD / VCC | 3.3V | Power | → | 3.3V Power Supply |
-| 2 | GND | GND | Ground | - | Ground Reference |
-| 3 | SCK / D0 | PB13 | SPI2_SCK | → | SPI Clock Signal |
-| 4 | MOSI / D1 | PB15 | SPI2_MOSI | → | SPI Data Out (Master Out Slave In) |
-| 5 | CS | PB12 | GPIO | → | Chip Select (Active Low) |
-| 6 | DC / D/C | PC4 | GPIO | → | Data/Command Select (Low=Cmd, High=Data) |
-| 7 | RST / RES | PC5 | GPIO | → | Reset (Active Low) |
+| Pin | Signal Name | STM32 Pin | Function | Mode | Description |
+|-----|-------------|-----------|----------|------|-------------|
+| 1 | GND | GND | Ground | Both | Ground Reference |
+| 2 | VCC_IN | 3.3V | Power | Both | 3.3V Power Supply |
+| 3 | NC | - | Not Connected | - | No connection |
+| 4 | CLK | PB13 | SPI2_SCK | SPI | SPI Clock Signal |
+| 5 | DIN | PB15 | SPI2_MOSI | SPI | SPI Data In (MOSI) |
+| 6 | D2 | - | Data Bit 2 | Parallel | Parallel data bus bit 2 |
+| 7 | D3 | - | Data Bit 3 | Parallel | Parallel data bus bit 3 |
+| 8 | D4 | - | Data Bit 4 | Parallel | Parallel data bus bit 4 |
+| 9 | D5 | - | Data Bit 5 | Parallel | Parallel data bus bit 5 |
+| 10 | - | - | - | - | (Not specified) |
+| 11 | - | - | - | - | (Not specified) |
+| 12 | E/RD# | - | Enable/Read | Parallel | Parallel interface enable/read |
+| 13 | R/W# | - | Read/Write | Parallel | Parallel interface read/write |
+| 14 | D/C# | PC4 | Data/Command | Both | Data/Command select (active low) |
+| 15 | Res# | PC5 | Reset | Both | Reset signal (active low) |
+| 16 | CS# | PB12 | Chip Select | Both | Chip select (active low) |
 
-## Pin Descriptions
+## Operating Modes
+
+### SPI Mode (Default - Used by MidiCore)
+
+MidiCore uses **4-wire SPI mode** for OLED communication. Only the following pins are actively used:
+
+| Pin | Signal | STM32 Pin | Description |
+|-----|--------|-----------|-------------|
+| 1 | GND | GND | Ground |
+| 2 | VCC_IN | 3.3V | Power supply |
+| 4 | CLK | PB13 (SPI2_SCK) | SPI clock |
+| 5 | DIN | PB15 (SPI2_MOSI) | SPI data (MOSI) |
+| 14 | D/C# | PC4 | Data/Command select |
+| 15 | Res# | PC5 | Reset |
+| 16 | CS# | PB12 | Chip Select |
+
+**Unused pins in SPI mode**: 3, 6-13
+
+### Parallel Mode (Not Used by MidiCore)
+
+The connector also supports parallel 8080/6800 interface mode using pins 6-9 (D2-D5) and 12-13 (E/RD#, R/W#). This mode is not currently implemented in MidiCore firmware.
+
+## Pin Descriptions (SPI Mode)
 
 ### Power Pins
 
-**Pin 1 - VDD/VCC (3.3V)**
+**Pin 1 - GND**
+- Ground reference
+- Connect to display ground
+- Ensure solid ground connection for noise immunity
+
+**Pin 2 - VCC_IN (3.3V)**
 - Supply voltage for OLED display
 - Must be stable 3.3V ±5%
 - Current draw: Typically 20-100mA depending on display
 - Add 100nF decoupling capacitor near display
 
-**Pin 2 - GND**
-- Ground reference
-- Connect to display ground
-- Ensure solid ground connection for noise immunity
-
 ### SPI Communication Pins
 
-**Pin 3 - SCK/D0 (PB13 - SPI2_SCK)**
+**Pin 4 - CLK (PB13 - SPI2_SCK)**
 - SPI clock signal
 - Direction: STM32 → Display
 - Clock frequency: Up to 21 MHz
 - Idle state: LOW (CPOL=0)
 - Logic level: 3.3V CMOS
 
-**Pin 4 - MOSI/D1 (PB15 - SPI2_MOSI)**
+**Pin 5 - DIN (PB15 - SPI2_MOSI)**
 - SPI data signal
 - Direction: STM32 → Display (Master Out, Slave In)
+- Data valid on clock rising edge (CPHA=0)
+- 8-bit transfers, MSB first
+- Logic level: 3.3V CMOS
 - Data valid on clock rising edge (CPHA=0)
 - 8-bit transfers, MSB first
 - Logic level: 3.3V CMOS
 
 ### Control Pins
 
-**Pin 5 - CS (PB12)**
-- Chip Select / Slave Select
-- Direction: STM32 → Display
-- Active LOW (display selected when LOW)
-- Idle state: HIGH
-- Software controlled GPIO
-- Pull-up resistor optional (10kΩ recommended for noise immunity)
-
-**Pin 6 - DC/D/C (PC4)**
+**Pin 14 - D/C# (PC4)**
 - Data/Command select
 - Direction: STM32 → Display
+- Active LOW for commands (marked with # suffix)
 - LOW = Command byte follows
 - HIGH = Data byte(s) follow
 - Software controlled GPIO
 - Must be valid before SPI transfer starts
 
-**Pin 7 - RST/RES (PC5)**
+**Pin 15 - Res# (PC5)**
 - Hardware reset signal
 - Direction: STM32 → Display
 - Active LOW (display resets when LOW)
@@ -79,30 +108,104 @@ This document provides the detailed pinout for the J1 OLED connector on MidiCore
 - Pulsed LOW for minimum 2ms during initialization
 - Followed by 5ms delay before first command
 
-## Connection Diagram
+**Pin 16 - CS# (PB12)**
+- Chip Select / Slave Select
+- Direction: STM32 → Display
+- Active LOW (display selected when LOW)
+- Idle state: HIGH
+- Software controlled GPIO
+- Pull-up resistor optional (10kΩ recommended for noise immunity)
+
+### Unused Pins in SPI Mode
+
+**Pin 3 - NC**
+- Not connected
+- Leave floating or tie to ground
+
+**Pins 6-9 - D2, D3, D4, D5**
+- Parallel data bus bits
+- Not used in SPI mode
+- Leave disconnected
+
+**Pins 12-13 - E/RD#, R/W#**
+- Parallel interface control signals
+- Not used in SPI mode
+- Leave disconnected
+
+## Connection Diagram (SPI Mode)
 
 ```
-         J1 Connector (7-pin header)
-    ┌─────────────────────────────────┐
-    │  1  VDD     ●●●●●●● 3.3V        │
-    │  2  GND     ●●●●●●● GND         │
-    │  3  SCK     ●●●●●●● PB13        │
-    │  4  MOSI    ●●●●●●● PB15        │
-    │  5  CS      ●●●●●●● PB12        │
-    │  6  DC      ●●●●●●● PC4         │
-    │  7  RST     ●●●●●●● PC5         │
-    └─────────────────────────────────┘
+         J1 Connector (16-pin header)
+    ┌─────────────────────────────────────┐
+    │  Pin  Signal    STM32               │
+    │  ──────────────────────────────     │
+    │   1   GND      ●●●●●●● GND          │
+    │   2   VCC_IN   ●●●●●●● 3.3V         │
+    │   3   NC       ●                    │
+    │   4   CLK      ●●●●●●● PB13 (SCK)   │
+    │   5   DIN      ●●●●●●● PB15 (MOSI)  │
+    │   6   D2       ●       (unused)     │
+    │   7   D3       ●       (unused)     │
+    │   8   D4       ●       (unused)     │
+    │   9   D5       ●       (unused)     │
+    │  10   -        ●                    │
+    │  11   -        ●                    │
+    │  12   E/RD#    ●       (unused)     │
+    │  13   R/W#     ●       (unused)     │
+    │  14   D/C#     ●●●●●●● PC4          │
+    │  15   Res#     ●●●●●●● PC5          │
+    │  16   CS#      ●●●●●●● PB12         │
+    └─────────────────────────────────────┘
            ↓↓↓↓↓↓↓
-         OLED Display
+      OLED Display (SPI Mode)
+      
+      Required connections:
+      - Pins 1,2,4,5,14,15,16 (7 wires)
+```
+
+## Simplified SPI Connection
+
+For SPI mode operation, only these 7 connections are needed:
+
+```
+STM32F407VGT6          J1 Pin    OLED Display
+┌─────────────┐                  ┌──────────────┐
+│             │                  │              │
+│    GND  ────┼───── 1 ──────────┤ GND          │
+│    3.3V ────┼───── 2 ──────────┤ VCC/VDD      │
+│    PB13 ────┼───── 4 ──────────┤ CLK/SCK/D0   │
+│    PB15 ────┼───── 5 ──────────┤ DIN/MOSI/D1  │
+│    PC4  ────┼──── 14 ──────────┤ D/C#         │
+│    PC5  ────┼──── 15 ──────────┤ Res#/RST     │
+│    PB12 ────┼──── 16 ──────────┤ CS#          │
+│             │                  │              │
+└─────────────┘                  └──────────────┘
 ```
 
 ## Cable Requirements
 
 ### Wire Specifications
+- **Required wires**: 7 (for SPI mode)
 - **Length**: Keep under 15cm for reliable high-speed SPI
-- **Type**: Ribbon cable or twisted pairs
+- **Type**: Ribbon cable or individual wires
 - **Gauge**: 24-28 AWG sufficient
 - **Shielding**: Optional, helps with EMI in noisy environments
+
+### Pin-to-Pin Connection
+
+When connecting to an OLED display, map J1 pins to display pins according to display datasheet:
+
+| J1 Pin | J1 Signal | Display Signal (typical) |
+|--------|-----------|-------------------------|
+| 1 | GND | GND |
+| 2 | VCC_IN | VDD or VCC (3.3V) |
+| 4 | CLK | SCK, CLK, D0, or SCLK |
+| 5 | DIN | MOSI, DIN, D1, SDA, or SDIN |
+| 14 | D/C# | D/C, DC, or A0 |
+| 15 | Res# | RST, RES, or RESET |
+| 16 | CS# | CS or /CS |
+
+**Note**: Display signal names vary by manufacturer. Consult your specific OLED module datasheet.
 
 ### Signal Integrity
 - Keep SCK and MOSI traces close together
