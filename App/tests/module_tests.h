@@ -48,6 +48,7 @@ typedef enum {
   MODULE_TEST_PATCH_SD_ID,      // Test patch loading from SD
   MODULE_TEST_PRESSURE_ID,      // Test pressure sensor I2C
   MODULE_TEST_USB_HOST_MIDI_ID, // Test USB Host MIDI
+  MODULE_TEST_USB_DEVICE_MIDI_ID, // Test USB Device MIDI (receive from DAW, print to UART, send test data)
   MODULE_TEST_ALL_ID,           // Run all tests sequentially
 } module_test_t;
 
@@ -396,6 +397,48 @@ void module_test_pressure_run(void);
  * @note This function runs forever
  */
 void module_test_usb_host_midi_run(void);
+
+/**
+ * @brief Test USB Device MIDI module
+ * 
+ * Tests USB Device MIDI functionality by receiving MIDI data from a DAW 
+ * via USB and printing it to UART for debugging. Also sends test MIDI 
+ * messages periodically to verify bidirectional communication.
+ * 
+ * Features tested:
+ * - USB Device MIDI reception from DAW/computer
+ * - MIDI packet decoding (status, data bytes)
+ * - UART debug output of received MIDI data
+ * - Periodic transmission of test MIDI messages via USB
+ * - Note On/Off message transmission
+ * - CC (Control Change) message transmission
+ * 
+ * Hardware requirements:
+ * - USB connection to computer (DAW or MIDI monitoring software)
+ * - UART connection for debug output (default: UART2 at 115200 baud)
+ * 
+ * Test sequence:
+ * 1. Initialize USB Device MIDI and debug UART
+ * 2. Print configuration information to UART
+ * 3. Start listening for incoming USB MIDI from DAW
+ * 4. Print each received MIDI message in human-readable format
+ * 5. Periodically send test Note On/Off messages via USB
+ * 6. Continue forever, logging all MIDI activity
+ * 
+ * UART output format:
+ * - [RX] Cable:0 90 3C 64 (Note On Ch:1 Note:60 Vel:100)
+ * - [TX] Sending test Note On: Cable:0 90 3C 64
+ * 
+ * Usage: 
+ * - Enable MODULE_TEST_USB_DEVICE_MIDI=1 in test configuration
+ * - Connect USB to computer with DAW or MIDI monitoring tool
+ * - Connect UART to serial terminal (115200 baud)
+ * - Send MIDI from DAW and observe UART output
+ * - DAW should receive test MIDI messages every 2 seconds
+ * 
+ * @note This function runs forever
+ */
+void module_test_usb_device_midi_run(void);
 
 // =============================================================================
 // COMPILE-TIME TEST SELECTION HELPERS

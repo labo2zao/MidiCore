@@ -122,6 +122,11 @@ static void dbg_print_srio_pinout(void)
 #include "Services/usb_host_midi/usb_host_midi.h"
 #endif
 
+#if MODULE_ENABLE_USB_MIDI
+#include "Services/usb_midi/usb_midi.h"
+#include "App/tests/app_test_usb_midi.h"
+#endif
+
 // =============================================================================
 // FORWARD DECLARATIONS FOR EXISTING TEST IMPLEMENTATIONS
 // =============================================================================
@@ -236,6 +241,8 @@ module_test_t module_tests_get_compile_time_selection(void)
   return MODULE_TEST_PRESSURE_ID;
 #elif defined(MODULE_TEST_USB_HOST_MIDI)
   return MODULE_TEST_USB_HOST_MIDI_ID;
+#elif defined(MODULE_TEST_USB_DEVICE_MIDI) || defined(APP_TEST_USB_MIDI)
+  return MODULE_TEST_USB_DEVICE_MIDI_ID;
 #elif defined(MODULE_TEST_ALL)
   return MODULE_TEST_ALL_ID;
 #else
@@ -291,6 +298,10 @@ int module_tests_run(module_test_t test)
       
     case MODULE_TEST_USB_HOST_MIDI_ID:
       module_test_usb_host_midi_run();
+      break;
+      
+    case MODULE_TEST_USB_DEVICE_MIDI_ID:
+      module_test_usb_device_midi_run();
       break;
       
     case MODULE_TEST_ALL_ID:
@@ -1381,6 +1392,29 @@ void module_test_usb_host_midi_run(void)
   }
 #else
   // Module not enabled
+  for (;;) osDelay(1000);
+#endif
+}
+
+void module_test_usb_device_midi_run(void)
+{
+  // Initialize debug UART first
+  test_debug_init();
+  
+  dbg_print("\r\n");
+  dbg_print("==============================================\r\n");
+  dbg_print("USB Device MIDI Test - UART Debug OK\r\n");
+  dbg_print("==============================================\r\n");
+  dbg_print("\r\n");
+  osDelay(100);
+  
+#if MODULE_ENABLE_USB_MIDI
+  // Run the USB MIDI test
+  app_test_usb_midi_run_forever();
+#else
+  // Module not enabled
+  dbg_print("ERROR: USB Device MIDI not enabled!\r\n");
+  dbg_print("Enable MODULE_ENABLE_USB_MIDI in Config/module_config.h\r\n");
   for (;;) osDelay(1000);
 #endif
 }
