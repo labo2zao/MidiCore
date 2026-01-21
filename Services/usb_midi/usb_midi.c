@@ -107,16 +107,22 @@ void usb_midi_rx_packet(const uint8_t packet4[4]) {
       if (buf->active && buf->pos < USB_MIDI_SYSEX_BUFFER_SIZE) {
         buf->buffer[buf->pos++] = packet4[1];
         
-        /* Send complete SysEx to router */
-        router_msg_t msg;
-        msg.type = ROUTER_MSG_SYSEX;
-        msg.data = buf->buffer;
-        msg.len = buf->pos;
-        msg.b0 = 0xF0; /* SysEx status */
-        msg.b1 = 0;
-        msg.b2 = 0;
-        
-        router_process(node, &msg);
+        /* Only send if SysEx is complete (starts with F0, ends with F7) */
+        if (buf->pos >= 2 && buf->buffer[0] == 0xF0 && buf->buffer[buf->pos-1] == 0xF7) {
+          /* Send complete SysEx to router */
+          router_msg_t msg;
+          msg.type = ROUTER_MSG_SYSEX;
+          msg.data = buf->buffer;
+          msg.len = buf->pos;
+          msg.b0 = 0xF0; /* SysEx status */
+          msg.b1 = 0;
+          msg.b2 = 0;
+          
+          /* Only route if not in test mode with APP_TEST_USB_MIDI */
+          #ifndef APP_TEST_USB_MIDI
+          router_process(node, &msg);
+          #endif
+        }
         
         buf->pos = 0;
         buf->active = 0;
@@ -131,16 +137,22 @@ void usb_midi_rx_packet(const uint8_t packet4[4]) {
           buf->buffer[buf->pos++] = packet4[1 + i];
         }
         
-        /* Send complete SysEx to router */
-        router_msg_t msg;
-        msg.type = ROUTER_MSG_SYSEX;
-        msg.data = buf->buffer;
-        msg.len = buf->pos;
-        msg.b0 = 0xF0; /* SysEx status */
-        msg.b1 = 0;
-        msg.b2 = 0;
-        
-        router_process(node, &msg);
+        /* Only send if SysEx is complete (starts with F0, ends with F7) */
+        if (buf->pos >= 2 && buf->buffer[0] == 0xF0 && buf->buffer[buf->pos-1] == 0xF7) {
+          /* Send complete SysEx to router */
+          router_msg_t msg;
+          msg.type = ROUTER_MSG_SYSEX;
+          msg.data = buf->buffer;
+          msg.len = buf->pos;
+          msg.b0 = 0xF0; /* SysEx status */
+          msg.b1 = 0;
+          msg.b2 = 0;
+          
+          /* Only route if not in test mode with APP_TEST_USB_MIDI */
+          #ifndef APP_TEST_USB_MIDI
+          router_process(node, &msg);
+          #endif
+        }
         
         buf->pos = 0;
         buf->active = 0;
@@ -155,16 +167,22 @@ void usb_midi_rx_packet(const uint8_t packet4[4]) {
           buf->buffer[buf->pos++] = packet4[1 + i];
         }
         
-        /* Send complete SysEx to router */
-        router_msg_t msg;
-        msg.type = ROUTER_MSG_SYSEX;
-        msg.data = buf->buffer;
-        msg.len = buf->pos;
-        msg.b0 = 0xF0; /* SysEx status */
-        msg.b1 = 0;
-        msg.b2 = 0;
-        
-        router_process(node, &msg);
+        /* Only send if SysEx is complete (starts with F0, ends with F7) */
+        if (buf->pos >= 2 && buf->buffer[0] == 0xF0 && buf->buffer[buf->pos-1] == 0xF7) {
+          /* Send complete SysEx to router */
+          router_msg_t msg;
+          msg.type = ROUTER_MSG_SYSEX;
+          msg.data = buf->buffer;
+          msg.len = buf->pos;
+          msg.b0 = 0xF0; /* SysEx status */
+          msg.b1 = 0;
+          msg.b2 = 0;
+          
+          /* Only route if not in test mode with APP_TEST_USB_MIDI */
+          #ifndef APP_TEST_USB_MIDI
+          router_process(node, &msg);
+          #endif
+        }
         
         buf->pos = 0;
         buf->active = 0;

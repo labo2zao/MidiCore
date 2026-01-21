@@ -125,7 +125,25 @@ static void print_usb_midi_packet(const uint8_t packet4[4])
  */
 void usb_midi_rx_debug_hook(const uint8_t packet4[4])
 {
-  // Print received packet to UART
+  uint8_t cin = packet4[0] & 0x0F;
+  
+  // Handle SysEx packets (CIN 0x4-0x7) - just log them, don't route
+  if (cin >= 0x04 && cin <= 0x07) {
+    uint8_t cable = (packet4[0] >> 4) & 0x0F;
+    dbg_print("[RX SysEx] Cable:");
+    dbg_print_uint(cable);
+    dbg_print(" CIN:0x");
+    dbg_print_hex8(cin);
+    dbg_print(" Data:");
+    for (uint8_t i = 1; i < 4; i++) {
+      dbg_print(" ");
+      dbg_print_hex8(packet4[i]);
+    }
+    dbg_print("\r\n");
+    return; // Don't call print_usb_midi_packet for SysEx
+  }
+  
+  // Print received packet to UART for non-SysEx messages
   print_usb_midi_packet(packet4);
 }
 
