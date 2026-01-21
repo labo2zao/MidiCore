@@ -120,6 +120,10 @@ USBD_StatusTypeDef USBD_Init(USBD_HandleTypeDef *pdev,
   /* Unlink previous class*/
   pdev->pClass[0] = NULL;
   pdev->pUserData[0] = NULL;
+  
+  /* Initialize class tracking variables (CRITICAL FIX for non-composite mode) */
+  pdev->NumClasses = 0;
+  pdev->classId = 0;
 #endif /* USE_USBD_COMPOSITE */
 
   pdev->pConfDesc = NULL;
