@@ -269,8 +269,8 @@ void app_test_usb_midi_run_forever(void)
   dbg_printf("USB Cable: %d\r\n", APP_TEST_USB_MIDI_CABLE);
   dbg_print_separator();
   
-  // Initialize USB MIDI
-  usb_midi_init();
+  // Note: usb_midi_init() is already called in main.c before RTOS starts
+  // No need to call it again here
   
   dbg_print("Test started. Waiting for USB MIDI data from DAW...\r\n");
   dbg_print("Sending test MIDI messages every ");

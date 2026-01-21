@@ -1457,9 +1457,9 @@ void module_test_usb_device_midi_run(void)
   dbg_print("  - Data: 8-N-1\r\n");
   dbg_print("\r\n");
   
-  dbg_print("Initializing USB Device MIDI...");
-  usb_midi_init();
-  dbg_print(" OK\r\n");
+  // Note: usb_midi_init() is already called in main.c before RTOS starts
+  // USB Device MIDI is ready to use
+  dbg_print("USB Device MIDI already initialized.\r\n");
   
   dbg_print("\r\n");
   dbg_print("USB Device MIDI initialized.\r\n");
