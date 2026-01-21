@@ -59,13 +59,13 @@
 
 /* Descriptor Size Constants (for readability) */
 #define USB_DESC_SIZE_CONFIGURATION      9      /* Configuration descriptor */
-#define USB_DESC_SIZE_IAD                8      /* Interface Association Descriptor */
 #define USB_DESC_SIZE_INTERFACE          9      /* Interface descriptor */
 #define USB_DESC_SIZE_ENDPOINT           9      /* Endpoint descriptor */
 #define USB_DESC_SIZE_JACK_IN_EXTERNAL   6      /* MIDI IN Jack descriptor (External) */
 #define USB_DESC_SIZE_JACK_IN_EMBEDDED   9      /* MIDI IN Jack descriptor (Embedded - has source pins) */
 #define USB_DESC_SIZE_JACK_OUT           9      /* MIDI OUT Jack descriptor */
-#define USB_DESC_SIZE_CS_INTERFACE       7      /* Class-specific Interface Header */
+#define USB_DESC_SIZE_CS_AC_INTERFACE    9      /* Class-specific AC Interface Header (has bInCollection) */
+#define USB_DESC_SIZE_CS_MS_INTERFACE    7      /* Class-specific MS Interface Header */
 #define USB_DESC_SIZE_CS_ENDPOINT_BASE   5      /* Class-specific Endpoint (base, + num jacks) */
 
 /* Calculate descriptor size - MIOS32 style (CORRECTED) */
@@ -89,16 +89,16 @@
                                           (USB_DESC_SIZE_CS_ENDPOINT_BASE + MIDI_NUM_PORTS))
 
 /* Configuration wTotalLength: EVERYTHING including Config descriptor itself
- * = Config + IAD + AC Interface + CS AC Header + MS Interface + MS Header + MS wTotalLength
- * For 4 ports: 9 + 8 + 9 + 7 + 9 + 7 + 168 = 217 bytes (0xD9)
- * IAD is REQUIRED for Windows Composite Device Driver (usbccgp) validation!
+ * MIOS32-style WITHOUT IAD (IAD removed - testing if it causes validation issues)
+ * = Config + AC Interface + CS AC Header + MS Interface + CS MS Header + MS wTotalLength
+ * For 4 ports: 9 + 9 + 9 + 9 + 7 + 168 = 211 bytes (0xD3)
+ * NOTE: AC Header is 9 bytes (has bInCollection), MS Header is 7 bytes
  */
 #define USB_MIDI_CONFIG_DESC_SIZ         (USB_DESC_SIZE_CONFIGURATION + \
-                                          USB_DESC_SIZE_IAD + \
                                           USB_DESC_SIZE_INTERFACE + \
-                                          USB_DESC_SIZE_CS_INTERFACE + \
+                                          USB_DESC_SIZE_CS_AC_INTERFACE + \
                                           USB_DESC_SIZE_INTERFACE + \
-                                          USB_DESC_SIZE_CS_INTERFACE + \
+                                          USB_DESC_SIZE_CS_MS_INTERFACE + \
                                           USB_MIDI_MS_TOTAL_LENGTH)
 
 /* Private function prototypes */
@@ -146,15 +146,7 @@ __ALIGN_BEGIN static uint8_t USBD_MIDI_CfgDesc[USB_MIDI_CONFIG_DESC_SIZ] __ALIGN
   0x80,                                  /* bmAttributes: Bus Powered */
   0xFA,                                  /* MaxPower 500 mA */
   
-  /* Interface Association Descriptor (IAD) - REQUIRED for Windows Composite Driver */
-  0x08,                                  /* bLength */
-  0x0B,                                  /* bDescriptorType: IAD */
-  0x00,                                  /* bFirstInterface: Audio Control */
-  0x02,                                  /* bInterfaceCount: 2 (AC + MS) */
-  USB_DEVICE_CLASS_AUDIO,                /* bFunctionClass: Audio (0x01) */
-  AUDIO_SUBCLASS_AUDIOCONTROL,           /* bFunctionSubClass: Audio Control (0x01) - NOT MIDIStreaming! */
-  0x00,                                  /* bFunctionProtocol */
-  0x00,                                  /* iFunction */
+  /* IAD REMOVED - Testing MIOS32-style descriptor WITHOUT IAD (211 bytes) */
   
   /* Standard Audio Control Interface Descriptor */
   0x09,                                  /* bLength */
