@@ -31,9 +31,9 @@ Located in: `Config/oled_pins.h`
 | **2** | VCC_IN | 3.3V | Power | 3.3V power supply |
 | **4** | CLK | PB13 | SPI2_SCK | SPI clock signal |
 | **5** | DIN | PB15 | SPI2_MOSI | SPI data to display |
-| **14** | D/C# | PC4 | Data/Command | Low=Command, High=Data (active low) |
-| **15** | Res# | PC5 | Reset | Reset signal (active low) |
-| **16** | CS# | PB12 | Chip Select | Chip select (active low) |
+| **14** | D/C# (LCD_RS) | PA8 | Data/Command | Low=Command, High=Data (active low) |
+| **15** | Res# (LCD_RW) | PC11 | Reset | Reset signal (active low) |
+| **16** | CS# (LCDE1) | PC8 | Chip Select | Chip select (active low) |
 
 **Note**: Pins 3, 6-13 are not used in SPI mode. Pin 3 is NC (not connected), pins 6-9 are parallel data (D2-D5), and pins 12-13 are parallel control (E/RD#, R/W#).
 
@@ -56,11 +56,11 @@ STM32F407VGT6         J1 Connector (16-pin)      SSD1322 OLED
 │             │       12   E/RD#  (not used)    │              │
 │             │       13   R/W#   (not used)    │              │
 │             │       14   D/C#   ──────────────┤ DC   (D/C)   │
-│    PC4  ────┼────────┘                        │              │
+│    PA8  ────┼────────┘  (LCD_RS)              │              │
 │             │       15   Res#   ──────────────┤ RST  (/RES)  │
-│    PC5  ────┼────────┘                        │              │
+│    PC11 ────┼────────┘  (LCD_RW)              │              │
 │             │       16   CS#    ──────────────┤ CS   (/CS)   │
-│    PB12 ────┼────────┘                        │              │
+│    PC8  ────┼────────┘  (LCDE1)               │              │
 └─────────────┘                                 └──────────────┘
 
 Active connections (7 wires): Pins 1, 2, 4, 5, 14, 15, 16

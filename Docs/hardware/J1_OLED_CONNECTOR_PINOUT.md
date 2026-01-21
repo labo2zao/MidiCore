@@ -28,9 +28,9 @@ This document provides the detailed pinout for the J1 OLED connector on MidiCore
 | 11 | - | - | - | - | (Not specified) |
 | 12 | E/RD# | - | Enable/Read | Parallel | Parallel interface enable/read |
 | 13 | R/W# | - | Read/Write | Parallel | Parallel interface read/write |
-| 14 | D/C# | PC4 | Data/Command | Both | Data/Command select (active low) |
-| 15 | Res# | PC5 | Reset | Both | Reset signal (active low) |
-| 16 | CS# | PB12 | Chip Select | Both | Chip select (active low) |
+| 14 | D/C# (LCD_RS) | PA8 | Data/Command | Both | Data/Command select (active low) |
+| 15 | Res# (LCD_RW) | PC11 | Reset | Both | Reset signal (active low) |
+| 16 | CS# (LCDE1) | PC8 | Chip Select | Both | Chip select (active low) |
 
 ## Operating Modes
 
@@ -44,9 +44,9 @@ MidiCore uses **4-wire SPI mode** for OLED communication. Only the following pin
 | 2 | VCC_IN | 3.3V | Power supply |
 | 4 | CLK | PB13 (SPI2_SCK) | SPI clock |
 | 5 | DIN | PB15 (SPI2_MOSI) | SPI data (MOSI) |
-| 14 | D/C# | PC4 | Data/Command select |
-| 15 | Res# | PC5 | Reset |
-| 16 | CS# | PB12 | Chip Select |
+| 14 | D/C# (LCD_RS) | PA8 | Data/Command select |
+| 15 | Res# (LCD_RW) | PC11 | Reset |
+| 16 | CS# (LCDE1) | PC8 | Chip Select |
 
 **Unused pins in SPI mode**: 3, 6-13
 
@@ -90,7 +90,7 @@ The connector also supports parallel 8080/6800 interface mode using pins 6-9 (D2
 
 ### Control Pins
 
-**Pin 14 - D/C# (PC4)**
+**Pin 14 - D/C# (LCD_RS) (PA8)**
 - Data/Command select
 - Direction: STM32 → Display
 - Active LOW for commands (marked with # suffix)
@@ -99,7 +99,7 @@ The connector also supports parallel 8080/6800 interface mode using pins 6-9 (D2
 - Software controlled GPIO
 - Must be valid before SPI transfer starts
 
-**Pin 15 - Res# (PC5)**
+**Pin 15 - Res# (LCD_RW) (PC11)**
 - Hardware reset signal
 - Direction: STM32 → Display
 - Active LOW (display resets when LOW)
@@ -108,7 +108,7 @@ The connector also supports parallel 8080/6800 interface mode using pins 6-9 (D2
 - Pulsed LOW for minimum 2ms during initialization
 - Followed by 5ms delay before first command
 
-**Pin 16 - CS# (PB12)**
+**Pin 16 - CS# (LCDE1) (PC8)**
 - Chip Select / Slave Select
 - Direction: STM32 → Display
 - Active LOW (display selected when LOW)
