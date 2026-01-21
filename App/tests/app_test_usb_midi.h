@@ -94,6 +94,32 @@ extern "C" {
 
 void app_test_usb_midi_run_forever(void);
 
+/**
+ * @brief Send a MIDI Control Change message via USB
+ * @param cc_number CC number (0-127)
+ * @param cc_value CC value (0-127)
+ * 
+ * Sends a CC message on the configured channel and cable.
+ * Useful for interactive testing and automation.
+ * 
+ * Example:
+ *   app_test_usb_midi_send_cc(7, 127);  // Volume to max
+ */
+void app_test_usb_midi_send_cc(uint8_t cc_number, uint8_t cc_value);
+
+/**
+ * @brief Send a generic 3-byte MIDI message via USB
+ * @param status MIDI status byte (includes channel)
+ * @param data1 First data byte
+ * @param data2 Second data byte
+ * 
+ * Sends any 3-byte MIDI message on the configured cable.
+ * 
+ * Example:
+ *   app_test_usb_midi_send3(0x90, 60, 100);  // Note On Ch1, C4, vel 100
+ */
+void app_test_usb_midi_send3(uint8_t status, uint8_t data1, uint8_t data2);
+
 #ifdef __cplusplus
 }
 #endif

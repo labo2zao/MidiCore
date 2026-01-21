@@ -29,6 +29,7 @@
 
 #include "App/tests/app_test_din_midi.h"
 #include "App/tests/app_test_ainser_midi.h"
+#include "App/tests/app_test_usb_midi.h"
 #include "App/tests/module_tests.h"
 #include "Services/usb_host_midi/usb_host_midi.h"
 /* USER CODE END Includes */
