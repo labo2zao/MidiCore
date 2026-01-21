@@ -158,7 +158,7 @@ int main(void)
   usb_midi_init();
 #endif
   /* USER CODE END 2 */
-
+  //while(1) { HAL_Delay(1000); } // STOP ICI
   /* Init scheduler */
   osKernelInitialize();
 

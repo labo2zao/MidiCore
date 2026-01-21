@@ -1,3 +1,0 @@
-../Services/usb_midi/usb_midi.c:4:6:usb_midi_init	1
-../Services/usb_midi/usb_midi.c:6:6:usb_midi_send_packet	1
-../Services/usb_midi/usb_midi.c:11:6:usb_midi_rx_packet	1
