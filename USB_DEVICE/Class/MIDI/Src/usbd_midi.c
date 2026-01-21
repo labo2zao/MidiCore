@@ -151,8 +151,8 @@ __ALIGN_BEGIN static uint8_t USBD_MIDI_CfgDesc[USB_MIDI_CONFIG_DESC_SIZ] __ALIGN
   0x0B,                                  /* bDescriptorType: IAD */
   0x00,                                  /* bFirstInterface: Audio Control */
   0x02,                                  /* bInterfaceCount: 2 (AC + MS) */
-  USB_DEVICE_CLASS_AUDIO,                /* bFunctionClass: Audio */
-  AUDIO_SUBCLASS_MIDISTREAMING,          /* bFunctionSubClass: MIDIStreaming */
+  USB_DEVICE_CLASS_AUDIO,                /* bFunctionClass: Audio (0x01) */
+  AUDIO_SUBCLASS_AUDIOCONTROL,           /* bFunctionSubClass: Audio Control (0x01) - NOT MIDIStreaming! */
   0x00,                                  /* bFunctionProtocol */
   0x00,                                  /* iFunction */
   
