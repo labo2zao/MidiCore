@@ -65,7 +65,8 @@
 #define USB_DESC_SIZE_JACK_IN_EXTERNAL   6      /* MIDI IN Jack descriptor (External) */
 #define USB_DESC_SIZE_JACK_IN_EMBEDDED   9      /* MIDI IN Jack descriptor (Embedded - has source pins) */
 #define USB_DESC_SIZE_JACK_OUT           9      /* MIDI OUT Jack descriptor */
-#define USB_DESC_SIZE_CS_INTERFACE       7      /* Class-specific Interface Header */
+#define USB_DESC_SIZE_CS_AC_INTERFACE    9      /* Class-specific AC Interface Header (has bInCollection) */
+#define USB_DESC_SIZE_CS_MS_INTERFACE    7      /* Class-specific MS Interface Header */
 #define USB_DESC_SIZE_CS_ENDPOINT_BASE   5      /* Class-specific Endpoint (base, + num jacks) */
 
 /* Calculate descriptor size - MIOS32 style (CORRECTED) */
@@ -89,16 +90,18 @@
                                           (USB_DESC_SIZE_CS_ENDPOINT_BASE + MIDI_NUM_PORTS))
 
 /* Configuration wTotalLength: EVERYTHING including Config descriptor itself
- * = Config + IAD + AC Interface + CS AC Header + MS Interface + MS Header + MS wTotalLength
- * For 4 ports: 9 + 8 + 9 + 7 + 9 + 7 + 168 = 217 bytes (0xD9)
+ * = Config + IAD + AC Interface + CS AC Header + MS Interface + CS MS Header + MS wTotalLength
+ * For 4 ports: 9 + 8 + 9 + 9 + 9 + 7 + 168 = 219 bytes (0xDB)
  * IAD is REQUIRED for Windows Composite Device Driver (usbccgp) validation!
+ * NOTE: CS AC Header is 9 bytes (has bInCollection + baInterfaceNr fields)
+ *       CS MS Header is 7 bytes (just header fields)
  */
 #define USB_MIDI_CONFIG_DESC_SIZ         (USB_DESC_SIZE_CONFIGURATION + \
                                           USB_DESC_SIZE_IAD + \
                                           USB_DESC_SIZE_INTERFACE + \
-                                          USB_DESC_SIZE_CS_INTERFACE + \
+                                          USB_DESC_SIZE_CS_AC_INTERFACE + \
                                           USB_DESC_SIZE_INTERFACE + \
-                                          USB_DESC_SIZE_CS_INTERFACE + \
+                                          USB_DESC_SIZE_CS_MS_INTERFACE + \
                                           USB_MIDI_MS_TOTAL_LENGTH)
 
 /* Private function prototypes */
