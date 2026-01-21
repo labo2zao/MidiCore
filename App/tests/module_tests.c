@@ -140,9 +140,7 @@ extern void app_test_din_midi_run_forever(void);
 extern void app_test_ainser_midi_run_forever(void);
 #endif
 
-#ifdef LOOPER_SELFTEST
-extern void app_start_looper_selftest(void);
-#endif
+// LOOPER_SELFTEST is deprecated - use MODULE_TEST_LOOPER instead
 
 // =============================================================================
 // TEST NAME TABLE
@@ -213,7 +211,7 @@ module_test_t module_tests_get_compile_time_selection(void)
   return MODULE_TEST_MIDI_DIN_ID;
 #elif defined(MODULE_TEST_ROUTER)
   return MODULE_TEST_ROUTER_ID;
-#elif defined(MODULE_TEST_LOOPER) || defined(LOOPER_SELFTEST)
+#elif defined(MODULE_TEST_LOOPER)
   return MODULE_TEST_LOOPER_ID;
 #elif defined(MODULE_TEST_LFO)
   return MODULE_TEST_LFO_ID;
@@ -1163,11 +1161,7 @@ void module_test_looper_run(void)
   dbg_print("\r\n");
   osDelay(100);
   
-#ifdef LOOPER_SELFTEST
-  // Use existing looper selftest
-  app_start_looper_selftest();
-  for (;;) osDelay(1000);
-#elif MODULE_ENABLE_LOOPER
+#if MODULE_ENABLE_LOOPER
   looper_init();
   
   // Basic looper test cycle
