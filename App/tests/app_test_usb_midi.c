@@ -230,6 +230,8 @@ void app_test_usb_midi_send3(uint8_t status, uint8_t data1, uint8_t data2)
   uint8_t msg_type = (status >> 4) & 0x0F;
   
   // Build CIN from message type
+  // For channel messages (0x8-0xE), the CIN matches the message type
+  // For system messages (0xF), specific handling would be needed
   uint8_t cin = (cable << 4) | msg_type;
   
   dbg_print("[TX] Sending MIDI: Cable:");

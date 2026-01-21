@@ -242,6 +242,7 @@ module_test_t module_tests_get_compile_time_selection(void)
 #elif defined(MODULE_TEST_USB_HOST_MIDI)
   return MODULE_TEST_USB_HOST_MIDI_ID;
 #elif defined(MODULE_TEST_USB_DEVICE_MIDI) || defined(APP_TEST_USB_MIDI)
+  // Support both symbols: MODULE_TEST_* (framework style) and APP_TEST_* (legacy style)
   return MODULE_TEST_USB_DEVICE_MIDI_ID;
 #elif defined(MODULE_TEST_ALL)
   return MODULE_TEST_ALL_ID;
