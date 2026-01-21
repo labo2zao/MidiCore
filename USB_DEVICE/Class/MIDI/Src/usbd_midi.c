@@ -59,8 +59,9 @@
 
 /* Descriptor Size Constants (for readability) */
 #define USB_DESC_SIZE_CONFIGURATION      9      /* Configuration descriptor */
+#define USB_DESC_SIZE_IAD                8      /* Interface Association Descriptor */
 #define USB_DESC_SIZE_INTERFACE          9      /* Interface descriptor */
-#define USB_DESC_SIZE_ENDPOINT           7      /* Standard Bulk Endpoint (7 bytes per USB 2.0 spec) */
+#define USB_DESC_SIZE_ENDPOINT           7      /* Standard Bulk Endpoint descriptor (7 bytes, not 9!) */
 #define USB_DESC_SIZE_JACK_IN_EXTERNAL   6      /* MIDI IN Jack descriptor (External) */
 #define USB_DESC_SIZE_JACK_IN_EMBEDDED   9      /* MIDI IN Jack descriptor (Embedded - has source pins) */
 #define USB_DESC_SIZE_JACK_OUT           9      /* MIDI OUT Jack descriptor */
@@ -81,7 +82,21 @@
                                           USB_DESC_SIZE_JACK_OUT + \
                                           USB_DESC_SIZE_JACK_OUT)
 
-/* MS_HEADER wTotalLength: Jacks + Endpoints (NOT including MS_HEADER itself) */
+/*
+ * USB MIDI 1.0 spec note:
+ * The MS_HEADER.wTotalLength field represents the total length (in bytes)
+ * of the *class-specific MS interface descriptor*, i.e. the MS header itself
+ * + all Jack/Element descriptors (endpoints are NOT part of this count).
+ *
+ * We keep a separate macro for the MS interface payload length used to compute
+ * the configuration descriptor wTotalLength.
+ */
+#define USB_MIDI_MS_HEADER_TOTAL_LENGTH  (USB_DESC_SIZE_CS_MS_INTERFACE + \
+                                          (MIDI_NUM_PORTS * USB_MIDI_JACK_DESC_SIZE_PER_PORT))
+
+/* MS interface payload length inside the configuration descriptor:
+ * Jack descriptors + endpoint descriptors (NOT including the CS MS header itself)
+ */
 #define USB_MIDI_MS_TOTAL_LENGTH         ((MIDI_NUM_PORTS * USB_MIDI_JACK_DESC_SIZE_PER_PORT) + \
                                           USB_DESC_SIZE_ENDPOINT + \
                                           (USB_DESC_SIZE_CS_ENDPOINT_BASE + MIDI_NUM_PORTS) + \
@@ -89,13 +104,15 @@
                                           (USB_DESC_SIZE_CS_ENDPOINT_BASE + MIDI_NUM_PORTS))
 
 /* Configuration wTotalLength: EVERYTHING including Config descriptor itself
- * MIOS32-style: NO IAD + 7-byte Bulk endpoints (per USB 2.0 spec)
- * = Config + AC Interface + CS AC Header + MS Interface + CS MS Header + MS wTotalLength
- * For 4 ports: 9 + 9 + 9 + 9 + 7 + 164 = 207 bytes (0xCF)
- * NOTE: AC Header is 9 bytes (has bInCollection), MS Header is 7 bytes
- *       Bulk endpoints are 7 bytes (bRefresh/bSynchAddress only for Isoch/Interrupt)
+ * = Config + IAD + AC Interface + CS AC Header + MS Interface + CS MS Header + MS wTotalLength
+ * For 4 ports: 9 + 8 + 9 + 9 + 9 + 7 + 164 = 215 bytes (0xD7)
+ * IAD is REQUIRED for Windows Composite Device Driver (usbccgp) validation!
+ * NOTE: CS AC Header is 9 bytes (has bInCollection + baInterfaceNr fields)
+ *       CS MS Header is 7 bytes (just header fields)
+ *       Standard Bulk Endpoint is 7 bytes (bRefresh/bSynchAddress only for Isoch/Interrupt!)
  */
 #define USB_MIDI_CONFIG_DESC_SIZ         (USB_DESC_SIZE_CONFIGURATION + \
+                                          USB_DESC_SIZE_IAD + \
                                           USB_DESC_SIZE_INTERFACE + \
                                           USB_DESC_SIZE_CS_AC_INTERFACE + \
                                           USB_DESC_SIZE_INTERFACE + \
@@ -147,7 +164,15 @@ __ALIGN_BEGIN static uint8_t USBD_MIDI_CfgDesc[USB_MIDI_CONFIG_DESC_SIZ] __ALIGN
   0x80,                                  /* bmAttributes: Bus Powered */
   0xFA,                                  /* MaxPower 500 mA */
   
-  /* IAD REMOVED - Testing MIOS32-style descriptor WITHOUT IAD (211 bytes) */
+  /* Interface Association Descriptor (IAD) - REQUIRED for Windows Composite Driver */
+  0x08,                                  /* bLength */
+  0x0B,                                  /* bDescriptorType: IAD */
+  0x00,                                  /* bFirstInterface: Audio Control */
+  0x02,                                  /* bInterfaceCount: 2 (AC + MS) */
+  USB_DEVICE_CLASS_AUDIO,                /* bFunctionClass: Audio (0x01) */
+  AUDIO_SUBCLASS_AUDIOCONTROL,           /* bFunctionSubClass: Audio Control (0x01) - NOT MIDIStreaming! */
+  0x00,                                  /* bFunctionProtocol */
+  0x00,                                  /* iFunction */
   
   /* Standard Audio Control Interface Descriptor */
   0x09,                                  /* bLength */
@@ -188,8 +213,8 @@ __ALIGN_BEGIN static uint8_t USBD_MIDI_CfgDesc[USB_MIDI_CONFIG_DESC_SIZ] __ALIGN
   /* wTotalLength: DYNAMICALLY calculated based on MIDI_NUM_PORTS
    * = (MIDI_NUM_PORTS * 33) + (9 + (5+PORTS) + 9 + (5+PORTS))
    * For 4 ports: (4*33) + (9+9+9+9) = 132 + 36 = 168 bytes */
-  LOBYTE(USB_MIDI_MS_TOTAL_LENGTH),
-  HIBYTE(USB_MIDI_MS_TOTAL_LENGTH),
+  LOBYTE(USB_MIDI_MS_HEADER_TOTAL_LENGTH),
+  HIBYTE(USB_MIDI_MS_HEADER_TOTAL_LENGTH),
   
   /* MIDI IN Jacks - External (4 ports) */
   /* Port 1 */
