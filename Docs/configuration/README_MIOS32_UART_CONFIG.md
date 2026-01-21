@@ -335,10 +335,10 @@ TEST_MIDI_DIN_UART_PORT=0 // UART1 (différent!)
 
 ## Documentation Associée / Related Documentation
 
-- [README_MODULE_TESTING.md](README_MODULE_TESTING.md) - Guide complet des tests
-- [TESTING_QUICKSTART.md](TESTING_QUICKSTART.md) - Démarrage rapide
+- [README_MODULE_TESTING.md](../testing/README_MODULE_TESTING.md) - Guide complet des tests
+- [TESTING_QUICKSTART.md](../testing/TESTING_QUICKSTART.md) - Démarrage rapide
 - [README_MODULE_CONFIG.md](README_MODULE_CONFIG.md) - Configuration des modules
-- [test_debug.h](App/tests/test_debug.h) - API de debug complète
+- [test_debug.h](../../App/tests/test_debug.h) - API de debug complète
 
 ## Support MIOS32 / MIOS32 Support
 
