@@ -87,6 +87,10 @@
                                           USB_DESC_SIZE_ENDPOINT + \
                                           (USB_DESC_SIZE_CS_ENDPOINT_BASE + MIDI_NUM_PORTS))
 
+/* Configuration wTotalLength: EVERYTHING including Config descriptor itself
+ * = Config + AC Interface + CS AC Header + MS Interface + MS Header + MS wTotalLength
+ * For 4 ports: 9 + 9 + 7 + 9 + 7 + 168 = 209 bytes (0xD1) NOT 211!
+ */
 #define USB_MIDI_CONFIG_DESC_SIZ         (USB_DESC_SIZE_CONFIGURATION + \
                                           USB_DESC_SIZE_INTERFACE + \
                                           USB_DESC_SIZE_CS_INTERFACE + \
