@@ -21,21 +21,27 @@ The MidiCore default configuration uses an SSD1322 256×64 grayscale OLED displa
 
 For detailed J1 pinout specifications, see [J1 Connector Pinout](J1_OLED_CONNECTOR_PINOUT.md).
 
-### Pin Configuration (SPI Mode - 7 connections used)
+### Pin Configuration (Software SPI Mode - 6 connections used)
 
 Located in: `Config/oled_pins.h`
 
-| J1 Pin | Signal | STM32 Pin | SPI Function | Description |
-|--------|--------|-----------|--------------|-------------|
+**IMPORTANT**: This uses **Software SPI (bit-bang)** following MIOS32 LoopA convention, NOT hardware SPI.
+
+| J1 Pin | Signal | STM32 Pin | Function | Description |
+|--------|--------|-----------|----------|-------------|
 | **1** | GND | GND | Ground | Ground reference |
 | **2** | VCC_IN | 3.3V | Power | 3.3V power supply |
-| **4** | CLK | PB13 | SPI2_SCK | SPI clock signal |
-| **5** | DIN | PB15 | SPI2_MOSI | SPI data to display |
-| **14** | D/C# (LCD_RS) | PA8 | Data/Command | Low=Command, High=Data (active low) |
-| **15** | Res# (LCD_RW) | PC11 | Reset | Reset signal (active low) |
-| **16** | CS# (LCDE1) | PC8 | Chip Select | Chip select (active low) |
+| **4** | SCL | PC8 | GPIO (Clock) | Software SPI clock (bit-bang) |
+| **5** | SDA | PC11 | GPIO (Data) | Software SPI data (bit-bang) |
+| **14** | D/C# | (multiplexed) | Data/Command | Multiplexed with SDA |
+| **15** | Res# | PA8 | GPIO (Reset) | Reset signal (active low) |
+| **16** | CS# | GND (hardwired) | Chip Select | Always enabled (not connected to STM32) |
 
-**Note**: Pins 3, 6-13 are not used in SPI mode. Pin 3 is NC (not connected), pins 6-9 are parallel data (D2-D5), and pins 12-13 are parallel control (E/RD#, R/W#).
+**Note**: 
+- CS is hardwired to GND on the display, so it's always selected
+- Software SPI allows any GPIO pins to be used
+- D/C signal is multiplexed with data according to MIOS32 3-wire SPI convention
+- Pins 3, 6-13 are not used. Pin 3 is NC (not connected), pins 6-9 are parallel data (D2-D5), and pins 12-13 are parallel control (E/RD#, R/W#)
 
 ### Wiring Diagram (SSD1322)
 
