@@ -15,13 +15,8 @@
 
 #include "usbd_def.h"
 
-/* Descriptor indexes */
-#define USBD_IDX_MFC_STR            0x01
-#define USBD_IDX_PRODUCT_STR        0x02
-#define USBD_IDX_SERIAL_STR         0x03
-#define USBD_IDX_CONFIG_STR         0x04
-#define USBD_IDX_INTERFACE_STR      0x05
-
+/* Descriptor indexes already defined in usbd_def.h */
+/* Additional defines if needed */
 #define USB_SIZ_STRING_SERIAL       0x1A
 
 /** Descriptor for the Device */
