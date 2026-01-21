@@ -24,6 +24,7 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "Config/module_config.h"  // MUST be first to define MODULE_ENABLE_* macros
 #include "App/app_entry.h"
 
 #include "App/tests/app_test_din_midi.h"
