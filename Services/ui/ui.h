@@ -15,6 +15,7 @@ typedef enum {
   UI_PAGE_HUMANIZER,
   UI_PAGE_ROUTER,
   UI_PAGE_PATCH,
+  UI_PAGE_OLED_TEST,
   UI_PAGE_COUNT
 } ui_page_t;
 
