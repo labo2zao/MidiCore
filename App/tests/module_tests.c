@@ -1397,25 +1397,113 @@ void module_test_usb_host_midi_run(void)
 #endif
 }
 
-void module_test_usb_device_midi_run(void)
+#if MODULE_ENABLE_USB_MIDI && !defined(APP_TEST_USB_MIDI)
+// Built-in USB MIDI test debug hook (only when not using dedicated app_test)
+static void module_test_usb_midi_print_packet(const uint8_t packet4[4])
 {
-  // Initialize debug UART first
-  test_debug_init();
+  uint8_t cable = (packet4[0] >> 4) & 0x0F;
+  uint8_t status = packet4[1];
+  uint8_t data1 = packet4[2];
+  uint8_t data2 = packet4[3];
+  
+  dbg_printf("[RX] Cable:%d %02X %02X %02X", cable, status, data1, data2);
+  
+  // Decode message type
+  uint8_t msg_type = status & 0xF0;
+  uint8_t channel = (status & 0x0F) + 1;
+  
+  if (msg_type == 0x90 && data2 > 0) {
+    dbg_printf(" (Note On Ch:%d Note:%d Vel:%d)", channel, data1, data2);
+  } else if (msg_type == 0x80 || (msg_type == 0x90 && data2 == 0)) {
+    dbg_printf(" (Note Off Ch:%d Note:%d)", channel, data1);
+  } else if (msg_type == 0xB0) {
+    dbg_printf(" (CC Ch:%d CC:%d Val:%d)", channel, data1, data2);
+  } else if (msg_type == 0xC0) {
+    dbg_printf(" (Prog Ch:%d Prog:%d)", channel, data1);
+  } else if (msg_type == 0xE0) {
+    dbg_printf(" (Bend Ch:%d)", channel);
+  }
   
   dbg_print("\r\n");
+}
+
+// Override weak symbol for built-in test
+void usb_midi_rx_debug_hook(const uint8_t packet4[4])
+{
+  module_test_usb_midi_print_packet(packet4);
+}
+#endif
+
+void module_test_usb_device_midi_run(void)
+{
+  // Early UART verification
+  dbg_print("\r\n");
   dbg_print("==============================================\r\n");
-  dbg_print("USB Device MIDI Test - UART Debug OK\r\n");
+  dbg_print("UART Debug Verification: OK\r\n");
   dbg_print("==============================================\r\n");
   dbg_print("\r\n");
   osDelay(100);
   
-#if MODULE_ENABLE_USB_MIDI
-  // Run the USB MIDI test
+#if defined(APP_TEST_USB_MIDI)
+  // Use existing USB MIDI test
   app_test_usb_midi_run_forever();
+#elif MODULE_ENABLE_USB_MIDI
+  // Built-in USB Device MIDI test
+  dbg_print_test_header("USB Device MIDI Test");
+  
+  dbg_print("Initializing USB Device MIDI...");
+  usb_midi_init();
+  dbg_print(" OK\r\n");
+  
+  dbg_print("\r\n");
+  dbg_print("USB Device MIDI initialized.\r\n");
+  dbg_print("Connect USB to computer/DAW to send and receive MIDI.\r\n");
+  dbg_print("This test will log received MIDI packets to UART.\r\n");
+  dbg_print("Sending test Note On/Off messages every 2 seconds.\r\n");
+  dbg_print_separator();
+  
+  uint32_t last_send_time = 0;
+  uint8_t note_state = 0;  // 0=off, 1=on
+  
+  // Main test loop
+  for (;;) {
+    uint32_t now = osKernelGetTickCount();
+    
+    // Periodically send test MIDI messages
+    if (now - last_send_time >= 2000) {
+      last_send_time = now;
+      
+      if (note_state == 0) {
+        // Send Note On (Middle C, Channel 1, Velocity 100)
+        uint8_t cin = 0x09;  // Cable 0, Note On CIN
+        uint8_t status = 0x90;  // Note On, Channel 1
+        uint8_t note = 60;  // Middle C
+        uint8_t velocity = 100;
+        
+        usb_midi_send_packet(cin, status, note, velocity);
+        dbg_printf("[TX] Cable:0 %02X %02X %02X (Note On)\r\n", status, note, velocity);
+        note_state = 1;
+      } else {
+        // Send Note Off
+        uint8_t cin = 0x08;  // Cable 0, Note Off CIN
+        uint8_t status = 0x80;  // Note Off, Channel 1
+        uint8_t note = 60;  // Middle C
+        uint8_t velocity = 0;
+        
+        usb_midi_send_packet(cin, status, note, velocity);
+        dbg_printf("[TX] Cable:0 %02X %02X %02X (Note Off)\r\n", status, note, velocity);
+        note_state = 0;
+      }
+    }
+    
+    osDelay(10);
+  }
 #else
   // Module not enabled
+  dbg_print_test_header("USB Device MIDI Test");
   dbg_print("ERROR: USB Device MIDI not enabled!\r\n");
   dbg_print("Enable MODULE_ENABLE_USB_MIDI in Config/module_config.h\r\n");
+  dbg_print_separator();
   for (;;) osDelay(1000);
 #endif
 }
