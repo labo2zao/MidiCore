@@ -268,6 +268,11 @@ USBD_StatusTypeDef USBD_LL_Start(USBD_HandleTypeDef *pdev)
   HAL_StatusTypeDef hal_status = HAL_OK;
   USBD_StatusTypeDef usb_status = USBD_OK;
   
+  /* CRITICAL FIX: MIOS32-style delay before USB connect */
+  /* USB PHY needs time to stabilize after configuration */
+  /* Without this delay, Windows may see unstable signaling */
+  for(volatile uint32_t i=0; i<4800; i++);  // ~100us @ 48MHz
+  
   hal_status = HAL_PCD_Start(pdev->pData);
   
   switch (hal_status) {
