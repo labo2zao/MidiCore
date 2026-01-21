@@ -10,105 +10,91 @@
 // (CCMRAM is fine: this buffer is only accessed by CPU, not DMA.)
 static uint8_t fb[OLED_W * OLED_H / 2] __attribute__((section(".ccmram")));
 
-static void dc_cmd(void) { HAL_GPIO_WritePin(OLED_DC_GPIO_Port, OLED_DC_Pin, GPIO_PIN_RESET); }
-static void dc_data(void){ HAL_GPIO_WritePin(OLED_DC_GPIO_Port, OLED_DC_Pin, GPIO_PIN_SET); }
-
-static void cmd(uint8_t c) {
-  dc_cmd();
-  spibus_tx(SPIBUS_DEV_OLED, &c, 1, 20);
+static void write_cmd(uint8_t c) {
+  HAL_GPIO_WritePin(OLED_DC_GPIO_Port, OLED_DC_Pin, GPIO_PIN_RESET);
+  spibus_tx(SPIBUS_DEV_OLED, &c, 1, 100);
 }
 
-static void cmd_data(uint8_t c, uint8_t d) {
-  cmd(c);
-  dc_data();
-  spibus_tx(SPIBUS_DEV_OLED, &d, 1, 20);
-  dc_cmd();
-}
-
-static void cmd_data2(uint8_t c, uint8_t d1, uint8_t d2) {
-  cmd(c);
-  dc_data();
-  uint8_t data[2] = {d1, d2};
-  spibus_tx(SPIBUS_DEV_OLED, data, 2, 20);
-  dc_cmd();
+static void write_data(uint8_t d) {
+  HAL_GPIO_WritePin(OLED_DC_GPIO_Port, OLED_DC_Pin, GPIO_PIN_SET);
+  spibus_tx(SPIBUS_DEV_OLED, &d, 1, 100);
 }
 
 static void reset_pulse(void) {
   HAL_GPIO_WritePin(OLED_RST_GPIO_Port, OLED_RST_Pin, GPIO_PIN_RESET);
-  delay_us(2000);
+  delay_us(10000); // 10ms
   HAL_GPIO_WritePin(OLED_RST_GPIO_Port, OLED_RST_Pin, GPIO_PIN_SET);
-  delay_us(5000);
+  delay_us(10000); // 10ms
 }
 
 void oled_init(void) {
+  // Set initial pin states
   HAL_GPIO_WritePin(OLED_CS_GPIO_Port, OLED_CS_Pin, GPIO_PIN_SET);
   HAL_GPIO_WritePin(OLED_DC_GPIO_Port, OLED_DC_Pin, GPIO_PIN_RESET);
   HAL_GPIO_WritePin(OLED_RST_GPIO_Port, OLED_RST_Pin, GPIO_PIN_SET);
 
+  // Wait for power stabilization (300ms like MIOS32)
+  delay_us(300000);
+  
+  // Hardware reset
   reset_pulse();
+  
+  // Begin SPI transaction
   spibus_begin(SPIBUS_DEV_OLED);
 
-  // SSD1322 initialization sequence for 256x64 display
-  cmd_data(0xFD, 0x12); // Set Command Lock - Unlock OLED driver IC
+  // SSD1322 initialization - MIOS32 LoopA sequence
+  write_cmd(0xFD); write_data(0x12); // Unlock driver IC
   
-  cmd(0xAE); // Display OFF (sleep mode)
+  write_cmd(0xAE); // Display OFF
   
-  cmd_data(0xB3, 0x91); // Set Front Clock Divider / Oscillator Frequency
+  write_cmd(0x15); // Set Column Address
+  write_data(0x1C); // Start column 28
+  write_data(0x5B); // End column 91 (64 columns for 256 pixels)
   
-  cmd_data(0xCA, 0x3F); // Set MUX Ratio - 1/64 duty (64 MUX)
+  write_cmd(0x75); // Set Row Address
+  write_data(0x00); // Start row 0
+  write_data(0x3F); // End row 63
   
-  cmd_data(0xA2, 0x00); // Set Display Offset - No offset
+  write_cmd(0xCA); write_data(0x3F); // Set MUX Ratio (64)
   
-  cmd_data(0xA1, 0x00); // Set Display Start Line - Start line = 0
+  write_cmd(0xA0); // Set Remap Format
+  write_data(0x14); // Horizontal increment, column remap
+  write_data(0x11); // Dual COM mode
   
-  cmd_data2(0xA0, 0x14, 0x11); // Set Re-map and Dual COM Line mode
-                                 // 0x14: Enable Column Address Re-map, Disable Nibble Re-map
-                                 // 0x11: Enable Dual COM mode (for 64 MUX)
+  write_cmd(0xB3); // Set Display Clock
+  write_data(0x00); // Divide ratio
+  write_data(0x0C); // Oscillator frequency (12)
   
-  cmd_data(0xB5, 0x00); // Set GPIO - GPIO0, GPIO1 = HiZ (disabled)
+  write_cmd(0xC1); write_data(0xFF); // Set Contrast Current (MAX)
   
-  cmd_data(0xAB, 0x01); // Function Selection - Enable internal VDD regulator
+  write_cmd(0xC7); write_data(0x0F); // Master Contrast (MAX)
   
-  cmd_data2(0xB4, 0xA0, 0xFD); // Display Enhancement A
-                                 // 0xA0: Enable external VSL
-                                 // 0xFD: Enhanced low GS display quality
+  write_cmd(0xB9); // Set Linear Gray Scale Table
   
-  cmd_data(0xC1, 0x9F); // Set Contrast Current - Higher contrast
+  write_cmd(0x00); // Disable gray scale table (use linear)
   
-  cmd_data(0xC7, 0x0F); // Master Contrast Current Control - Maximum
+  write_cmd(0xB1); write_data(0x56); // Set Phase Length
   
-  cmd(0xB9); // Set Linear Gray Scale Table (default)
+  write_cmd(0xBB); write_data(0x00); // Set Precharge Voltage
   
-  cmd_data(0xB1, 0xE2); // Set Phase Length - Phase 1 = 5 DCLKs, Phase 2 = 14 DCLKs
+  write_cmd(0xB6); write_data(0x08); // Set Precharge Period
   
-  cmd_data2(0xD1, 0x82, 0x20); // Display Enhancement B
-                                 // 0x82: Normal enhancement
-                                 // 0x20: Reserved
+  write_cmd(0xBE); write_data(0x00); // Set VCOMH
   
-  cmd_data(0xBB, 0x1F); // Set Pre-charge voltage - 0.60 x VCC
+  write_cmd(0xA6); // Normal Display (A4 | 0x02 in MIOS32)
   
-  cmd_data(0xB6, 0x08); // Set Second Pre-charge Period - 8 DCLKs
-  
-  cmd_data(0xBE, 0x07); // Set VCOMH - 0.86 x VCC
-  
-  cmd(0xA6); // Normal Display (not inverted)
-  
-  cmd(0xA9); // Exit Partial Display
-  
-  cmd(0xAF); // Display ON
-
   spibus_end(SPIBUS_DEV_OLED);
-
-  delay_us(100000); // Wait 100ms for display to stabilize
   
-  // Fill with test pattern to verify display is working
+  // Clear screen
   oled_clear();
-  uint8_t* fb_ptr = oled_framebuffer();
-  // Create a checkerboard pattern for visibility test
-  for (int i = 0; i < 1024; i++) {
-    fb_ptr[i] = 0xFF; // Fill first 1KB with white pixels
-  }
   oled_flush();
+  
+  // Turn display ON
+  spibus_begin(SPIBUS_DEV_OLED);
+  write_cmd(0xAF); // Display ON
+  spibus_end(SPIBUS_DEV_OLED);
+  
+  delay_us(100000); // Wait 100ms
 }
 
 uint8_t* oled_framebuffer(void) { return fb; }
@@ -117,21 +103,25 @@ void oled_clear(void) { memset(fb, 0, sizeof(fb)); }
 void oled_flush(void) {
   spibus_begin(SPIBUS_DEV_OLED);
 
-  // Set column address range (0-127 for 256 pixels with 4bpp = 128 bytes per row)
-  dc_cmd();
-  uint8_t setcol[] = { 0x15, 0x00, 0x7F };
-  spibus_tx(SPIBUS_DEV_OLED, setcol, sizeof(setcol), 20);
-  
-  // Set row address range (0-63 for 64 rows)
-  uint8_t setrow[] = { 0x75, 0x00, 0x3F };
-  spibus_tx(SPIBUS_DEV_OLED, setrow, sizeof(setrow), 20);
-  
-  // Enable MCU to write data into RAM
-  cmd(0x5C);
-
-  // Send framebuffer data
-  dc_data();
-  spibus_tx(SPIBUS_DEV_OLED, fb, sizeof(fb), 200);
+  // Send framebuffer data row by row (MIOS32 style)
+  for (uint8_t row = 0; row < 64; row++) {
+    // Set column address
+    write_cmd(0x15);
+    write_data(0x1C); // Start column 28
+    
+    // Set row address
+    write_cmd(0x75);
+    write_data(row); // Current row
+    
+    // Write to RAM
+    write_cmd(0x5C);
+    
+    // Send one row of data (128 bytes = 256 pixels at 4bpp)
+    HAL_GPIO_WritePin(OLED_DC_GPIO_Port, OLED_DC_Pin, GPIO_PIN_SET);
+    spibus_tx(SPIBUS_DEV_OLED, &fb[row * 128], 128, 200);
+  }
 
   spibus_end(SPIBUS_DEV_OLED);
 }
+
+
