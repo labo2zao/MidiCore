@@ -2,126 +2,121 @@
 #include "Hal/spi_bus.h"
 #include "Config/oled_pins.h"
 #include "Hal/delay_us.h"
-// Include main.h for portable STM32 HAL (F4/F7/H7 compatibility)
 #include "main.h"
 #include <string.h>
 
-// Framebuffer can live in CCMRAM to reduce pressure on main SRAM.
-// (CCMRAM is fine: this buffer is only accessed by CPU, not DMA.)
-static uint8_t fb[OLED_W * OLED_H / 2] __attribute__((section(".ccmram")));
+// Framebuffer: screen[row][column] where each byte contains 2 pixels (4-bit grayscale)
+// Matches LoopA screen buffer layout: screen[64][128]
+static uint8_t fb[64][128] __attribute__((section(".ccmram")));
 
-static void write_cmd(uint8_t c) {
+// Low-level command/data transmission (matching LoopA APP_LCD_Cmd/Data)
+static void oled_cmd(uint8_t c) {
   HAL_GPIO_WritePin(OLED_DC_GPIO_Port, OLED_DC_Pin, GPIO_PIN_RESET);
   spibus_tx(SPIBUS_DEV_OLED, &c, 1, 100);
 }
 
-static void write_data(uint8_t d) {
+static void oled_data(uint8_t d) {
   HAL_GPIO_WritePin(OLED_DC_GPIO_Port, OLED_DC_Pin, GPIO_PIN_SET);
   spibus_tx(SPIBUS_DEV_OLED, &d, 1, 100);
 }
 
-static void reset_pulse(void) {
-  HAL_GPIO_WritePin(OLED_RST_GPIO_Port, OLED_RST_Pin, GPIO_PIN_RESET);
-  delay_us(10000); // 10ms
-  HAL_GPIO_WritePin(OLED_RST_GPIO_Port, OLED_RST_Pin, GPIO_PIN_SET);
-  delay_us(10000); // 10ms
-}
-
 void oled_init(void) {
-  // Set initial pin states
+  // Initialize GPIO pins
   HAL_GPIO_WritePin(OLED_CS_GPIO_Port, OLED_CS_Pin, GPIO_PIN_SET);
   HAL_GPIO_WritePin(OLED_DC_GPIO_Port, OLED_DC_Pin, GPIO_PIN_RESET);
   HAL_GPIO_WritePin(OLED_RST_GPIO_Port, OLED_RST_Pin, GPIO_PIN_SET);
 
-  // Wait for power stabilization (300ms like MIOS32)
-  delay_us(300000);
+  // Power stabilization delay
+  uint16_t ctr;
+  for (ctr = 0; ctr < 300; ++ctr)
+    delay_us(1000);
   
-  // Hardware reset
-  reset_pulse();
+  // Hardware reset pulse
+  HAL_GPIO_WritePin(OLED_RST_GPIO_Port, OLED_RST_Pin, GPIO_PIN_RESET);
+  delay_us(10000);
+  HAL_GPIO_WritePin(OLED_RST_GPIO_Port, OLED_RST_Pin, GPIO_PIN_SET);
+  delay_us(10000);
   
   // Begin SPI transaction
   spibus_begin(SPIBUS_DEV_OLED);
 
-  // SSD1322 initialization - MIOS32 LoopA sequence
-  write_cmd(0xFD); write_data(0x12); // Unlock driver IC
+  // SSD1322 initialization sequence (from MIOS32 LoopA app_lcd.c)
+  oled_cmd(0xFD); oled_data(0x12); // Unlock driver
   
-  write_cmd(0xAE); // Display OFF
+  oled_cmd(0xAE); // Display OFF
   
-  write_cmd(0x15); // Set Column Address
-  write_data(0x1C); // Start column 28
-  write_data(0x5B); // End column 91 (64 columns for 256 pixels)
+  oled_cmd(0x15); // Set Column Address
+  oled_data(0x1C);
+  oled_data(0x5B);
   
-  write_cmd(0x75); // Set Row Address
-  write_data(0x00); // Start row 0
-  write_data(0x3F); // End row 63
+  oled_cmd(0x75); // Set Row Address
+  oled_data(0x00);
+  oled_data(0x3F);
   
-  write_cmd(0xCA); write_data(0x3F); // Set MUX Ratio (64)
+  oled_cmd(0xCA); oled_data(0x3F); // Set Multiplex Ratio
   
-  write_cmd(0xA0); // Set Remap Format
-  write_data(0x14); // Horizontal increment, column remap
-  write_data(0x11); // Dual COM mode
+  oled_cmd(0xA0); // Set Remap Format
+  oled_data(0x14);
+  oled_data(0x11);
   
-  write_cmd(0xB3); // Set Display Clock
-  write_data(0x00); // Divide ratio
-  write_data(0x0C); // Oscillator frequency (12)
+  oled_cmd(0xB3); // Set Display Clock
+  oled_data(0x00);
+  oled_data(0x0C);
   
-  write_cmd(0xC1); write_data(0xFF); // Set Contrast Current (MAX)
+  oled_cmd(0xC1); oled_data(0xFF); // Set Contrast Current
   
-  write_cmd(0xC7); write_data(0x0F); // Master Contrast (MAX)
+  oled_cmd(0xC7); oled_data(0x0F); // Master Contrast Current
   
-  write_cmd(0xB9); // Set Linear Gray Scale Table
+  oled_cmd(0xB9); // Set Linear Gray Scale Table
   
-  write_cmd(0x00); // Disable gray scale table (use linear)
+  oled_cmd(0x00); // Enable gray scale table
   
-  write_cmd(0xB1); write_data(0x56); // Set Phase Length
+  oled_cmd(0xB1); oled_data(0x56); // Set Phase Length
   
-  write_cmd(0xBB); write_data(0x00); // Set Precharge Voltage
+  oled_cmd(0xBB); oled_data(0x00); // Set Precharge Voltage
   
-  write_cmd(0xB6); write_data(0x08); // Set Precharge Period
+  oled_cmd(0xB6); oled_data(0x08); // Set Precharge Period
   
-  write_cmd(0xBE); write_data(0x00); // Set VCOMH
+  oled_cmd(0xBE); oled_data(0x00); // Set VCOMH
   
-  write_cmd(0xA6); // Normal Display (A4 | 0x02 in MIOS32)
+  oled_cmd(0xA6); // Normal Display
   
-  spibus_end(SPIBUS_DEV_OLED);
-  
-  // Clear screen
+  // Clear the display (LoopA APP_LCD_Clear style)
   oled_clear();
   oled_flush();
   
-  // Turn display ON
-  spibus_begin(SPIBUS_DEV_OLED);
-  write_cmd(0xAF); // Display ON
-  spibus_end(SPIBUS_DEV_OLED);
+  oled_cmd(0xAF); // Display ON
   
-  delay_us(100000); // Wait 100ms
+  spibus_end(SPIBUS_DEV_OLED);
 }
 
-uint8_t* oled_framebuffer(void) { return fb; }
-void oled_clear(void) { memset(fb, 0, sizeof(fb)); }
+uint8_t* oled_framebuffer(void) { 
+  return (uint8_t*)fb; 
+}
+
+void oled_clear(void) { 
+  memset(fb, 0, sizeof(fb)); 
+}
 
 void oled_flush(void) {
+  uint8_t i, j;
+  
   spibus_begin(SPIBUS_DEV_OLED);
-
-  // Send framebuffer data row by row (MIOS32 style)
-  for (uint8_t row = 0; row < 64; row++) {
-    // Set column address
-    write_cmd(0x15);
-    write_data(0x1C); // Start column 28
+  
+  // Push screen buffer to screen - exact LoopA implementation
+  for (j = 0; j < 64; j++) {
+    oled_cmd(0x15);
+    oled_data(0x00 + 0x1C);
     
-    // Set row address
-    write_cmd(0x75);
-    write_data(row); // Current row
+    oled_cmd(0x75);
+    oled_data(j);
     
-    // Write to RAM
-    write_cmd(0x5C);
+    oled_cmd(0x5C);
     
-    // Send one row of data (128 bytes = 256 pixels at 4bpp)
+    // Send entire row - DC pin stays high for data
     HAL_GPIO_WritePin(OLED_DC_GPIO_Port, OLED_DC_Pin, GPIO_PIN_SET);
-    spibus_tx(SPIBUS_DEV_OLED, &fb[row * 128], 128, 200);
+    spibus_tx(SPIBUS_DEV_OLED, fb[j], 128, 200);
   }
-
+  
   spibus_end(SPIBUS_DEV_OLED);
 }
-
-
