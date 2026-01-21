@@ -122,6 +122,11 @@ static void dbg_print_srio_pinout(void)
 #include "Services/usb_host_midi/usb_host_midi.h"
 #endif
 
+#if MODULE_ENABLE_USB_MIDI
+#include "Services/usb_midi/usb_midi.h"
+#include "App/tests/app_test_usb_midi.h"
+#endif
+
 // =============================================================================
 // FORWARD DECLARATIONS FOR EXISTING TEST IMPLEMENTATIONS
 // =============================================================================
@@ -236,6 +241,9 @@ module_test_t module_tests_get_compile_time_selection(void)
   return MODULE_TEST_PRESSURE_ID;
 #elif defined(MODULE_TEST_USB_HOST_MIDI)
   return MODULE_TEST_USB_HOST_MIDI_ID;
+#elif defined(MODULE_TEST_USB_DEVICE_MIDI) || defined(APP_TEST_USB_MIDI)
+  // Support both symbols: MODULE_TEST_* (framework style) and APP_TEST_* (legacy style)
+  return MODULE_TEST_USB_DEVICE_MIDI_ID;
 #elif defined(MODULE_TEST_ALL)
   return MODULE_TEST_ALL_ID;
 #else
@@ -291,6 +299,10 @@ int module_tests_run(module_test_t test)
       
     case MODULE_TEST_USB_HOST_MIDI_ID:
       module_test_usb_host_midi_run();
+      break;
+      
+    case MODULE_TEST_USB_DEVICE_MIDI_ID:
+      module_test_usb_device_midi_run();
       break;
       
     case MODULE_TEST_ALL_ID:
@@ -1381,6 +1393,145 @@ void module_test_usb_host_midi_run(void)
   }
 #else
   // Module not enabled
+  for (;;) osDelay(1000);
+#endif
+}
+
+#if MODULE_ENABLE_USB_MIDI && !defined(APP_TEST_USB_MIDI)
+// Built-in USB MIDI test debug hook (only when not using dedicated app_test)
+static void module_test_usb_midi_print_packet(const uint8_t packet4[4])
+{
+  uint8_t cable = (packet4[0] >> 4) & 0x0F;
+  uint8_t status = packet4[1];
+  uint8_t data1 = packet4[2];
+  uint8_t data2 = packet4[3];
+  
+  dbg_printf("[RX] Cable:%d %02X %02X %02X", cable, status, data1, data2);
+  
+  // Decode message type
+  uint8_t msg_type = status & 0xF0;
+  uint8_t channel = (status & 0x0F) + 1;
+  
+  if (msg_type == 0x90 && data2 > 0) {
+    dbg_printf(" (Note On Ch:%d Note:%d Vel:%d)", channel, data1, data2);
+  } else if (msg_type == 0x80 || (msg_type == 0x90 && data2 == 0)) {
+    dbg_printf(" (Note Off Ch:%d Note:%d)", channel, data1);
+  } else if (msg_type == 0xB0) {
+    dbg_printf(" (CC Ch:%d CC:%d Val:%d)", channel, data1, data2);
+  } else if (msg_type == 0xC0) {
+    dbg_printf(" (Prog Ch:%d Prog:%d)", channel, data1);
+  } else if (msg_type == 0xE0) {
+    dbg_printf(" (Bend Ch:%d)", channel);
+  }
+  
+  dbg_print("\r\n");
+}
+
+/**
+ * @brief Unified USB MIDI receive debug hook - overrides weak symbol in usb_midi.c
+ * Works for both APP_TEST_USB_MIDI and MODULE_TEST_USB_DEVICE_MIDI modes
+ */
+void usb_midi_rx_debug_hook(const uint8_t packet4[4])
+{
+  uint8_t cin = packet4[0] & 0x0F;
+  
+  // Handle SysEx packets (CIN 0x4-0x7) - special logging format
+  if (cin >= 0x04 && cin <= 0x07) {
+    uint8_t cable = (packet4[0] >> 4) & 0x0F;
+    dbg_print("[RX SysEx] Cable:");
+    dbg_print_uint(cable);
+    dbg_print(" CIN:0x");
+    dbg_print_hex8(cin);
+    dbg_print(" Data:");
+    for (uint8_t i = 1; i < 4; i++) {
+      dbg_print(" ");
+      dbg_print_hex8(packet4[i]);
+    }
+    dbg_print("\r\n");
+    return; // Don't print regular format for SysEx
+  }
+  
+  // Print regular MIDI messages using shared formatting function
+  module_test_usb_midi_print_packet(packet4);
+}
+#endif
+
+void module_test_usb_device_midi_run(void)
+{
+  // Early UART verification
+  dbg_print("\r\n");
+  dbg_print("==============================================\r\n");
+  dbg_print("UART Debug Verification: OK\r\n");
+  dbg_print("==============================================\r\n");
+  dbg_print("\r\n");
+  osDelay(100);
+  
+#if defined(APP_TEST_USB_MIDI)
+  // Use existing USB MIDI test
+  app_test_usb_midi_run_forever();
+#elif MODULE_ENABLE_USB_MIDI
+  // Built-in USB Device MIDI test
+  dbg_print_test_header("USB Device MIDI Test");
+  
+  dbg_print("Configuration:\r\n");
+  dbg_printf("  - UART Port: UART%d (Port %d)\r\n", TEST_DEBUG_UART_PORT + 1, TEST_DEBUG_UART_PORT);
+  dbg_printf("  - Baud Rate: %d\r\n", TEST_DEBUG_UART_BAUD);
+  dbg_print("  - Data: 8-N-1\r\n");
+  dbg_print("\r\n");
+  
+  // Note: usb_midi_init() is already called in main.c before RTOS starts
+  // USB Device MIDI is ready to use
+  dbg_print("USB Device MIDI already initialized.\r\n");
+  
+  dbg_print("\r\n");
+  dbg_print("USB Device MIDI initialized.\r\n");
+  dbg_print("Connect USB to computer/DAW to send and receive MIDI.\r\n");
+  dbg_print("This test will log received MIDI packets to UART.\r\n");
+  dbg_print("Sending test Note On/Off messages every 2 seconds.\r\n");
+  dbg_print_separator();
+  
+  uint32_t last_send_time = 0;
+  uint8_t note_state = 0;  // 0=off, 1=on
+  
+  // Main test loop
+  for (;;) {
+    uint32_t now = osKernelGetTickCount();
+    
+    // Periodically send test MIDI messages
+    if (now - last_send_time >= 2000) {
+      last_send_time = now;
+      
+      if (note_state == 0) {
+        // Send Note On (Middle C, Channel 1, Velocity 100)
+        uint8_t cin = 0x09;  // Cable 0, Note On CIN
+        uint8_t status = 0x90;  // Note On, Channel 1
+        uint8_t note = 60;  // Middle C
+        uint8_t velocity = 100;
+        
+        usb_midi_send_packet(cin, status, note, velocity);
+        dbg_printf("[TX] Cable:0 %02X %02X %02X (Note On)\r\n", status, note, velocity);
+        note_state = 1;
+      } else {
+        // Send Note Off
+        uint8_t cin = 0x08;  // Cable 0, Note Off CIN
+        uint8_t status = 0x80;  // Note Off, Channel 1
+        uint8_t note = 60;  // Middle C
+        uint8_t velocity = 0;
+        
+        usb_midi_send_packet(cin, status, note, velocity);
+        dbg_printf("[TX] Cable:0 %02X %02X %02X (Note Off)\r\n", status, note, velocity);
+        note_state = 0;
+      }
+    }
+    
+    osDelay(10);
+  }
+#else
+  // Module not enabled
+  dbg_print_test_header("USB Device MIDI Test");
+  dbg_print("ERROR: USB Device MIDI not enabled!\r\n");
+  dbg_print("Enable MODULE_ENABLE_USB_MIDI in Config/module_config.h\r\n");
+  dbg_print_separator();
   for (;;) osDelay(1000);
 #endif
 }
