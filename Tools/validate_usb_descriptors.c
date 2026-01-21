@@ -32,19 +32,24 @@
                                           USB_DESC_SIZE_JACK_OUT + \
                                           USB_DESC_SIZE_JACK_OUT)
 
-#define USB_MIDI_MS_TOTAL_LENGTH         ((MIDI_NUM_PORTS * USB_MIDI_JACK_DESC_SIZE_PER_PORT) + \
+/* MS_HEADER wTotalLength: Per USB MIDI spec, includes MS_HEADER + Jacks (NOT endpoints)
+ * For 4 ports: MS_HEADER (7) + (4 ports × 33 bytes) = 139 bytes (0x008B)
+ */
+#define USB_MIDI_MS_TOTAL_LENGTH         (USB_DESC_SIZE_CS_MS_INTERFACE + \
+                                          (MIDI_NUM_PORTS * USB_MIDI_JACK_DESC_SIZE_PER_PORT))
+
+/* Configuration wTotalLength: Config + interfaces + MS_TOTAL_LENGTH + endpoints
+ * For 4 ports without IAD: 9 + 9 + 9 + 9 + 139 + (7+9) + (7+9) = 207 bytes (0x00CF)
+ */
+#define USB_MIDI_CONFIG_DESC_SIZ         (USB_DESC_SIZE_CONFIGURATION + \
+                                          USB_DESC_SIZE_INTERFACE + \
+                                          USB_DESC_SIZE_CS_AC_INTERFACE + \
+                                          USB_DESC_SIZE_INTERFACE + \
+                                          USB_MIDI_MS_TOTAL_LENGTH + \
                                           USB_DESC_SIZE_ENDPOINT + \
                                           (USB_DESC_SIZE_CS_ENDPOINT_BASE + MIDI_NUM_PORTS) + \
                                           USB_DESC_SIZE_ENDPOINT + \
                                           (USB_DESC_SIZE_CS_ENDPOINT_BASE + MIDI_NUM_PORTS))
-
-#define USB_MIDI_CONFIG_DESC_SIZ         (USB_DESC_SIZE_CONFIGURATION + \
-                                          USB_DESC_SIZE_IAD + \
-                                          USB_DESC_SIZE_INTERFACE + \
-                                          USB_DESC_SIZE_CS_AC_INTERFACE + \
-                                          USB_DESC_SIZE_INTERFACE + \
-                                          USB_DESC_SIZE_CS_MS_INTERFACE + \
-                                          USB_MIDI_MS_TOTAL_LENGTH)
 
 int main(void)
 {
@@ -76,18 +81,19 @@ int main(void)
     printf("  Total endpoints:          %d bytes\n\n", ep_out + ep_in);
     
     /* MS_HEADER wTotalLength */
-    printf("MS_HEADER wTotalLength:\n");
-    printf("  Jacks + Endpoints = %d bytes (0x%04X)\n\n", USB_MIDI_MS_TOTAL_LENGTH, USB_MIDI_MS_TOTAL_LENGTH);
+    printf("MS_HEADER wTotalLength (per USB MIDI spec):\n");
+    printf("  MS_HEADER + Jacks (NO endpoints) = %d bytes (0x%04X)\n", USB_MIDI_MS_TOTAL_LENGTH, USB_MIDI_MS_TOTAL_LENGTH);
+    printf("  Breakdown: MS_HEADER (%d) + Jacks (%d)\n\n", USB_DESC_SIZE_CS_MS_INTERFACE, total_jacks);
     
     /* Configuration Descriptor breakdown */
     printf("Configuration Descriptor Breakdown:\n");
     printf("  Configuration Descriptor:  %d bytes\n", USB_DESC_SIZE_CONFIGURATION);
-    printf("  IAD:                        %d bytes\n", USB_DESC_SIZE_IAD);
     printf("  AC Interface:               %d bytes\n", USB_DESC_SIZE_INTERFACE);
     printf("  CS AC Header:               %d bytes (has bInCollection)\n", USB_DESC_SIZE_CS_AC_INTERFACE);
     printf("  MS Interface:               %d bytes\n", USB_DESC_SIZE_INTERFACE);
-    printf("  CS MS Header:               %d bytes\n", USB_DESC_SIZE_CS_MS_INTERFACE);
-    printf("  MS data (jacks+endpoints):  %d bytes\n", USB_MIDI_MS_TOTAL_LENGTH);
+    printf("  MS wTotalLength:           %d bytes (MS_HEADER + jacks)\n", USB_MIDI_MS_TOTAL_LENGTH);
+    printf("  Endpoint OUT (std + CS):   %d bytes\n", ep_out);
+    printf("  Endpoint IN (std + CS):    %d bytes\n", ep_in);
     printf("  ----------------------------------\n");
     printf("  Total:                      %d bytes (0x%04X)\n\n", USB_MIDI_CONFIG_DESC_SIZ, USB_MIDI_CONFIG_DESC_SIZ);
     
@@ -105,17 +111,17 @@ int main(void)
         errors++;
     }
     
-    if (USB_MIDI_MS_TOTAL_LENGTH == 164) {
-        printf("✅ MS_HEADER wTotalLength: %d bytes (CORRECT)\n", USB_MIDI_MS_TOTAL_LENGTH);
+    if (USB_MIDI_MS_TOTAL_LENGTH == 139) {
+        printf("✅ MS_HEADER wTotalLength: %d bytes (0x%04X) - CORRECT per USB MIDI spec\n", USB_MIDI_MS_TOTAL_LENGTH, USB_MIDI_MS_TOTAL_LENGTH);
     } else {
-        printf("❌ MS_HEADER wTotalLength: %d bytes (WRONG - should be 164)\n", USB_MIDI_MS_TOTAL_LENGTH);
+        printf("❌ MS_HEADER wTotalLength: %d bytes (WRONG - should be 139/0x008B)\n", USB_MIDI_MS_TOTAL_LENGTH);
         errors++;
     }
     
-    if (USB_MIDI_CONFIG_DESC_SIZ == 215) {
-        printf("✅ Config wTotalLength:    %d bytes (CORRECT)\n", USB_MIDI_CONFIG_DESC_SIZ);
+    if (USB_MIDI_CONFIG_DESC_SIZ == 207) {
+        printf("✅ Config wTotalLength:    %d bytes (0x%04X) - CORRECT\n", USB_MIDI_CONFIG_DESC_SIZ, USB_MIDI_CONFIG_DESC_SIZ);
     } else {
-        printf("❌ Config wTotalLength:    %d bytes (WRONG - should be 215)\n", USB_MIDI_CONFIG_DESC_SIZ);
+        printf("❌ Config wTotalLength:    %d bytes (WRONG - should be 207/0x00CF)\n", USB_MIDI_CONFIG_DESC_SIZ);
         errors++;
     }
     

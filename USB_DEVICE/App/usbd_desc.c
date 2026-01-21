@@ -136,8 +136,9 @@ uint8_t *USBD_FS_SerialStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *length)
   
   if (deviceserial0 != 0)
   {
-    /* Convert to hex string */
-    USBD_StrDesc[0] = 26;  /* Length */
+    /* Convert to hex string - 3 uint32_t values = 24 hex chars
+     * In UTF-16LE: 24 chars × 2 bytes + 2 byte header = 50 bytes */
+    USBD_StrDesc[0] = 50;  /* bLength: 2 + (24 × 2) = 50 bytes */
     USBD_StrDesc[1] = USB_DESC_TYPE_STRING;
     
     uint8_t *pStr = &USBD_StrDesc[2];
@@ -153,7 +154,7 @@ uint8_t *USBD_FS_SerialStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *length)
         *pStr++ = 0;
       }
     }
-    *length = 26;
+    *length = 50;
   }
   else
   {
