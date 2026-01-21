@@ -16,7 +16,7 @@
 #endif
 #include "Services/ui/ui_state.h"
 #include "Services/ui/chord_cfg.h"
-#include "Hal/oled_ssd1322/oled_ssd1322.h"
+#include "Hal/oled.h"
 #include <string.h>
 #include <stdio.h>
 static char s_status_line[22] = {0};

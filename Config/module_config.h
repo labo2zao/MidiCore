@@ -43,9 +43,14 @@ extern "C" {
 #define MODULE_ENABLE_SPI_BUS 1
 #endif
 
-/** @brief Enable OLED SSD1322 display module */
+/** @brief Enable OLED display module */
 #ifndef MODULE_ENABLE_OLED
 #define MODULE_ENABLE_OLED 1
+#endif
+
+/** @brief OLED driver type: 0=SSD1322 (256x64 grayscale), 1=SSD1306 (128x64 monochrome, LoopA compatible) */
+#ifndef OLED_DRIVER_SSD1306
+#define OLED_DRIVER_SSD1306 1  // Use SSD1306 for LoopA compatibility
 #endif
 
 // =============================================================================
