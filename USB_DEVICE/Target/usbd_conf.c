@@ -10,7 +10,7 @@
 #include "stm32f4xx_hal.h"
 #include "usbd_def.h"
 #include "usbd_core.h"
-#include "usbd_midi.h"
+#include "USB_DEVICE/Class/MIDI/Inc/usbd_midi.h"  /* Custom MIDI class - protected from CubeMX regen */
 #include "main.h"  /* For Error_Handler */
 
 /* Define missing USB_OTG_GOTGCTL register bits for STM32F407 B-session override */

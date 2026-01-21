@@ -171,8 +171,13 @@ __ALIGN_BEGIN static uint8_t USBD_MIDI_CfgDesc[USB_MIDI_CONFIG_DESC_SIZ] __ALIGN
   AUDIO_DESCRIPTOR_TYPE_INTERFACE,       /* bDescriptorType */
   0x01,                                  /* bDescriptorSubtype: MS_HEADER */
   0x00, 0x01,                            /* bcdMSC: 1.00 */
-  LOBYTE(65 + (MIDI_NUM_PORTS * 12)),   /* wTotalLength: Calculate based on jacks */
-  HIBYTE(65 + (MIDI_NUM_PORTS * 12)),
+  /* wTotalLength: Length from after MS_HEADER to end of last CS endpoint
+   * = Jacks + Endpoints
+   * = (4*6 + 4*9 + 4*9 + 4*9) + (9 + 9 + 9 + 9)
+   * = (24 + 36 + 36 + 36) + 36
+   * = 132 + 36 = 168 bytes */
+  LOBYTE(168),
+  HIBYTE(168),
   
   /* MIDI IN Jacks - External (4 ports) */
   /* Port 1 */

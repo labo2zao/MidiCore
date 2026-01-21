@@ -9,7 +9,7 @@
 #include "usb_device.h"
 #include "usbd_core.h"
 #include "usbd_desc.h"
-#include "usbd_midi.h"
+#include "USB_DEVICE/Class/MIDI/Inc/usbd_midi.h"  /* Custom MIDI class - protected from CubeMX regen */
 #include "main.h"  /* For Error_Handler */
 
 /* USB Device Core handle declaration */
