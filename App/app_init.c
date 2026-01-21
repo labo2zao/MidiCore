@@ -14,7 +14,7 @@
 #endif
 
 #if MODULE_ENABLE_OLED
-#include "Hal/oled.h"
+#include "Hal/oled_ssd1322/oled_ssd1322.h"
 #endif
 
 #if MODULE_ENABLE_ROUTER
