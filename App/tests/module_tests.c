@@ -1427,11 +1427,13 @@ static void module_test_usb_midi_print_packet(const uint8_t packet4[4])
   dbg_print("\r\n");
 }
 
-// Override weak symbol for built-in test
+// Override weak symbol for built-in test (only if APP_TEST_USB_MIDI is not defined)
+#ifndef APP_TEST_USB_MIDI
 void usb_midi_rx_debug_hook(const uint8_t packet4[4])
 {
   module_test_usb_midi_print_packet(packet4);
 }
+#endif
 #endif
 
 void module_test_usb_device_midi_run(void)
