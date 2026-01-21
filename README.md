@@ -22,42 +22,28 @@ MidiCore is a modular MIDI system featuring:
 
 ## Documentation
 
-### Quick Start Guides
+📚 **[Complete Documentation Index](Docs/README.md)** - Browse all documentation organized by category
+
+### Quick Start
+- **[Getting Started](Docs/getting-started/)** - Quick start guides and project integration
 - **[Module Configuration](Docs/configuration/README_MODULE_CONFIG.md)** - Enable/disable modules
 - **[Testing Quick Start](Docs/testing/TESTING_QUICKSTART.md)** - Quick test examples
-- **[Integration Guide](Docs/guides/README_INTEGRATION.md)** - Project integration
 
-### Configuration
-- **[MIOS32 UART Configuration](Docs/configuration/README_MIOS32_UART_CONFIG.md)** - UART setup and dbg_print API
-- **[SPI Configuration Reference](Docs/configuration/SPI_CONFIGURATION_REFERENCE.md)** - SPI setup
-- **[CubeMX Regeneration Guide](Docs/configuration/CUBEMX_REGENERATION_GUIDE.md)** - How to regenerate with CubeMX
-- **[FreeRTOS Protection Guide](Docs/configuration/FREERTOS_PROTECTION_GUIDE.md)** - Protect custom code from CubeMX
+### Main Categories
+- **[User Guides](Docs/user-guides/)** - Looper, UI, footswitch, automation
+- **[Configuration](Docs/configuration/)** - System setup (UART, SPI, CubeMX, FreeRTOS)
+- **[Testing](Docs/testing/)** - Testing procedures and validation
+- **[USB Documentation](Docs/usb/)** - USB MIDI implementation and debugging
+- **[Development](Docs/development/)** - Technical docs, compatibility, portability
+- **[MIOS32 Compatibility](Docs/mios32/)** - MIOS32 migration and compatibility guides
+- **[Commercial](Docs/commercial/)** - Product presentations and commercial docs
 
-### Testing
-- **[Module Testing Guide](Docs/testing/README_MODULE_TESTING.md)** - Test modules individually
-- **[Testing Protocol](Docs/testing/TESTING_PROTOCOL.md)** - Complete testing protocol
-- **[Test Execution](Docs/testing/TEST_EXECUTION.md)** - Test execution details
-- **[Test Validation Report](Docs/testing/TEST_VALIDATION_REPORT.md)** - Validation results
-
-### USB Documentation
-- **[USB Host MIDI](Docs/guides/README_USBH_MIDI.md)** - USB Host setup
-- **[USB Configuration Guide](Docs/usb/USB_CONFIGURATION_GUIDE.md)** - USB configuration
-- **[USB Device and Host Guide](Docs/usb/USB_DEVICE_AND_HOST_GUIDE.md)** - Complete USB setup
-- **[USB Debug Guide](Docs/usb/USB_DEBUG_GUIDE.md)** - USB debugging
-
-### MIOS32 Compatibility
-- **[MIOS32 Compatibility](Docs/mios32/MIOS32_COMPATIBILITY.md)** - MIOS32 compatibility overview
-- **[MIOS32 Deep Comparison](Docs/mios32/MIOS32_DEEP_COMPARISON.md)** - Detailed comparison with MIOS32
-- **[MIOS32 USB Implementation Guide](Docs/mios32/MIOS32_USB_IMPLEMENTATION_GUIDE.md)** - USB implementation details
-
-### Compatibility & Portability
-- **[Portability Guide](Docs/compatibility/README_PORTABILITY.md)** - STM32F4/H7 compatibility
-- **[Compatibility Summary](Docs/compatibility/COMPATIBILITY_SUMMARY.md)** - Overall compatibility status
-- **[Driver Compatibility Report](Docs/compatibility/DRIVER_COMPATIBILITY_REPORT.md)** - Driver compatibility details
-
-### Other Resources
+### Key Documents
+- **[Testing Quick Start](Docs/testing/TESTING_QUICKSTART.md)** - Quick test examples
+- **[USB Configuration Guide](Docs/usb/USB_CONFIGURATION_GUIDE.md)** - USB setup
+- **[MIOS32 UART Configuration](Docs/configuration/README_MIOS32_UART_CONFIG.md)** - UART and debug
+- **[Portability Guide](Docs/development/README_PORTABILITY.md)** - STM32F4/H7 compatibility
 - **[Module Details](Modules_MidiCore_Detail_par_Module.txt)** - Detailed architecture (French)
-- **[Full Documentation Index](Docs/)** - Browse all documentation
 
 ## Module Testing
 
@@ -165,7 +151,7 @@ This project uses:
 - **MIOS32 Compatible**: 100% compatible UART mapping and hardware interface
 - **MBHP Compatible**: Works with MIOS32 MBHP shields and modules
 
-See [README_PORTABILITY.md](Docs/compatibility/README_PORTABILITY.md) for migration guide.  
+See [README_PORTABILITY.md](Docs/development/README_PORTABILITY.md) for migration guide.  
 See [README_MIOS32_UART_CONFIG.md](Docs/configuration/README_MIOS32_UART_CONFIG.md) for MIOS32 compatibility details.
 
 ## License
