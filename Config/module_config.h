@@ -69,12 +69,12 @@ extern "C" {
 
 /** @brief Enable USB Device MIDI */
 #ifndef MODULE_ENABLE_USB_MIDI
-#define MODULE_ENABLE_USB_MIDI 0  // Disabled by default (requires USB config)
+#define MODULE_ENABLE_USB_MIDI 1  // Disabled by default (requires USB config)
 #endif
 
 /** @brief Enable USB Host MIDI */
 #ifndef MODULE_ENABLE_USBH_MIDI
-#define MODULE_ENABLE_USBH_MIDI 0  // Disabled by default (requires USB config)
+#define MODULE_ENABLE_USBH_MIDI 1  // Disabled by default (requires USB config)
 #endif
 
 // =============================================================================

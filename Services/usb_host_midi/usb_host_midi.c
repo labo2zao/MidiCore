@@ -4,6 +4,7 @@
 #include "Services/router/router.h"
 #include "Config/module_config.h"
 
+#include "usb_device.h"
 #include "usbh_core.h"
 
 #if defined(USBH_MIDI_PRESENT) && USBH_MIDI_PRESENT && MODULE_ENABLE_USBH_MIDI
