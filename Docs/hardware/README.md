@@ -6,6 +6,7 @@ This section contains hardware setup, wiring guides, and pinout information for 
 
 ### Display
 - **[OLED Wiring Guide](OLED_WIRING_GUIDE.md)** - Complete OLED display wiring for SSD1322 and SSD1306 (LoopA compatible)
+- **[J1 Connector Pinout](J1_OLED_CONNECTOR_PINOUT.md)** - Detailed J1 OLED connector pinout and specifications
 - **[OLED Quick Test](OLED_QUICK_TEST.md)** - Quick testing guide for OLED displays
 
 ## Hardware Compatibility

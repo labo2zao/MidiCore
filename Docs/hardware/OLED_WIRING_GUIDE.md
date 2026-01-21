@@ -15,34 +15,40 @@ MidiCore supports grayscale OLED displays for the user interface. The system is 
 
 The MidiCore default configuration uses an SSD1322 256×64 grayscale OLED display connected via SPI2.
 
+### Hardware Connector
+
+**Connector J1** on the board provides the OLED interface signals.
+
+For detailed J1 pinout specifications, see [J1 Connector Pinout](J1_OLED_CONNECTOR_PINOUT.md).
+
 ### Pin Configuration
 
 Located in: `Config/oled_pins.h`
 
-| Signal | STM32 Pin | SPI Function | Description |
-|--------|-----------|--------------|-------------|
-| **SPI2_SCK** | PB13 | Clock | SPI clock signal |
-| **SPI2_MOSI** | PB15 | Data Out | SPI data to display |
-| **OLED_CS** | PB12 | Chip Select | Active low |
-| **OLED_DC** | PC4 | Data/Command | Low=Command, High=Data |
-| **OLED_RST** | PC5 | Reset | Active low reset |
+| Signal | STM32 Pin | Connector | SPI Function | Description |
+|--------|-----------|-----------|--------------|-------------|
+| **SPI2_SCK** | PB13 | J1 | Clock | SPI clock signal |
+| **SPI2_MOSI** | PB15 | J1 | Data Out | SPI data to display |
+| **OLED_CS** | PB12 | J1 | Chip Select | Active low |
+| **OLED_DC** | PC4 | J1 | Data/Command | Low=Command, High=Data |
+| **OLED_RST** | PC5 | J1 | Reset | Active low reset |
 
 ### Wiring Diagram (SSD1322)
 
 ```
-STM32F407VGT6                    SSD1322 OLED
-┌─────────────┐                 ┌──────────────┐
-│             │                 │              │
-│    PB13 ────┼─────────────────┤ SCK  (CLK)   │
-│    PB15 ────┼─────────────────┤ MOSI (DIN)   │
-│    PB12 ────┼─────────────────┤ CS   (/CS)   │
-│    PC4  ────┼─────────────────┤ DC   (D/C)   │
-│    PC5  ────┼─────────────────┤ RST  (/RES)  │
-│             │                 │              │
-│    GND  ────┼─────────────────┤ GND          │
-│    3.3V ────┼─────────────────┤ VDD          │
-│             │                 │              │
-└─────────────┘                 └──────────────┘
+STM32F407VGT6    Connector J1        SSD1322 OLED
+┌─────────────┐  ┌────────┐         ┌──────────────┐
+│             │  │   J1   │         │              │
+│    PB13 ────┼──┤   SCK  ├─────────┤ SCK  (CLK)   │
+│    PB15 ────┼──┤  MOSI  ├─────────┤ MOSI (DIN)   │
+│    PB12 ────┼──┤   CS   ├─────────┤ CS   (/CS)   │
+│    PC4  ────┼──┤   DC   ├─────────┤ DC   (D/C)   │
+│    PC5  ────┼──┤   RST  ├─────────┤ RST  (/RES)  │
+│             │  │        │         │              │
+│    GND  ────┼──┤  GND   ├─────────┤ GND          │
+│    3.3V ────┼──┤  VDD   ├─────────┤ VDD          │
+│             │  │        │         │              │
+└─────────────┘  └────────┘         └──────────────┘
 ```
 
 ### SPI Configuration
@@ -84,40 +90,45 @@ For MIOS32/LoopA compatibility with SSD1306 displays, use the wiring specified i
 
 **MIOS32 MBHP OLED Wiring**: http://www.ucapps.de/mbhp/mbhp_lcd_ssd1306_single_mios32.pdf
 
+### Hardware Connector
+
+**Connector J1** provides the standard MBHP/MIOS32 OLED interface.
+
 ### SSD1306 Pin Configuration
 
-| Signal | STM32 Pin | Function | Description |
-|--------|-----------|----------|-------------|
-| **SCK** | PB13 (SPI2) | Clock | SPI clock |
-| **MOSI** | PB15 (SPI2) | Data | SPI data |
-| **CS** | PB12 | Chip Select | Active low |
-| **DC** | PC4 | Data/Command | Low=Command, High=Data |
-| **RST** | PC5 | Reset | Active low reset |
+| Signal | STM32 Pin | Connector | Function | Description |
+|--------|-----------|-----------|----------|-------------|
+| **SCK** | PB13 (SPI2) | J1 | Clock | SPI clock |
+| **MOSI** | PB15 (SPI2) | J1 | Data | SPI data |
+| **CS** | PB12 | J1 | Chip Select | Active low |
+| **DC** | PC4 | J1 | Data/Command | Low=Command, High=Data |
+| **RST** | PC5 | J1 | Reset | Active low reset |
 
 ### Wiring Diagram (SSD1306 - LoopA Style)
 
 ```
-STM32F407VGT6                    SSD1306 OLED
-┌─────────────┐                 ┌──────────────┐
-│             │                 │              │
-│    PB13 ────┼─────────────────┤ D0   (SCK)   │
-│    PB15 ────┼─────────────────┤ D1   (MOSI)  │
-│    PB12 ────┼─────────────────┤ CS   (/CS)   │
-│    PC4  ────┼─────────────────┤ DC   (D/C)   │
-│    PC5  ────┼─────────────────┤ RES  (/RES)  │
-│             │                 │              │
-│    GND  ────┼─────────────────┤ GND          │
-│    3.3V ────┼─────────────────┤ VCC (3.3V)   │
-│             │                 │              │
-└─────────────┘                 └──────────────┘
+STM32F407VGT6    Connector J1        SSD1306 OLED
+┌─────────────┐  ┌────────┐         ┌──────────────┐
+│             │  │   J1   │         │              │
+│    PB13 ────┼──┤   SCK  ├─────────┤ D0   (SCK)   │
+│    PB15 ────┼──┤  MOSI  ├─────────┤ D1   (MOSI)  │
+│    PB12 ────┼──┤   CS   ├─────────┤ CS   (/CS)   │
+│    PC4  ────┼──┤   DC   ├─────────┤ DC   (D/C)   │
+│    PC5  ────┼──┤   RST  ├─────────┤ RES  (/RES)  │
+│             │  │        │         │              │
+│    GND  ────┼──┤  GND   ├─────────┤ GND          │
+│    3.3V ────┼──┤  VDD   ├─────────┤ VCC (3.3V)   │
+│             │  │        │         │              │
+└─────────────┘  └────────┘         └──────────────┘
 ```
 
 ### MBHP Compatibility Notes
 
-1. **Pin Assignment**: Uses the same SPI2 pins as MIOS32 MBHP_CORE_STM32F4
-2. **Signal Levels**: 3.3V logic compatible
-3. **LoopA Standard**: Matches the wiring used in MIDIphy LoopA hardware
-4. **MBHP Shield Compatible**: Can use standard MBHP OLED modules
+1. **Connector J1**: Standard OLED connector for MBHP/MIOS32 compatibility
+2. **Pin Assignment**: Uses the same SPI2 pins as MIOS32 MBHP_CORE_STM32F4
+3. **Signal Levels**: 3.3V logic compatible
+4. **LoopA Standard**: Matches the wiring used in MIDIphy LoopA hardware
+5. **MBHP Shield Compatible**: Can use standard MBHP OLED modules
 
 ### SSD1306 vs SSD1322 Differences
 
@@ -135,9 +146,10 @@ STM32F407VGT6                    SSD1306 OLED
 
 MidiCore is designed to be compatible with MBHP_CORE_STM32F4 hardware:
 
-- **J10A/J10B Pins**: SPI2 bus (standard MIOS32 assignment)
-- **Control Signals**: Standard D/C and RST pins
-- **Power**: 3.3V from STM32 board
+- **Connector J1**: OLED display connector (standard MBHP assignment)
+- **J10A/J10B Pins**: SPI2 bus signals routed to J1
+- **Control Signals**: Standard D/C and RST pins on J1
+- **Power**: 3.3V from STM32 board via J1
 
 ### Connection Checklist
 
