@@ -593,10 +593,10 @@ Compile-time configuration in `Config/module_config.h`:
 - **NULL Pointer Checks**: All pointer parameters validated
 
 ### **Testing Documentation**
-- **TESTING_PROTOCOL.md**: Comprehensive test procedures (300+ cases)
-- **TESTING_QUICKSTART.md**: Quick start examples
-- **README_MODULE_TESTING.md**: Complete testing guide
-- **TEST_VALIDATION_REPORT.md**: Validation results
+- **[TESTING_PROTOCOL.md](../testing/TESTING_PROTOCOL.md)**: Comprehensive test procedures (300+ cases)
+- **[TESTING_QUICKSTART.md](../testing/TESTING_QUICKSTART.md)**: Quick start examples
+- **[README_MODULE_TESTING.md](../testing/README_MODULE_TESTING.md)**: Complete testing guide
+- **[TEST_VALIDATION_REPORT.md](../testing/TEST_VALIDATION_REPORT.md)**: Validation results
 
 ---
 
@@ -749,7 +749,7 @@ MODULE_TEST_AINSER64  // Test analog inputs
 // Observe analog channel values in real-time
 ```
 
-See **TESTING_QUICKSTART.md** for detailed module testing procedures.
+See **[TESTING_QUICKSTART.md](../testing/TESTING_QUICKSTART.md)** for detailed module testing procedures.
 
 ---
 

@@ -18,18 +18,46 @@ MidiCore is a modular MIDI system featuring:
 1. **Build the project** in STM32CubeIDE
 2. **Flash** to STM32F407 target
 3. **Configure** modules in `Config/module_config.h`
-4. **Test** individual modules - see [Testing Guide](TESTING_QUICKSTART.md)
+4. **Test** individual modules - see [Testing Guide](Docs/testing/TESTING_QUICKSTART.md)
 
 ## Documentation
 
-- **[MIOS32 UART Configuration](README_MIOS32_UART_CONFIG.md)** - UART setup and dbg_print API
-- **[Module Testing Guide](README_MODULE_TESTING.md)** - Test modules individually
-- **[Testing Quick Start](TESTING_QUICKSTART.md)** - Quick test examples
-- **[Module Configuration](README_MODULE_CONFIG.md)** - Enable/disable modules
+### Quick Start Guides
+- **[Module Configuration](Docs/configuration/README_MODULE_CONFIG.md)** - Enable/disable modules
+- **[Testing Quick Start](Docs/testing/TESTING_QUICKSTART.md)** - Quick test examples
+- **[Integration Guide](Docs/guides/README_INTEGRATION.md)** - Project integration
+
+### Configuration
+- **[MIOS32 UART Configuration](Docs/configuration/README_MIOS32_UART_CONFIG.md)** - UART setup and dbg_print API
+- **[SPI Configuration Reference](Docs/configuration/SPI_CONFIGURATION_REFERENCE.md)** - SPI setup
+- **[CubeMX Regeneration Guide](Docs/configuration/CUBEMX_REGENERATION_GUIDE.md)** - How to regenerate with CubeMX
+- **[FreeRTOS Protection Guide](Docs/configuration/FREERTOS_PROTECTION_GUIDE.md)** - Protect custom code from CubeMX
+
+### Testing
+- **[Module Testing Guide](Docs/testing/README_MODULE_TESTING.md)** - Test modules individually
+- **[Testing Protocol](Docs/testing/TESTING_PROTOCOL.md)** - Complete testing protocol
+- **[Test Execution](Docs/testing/TEST_EXECUTION.md)** - Test execution details
+- **[Test Validation Report](Docs/testing/TEST_VALIDATION_REPORT.md)** - Validation results
+
+### USB Documentation
+- **[USB Host MIDI](Docs/guides/README_USBH_MIDI.md)** - USB Host setup
+- **[USB Configuration Guide](Docs/usb/USB_CONFIGURATION_GUIDE.md)** - USB configuration
+- **[USB Device and Host Guide](Docs/usb/USB_DEVICE_AND_HOST_GUIDE.md)** - Complete USB setup
+- **[USB Debug Guide](Docs/usb/USB_DEBUG_GUIDE.md)** - USB debugging
+
+### MIOS32 Compatibility
+- **[MIOS32 Compatibility](Docs/mios32/MIOS32_COMPATIBILITY.md)** - MIOS32 compatibility overview
+- **[MIOS32 Deep Comparison](Docs/mios32/MIOS32_DEEP_COMPARISON.md)** - Detailed comparison with MIOS32
+- **[MIOS32 USB Implementation Guide](Docs/mios32/MIOS32_USB_IMPLEMENTATION_GUIDE.md)** - USB implementation details
+
+### Compatibility & Portability
+- **[Portability Guide](Docs/compatibility/README_PORTABILITY.md)** - STM32F4/H7 compatibility
+- **[Compatibility Summary](Docs/compatibility/COMPATIBILITY_SUMMARY.md)** - Overall compatibility status
+- **[Driver Compatibility Report](Docs/compatibility/DRIVER_COMPATIBILITY_REPORT.md)** - Driver compatibility details
+
+### Other Resources
 - **[Module Details](Modules_MidiCore_Detail_par_Module.txt)** - Detailed architecture (French)
-- **[Portability Guide](README_PORTABILITY.md)** - STM32F4/H7 compatibility
-- **[Integration Guide](README_INTEGRATION.md)** - Project integration
-- **[USB Host MIDI](README_USBH_MIDI.md)** - USB Host setup
+- **[Full Documentation Index](Docs/)** - Browse all documentation
 
 ## Module Testing
 
@@ -40,7 +68,7 @@ MidiCore includes a comprehensive testing framework for validating modules in is
 #define MODULE_TEST_AINSER64
 ```
 
-See [TESTING_QUICKSTART.md](TESTING_QUICKSTART.md) for step-by-step examples.
+See [TESTING_QUICKSTART.md](Docs/testing/TESTING_QUICKSTART.md) for step-by-step examples.
 
 **Note:** Preprocessor defines (e.g., `MODULE_TEST_AINSER64`) are used in build configuration. Internal enum values have `_ID` suffix to avoid conflicts.
 
@@ -105,7 +133,7 @@ Add preprocessor define in build settings:
 MODULE_TEST_AINSER64  // Test analog inputs only
 ```
 
-See [README_MODULE_CONFIG.md](README_MODULE_CONFIG.md) for details.
+See [README_MODULE_CONFIG.md](Docs/configuration/README_MODULE_CONFIG.md) for details.
 
 ## Development Workflow
 
@@ -137,8 +165,8 @@ This project uses:
 - **MIOS32 Compatible**: 100% compatible UART mapping and hardware interface
 - **MBHP Compatible**: Works with MIOS32 MBHP shields and modules
 
-See [README_PORTABILITY.md](README_PORTABILITY.md) for migration guide.  
-See [README_MIOS32_UART_CONFIG.md](README_MIOS32_UART_CONFIG.md) for MIOS32 compatibility details.
+See [README_PORTABILITY.md](Docs/compatibility/README_PORTABILITY.md) for migration guide.  
+See [README_MIOS32_UART_CONFIG.md](Docs/configuration/README_MIOS32_UART_CONFIG.md) for MIOS32 compatibility details.
 
 ## License
 
@@ -150,8 +178,8 @@ For detailed module documentation (in French), see:
 - `Modules_MidiCore_Detail_par_Module.txt`
 
 For testing and development:
-- `README_MODULE_TESTING.md`
-- `TESTING_QUICKSTART.md`
+- [README_MODULE_TESTING.md](Docs/testing/README_MODULE_TESTING.md)
+- [TESTING_QUICKSTART.md](Docs/testing/TESTING_QUICKSTART.md)
 # MidiCore - Advanced MIDI Looper & Performance System
 
 A professional MIDI looper and performance system built on STM32F407 with comprehensive features for live performance, music production, and rhythm training.
@@ -419,7 +447,7 @@ looper_quicksave_session(0, "My Song");
 
 ### Testing
 
-See `TESTING_PROTOCOL.md` for comprehensive testing procedures with 300+ test cases covering all features.
+See [TESTING_PROTOCOL.md](Docs/testing/TESTING_PROTOCOL.md) for comprehensive testing procedures with 300+ test cases covering all features.
 
 ## Configuration Files
 
@@ -445,7 +473,7 @@ See header files for complete API documentation:
 This is a comprehensive implementation with production-ready code quality. For contributions, please:
 1. Follow existing API consistency standards
 2. Add Doxygen documentation for all public functions
-3. Include test cases in TESTING_PROTOCOL.md
+3. Include test cases in [TESTING_PROTOCOL.md](Docs/testing/TESTING_PROTOCOL.md)
 4. Validate boundary conditions and error handling
 
 ## Acknowledgments
