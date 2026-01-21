@@ -3,6 +3,7 @@
 
 #ifdef ENABLE_USBD_MIDI
 #include "Services/usb_midi/usb_midi.h"
+#include "Services/usb_midi/usb_midi_sysex.h"
 #endif
 
 #if defined(ENABLE_USBH_MIDI) && (ENABLE_USBH_MIDI)
@@ -36,11 +37,51 @@ int router_send_default(uint8_t out_node, const router_msg_t* msg) {
   }
 
 #ifdef ENABLE_USBD_MIDI
+  // Handle USB Device MIDI ports (USB_PORT0-3 = cables 0-3)
+  if (out_node >= ROUTER_NODE_USB_PORT0 && out_node <= ROUTER_NODE_USB_PORT3) {
+    uint8_t cable = (uint8_t)(out_node - ROUTER_NODE_USB_PORT0); // 0-3
+    
+    // Handle SysEx messages
+    if (msg->type == ROUTER_MSG_SYSEX && msg->data && msg->len > 0) {
+      usb_midi_send_sysex(msg->data, msg->len, cable);
+      return 0;
+    }
+    
+    // Map status byte to correct CIN (Code Index Number)
+    uint8_t cin = 0x09; // Default: Note On
+    uint8_t status = msg->b0 & 0xF0;
+    
+    // Add cable number to CIN (cable in upper 4 bits)
+    uint8_t cin_with_cable = (cable << 4);
+    
+    if (msg->type == ROUTER_MSG_1B) {
+      // System Real-Time (0xF8-0xFF) or single-byte System Common
+      cin = 0x0F;
+      usb_midi_send_packet(cin_with_cable | cin, msg->b0, 0, 0);
+    } else if (msg->type == ROUTER_MSG_2B) {
+      // Program Change or Channel Pressure
+      if (status == 0xC0) cin = 0x0C;      // Program Change
+      else if (status == 0xD0) cin = 0x0D; // Channel Pressure
+      else cin = 0x02;                      // System Common 2-byte
+      usb_midi_send_packet(cin_with_cable | cin, msg->b0, msg->b1, 0);
+    } else {
+      // 3-byte channel voice messages
+      if (status == 0x80) cin = 0x08;      // Note Off
+      else if (status == 0x90) cin = 0x09; // Note On
+      else if (status == 0xA0) cin = 0x0A; // Poly KeyPressure
+      else if (status == 0xB0) cin = 0x0B; // Control Change
+      else if (status == 0xE0) cin = 0x0E; // Pitch Bend
+      else cin = 0x03;                      // System Common 3-byte
+      usb_midi_send_packet(cin_with_cable | cin, msg->b0, msg->b1, msg->b2);
+    }
+    return 0;
+  }
+  
+  // Legacy ROUTER_NODE_USB_OUT support (defaults to cable 0)
   if (out_node == ROUTER_NODE_USB_OUT) {
     // Handle SysEx messages
     if (msg->type == ROUTER_MSG_SYSEX && msg->data && msg->len > 0) {
-      #include "Services/usb_midi/usb_midi_sysex.h"
-      usb_midi_send_sysex(msg->data, msg->len);
+      usb_midi_send_sysex(msg->data, msg->len, 0);
       return 0;
     }
     
