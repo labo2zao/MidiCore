@@ -60,7 +60,7 @@
 /* Descriptor Size Constants (for readability) */
 #define USB_DESC_SIZE_CONFIGURATION      9      /* Configuration descriptor */
 #define USB_DESC_SIZE_INTERFACE          9      /* Interface descriptor */
-#define USB_DESC_SIZE_ENDPOINT           9      /* Endpoint descriptor */
+#define USB_DESC_SIZE_ENDPOINT           7      /* Standard Bulk Endpoint (7 bytes per USB 2.0 spec) */
 #define USB_DESC_SIZE_JACK_IN_EXTERNAL   6      /* MIDI IN Jack descriptor (External) */
 #define USB_DESC_SIZE_JACK_IN_EMBEDDED   9      /* MIDI IN Jack descriptor (Embedded - has source pins) */
 #define USB_DESC_SIZE_JACK_OUT           9      /* MIDI OUT Jack descriptor */
@@ -89,10 +89,11 @@
                                           (USB_DESC_SIZE_CS_ENDPOINT_BASE + MIDI_NUM_PORTS))
 
 /* Configuration wTotalLength: EVERYTHING including Config descriptor itself
- * MIOS32-style WITHOUT IAD (IAD removed - testing if it causes validation issues)
+ * MIOS32-style: NO IAD + 7-byte Bulk endpoints (per USB 2.0 spec)
  * = Config + AC Interface + CS AC Header + MS Interface + CS MS Header + MS wTotalLength
- * For 4 ports: 9 + 9 + 9 + 9 + 7 + 168 = 211 bytes (0xD3)
+ * For 4 ports: 9 + 9 + 9 + 9 + 7 + 164 = 207 bytes (0xCF)
  * NOTE: AC Header is 9 bytes (has bInCollection), MS Header is 7 bytes
+ *       Bulk endpoints are 7 bytes (bRefresh/bSynchAddress only for Isoch/Interrupt)
  */
 #define USB_MIDI_CONFIG_DESC_SIZ         (USB_DESC_SIZE_CONFIGURATION + \
                                           USB_DESC_SIZE_INTERFACE + \
@@ -359,15 +360,13 @@ __ALIGN_BEGIN static uint8_t USBD_MIDI_CfgDesc[USB_MIDI_CONFIG_DESC_SIZ] __ALIGN
   0x00,
   
   /* Standard Bulk OUT Endpoint Descriptor */
-  0x09,                                  /* bLength */
+  0x07,                                  /* bLength: 7 bytes for Bulk (NOT 9!) */
   USB_DESC_TYPE_ENDPOINT,                /* bDescriptorType */
   MIDI_OUT_EP,                           /* bEndpointAddress */
   0x02,                                  /* bmAttributes: Bulk */
   LOBYTE(MIDI_DATA_FS_MAX_PACKET_SIZE),  /* wMaxPacketSize */
   HIBYTE(MIDI_DATA_FS_MAX_PACKET_SIZE),
-  0x00,                                  /* bInterval */
-  0x00,                                  /* bRefresh */
-  0x00,                                  /* bSynchAddress */
+  0x00,                                  /* bInterval (ignored for Bulk) */
   
   /* Class-specific Bulk OUT Endpoint Descriptor */
   0x05 + MIDI_NUM_PORTS,                 /* bLength */
@@ -380,15 +379,13 @@ __ALIGN_BEGIN static uint8_t USBD_MIDI_CfgDesc[USB_MIDI_CONFIG_DESC_SIZ] __ALIGN
   0x08,                                  /* baAssocJackID(4): Embedded IN Jack 8 */
   
   /* Standard Bulk IN Endpoint Descriptor */
-  0x09,                                  /* bLength */
+  0x07,                                  /* bLength: 7 bytes for Bulk (NOT 9!) */
   USB_DESC_TYPE_ENDPOINT,                /* bDescriptorType */
   MIDI_IN_EP,                            /* bEndpointAddress */
   0x02,                                  /* bmAttributes: Bulk */
   LOBYTE(MIDI_DATA_FS_MAX_PACKET_SIZE),  /* wMaxPacketSize */
   HIBYTE(MIDI_DATA_FS_MAX_PACKET_SIZE),
-  0x00,                                  /* bInterval */
-  0x00,                                  /* bRefresh */
-  0x00,                                  /* bSynchAddress */
+  0x00,                                  /* bInterval (ignored for Bulk) */
   
   /* Class-specific Bulk IN Endpoint Descriptor */
   0x05 + MIDI_NUM_PORTS,                 /* bLength */
