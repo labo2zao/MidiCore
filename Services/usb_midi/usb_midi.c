@@ -1,6 +1,7 @@
 #include "Services/usb_midi/usb_midi.h"
 #include "Services/router/router.h"
 #include "Config/module_config.h"
+#include <string.h>
 
 /* Check if USB Device files are available before including them */
 
@@ -19,6 +20,16 @@ __attribute__((weak)) void usb_midi_rx_debug_hook(const uint8_t packet4[4]) {
   (void)packet4;
 }
 
+/* SysEx buffer management - one buffer per cable (4 cables total) */
+#define USB_MIDI_SYSEX_BUFFER_SIZE 256
+typedef struct {
+  uint8_t buffer[USB_MIDI_SYSEX_BUFFER_SIZE];
+  uint16_t pos;
+  uint8_t active;
+} sysex_buffer_t;
+
+static sysex_buffer_t sysex_buffers[4]; // 4 cables (0-3)
+
 /* MIDI Interface Callbacks */
 static void USBD_MIDI_Init_Callback(void);
 static void USBD_MIDI_DeInit_Callback(void);
@@ -31,6 +42,9 @@ static USBD_MIDI_ItfTypeDef midi_fops = {
 };
 
 void usb_midi_init(void) {
+  /* Initialize SysEx buffers */
+  memset(sysex_buffers, 0, sizeof(sysex_buffers));
+  
   /* Register interface callbacks with USB Device MIDI class */
   USBD_MIDI_RegisterInterface(&hUsbDeviceFS, &midi_fops);
 }
@@ -57,18 +71,134 @@ void usb_midi_rx_packet(const uint8_t packet4[4]) {
   /* Call debug hook if defined (for test modules) */
   usb_midi_rx_debug_hook(packet4);
   
-  /* Extract cable number (upper 4 bits of header) - MIOS32 style */
+  /* Extract cable number (upper 4 bits of header) and CIN (lower 4 bits) */
   uint8_t cable = (packet4[0] >> 4) & 0x0F;
+  uint8_t cin = packet4[0] & 0x0F;
   
-  /* Route to appropriate router node based on cable number (0-3) */
-  router_msg_t msg;
-  msg.type = ROUTER_MSG_3B;
-  msg.b0 = packet4[1];
-  msg.b1 = packet4[2];
-  msg.b2 = packet4[3];
+  /* Validate cable number (0-3) */
+  if (cable > 3) return;
   
   /* Map cable 0-3 to USB_PORT0-3 nodes (like MIOS32's USB0-USB3) */
-  uint8_t node = ROUTER_NODE_USB_PORT0 + (cable & 0x03);
+  uint8_t node = ROUTER_NODE_USB_PORT0 + cable;
+  
+  /* Handle SysEx messages (CIN 0x4-0x7) */
+  if (cin >= 0x04 && cin <= 0x07) {
+    sysex_buffer_t* buf = &sysex_buffers[cable];
+    
+    /* CIN 0x4: SysEx start or continue (3 bytes) */
+    if (cin == 0x04) {
+      /* If first byte is F0, start new SysEx */
+      if (packet4[1] == 0xF0) {
+        buf->pos = 0;
+        buf->active = 1;
+      }
+      
+      /* Add 3 bytes to buffer if active and space available */
+      if (buf->active) {
+        for (uint8_t i = 0; i < 3 && buf->pos < USB_MIDI_SYSEX_BUFFER_SIZE; i++) {
+          buf->buffer[buf->pos++] = packet4[1 + i];
+        }
+      }
+      return; /* Don't send yet - wait for end packet */
+    }
+    
+    /* CIN 0x5: SysEx end with 1 byte (or single-byte System Common) */
+    else if (cin == 0x05) {
+      if (buf->active && buf->pos < USB_MIDI_SYSEX_BUFFER_SIZE) {
+        buf->buffer[buf->pos++] = packet4[1];
+        
+        /* Send complete SysEx to router */
+        router_msg_t msg;
+        msg.type = ROUTER_MSG_SYSEX;
+        msg.data = buf->buffer;
+        msg.len = buf->pos;
+        msg.b0 = 0xF0; /* SysEx status */
+        msg.b1 = 0;
+        msg.b2 = 0;
+        
+        router_process(node, &msg);
+        
+        buf->pos = 0;
+        buf->active = 0;
+      }
+      return;
+    }
+    
+    /* CIN 0x6: SysEx end with 2 bytes (or two-byte System Common) */
+    else if (cin == 0x06) {
+      if (buf->active) {
+        for (uint8_t i = 0; i < 2 && buf->pos < USB_MIDI_SYSEX_BUFFER_SIZE; i++) {
+          buf->buffer[buf->pos++] = packet4[1 + i];
+        }
+        
+        /* Send complete SysEx to router */
+        router_msg_t msg;
+        msg.type = ROUTER_MSG_SYSEX;
+        msg.data = buf->buffer;
+        msg.len = buf->pos;
+        msg.b0 = 0xF0; /* SysEx status */
+        msg.b1 = 0;
+        msg.b2 = 0;
+        
+        router_process(node, &msg);
+        
+        buf->pos = 0;
+        buf->active = 0;
+      }
+      return;
+    }
+    
+    /* CIN 0x7: SysEx end with 3 bytes */
+    else if (cin == 0x07) {
+      if (buf->active) {
+        for (uint8_t i = 0; i < 3 && buf->pos < USB_MIDI_SYSEX_BUFFER_SIZE; i++) {
+          buf->buffer[buf->pos++] = packet4[1 + i];
+        }
+        
+        /* Send complete SysEx to router */
+        router_msg_t msg;
+        msg.type = ROUTER_MSG_SYSEX;
+        msg.data = buf->buffer;
+        msg.len = buf->pos;
+        msg.b0 = 0xF0; /* SysEx status */
+        msg.b1 = 0;
+        msg.b2 = 0;
+        
+        router_process(node, &msg);
+        
+        buf->pos = 0;
+        buf->active = 0;
+      }
+      return;
+    }
+  }
+  
+  /* Handle regular MIDI messages (non-SysEx) */
+  router_msg_t msg;
+  
+  /* Determine message length based on CIN */
+  if (cin == 0x0F || cin == 0x05) {
+    /* Single-byte message (System Real-Time or System Common 1-byte) */
+    msg.type = ROUTER_MSG_1B;
+    msg.b0 = packet4[1];
+    msg.b1 = 0;
+    msg.b2 = 0;
+  }
+  else if (cin == 0x02 || cin == 0x06 || cin == 0x0C || cin == 0x0D) {
+    /* Two-byte message (System Common 2-byte, Program Change, Channel Pressure) */
+    msg.type = ROUTER_MSG_2B;
+    msg.b0 = packet4[1];
+    msg.b1 = packet4[2];
+    msg.b2 = 0;
+  }
+  else {
+    /* Three-byte message (most channel voice and system messages) */
+    msg.type = ROUTER_MSG_3B;
+    msg.b0 = packet4[1];
+    msg.b1 = packet4[2];
+    msg.b2 = packet4[3];
+  }
+  
   router_process(node, &msg);
 }
 
