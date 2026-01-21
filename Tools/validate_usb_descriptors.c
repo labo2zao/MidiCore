@@ -19,7 +19,7 @@
 #define USB_DESC_SIZE_CONFIGURATION      9
 #define USB_DESC_SIZE_IAD                8
 #define USB_DESC_SIZE_INTERFACE          9
-#define USB_DESC_SIZE_ENDPOINT           9
+#define USB_DESC_SIZE_ENDPOINT           7      /* Standard Bulk Endpoint (7 bytes, not 9!) */
 #define USB_DESC_SIZE_JACK_IN_EXTERNAL   6
 #define USB_DESC_SIZE_JACK_IN_EMBEDDED   9
 #define USB_DESC_SIZE_JACK_OUT           9
@@ -105,17 +105,17 @@ int main(void)
         errors++;
     }
     
-    if (USB_MIDI_MS_TOTAL_LENGTH == 168) {
+    if (USB_MIDI_MS_TOTAL_LENGTH == 164) {
         printf("✅ MS_HEADER wTotalLength: %d bytes (CORRECT)\n", USB_MIDI_MS_TOTAL_LENGTH);
     } else {
-        printf("❌ MS_HEADER wTotalLength: %d bytes (WRONG - should be 168)\n", USB_MIDI_MS_TOTAL_LENGTH);
+        printf("❌ MS_HEADER wTotalLength: %d bytes (WRONG - should be 164)\n", USB_MIDI_MS_TOTAL_LENGTH);
         errors++;
     }
     
-    if (USB_MIDI_CONFIG_DESC_SIZ == 219) {
+    if (USB_MIDI_CONFIG_DESC_SIZ == 215) {
         printf("✅ Config wTotalLength:    %d bytes (CORRECT)\n", USB_MIDI_CONFIG_DESC_SIZ);
     } else {
-        printf("❌ Config wTotalLength:    %d bytes (WRONG - should be 219)\n", USB_MIDI_CONFIG_DESC_SIZ);
+        printf("❌ Config wTotalLength:    %d bytes (WRONG - should be 215)\n", USB_MIDI_CONFIG_DESC_SIZ);
         errors++;
     }
     
