@@ -63,45 +63,27 @@
 #define USB_DESC_SIZE_INTERFACE          9      /* Interface descriptor */
 #define USB_DESC_SIZE_ENDPOINT           7      /* Standard Bulk Endpoint descriptor (7 bytes, not 9!) */
 #define USB_DESC_SIZE_JACK_IN_EXTERNAL   6      /* MIDI IN Jack descriptor (External) */
-#define USB_DESC_SIZE_JACK_IN_EMBEDDED   9      /* MIDI IN Jack descriptor (Embedded - has source pins) */
+#define USB_DESC_SIZE_JACK_IN_EMBEDDED   6      /* MIDI IN Jack descriptor (Embedded) */
 #define USB_DESC_SIZE_JACK_OUT           9      /* MIDI OUT Jack descriptor */
 #define USB_DESC_SIZE_CS_AC_INTERFACE    9      /* Class-specific AC Interface Header (has bInCollection) */
 #define USB_DESC_SIZE_CS_MS_INTERFACE    7      /* Class-specific MS Interface Header */
-#define USB_DESC_SIZE_CS_ENDPOINT_BASE   5      /* Class-specific Endpoint (base, + num jacks) */
+#define USB_DESC_SIZE_CS_ENDPOINT_BASE   4      /* Class-specific Endpoint (base, + num jacks) */
 
 /* Calculate descriptor size - MIOS32 style (CORRECTED) */
 /* Each port has 4 jacks:
  * - 1 External IN Jack: 6 bytes
- * - 1 Embedded IN Jack: 9 bytes (includes bNrInputPins, baSourceID, baSourcePin)
+ * - 1 Embedded IN Jack: 6 bytes
  * - 1 Embedded OUT Jack: 9 bytes
  * - 1 External OUT Jack: 9 bytes
- * Total per port: 33 bytes
+ * Total per port: 30 bytes
  */
 #define USB_MIDI_JACK_DESC_SIZE_PER_PORT (USB_DESC_SIZE_JACK_IN_EXTERNAL + \
                                           USB_DESC_SIZE_JACK_IN_EMBEDDED + \
                                           USB_DESC_SIZE_JACK_OUT + \
                                           USB_DESC_SIZE_JACK_OUT)
 
-/*
- * USB MIDI 1.0 spec note:
- * The MS_HEADER.wTotalLength field represents the total length (in bytes)
- * of the *class-specific MS interface descriptor*, i.e. the MS header itself
- * + all Jack/Element descriptors (endpoints are NOT part of this count).
- *
- * We keep a separate macro for the MS interface payload length used to compute
- * the configuration descriptor wTotalLength.
- */
-#define USB_MIDI_MS_HEADER_TOTAL_LENGTH  (USB_DESC_SIZE_CS_MS_INTERFACE + \
-                                          (MIDI_NUM_PORTS * USB_MIDI_JACK_DESC_SIZE_PER_PORT))
-
-/* MS interface payload length inside the configuration descriptor:
- * Jack descriptors + endpoint descriptors (NOT including the CS MS header itself)
- */
-#define USB_MIDI_MS_TOTAL_LENGTH         ((MIDI_NUM_PORTS * USB_MIDI_JACK_DESC_SIZE_PER_PORT) + \
-                                          USB_DESC_SIZE_ENDPOINT + \
-                                          (USB_DESC_SIZE_CS_ENDPOINT_BASE + MIDI_NUM_PORTS) + \
-                                          USB_DESC_SIZE_ENDPOINT + \
-                                          (USB_DESC_SIZE_CS_ENDPOINT_BASE + MIDI_NUM_PORTS))
+/* MS_HEADER wTotalLength: CS MS header + all Jack/Element descriptors (NO endpoints) */
+#define USB_MIDI_MS_TOTAL_LENGTH         (USB_DESC_SIZE_CS_MS_INTERFACE + (MIDI_NUM_PORTS * USB_MIDI_JACK_DESC_SIZE_PER_PORT))
 
 /* Configuration wTotalLength: EVERYTHING including Config descriptor itself
  * = Config + IAD + AC Interface + CS AC Header + MS Interface + CS MS Header + MS wTotalLength
@@ -116,8 +98,11 @@
                                           USB_DESC_SIZE_INTERFACE + \
                                           USB_DESC_SIZE_CS_AC_INTERFACE + \
                                           USB_DESC_SIZE_INTERFACE + \
-                                          USB_DESC_SIZE_CS_MS_INTERFACE + \
-                                          USB_MIDI_MS_TOTAL_LENGTH)
+                                          USB_MIDI_MS_TOTAL_LENGTH + \
+                                          USB_DESC_SIZE_ENDPOINT + \
+                                          (USB_DESC_SIZE_CS_ENDPOINT_BASE + MIDI_NUM_PORTS) + \
+                                          USB_DESC_SIZE_ENDPOINT + \
+                                          (USB_DESC_SIZE_CS_ENDPOINT_BASE + MIDI_NUM_PORTS))
 
 /* Private function prototypes */
 static uint8_t USBD_MIDI_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx);
@@ -250,51 +235,39 @@ __ALIGN_BEGIN static uint8_t USBD_MIDI_CfgDesc[USB_MIDI_CONFIG_DESC_SIZ] __ALIGN
   0x00,
   
   /* MIDI IN Jacks - Embedded (4 ports) */
-  /* Port 1 */
-  0x09,                                  /* bLength */
-  AUDIO_DESCRIPTOR_TYPE_INTERFACE,       /* bDescriptorType */
-  0x02,                                  /* bDescriptorSubtype: MIDI_IN_JACK */
-  MIDI_JACK_TYPE_EMBEDDED,               /* bJackType: Embedded */
-  0x05,                                  /* bJackID: 5 */
-  0x01,                                  /* bNrInputPins */
-  0x01,                                  /* baSourceID(1): External Jack 1 */
-  0x01,                                  /* baSourcePin(1) */
-  0x00,                                  /* iJack */
-  
-  /* Port 2 */
-  0x09,
-  AUDIO_DESCRIPTOR_TYPE_INTERFACE,
-  0x02,
-  MIDI_JACK_TYPE_EMBEDDED,
-  0x06,                                  /* bJackID: 6 */
-  0x01,
-  0x02,                                  /* baSourceID(1): External Jack 2 */
-  0x01,
-  0x00,
-  
-  /* Port 3 */
-  0x09,
-  AUDIO_DESCRIPTOR_TYPE_INTERFACE,
-  0x02,
-  MIDI_JACK_TYPE_EMBEDDED,
-  0x07,                                  /* bJackID: 7 */
-  0x01,
-  0x03,                                  /* baSourceID(1): External Jack 3 */
-  0x01,
-  0x00,
-  
-  /* Port 4 */
-  0x09,
-  AUDIO_DESCRIPTOR_TYPE_INTERFACE,
-  0x02,
-  MIDI_JACK_TYPE_EMBEDDED,
-  0x08,                                  /* bJackID: 8 */
-  0x01,
-  0x04,                                  /* baSourceID(1): External Jack 4 */
-  0x01,
-  0x00,
-  
-  /* MIDI OUT Jacks - Embedded (4 ports) */
+/* Port 1 */
+0x06,                                  /* bLength */
+AUDIO_DESCRIPTOR_TYPE_INTERFACE,       /* bDescriptorType */
+0x02,                                  /* bDescriptorSubtype: MIDI_IN_JACK */
+MIDI_JACK_TYPE_EMBEDDED,               /* bJackType: Embedded */
+0x05,                                  /* bJackID: 5 */
+0x00,                                  /* iJack */
+
+/* Port 2 */
+0x06,
+AUDIO_DESCRIPTOR_TYPE_INTERFACE,
+0x02,
+MIDI_JACK_TYPE_EMBEDDED,
+0x06,                                  /* bJackID: 6 */
+0x00,
+
+/* Port 3 */
+0x06,
+AUDIO_DESCRIPTOR_TYPE_INTERFACE,
+0x02,
+MIDI_JACK_TYPE_EMBEDDED,
+0x07,                                  /* bJackID: 7 */
+0x00,
+
+/* Port 4 */
+0x06,
+AUDIO_DESCRIPTOR_TYPE_INTERFACE,
+0x02,
+MIDI_JACK_TYPE_EMBEDDED,
+0x08,                                  /* bJackID: 8 */
+0x00,
+
+/* MIDI OUT Jacks - Embedded (4 ports) */
   /* Port 1 */
   0x09,
   AUDIO_DESCRIPTOR_TYPE_INTERFACE,
@@ -394,7 +367,7 @@ __ALIGN_BEGIN static uint8_t USBD_MIDI_CfgDesc[USB_MIDI_CONFIG_DESC_SIZ] __ALIGN
   0x00,                                  /* bInterval (ignored for Bulk) */
   
   /* Class-specific Bulk OUT Endpoint Descriptor */
-  0x05 + MIDI_NUM_PORTS,                 /* bLength */
+  (USB_DESC_SIZE_CS_ENDPOINT_BASE + MIDI_NUM_PORTS),                 /* bLength */
   AUDIO_DESCRIPTOR_TYPE_ENDPOINT,        /* bDescriptorType */
   0x01,                                  /* bDescriptorSubtype: MS_GENERAL */
   MIDI_NUM_PORTS,                        /* bNumEmbMIDIJack: 4 */
@@ -413,7 +386,7 @@ __ALIGN_BEGIN static uint8_t USBD_MIDI_CfgDesc[USB_MIDI_CONFIG_DESC_SIZ] __ALIGN
   0x00,                                  /* bInterval (ignored for Bulk) */
   
   /* Class-specific Bulk IN Endpoint Descriptor */
-  0x05 + MIDI_NUM_PORTS,                 /* bLength */
+  (USB_DESC_SIZE_CS_ENDPOINT_BASE + MIDI_NUM_PORTS),                 /* bLength */
   AUDIO_DESCRIPTOR_TYPE_ENDPOINT,        /* bDescriptorType */
   0x01,                                  /* bDescriptorSubtype: MS_GENERAL */
   MIDI_NUM_PORTS,                        /* bNumEmbMIDIJack: 4 */
