@@ -72,9 +72,9 @@ extern "C" {
 #define MODULE_ENABLE_USB_MIDI 1  // Disabled by default (requires USB config)
 #endif
 
-/** @brief Enable USB Host MIDI */
+/** @brief Enable USB Host MIDI - MIOS32-style dual-mode configuration */
 #ifndef MODULE_ENABLE_USBH_MIDI
-#define MODULE_ENABLE_USBH_MIDI 0  // Disabled - Using USB Device mode instead
+#define MODULE_ENABLE_USBH_MIDI 1  // Enabled for MIOS32-style dual Host/Device support
 #endif
 
 // =============================================================================
