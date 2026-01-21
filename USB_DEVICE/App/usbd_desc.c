@@ -15,6 +15,7 @@
 #include "usbd_core.h"
 #include "usbd_desc.h"
 #include "usbd_conf.h"
+#include "USB_DEVICE/Class/MIDI/Inc/usbd_midi_debug.h"
 
 /* USB VID/PID - Customize these for your product */
 #define USBD_VID                      0x16C0  /* Generic VID */
@@ -64,8 +65,10 @@ __ALIGN_BEGIN uint8_t USBD_StrDesc[USBD_MAX_STR_DESC_SIZ] __ALIGN_END;
   */
 uint8_t *USBD_FS_DeviceDescriptor(USBD_SpeedTypeDef speed, uint16_t *length)
 {
+  DEBUG_PRINT("\r\n>>> DEVICE DESCRIPTOR REQUESTED <<<\r\n");
   UNUSED(speed);
   *length = sizeof(USBD_FS_DeviceDesc);
+  DEBUG_PRINT("  Returning Device Descriptor: %u bytes\r\n", *length);
   return USBD_FS_DeviceDesc;
 }
 
@@ -77,6 +80,7 @@ uint8_t *USBD_FS_DeviceDescriptor(USBD_SpeedTypeDef speed, uint16_t *length)
   */
 uint8_t *USBD_FS_LangIDStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *length)
 {
+  DEBUG_PRINT(">>> LANGID STRING DESCRIPTOR REQUESTED <<<\r\n");
   UNUSED(speed);
   *length = sizeof(USBD_LangIDDesc);
   return USBD_LangIDDesc;
@@ -90,6 +94,7 @@ uint8_t *USBD_FS_LangIDStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *length)
   */
 uint8_t *USBD_FS_ProductStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *length)
 {
+  DEBUG_PRINT(">>> PRODUCT STRING DESCRIPTOR REQUESTED <<<\r\n");
   UNUSED(speed);
   USBD_GetString((uint8_t *)USBD_PRODUCT_STRING_FS, USBD_StrDesc, length);
   return USBD_StrDesc;
@@ -103,6 +108,7 @@ uint8_t *USBD_FS_ProductStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *length)
   */
 uint8_t *USBD_FS_ManufacturerStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *length)
 {
+  DEBUG_PRINT(">>> MANUFACTURER STRING DESCRIPTOR REQUESTED <<<\r\n");
   UNUSED(speed);
   USBD_GetString((uint8_t *)USBD_MANUFACTURER_STRING, USBD_StrDesc, length);
   return USBD_StrDesc;
@@ -116,6 +122,7 @@ uint8_t *USBD_FS_ManufacturerStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *le
   */
 uint8_t *USBD_FS_SerialStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *length)
 {
+  DEBUG_PRINT(">>> SERIAL STRING DESCRIPTOR REQUESTED <<<\r\n");
   UNUSED(speed);
   
   /* Use STM32 unique ID as serial number */
@@ -164,6 +171,7 @@ uint8_t *USBD_FS_SerialStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *length)
   */
 uint8_t *USBD_FS_ConfigStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *length)
 {
+  DEBUG_PRINT(">>> CONFIGURATION STRING DESCRIPTOR REQUESTED <<<\r\n");
   UNUSED(speed);
   USBD_GetString((uint8_t *)USBD_CONFIGURATION_STRING_FS, USBD_StrDesc, length);
   return USBD_StrDesc;
@@ -177,6 +185,7 @@ uint8_t *USBD_FS_ConfigStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *length)
   */
 uint8_t *USBD_FS_InterfaceStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *length)
 {
+  DEBUG_PRINT(">>> INTERFACE STRING DESCRIPTOR REQUESTED <<<\r\n");
   UNUSED(speed);
   USBD_GetString((uint8_t *)USBD_INTERFACE_STRING_FS, USBD_StrDesc, length);
   return USBD_StrDesc;
