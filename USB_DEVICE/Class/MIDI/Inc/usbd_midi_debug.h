@@ -43,7 +43,7 @@
 /* ENABLE DEBUG HERE - Just uncomment this line */
 /* (Or use MODULE_ENABLE_USB_MIDI_DEBUG in Config/module_config.h) */
 /* ============================================ */
-#define USBD_MIDI_DEBUG
+// #define USBD_MIDI_DEBUG  /* DISABLED - uncomment to enable USB descriptor debug */
 /* ============================================ */
 
 #ifdef USBD_MIDI_DEBUG
