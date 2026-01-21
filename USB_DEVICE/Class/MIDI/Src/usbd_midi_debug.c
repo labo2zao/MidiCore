@@ -11,10 +11,12 @@
  * Default: UART2 at 115200 baud
  ******************************************************************************
  */
+#include "CONFIG/module_config.h"  // For MODULE_ENABLE_USB_MIDI_DEBUG
 
 #ifdef USBD_MIDI_DEBUG
 
 #include "USB_DEVICE/Class/MIDI/Inc/usbd_midi_debug.h"
+
 #include "App/tests/test_debug.h"
 #include <stdio.h>
 
