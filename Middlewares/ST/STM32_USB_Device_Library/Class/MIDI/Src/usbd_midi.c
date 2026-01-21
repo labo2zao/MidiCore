@@ -61,14 +61,24 @@
 #define USB_DESC_SIZE_CONFIGURATION      9      /* Configuration descriptor */
 #define USB_DESC_SIZE_INTERFACE          9      /* Interface descriptor */
 #define USB_DESC_SIZE_ENDPOINT           9      /* Endpoint descriptor */
-#define USB_DESC_SIZE_JACK_IN            6      /* MIDI IN Jack descriptor */
+#define USB_DESC_SIZE_JACK_IN_EXTERNAL   6      /* MIDI IN Jack descriptor (External) */
+#define USB_DESC_SIZE_JACK_IN_EMBEDDED   9      /* MIDI IN Jack descriptor (Embedded - has source pins) */
 #define USB_DESC_SIZE_JACK_OUT           9      /* MIDI OUT Jack descriptor */
 #define USB_DESC_SIZE_CS_INTERFACE       7      /* Class-specific Interface Header */
 #define USB_DESC_SIZE_CS_ENDPOINT_BASE   5      /* Class-specific Endpoint (base, + num jacks) */
 
-/* Calculate descriptor size - MIOS32 style */
-#define USB_MIDI_JACKS_PER_PORT          4      /* Each port has 4 jacks (Embedded IN/OUT, External IN/OUT) */
-#define USB_MIDI_JACK_DESC_SIZE_PER_PORT ((USB_DESC_SIZE_JACK_IN * 2) + (USB_DESC_SIZE_JACK_OUT * 2))
+/* Calculate descriptor size - MIOS32 style (CORRECTED) */
+/* Each port has 4 jacks:
+ * - 1 External IN Jack: 6 bytes
+ * - 1 Embedded IN Jack: 9 bytes (includes bNrInputPins, baSourceID, baSourcePin)
+ * - 1 Embedded OUT Jack: 9 bytes
+ * - 1 External OUT Jack: 9 bytes
+ * Total per port: 33 bytes
+ */
+#define USB_MIDI_JACK_DESC_SIZE_PER_PORT (USB_DESC_SIZE_JACK_IN_EXTERNAL + \
+                                          USB_DESC_SIZE_JACK_IN_EMBEDDED + \
+                                          USB_DESC_SIZE_JACK_OUT + \
+                                          USB_DESC_SIZE_JACK_OUT)
 #define USB_MIDI_CONFIG_DESC_SIZ         (USB_DESC_SIZE_CONFIGURATION + \
                                           USB_DESC_SIZE_INTERFACE + \
                                           USB_DESC_SIZE_CS_INTERFACE + \
