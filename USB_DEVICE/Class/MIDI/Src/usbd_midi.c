@@ -198,8 +198,8 @@ __ALIGN_BEGIN static uint8_t USBD_MIDI_CfgDesc[USB_MIDI_CONFIG_DESC_SIZ] __ALIGN
   /* wTotalLength: DYNAMICALLY calculated based on MIDI_NUM_PORTS
    * = (MIDI_NUM_PORTS * 33) + (9 + (5+PORTS) + 9 + (5+PORTS))
    * For 4 ports: (4*33) + (9+9+9+9) = 132 + 36 = 168 bytes */
-  LOBYTE(USB_MIDI_MS_HEADER_TOTAL_LENGTH),
-  HIBYTE(USB_MIDI_MS_HEADER_TOTAL_LENGTH),
+  LOBYTE(USB_MIDI_MS_TOTAL_LENGTH),
+  HIBYTE(USB_MIDI_MS_TOTAL_LENGTH),
   
   /* MIDI IN Jacks - External (4 ports) */
   /* Port 1 */
