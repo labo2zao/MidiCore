@@ -59,6 +59,7 @@
 
 /* Descriptor Size Constants (for readability) */
 #define USB_DESC_SIZE_CONFIGURATION      9      /* Configuration descriptor */
+#define USB_DESC_SIZE_IAD                8      /* Interface Association Descriptor */
 #define USB_DESC_SIZE_INTERFACE          9      /* Interface descriptor */
 #define USB_DESC_SIZE_ENDPOINT           9      /* Endpoint descriptor */
 #define USB_DESC_SIZE_JACK_IN_EXTERNAL   6      /* MIDI IN Jack descriptor (External) */
@@ -88,10 +89,12 @@
                                           (USB_DESC_SIZE_CS_ENDPOINT_BASE + MIDI_NUM_PORTS))
 
 /* Configuration wTotalLength: EVERYTHING including Config descriptor itself
- * = Config + AC Interface + CS AC Header + MS Interface + MS Header + MS wTotalLength
- * For 4 ports: 9 + 9 + 7 + 9 + 7 + 168 = 209 bytes (0xD1) NOT 211!
+ * = Config + IAD + AC Interface + CS AC Header + MS Interface + MS Header + MS wTotalLength
+ * For 4 ports: 9 + 8 + 9 + 7 + 9 + 7 + 168 = 217 bytes (0xD9)
+ * IAD is REQUIRED for Windows Composite Device Driver (usbccgp) validation!
  */
 #define USB_MIDI_CONFIG_DESC_SIZ         (USB_DESC_SIZE_CONFIGURATION + \
+                                          USB_DESC_SIZE_IAD + \
                                           USB_DESC_SIZE_INTERFACE + \
                                           USB_DESC_SIZE_CS_INTERFACE + \
                                           USB_DESC_SIZE_INTERFACE + \
@@ -142,6 +145,16 @@ __ALIGN_BEGIN static uint8_t USBD_MIDI_CfgDesc[USB_MIDI_CONFIG_DESC_SIZ] __ALIGN
   0x00,                                  /* iConfiguration */
   0x80,                                  /* bmAttributes: Bus Powered */
   0xFA,                                  /* MaxPower 500 mA */
+  
+  /* Interface Association Descriptor (IAD) - REQUIRED for Windows Composite Driver */
+  0x08,                                  /* bLength */
+  0x0B,                                  /* bDescriptorType: IAD */
+  0x00,                                  /* bFirstInterface: Audio Control */
+  0x02,                                  /* bInterfaceCount: 2 (AC + MS) */
+  USB_DEVICE_CLASS_AUDIO,                /* bFunctionClass: Audio */
+  AUDIO_SUBCLASS_MIDISTREAMING,          /* bFunctionSubClass: MIDIStreaming */
+  0x00,                                  /* bFunctionProtocol */
+  0x00,                                  /* iFunction */
   
   /* Standard Audio Control Interface Descriptor */
   0x09,                                  /* bLength */
