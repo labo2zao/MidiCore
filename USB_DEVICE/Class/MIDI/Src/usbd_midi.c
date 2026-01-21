@@ -79,16 +79,20 @@
                                           USB_DESC_SIZE_JACK_IN_EMBEDDED + \
                                           USB_DESC_SIZE_JACK_OUT + \
                                           USB_DESC_SIZE_JACK_OUT)
+
+/* MS_HEADER wTotalLength: Jacks + Endpoints (NOT including MS_HEADER itself) */
+#define USB_MIDI_MS_TOTAL_LENGTH         ((MIDI_NUM_PORTS * USB_MIDI_JACK_DESC_SIZE_PER_PORT) + \
+                                          USB_DESC_SIZE_ENDPOINT + \
+                                          (USB_DESC_SIZE_CS_ENDPOINT_BASE + MIDI_NUM_PORTS) + \
+                                          USB_DESC_SIZE_ENDPOINT + \
+                                          (USB_DESC_SIZE_CS_ENDPOINT_BASE + MIDI_NUM_PORTS))
+
 #define USB_MIDI_CONFIG_DESC_SIZ         (USB_DESC_SIZE_CONFIGURATION + \
                                           USB_DESC_SIZE_INTERFACE + \
                                           USB_DESC_SIZE_CS_INTERFACE + \
                                           USB_DESC_SIZE_INTERFACE + \
                                           USB_DESC_SIZE_CS_INTERFACE + \
-                                          (MIDI_NUM_PORTS * USB_MIDI_JACK_DESC_SIZE_PER_PORT) + \
-                                          USB_DESC_SIZE_ENDPOINT + \
-                                          (USB_DESC_SIZE_CS_ENDPOINT_BASE + MIDI_NUM_PORTS) + \
-                                          USB_DESC_SIZE_ENDPOINT + \
-                                          (USB_DESC_SIZE_CS_ENDPOINT_BASE + MIDI_NUM_PORTS))
+                                          USB_MIDI_MS_TOTAL_LENGTH)
 
 /* Private function prototypes */
 static uint8_t USBD_MIDI_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx);
@@ -171,13 +175,11 @@ __ALIGN_BEGIN static uint8_t USBD_MIDI_CfgDesc[USB_MIDI_CONFIG_DESC_SIZ] __ALIGN
   AUDIO_DESCRIPTOR_TYPE_INTERFACE,       /* bDescriptorType */
   0x01,                                  /* bDescriptorSubtype: MS_HEADER */
   0x00, 0x01,                            /* bcdMSC: 1.00 */
-  /* wTotalLength: Length from after MS_HEADER to end of last CS endpoint
-   * = Jacks + Endpoints
-   * = (4*6 + 4*9 + 4*9 + 4*9) + (9 + 9 + 9 + 9)
-   * = (24 + 36 + 36 + 36) + 36
-   * = 132 + 36 = 168 bytes */
-  LOBYTE(168),
-  HIBYTE(168),
+  /* wTotalLength: DYNAMICALLY calculated based on MIDI_NUM_PORTS
+   * = (MIDI_NUM_PORTS * 33) + (9 + (5+PORTS) + 9 + (5+PORTS))
+   * For 4 ports: (4*33) + (9+9+9+9) = 132 + 36 = 168 bytes */
+  LOBYTE(USB_MIDI_MS_TOTAL_LENGTH),
+  HIBYTE(USB_MIDI_MS_TOTAL_LENGTH),
   
   /* MIDI IN Jacks - External (4 ports) */
   /* Port 1 */
