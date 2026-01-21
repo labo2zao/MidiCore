@@ -662,7 +662,8 @@ static void MX_USART2_UART_Init(void)
       defined(MODULE_TEST_MIDI_DIN) || defined(MODULE_TEST_ROUTER) || \
       defined(MODULE_TEST_LOOPER) || defined(MODULE_TEST_UI) || \
       defined(MODULE_TEST_PATCH_SD) || defined(MODULE_TEST_PRESSURE) || \
-      defined(MODULE_TEST_USB_HOST_MIDI) || defined(MODULE_TEST_GDB_DEBUG)
+      defined(MODULE_TEST_USB_HOST_MIDI) || defined(MODULE_TEST_GDB_DEBUG) || \
+      defined(MODULE_TEST_USB_DEVICE_MIDI) || defined(APP_TEST_USB_MIDI)
   huart2.Init.BaudRate = 115200;  // Debug baud rate for tests
   #else
   huart2.Init.BaudRate = 31250;   // MIDI baud rate for production
