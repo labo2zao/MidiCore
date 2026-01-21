@@ -222,7 +222,7 @@ Le système de modules est compatible avec:
 - STM32H7 (migration facile)
 - STM32F7 (intermédiaire)
 
-Voir `README_PORTABILITY.md` pour plus de détails.
+Voir [README_PORTABILITY.md](../development/README_PORTABILITY.md) pour plus de détails.
 
 ## Exemples de Commandes
 
@@ -262,4 +262,4 @@ make -j8 CFLAGS+="-DMODULE_ENABLE_AIN_RAW_DEBUG=1"
 Pour toute question sur la configuration des modules, consultez:
 - Ce fichier README
 - `Config/module_config.h` (commentaires détaillés)
-- `README_PORTABILITY.md` (portabilité F4/H7)
+- [README_PORTABILITY.md](../development/README_PORTABILITY.md) (portabilité F4/H7)
