@@ -121,16 +121,18 @@ void oled_clear(void) {
 void oled_flush(void) {
   spibus_begin(SPIBUS_DEV_OLED);
   
-  // Push framebuffer to display row by row (LoopA style)
+  // Push framebuffer to display row by row (exact LoopA implementation)
   // Framebuffer: 64 rows × 128 bytes per row
   for (uint8_t row = 0; row < 64; row++) {
-    // Set column address for this row
+    // Set column address for this row (columns 0x1C-0x5B)
     cmd(0x15);
     data(0x1C); // Start column 28
+    data(0x5B); // End column 91
     
     // Set row address
     cmd(0x75);
     data(row); // Current row
+    data(0x3F); // End row (not used since we set it per row, but LoopA sends it)
     
     // Write RAM command
     cmd(0x5C);
