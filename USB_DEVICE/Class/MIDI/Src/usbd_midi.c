@@ -360,36 +360,38 @@ __ALIGN_BEGIN static uint8_t USBD_MIDI_CfgDesc[USB_MIDI_CONFIG_DESC_SIZ] __ALIGN
   0x00,
   
   /* Standard Bulk OUT Endpoint Descriptor */
-  0x07,                                  /* bLength */
-  0x05,                                  /* bDescriptorType = ENDPOINT */
-  0x01,                                  /* bEndpointAddress = OUT EP1 */
-  0x02,                                  /* bmAttributes = BULK */
-  0x40, 0x00,                            /* wMaxPacketSize = 64 */
-  0x00,                                  /* bInterval */
+  0x07,                                  /* bLength: 7 bytes for Bulk (NOT 9!) */
+  USB_DESC_TYPE_ENDPOINT,                /* bDescriptorType */
+  MIDI_OUT_EP,                           /* bEndpointAddress */
+  0x02,                                  /* bmAttributes: Bulk */
+  LOBYTE(MIDI_DATA_FS_MAX_PACKET_SIZE),  /* wMaxPacketSize */
+  HIBYTE(MIDI_DATA_FS_MAX_PACKET_SIZE),
+  0x00,                                  /* bInterval (ignored for Bulk) */
   
   /* Class-specific Bulk OUT Endpoint Descriptor */
-  0x09,                                  /* bLength (5 + 4 jacks) */
-  0x25,                                  /* bDescriptorType = CS_ENDPOINT */
+  0x05 + MIDI_NUM_PORTS,                 /* bLength */
+  AUDIO_DESCRIPTOR_TYPE_ENDPOINT,        /* bDescriptorType */
   0x01,                                  /* bDescriptorSubtype: MS_GENERAL */
-  0x04,                                  /* bNumEmbMIDIJack: 4 */
+  MIDI_NUM_PORTS,                        /* bNumEmbMIDIJack: 4 */
   0x05,                                  /* baAssocJackID(1): Embedded IN Jack 5 */
   0x06,                                  /* baAssocJackID(2): Embedded IN Jack 6 */
   0x07,                                  /* baAssocJackID(3): Embedded IN Jack 7 */
   0x08,                                  /* baAssocJackID(4): Embedded IN Jack 8 */
   
   /* Standard Bulk IN Endpoint Descriptor */
-  0x07,                                  /* bLength */
-  0x05,                                  /* bDescriptorType = ENDPOINT */
-  0x81,                                  /* bEndpointAddress = IN EP1 */
-  0x02,                                  /* bmAttributes = BULK */
-  0x40, 0x00,                            /* wMaxPacketSize = 64 */
-  0x00,                                  /* bInterval */
+  0x07,                                  /* bLength: 7 bytes for Bulk (NOT 9!) */
+  USB_DESC_TYPE_ENDPOINT,                /* bDescriptorType */
+  MIDI_IN_EP,                            /* bEndpointAddress */
+  0x02,                                  /* bmAttributes: Bulk */
+  LOBYTE(MIDI_DATA_FS_MAX_PACKET_SIZE),  /* wMaxPacketSize */
+  HIBYTE(MIDI_DATA_FS_MAX_PACKET_SIZE),
+  0x00,                                  /* bInterval (ignored for Bulk) */
   
   /* Class-specific Bulk IN Endpoint Descriptor */
-  0x09,                                  /* bLength (5 + 4 jacks) */
-  0x25,                                  /* bDescriptorType = CS_ENDPOINT */
+  0x05 + MIDI_NUM_PORTS,                 /* bLength */
+  AUDIO_DESCRIPTOR_TYPE_ENDPOINT,        /* bDescriptorType */
   0x01,                                  /* bDescriptorSubtype: MS_GENERAL */
-  0x04,                                  /* bNumEmbMIDIJack: 4 */
+  MIDI_NUM_PORTS,                        /* bNumEmbMIDIJack: 4 */
   0x09,                                  /* baAssocJackID(1): Embedded OUT Jack 9 */
   0x0A,                                  /* baAssocJackID(2): Embedded OUT Jack 10 */
   0x0B,                                  /* baAssocJackID(3): Embedded OUT Jack 11 */
