@@ -17,8 +17,8 @@
 #include "usbd_conf.h"
 
 /* USB VID/PID - Customize these for your product */
-#define USBD_VID                      0x0483  /* ST Microelectronics - Test avec VID/PID standard */
-#define USBD_PID_FS                   0x5740  /* ST MIDI Device - Test standard */
+#define USBD_VID                      0x16C0  /* Generic VID */
+#define USBD_PID_FS                   0x0489  /* MIDI Device PID */
 #define USBD_LANGID_STRING            1033    /* English (United States) */
 #define USBD_MANUFACTURER_STRING      "MidiCore"
 #define USBD_PRODUCT_STRING_FS        "MidiCore 4x4"  /* Like MIOS32 MBHP_CORE_STM32F4 */
