@@ -1427,13 +1427,33 @@ static void module_test_usb_midi_print_packet(const uint8_t packet4[4])
   dbg_print("\r\n");
 }
 
-// Override weak symbol for built-in test (only if APP_TEST_USB_MIDI is not defined)
-#ifndef APP_TEST_USB_MIDI
+/**
+ * @brief Unified USB MIDI receive debug hook - overrides weak symbol in usb_midi.c
+ * Works for both APP_TEST_USB_MIDI and MODULE_TEST_USB_DEVICE_MIDI modes
+ */
 void usb_midi_rx_debug_hook(const uint8_t packet4[4])
 {
+  uint8_t cin = packet4[0] & 0x0F;
+  
+  // Handle SysEx packets (CIN 0x4-0x7) - special logging format
+  if (cin >= 0x04 && cin <= 0x07) {
+    uint8_t cable = (packet4[0] >> 4) & 0x0F;
+    dbg_print("[RX SysEx] Cable:");
+    dbg_print_uint(cable);
+    dbg_print(" CIN:0x");
+    dbg_print_hex8(cin);
+    dbg_print(" Data:");
+    for (uint8_t i = 1; i < 4; i++) {
+      dbg_print(" ");
+      dbg_print_hex8(packet4[i]);
+    }
+    dbg_print("\r\n");
+    return; // Don't print regular format for SysEx
+  }
+  
+  // Print regular MIDI messages using shared formatting function
   module_test_usb_midi_print_packet(packet4);
 }
-#endif
 #endif
 
 void module_test_usb_device_midi_run(void)
