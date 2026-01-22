@@ -35,15 +35,18 @@ static inline void spi_write_byte(uint8_t byte) {
 }
 
 // Low-level command transmission
-// In MIOS32/LoopA convention with 3-wire SPI:
-// - First bit of byte indicates command (0) vs data (1)
-// - Remaining 7 bits are the actual data
+// SSD1322 requires DC (Data/Command) signal:
+// - DC=0 (low) for commands
+// - DC=1 (high) for data
+// PA8 (LCD_RS in MIOS32) is used as DC after reset
 static void cmd(uint8_t c) {
-  spi_write_byte(c); // Send command byte
+  HAL_GPIO_WritePin(OLED_DC_GPIO_Port, OLED_DC_Pin, GPIO_PIN_RESET); // DC=0 for command
+  spi_write_byte(c);
 }
 
 static void data(uint8_t d) {
-  spi_write_byte(d); // Send data byte  
+  HAL_GPIO_WritePin(OLED_DC_GPIO_Port, OLED_DC_Pin, GPIO_PIN_SET); // DC=1 for data
+  spi_write_byte(d);
 }
 
 // Helper for commands with 2 data bytes
@@ -57,7 +60,7 @@ void oled_init(void) {
   // Initialize GPIO pins - CRITICAL: Set proper initial states
   HAL_GPIO_WritePin(OLED_SCL_GPIO_Port, OLED_SCL_Pin, GPIO_PIN_RESET);  // Clock low (idle)
   HAL_GPIO_WritePin(OLED_SDA_GPIO_Port, OLED_SDA_Pin, GPIO_PIN_RESET);  // Data low
-  HAL_GPIO_WritePin(OLED_RST_GPIO_Port, OLED_RST_Pin, GPIO_PIN_SET);    // RST high (not in reset)
+  HAL_GPIO_WritePin(OLED_DC_GPIO_Port, OLED_DC_Pin, GPIO_PIN_SET);      // DC/RST high (not in reset)
 
   // Power stabilization delay - CRITICAL for SSD1322
   // Display needs time for internal power supply to stabilize
@@ -66,6 +69,8 @@ void oled_init(void) {
     delay_us(1000); // 300ms total
   
   // Hardware reset sequence - CRITICAL for waking up display
+  // PA8 is used as RST during initialization (active low)
+  // After reset, PA8 becomes DC (Data/Command select)
   // Per SSD1322 datasheet Section 8.9:
   // 1. RST = LOW for minimum 2μs
   // 2. Wait minimum 2μs after RST = HIGH before sending commands
@@ -76,6 +81,9 @@ void oled_init(void) {
   
   HAL_GPIO_WritePin(OLED_RST_GPIO_Port, OLED_RST_Pin, GPIO_PIN_SET);   // Release reset
   delay_us(200000); // Wait 200ms for display to complete internal reset (datasheet minimum: 2μs)
+  
+  // From this point on, PA8 is used as DC (Data/Command select)
+  // The cmd() and data() functions will control this pin
   
   // ===== SSD1322 Initialization Sequence =====
   // Adapted from MIOS32 LoopA with datasheet references
