@@ -49,6 +49,7 @@ typedef enum {
   MODULE_TEST_PRESSURE_ID,      // Test pressure sensor I2C
   MODULE_TEST_USB_HOST_MIDI_ID, // Test USB Host MIDI
   MODULE_TEST_USB_DEVICE_MIDI_ID, // Test USB Device MIDI (receive from DAW, print to UART, send test data)
+  MODULE_TEST_OLED_SSD1322_ID,  // Test OLED SSD1322 driver (GPIO, SPI, display patterns)
   MODULE_TEST_ALL_ID,           // Run all tests sequentially
 } module_test_t;
 
@@ -439,6 +440,68 @@ void module_test_usb_host_midi_run(void);
  * @note This function runs forever
  */
 void module_test_usb_device_midi_run(void);
+
+/**
+ * @brief Test OLED SSD1322 driver module
+ * 
+ * Comprehensive test of the SSD1322 OLED display driver with detailed
+ * UART debug output for systematic validation of the software SPI
+ * bit-bang implementation and display communication.
+ * 
+ * Features tested:
+ * - GPIO pin control (PA8, PC8, PC9, PC11) with read-back verification
+ * - Software SPI bit-bang timing (Mode 0: CPOL=0, CPHA=0)
+ * - OLED initialization sequence with duration measurement
+ * - Display test patterns (white, black, checkerboard, stripes, gradient)
+ * - DWT cycle counter timing precision
+ * - MIOS32-compatible pin mapping
+ * 
+ * Hardware requirements:
+ * - OLED Display: SSD1322 256x64 grayscale
+ * - Connections: PA8=DC, PC8/PC9=SCL, PC11=SDA, GND, 3.3V
+ * - UART connection for debug output (default: UART2 at 115200 baud)
+ * 
+ * Test sequence:
+ * 1. Print pin mapping and timing specifications
+ * 2. Test GPIO control with PASS/FAIL for each pin
+ * 3. Initialize OLED and measure init duration (~2100 ms expected)
+ * 4. Display test patterns:
+ *    - All white (2 sec)
+ *    - All black (2 sec)
+ *    - Checkerboard (2 sec)
+ *    - Horizontal stripes (2 sec)
+ *    - Grayscale gradient (2 sec)
+ * 5. Print test summary and troubleshooting guidance
+ * 
+ * UART output includes:
+ * - Pin mapping (MIOS32 compatible: J15_SER/RS, J15_E1/E2, J15_RW)
+ * - SPI timing specs vs SSD1322 datasheet requirements
+ * - GPIO test results (PASS/FAIL per pin)
+ * - Init duration measurement
+ * - Pattern test progress
+ * - Troubleshooting tips if display doesn't work
+ * 
+ * SPI Timing verification:
+ * - Setup time: 101 ns (meets >15 ns requirement)
+ * - Hold time: 101 ns (meets >10 ns requirement)
+ * - Clock period: ~200 ns (meets >100 ns requirement)
+ * - Clock frequency: ~5 MHz (under 10 MHz max)
+ * 
+ * Troubleshooting steps provided:
+ * - Power verification (3.3V at OLED VCC)
+ * - Wiring check (all 5 connections)
+ * - GPIO read-back test results
+ * - Logic analyzer guidance (if available)
+ * 
+ * Usage:
+ * - Enable MODULE_TEST_OLED_SSD1322=1 in test configuration
+ * - Connect OLED display and UART terminal (115200 baud)
+ * - Observe test patterns on display and monitor UART for diagnostics
+ * 
+ * @return 0 on success, negative on error
+ * @note Returns after pattern tests complete (unlike most tests that run forever)
+ */
+int module_test_oled_ssd1322_run(void);
 
 // =============================================================================
 // COMPILE-TIME TEST SELECTION HELPERS

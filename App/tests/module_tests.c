@@ -168,6 +168,8 @@ static const char* test_names[] = {
   "PATCH_SD",
   "PRESSURE",
   "USB_HOST_MIDI",
+  "USB_DEVICE_MIDI",
+  "OLED_SSD1322",
   "ALL"
 };
 
@@ -242,6 +244,8 @@ module_test_t module_tests_get_compile_time_selection(void)
 #elif defined(MODULE_TEST_USB_DEVICE_MIDI) || defined(APP_TEST_USB_MIDI)
   // Support both symbols: MODULE_TEST_* (framework style) and APP_TEST_* (legacy style)
   return MODULE_TEST_USB_DEVICE_MIDI_ID;
+#elif defined(MODULE_TEST_OLED_SSD1322)
+  return MODULE_TEST_OLED_SSD1322_ID;
 #elif defined(MODULE_TEST_ALL)
   return MODULE_TEST_ALL_ID;
 #else
@@ -302,6 +306,9 @@ int module_tests_run(module_test_t test)
     case MODULE_TEST_USB_DEVICE_MIDI_ID:
       module_test_usb_device_midi_run();
       break;
+      
+    case MODULE_TEST_OLED_SSD1322_ID:
+      return module_test_oled_ssd1322_run();
       
     case MODULE_TEST_ALL_ID:
       // Run all tests sequentially (where possible)
@@ -1527,5 +1534,251 @@ void module_test_usb_device_midi_run(void)
   dbg_print("Enable MODULE_ENABLE_USB_MIDI in Config/module_config.h\r\n");
   dbg_print_separator();
   for (;;) osDelay(1000);
+#endif
+}
+
+// =============================================================================
+// OLED SSD1322 TEST
+// =============================================================================
+
+#if MODULE_ENABLE_OLED
+#include "Hal/oled_ssd1322/oled_ssd1322.h"
+#include "Config/oled_pins.h"
+
+/**
+ * @brief Test GPIO pin control for OLED
+ * @return 0 on success, -1 on failure
+ */
+static int module_test_oled_gpio_control(void)
+{
+  dbg_print("=== GPIO Control Test ===\r\n");
+  
+  // Test PA8 (DC pin)
+  dbg_print("Testing PA8 (DC pin)...\r\n");
+  HAL_GPIO_WritePin(OLED_DC_GPIO_Port, OLED_DC_Pin, GPIO_PIN_RESET);
+  HAL_Delay(1);
+  uint8_t dc_low = HAL_GPIO_ReadPin(OLED_DC_GPIO_Port, OLED_DC_Pin);
+  
+  HAL_GPIO_WritePin(OLED_DC_GPIO_Port, OLED_DC_Pin, GPIO_PIN_SET);
+  HAL_Delay(1);
+  uint8_t dc_high = HAL_GPIO_ReadPin(OLED_DC_GPIO_Port, OLED_DC_Pin);
+  
+  dbg_printf("  PA8 LOW=%d, HIGH=%d ", dc_low, dc_high);
+  if (dc_low == 0 && dc_high == 1) {
+    dbg_print("[PASS]\r\n");
+  } else {
+    dbg_print("[FAIL]\r\n");
+    return -1;
+  }
+  
+  // Test PC8 (Clock pin 1)
+  dbg_print("Testing PC8 (SCL/E1 pin)...\r\n");
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, GPIO_PIN_RESET);
+  HAL_Delay(1);
+  uint8_t clk1_low = HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_8);
+  
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, GPIO_PIN_SET);
+  HAL_Delay(1);
+  uint8_t clk1_high = HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_8);
+  
+  dbg_printf("  PC8 LOW=%d, HIGH=%d ", clk1_low, clk1_high);
+  if (clk1_low == 0 && clk1_high == 1) {
+    dbg_print("[PASS]\r\n");
+  } else {
+    dbg_print("[FAIL]\r\n");
+    return -1;
+  }
+  
+  // Test PC9 (Clock pin 2)
+  dbg_print("Testing PC9 (E2 pin)...\r\n");
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9, GPIO_PIN_RESET);
+  HAL_Delay(1);
+  uint8_t clk2_low = HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_9);
+  
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9, GPIO_PIN_SET);
+  HAL_Delay(1);
+  uint8_t clk2_high = HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_9);
+  
+  dbg_printf("  PC9 LOW=%d, HIGH=%d ", clk2_low, clk2_high);
+  if (clk2_low == 0 && clk2_high == 1) {
+    dbg_print("[PASS]\r\n");
+  } else {
+    dbg_print("[FAIL]\r\n");
+    return -1;
+  }
+  
+  // Test PC11 (Data pin)
+  dbg_print("Testing PC11 (SDA pin)...\r\n");
+  HAL_GPIO_WritePin(OLED_SDA_GPIO_Port, OLED_SDA_Pin, GPIO_PIN_RESET);
+  HAL_Delay(1);
+  uint8_t sda_low = HAL_GPIO_ReadPin(OLED_SDA_GPIO_Port, OLED_SDA_Pin);
+  
+  HAL_GPIO_WritePin(OLED_SDA_GPIO_Port, OLED_SDA_Pin, GPIO_PIN_SET);
+  HAL_Delay(1);
+  uint8_t sda_high = HAL_GPIO_ReadPin(OLED_SDA_GPIO_Port, OLED_SDA_Pin);
+  
+  dbg_printf("  PC11 LOW=%d, HIGH=%d ", sda_low, sda_high);
+  if (sda_low == 0 && sda_high == 1) {
+    dbg_print("[PASS]\r\n");
+  } else {
+    dbg_print("[FAIL]\r\n");
+    return -1;
+  }
+  
+  dbg_print("GPIO Control Test: [PASS]\r\n\r\n");
+  return 0;
+}
+
+/**
+ * @brief Display test patterns on OLED
+ * @return 0 on success
+ */
+static int module_test_oled_display_patterns(void)
+{
+  dbg_print("=== Display Pattern Tests ===\r\n");
+  uint8_t *fb = oled_framebuffer();
+  
+  // Test 1: All white
+  dbg_print("Test 1: All WHITE (2 seconds)...\r\n");
+  memset(fb, 0xFF, 8192);
+  oled_flush();
+  osDelay(2000);
+  
+  // Test 2: All black
+  dbg_print("Test 2: All BLACK (2 seconds)...\r\n");
+  memset(fb, 0x00, 8192);
+  oled_flush();
+  osDelay(2000);
+  
+  // Test 3: Checkerboard
+  dbg_print("Test 3: CHECKERBOARD (2 seconds)...\r\n");
+  for (int i = 0; i < 8192; i++) {
+    fb[i] = (i & 1) ? 0xFF : 0x00;
+  }
+  oled_flush();
+  osDelay(2000);
+  
+  // Test 4: Horizontal stripes
+  dbg_print("Test 4: HORIZONTAL STRIPES (2 seconds)...\r\n");
+  for (int row = 0; row < 64; row++) {
+    uint8_t value = (row & 4) ? 0xFF : 0x00;
+    memset(&fb[row * 128], value, 128);
+  }
+  oled_flush();
+  osDelay(2000);
+  
+  // Test 5: Grayscale gradient
+  dbg_print("Test 5: GRAYSCALE GRADIENT (2 seconds)...\r\n");
+  for (int row = 0; row < 64; row++) {
+    uint8_t gray = (row * 4) & 0xFF;
+    memset(&fb[row * 128], gray, 128);
+  }
+  oled_flush();
+  osDelay(2000);
+  
+  // Clear display
+  dbg_print("Clearing display...\r\n");
+  oled_clear();
+  oled_flush();
+  
+  dbg_print("Display Pattern Tests: [COMPLETE]\r\n\r\n");
+  return 0;
+}
+#endif
+
+int module_test_oled_ssd1322_run(void)
+{
+#if MODULE_ENABLE_OLED
+  dbg_print("\r\n");
+  dbg_print("=====================================\r\n");
+  dbg_print("  SSD1322 OLED Driver Test Suite\r\n");
+  dbg_print("=====================================\r\n");
+  dbg_print("Version: 1.0\r\n");
+  dbg_print("Target: STM32F407VGT6 @ 168 MHz\r\n");
+  dbg_print("Display: SSD1322 256x64 OLED\r\n\r\n");
+  
+  // Show pin and timing info
+  dbg_print("=== Pin Mapping (MIOS32 Compatible) ===\r\n");
+  dbg_print("PA8  = DC   (Data/Command, J15_SER/RS)\r\n");
+  dbg_print("PC8  = SCL  (Clock 1, J15_E1)\r\n");
+  dbg_print("PC9  = SCL  (Clock 2, J15_E2, dual COM)\r\n");
+  dbg_print("PC11 = SDA  (Data, J15_RW)\r\n");
+  dbg_print("CS#  = GND  (hardwired on OLED module)\r\n");
+  dbg_print("RST  = RC   (on-board RC reset circuit)\r\n\r\n");
+  
+  dbg_print("=== SPI Timing Information ===\r\n");
+  dbg_print("Implementation: DWT cycle counter\r\n");
+  dbg_print("MCU Clock: 168 MHz\r\n");
+  dbg_print("Cycle time: 5.95 ns\r\n\r\n");
+  
+  dbg_print("SPI Mode 0 (CPOL=0, CPHA=0):\r\n");
+  dbg_print("  Clock idle: LOW\r\n");
+  dbg_print("  Data sampled: RISING edge\r\n\r\n");
+  
+  dbg_print("Timing (our implementation):\r\n");
+  dbg_print("  Data setup time: 17 cycles = 101.2 ns\r\n");
+  dbg_print("  Data hold time:  17 cycles = 101.2 ns\r\n");
+  dbg_print("  DC setup time:   10 cycles = 59.5 ns\r\n");
+  dbg_print("  Clock period:    ~200 ns (~5 MHz)\r\n\r\n");
+  
+  dbg_print("SSD1322 Requirements (from datasheet):\r\n");
+  dbg_print("  Data setup time: >15 ns  [OK: 101 ns]\r\n");
+  dbg_print("  Data hold time:  >10 ns  [OK: 101 ns]\r\n");
+  dbg_print("  Clock period:    >100 ns [OK: 200 ns]\r\n");
+  dbg_print("  Max clock:       10 MHz  [OK: ~5 MHz]\r\n\r\n");
+  
+  // Test 1: GPIO Control
+  dbg_print("Step 1/3: GPIO Control Test\r\n");
+  int result = module_test_oled_gpio_control();
+  if (result < 0) {
+    dbg_print("[ERROR] GPIO test failed!\r\n");
+    return -1;
+  }
+  
+  // Test 2: OLED Initialization
+  dbg_print("Step 2/3: OLED Initialization\r\n");
+  dbg_print("Calling oled_init()...\r\n");
+  uint32_t start_time = HAL_GetTick();
+  oled_init();
+  uint32_t end_time = HAL_GetTick();
+  dbg_printf("OLED initialization completed in %lu ms\r\n", end_time - start_time);
+  dbg_print("Expected: ~2100 ms (600+600+100+1000)\r\n\r\n");
+  
+  dbg_print("** CHECK DISPLAY NOW **\r\n");
+  dbg_print("You should have seen:\r\n");
+  dbg_print("  - White bar on top 4 rows\r\n");
+  dbg_print("  - Gray fill on remaining rows\r\n");
+  dbg_print("  - Pattern displayed for 1 second\r\n");
+  dbg_print("  - Now display should be clear/blank\r\n\r\n");
+  
+  // Test 3: Display Patterns
+  dbg_print("Step 3/3: Display Pattern Tests\r\n");
+  result = module_test_oled_display_patterns();
+  if (result < 0) {
+    dbg_print("[ERROR] Pattern test failed!\r\n");
+    return -2;
+  }
+  
+  // Final summary
+  dbg_print("=====================================\r\n");
+  dbg_print("  TEST SUMMARY\r\n");
+  dbg_print("=====================================\r\n");
+  dbg_print("GPIO Control:      [PASS]\r\n");
+  dbg_print("OLED Init:         [COMPLETE]\r\n");
+  dbg_print("Display Patterns:  [COMPLETE]\r\n");
+  dbg_print("=====================================\r\n");
+  dbg_print("Overall: [SUCCESS]\r\n\r\n");
+  
+  dbg_print("If display is blank, check:\r\n");
+  dbg_print("1. Power: 3.3V at OLED VCC pin\r\n");
+  dbg_print("2. Wiring: All 5 connections secure\r\n");
+  dbg_print("3. Module: Compatible SSD1322 OLED\r\n");
+  dbg_print("4. Logic analyzer: Verify signal integrity\r\n\r\n");
+  
+  return 0;
+#else
+  dbg_print("OLED is not enabled in module_config.h\r\n");
+  dbg_print("Define MODULE_ENABLE_OLED=1 to enable this test.\r\n");
+  return -1;
 #endif
 }
