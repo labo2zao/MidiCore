@@ -12,10 +12,10 @@ static uint8_t fb[OLED_W * OLED_H / 2] __attribute__((section(".ccmram")));
 // Software SPI bit-bang implementation (MIOS32 compatible)
 // CS is hardwired to GND, so no CS control needed
 //
-// CRITICAL: SPI Mode 3 (CPOL=1, CPHA=1) per SSD1322 datasheet
-// - Clock idle = HIGH (CPOL=1)
-// - Data sampled on FALLING edge (CPHA=1, second edge)
-// - Data MUST be stable *before* the falling edge
+// CRITICAL: SPI Mode 0 (CPOL=0, CPHA=0) per MIOS32 convention
+// - Clock idle = LOW (CPOL=0)
+// - Data sampled on RISING edge (CPHA=0, first edge)
+// - Data changes on FALLING edge
 //
 // MIOS32 uses dual clock pins (E1=PC8, E2=PC9) for dual COM mode
 #define SCL_LOW() do { \
@@ -37,28 +37,28 @@ static inline void delay_cycles(uint32_t cycles) {
 
 static inline void spi_write_byte(uint8_t byte) {
   for (uint8_t i = 0; i < 8; i++) {
-    // 1. Set data line first (MSB of byte)
+    // 1. Clock LOW (prepare for rising edge where data is sampled)
+    SCL_LOW();
+    
+    // 2. Set data line (MSB first) - data must be stable before rising edge
     if (byte & 0x80)
       HAL_GPIO_WritePin(OLED_SDA_GPIO_Port, OLED_SDA_Pin, GPIO_PIN_SET);
     else
       HAL_GPIO_WritePin(OLED_SDA_GPIO_Port, OLED_SDA_Pin, GPIO_PIN_RESET);
 
-    // 2. Data setup time - data must be stable BEFORE the falling edge
+    // 3. Data setup time - data must be stable BEFORE the rising edge
     delay_cycles(17);  // 17 cycles @ 168 MHz ≈ 101 ns
 
-    // 3. Clock HIGH→LOW (falling edge) - SSD1322 samples on this falling edge
-    SCL_LOW();
-
-    // 4. Data hold time - keep data stable during LOW period
-    delay_cycles(17);  // 17 cycles @ 168 MHz ≈ 101 ns
-
-    // 5. Clock LOW→HIGH (rising edge) - return clock to idle HIGH (CPOL=1)
+    // 4. Clock LOW→HIGH (rising edge) - SSD1322 samples on this rising edge
     SCL_HIGH();
+
+    // 5. Data hold time - keep data stable during HIGH period
+    delay_cycles(17);  // 17 cycles @ 168 MHz ≈ 101 ns
 
     byte <<= 1;  // shift to next bit (MSB first)
   }
 
-  SCL_HIGH();  // ensure clock remains high between bytes (idle state for Mode 3)
+  SCL_LOW();  // return clock to idle LOW (idle state for Mode 0)
 }
 
 // Send command (DC=0) byte
@@ -88,10 +88,9 @@ void oled_init(void) {
   DWT->CYCCNT = 0;
   DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
 
-  // Set initial SPI lines states for Mode 3 (CPOL=1, CPHA=1):
-  // CRITICAL: CubeMX GPIO init sets all pins to LOW by default, but SSD1322
-  // expects SCL at idle HIGH (CPOL=1). We must set SCL_HIGH before any communication.
-  SCL_HIGH();  // clock idle high (required for Mode 3)
+  // Set initial SPI lines states for Mode 0 (CPOL=0, CPHA=0):
+  // CRITICAL: MIOS32 uses SPI Mode 0, clock must idle LOW (not HIGH)
+  SCL_LOW();  // clock idle low (required for Mode 0)
   HAL_GPIO_WritePin(OLED_SDA_GPIO_Port, OLED_SDA_Pin, GPIO_PIN_RESET);  // data line low
   HAL_GPIO_WritePin(OLED_DC_GPIO_Port, OLED_DC_Pin, GPIO_PIN_SET);      // DC high (defaults to data mode)
 
