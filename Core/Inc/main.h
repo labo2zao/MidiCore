@@ -83,7 +83,13 @@ void Error_Handler(void);
 #define User_Button_GPIO_Port GPIOA
 #define MIOS_AN3_Pin GPIO_PIN_4
 #define MIOS_AN3_GPIO_Port GPIOA
-// OLED pin definitions moved to Config/oled_pins.h (software SPI on PA8/PC8/PC11)
+// OLED pin definitions - Software SPI (bit-bang) on PA8/PC8/PC11
+#define OLED_RST_Pin GPIO_PIN_8
+#define OLED_RST_GPIO_Port GPIOA
+#define OLED_SCL_Pin GPIO_PIN_8
+#define OLED_SCL_GPIO_Port GPIOC
+#define OLED_SDA_Pin GPIO_PIN_11
+#define OLED_SDA_GPIO_Port GPIOC
 #define MIOS_AN6_Pin GPIO_PIN_0
 #define MIOS_AN6_GPIO_Port GPIOB
 #define MIOS_AN7_Pin GPIO_PIN_1
