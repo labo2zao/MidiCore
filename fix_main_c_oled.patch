@@ -1,0 +1,21 @@
+--- a/Core/Src/main.c
++++ b/Core/Src/main.c
+@@ -762,9 +762,9 @@ static void MX_GPIO_Init(void)
+   __HAL_RCC_GPIOB_CLK_ENABLE();
+   __HAL_RCC_GPIOD_CLK_ENABLE();
+ 
+   /*Configure GPIO pin Output Level */
+   HAL_GPIO_WritePin(GPIOC, BANK_A_Pin|BANK_B_Pin|BANK_C_Pin|AIN_CS_Pin
+-                          |OLED_DC_Pin|OLED_RST_Pin|GPIO_PIN_7|GPIO_PIN_8
++                          |OLED_SCL_Pin|GPIO_PIN_7
+                           |GPIO_PIN_9|OLED_SDA_Pin, GPIO_PIN_RESET);
+ 
+   /*Configure GPIO pin Output Level */
+@@ -775,7 +775,7 @@ static void MX_GPIO_Init(void)
+                           |RED_LED_Pin|BLUE_LED_Pin|MUX_S0_Pin|MUX_S1_Pin
+                           |MUX_S2_Pin|GPIO_PIN_6|GPIO_PIN_7, GPIO_PIN_RESET);
+ 
+   /*Configure GPIO pin Output Level */
+   HAL_GPIO_WritePin(GPIOA, OLED_RST_Pin|SRIO_RC1_Pin, GPIO_PIN_RESET);
+ 
+   /*Configure GPIO pin Output Level */
