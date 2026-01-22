@@ -126,16 +126,21 @@ void oled_init(void) {
   cmd(0xA4 | 0x02);           // 15. Normal Display mode (0xA6)
 
   // 16. Clear display RAM (fill all pixels with 0) before turning display on
+  //     CRITICAL: Match MIOS32 APP_LCD_Clear() exactly
   for (uint8_t row = 0; row < 64; ++row) {
-    cmd(0x15); data(0x1C);     // set column start address
-    cmd(0x75); data(row);      // set current row address
-    cmd(0x5C);                // write RAM command
-    for (uint16_t i = 0; i < 128; ++i) {
-      data(0x00);             // write 128 bytes of 0x00 (256 pixels of 0)
+    cmd(0x15);                 // Set Column Address
+    data(0x00 + 0x1C);         // Column start (MIOS32: 0+0x1c)
+    cmd(0x75);                 // Set Row Address  
+    data(row);                 // Current row
+    cmd(0x5C);                 // Write RAM command
+    // MIOS32 writes 64 iterations of 2 bytes = 128 bytes total
+    for (uint16_t i = 0; i < 64; ++i) {
+      data(0x00);              // First pixel pair
+      data(0x00);              // Second pixel pair
     }
   }
 
-  cmd(0xAF);  // 17. Display ON
+  cmd(0xAF);  // 17. Display ON (MUST be after clearing RAM per MIOS32)
 
   delay_us(100000);  // wait 100 ms after turning display on
 
