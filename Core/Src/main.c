@@ -798,14 +798,12 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
   /*Configure GPIO pins : BANK_A_Pin BANK_B_Pin BANK_C_Pin AIN_CS_Pin
-                           OLED_DC_Pin OLED_RST_Pin PC7 PC8
-                           PC9 PC11 */
+                           OLED_SCL_Pin PC7 PC9 OLED_SDA_Pin */
   GPIO_InitStruct.Pin = BANK_A_Pin|BANK_B_Pin|BANK_C_Pin|AIN_CS_Pin
-                          |OLED_SCL_Pin|OLED_RST_Pin|GPIO_PIN_7|GPIO_PIN_8
-                          |GPIO_PIN_9|GPIO_PIN_11;
+                          |OLED_SCL_Pin|GPIO_PIN_7|GPIO_PIN_9|OLED_SDA_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;  // Fast speed for OLED communication
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
   /*Configure GPIO pin : User_Button_Pin */
@@ -840,11 +838,11 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Alternate = GPIO_AF8_USART6;
   HAL_GPIO_Init(MIDI3_OUT_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PA8 SRIO_RC1_Pin */
-  GPIO_InitStruct.Pin = GPIO_PIN_8|SRIO_RC1_Pin;
+  /*Configure GPIO pins : OLED_DC_Pin SRIO_RC1_Pin */
+  GPIO_InitStruct.Pin = OLED_DC_Pin|SRIO_RC1_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;  // Fast speed for OLED DC signal
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pin : SRIO_RC2_Pin */
