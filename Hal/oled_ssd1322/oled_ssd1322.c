@@ -11,41 +11,55 @@ static uint8_t fb[OLED_W * OLED_H / 2] __attribute__((section(".ccmram")));
 
 // Software SPI bit-bang implementation (MIOS32 compatible)
 // CS is hardwired to GND, so no CS control needed
+//
+// CRITICAL TIMING NOTES:
+// - SPI Mode 3: Clock idle HIGH, sample on rising edge
+// - Setup data BEFORE clock transition
+// - SSD1322 requires minimum 100ns setup/hold times
 static inline void spi_write_byte(uint8_t byte) {
   for (uint8_t i = 0; i < 8; i++) {
-    // Set data bit (MSB first)
+    // Clock low first (prepare for rising edge)
+    HAL_GPIO_WritePin(OLED_SCL_GPIO_Port, OLED_SCL_Pin, GPIO_PIN_RESET);
+    
+    // Set data bit (MSB first) - MUST be stable before clock rises
     if (byte & 0x80) {
       HAL_GPIO_WritePin(OLED_SDA_GPIO_Port, OLED_SDA_Pin, GPIO_PIN_SET);
     } else {
       HAL_GPIO_WritePin(OLED_SDA_GPIO_Port, OLED_SDA_Pin, GPIO_PIN_RESET);
     }
     
-    // Clock high
-    HAL_GPIO_WritePin(OLED_SCL_GPIO_Port, OLED_SCL_Pin, GPIO_PIN_SET);
-    // Small delay for signal setup time
-    __NOP(); __NOP(); __NOP(); __NOP();
+    // Small delay for data setup time (SSD1322: min 100ns)
+    __NOP(); __NOP(); __NOP(); __NOP(); __NOP(); __NOP(); __NOP(); __NOP();
     
-    // Clock low
-    HAL_GPIO_WritePin(OLED_SCL_GPIO_Port, OLED_SCL_Pin, GPIO_PIN_RESET);
-    // Small delay for hold time
-    __NOP(); __NOP(); __NOP(); __NOP();
+    // Clock high - SSD1322 samples data on this rising edge
+    HAL_GPIO_WritePin(OLED_SCL_GPIO_Port, OLED_SCL_Pin, GPIO_PIN_SET);
+    
+    // Hold time (SSD1322: min 100ns)
+    __NOP(); __NOP(); __NOP(); __NOP(); __NOP(); __NOP(); __NOP(); __NOP();
     
     byte <<= 1;
   }
+  
+  // Leave clock low after byte (ready for next byte)
+  HAL_GPIO_WritePin(OLED_SCL_GPIO_Port, OLED_SCL_Pin, GPIO_PIN_RESET);
 }
 
 // Low-level command transmission
 // SSD1322 requires DC (Data/Command) signal:
 // - DC=0 (low) for commands
 // - DC=1 (high) for data
-// PA8 (LCD_RS in MIOS32) is used as DC after reset
+// PA8 (LCD_RS in MIOS32) is used as DC
+//
+// CRITICAL: DC must be stable BEFORE starting SPI transmission
 static void cmd(uint8_t c) {
   HAL_GPIO_WritePin(OLED_DC_GPIO_Port, OLED_DC_Pin, GPIO_PIN_RESET); // DC=0 for command
+  __NOP(); __NOP(); __NOP(); __NOP(); // Let DC stabilize (setup time)
   spi_write_byte(c);
 }
 
 static void data(uint8_t d) {
   HAL_GPIO_WritePin(OLED_DC_GPIO_Port, OLED_DC_Pin, GPIO_PIN_SET); // DC=1 for data
+  __NOP(); __NOP(); __NOP(); __NOP(); // Let DC stabilize (setup time)
   spi_write_byte(d);
 }
 
