@@ -105,98 +105,83 @@ void oled_init(void) {
   // PC11 = SDA (Data)
   
   // ===== SSD1322 Initialization Sequence =====
-  // Adapted from MIOS32 LoopA with datasheet references
+  // EXACT copy from MIOS32 modules/app_lcd/ssd1322/app_lcd.c
+  // https://github.com/midibox/mios32/blob/master/modules/app_lcd/ssd1322/app_lcd.c
   
-  // 1. Set Command Lock (0xFD)
-  // Unlock driver IC MCU interface (default after reset: locked)
-  cmd(0xFD); data(0x12);  // 0x12 = Unlock, 0x16 = Lock
+  // 1. Unlock OLED driver IC MCU interface (0xFD)
+  cmd(0xfd); data(0x12);  // Unlock commands (default locked after reset)
   
-  // 2. Display OFF (0xAE) - display must be off during config
-  cmd(0xAE);
+  // 2. Display OFF while configuring (0xAE)
+  cmd(0xae);
   
-  // 3. Set Display Start Line (0xA1) - row 0
-  cmd(0xA1); data(0x00);
+  // 3. Set Column Address (0x15) - 0x1C to 0x5B for 256px width
+  // Column address 28-91 (each address = 4 pixels, 64 addresses × 4 = 256 pixels)
+  cmd(0x15); data(0x1c); data(0x5b);
   
-  // 4. Set Display Offset (0xA2) - no offset
-  cmd(0xA2); data(0x00);
+  // 4. Set Row Address (0x75) - 0x00 to 0x3F for 64 rows
+  cmd(0x75); data(0x00); data(0x3f);
   
-  // 5. Set Re-map and Dual COM Line mode (0xA0)
-  // [1:0] = 00: Horizontal address increment
-  // [2]   = 1:  Column address 0 mapped to SEG0
-  // [4]   = 1:  Enable Dual COM mode (required for 64-row display)
-  // [5]   = 0:  Scan from COM0 to COM[N-1]
-  // [6]   = 1:  Enable COM Split Odd Even
-  cmd_data2(0xA0, 0x14, 0x11);
+  // 5. Set MUX Ratio (0xCA) - 64MUX
+  cmd(0xca); data(0x3f);  // 64 rows
   
-  // 6. Set MUX Ratio (0xCA) - 64 rows (0x3F = 63, but counts from 0)
-  cmd(0xCA); data(0x3F);
+  // 6. Set Re-map / Color Depth (0xA0)
+  // Byte 1: 0x14 = Enable Dual COM mode, column address 127 mapped to SEG0
+  // Byte 2: 0x11 = Enable Dual COM Line mode
+  cmd(0xa0); data(0x14); data(0x11);
   
-  // 7. Function Selection (0xAB) - Enable internal VDD regulator
-  cmd(0xAB); data(0x01);  // 0x01 = Enable internal VDD regulator
+  // 7. Set Display Clock Divide Ratio / Oscillator Frequency (0xB3)
+  // CRITICAL: MIOS32 sends TWO SEPARATE data bytes, not one packed byte!
+  cmd(0xb3);
+  data(0);    // Clock divide ratio (A[3:0])
+  data(12);   // Oscillator frequency (A[7:4])
   
-  // 8. Set Display Clock Divide Ratio / Oscillator Frequency (0xB3)
-  // CRITICAL: This takes ONE byte with TWO packed values!
-  // Bits[3:0] = divide ratio, Bits[7:4] = oscillator frequency
-  // 0x91 = 1001 0001 = oscillator 9, divider 1 (common value)
-  // 0xC0 = 1100 0000 = oscillator 12, divider 0 (LoopA value)
-  cmd(0xB3); data(0xC0);  // Oscillator 12, Divider 0 (MIOS32 LoopA)
+  // 8. Set Segment Output Current (0xC1) - contrast
+  cmd(0xc1); data(0xff);  // Maximum contrast
   
-  // 9. Set Display Enhancement A (0xB4)
-  // External VSL, Enhanced low GS display quality
-  cmd_data2(0xB4, 0xA0, 0xFD);
+  // 9. Set Master Current Control (0xC7)
+  cmd(0xc7); data(0x0f);  // Maximum (1/16)
   
-  // 10. Set GPIO (0xB5) - both pins HiZ, input disabled
-  cmd(0xB5); data(0x00);
+  // 10. Select Default Linear Gray Scale table (0xB9)
+  cmd(0xb9);
+  // CRITICAL: MIOS32 sends 0x00 as a COMMAND, not data!
+  cmd(0x00);  // Enable linear gray scale table
   
-  // 11. Set Second Pre-charge Period (0xB6)
-  cmd(0xB6); data(0x08);  // 8 DCLKs
+  // 11. Set Phase Length (0xB1)
+  cmd(0xb1); data(0x56);  // Phase 1: 5 DCLKs, Phase 2: 6 DCLKs
   
-  // 12. Set Gray Scale Table (0xB9) - Use default linear gray scale
-  cmd(0xB9);
+  // 12. Set Pre-charge Voltage (0xBB)
+  cmd(0xbb); data(0x0);   // 0.30 × VCC
   
-  // 13. Set Pre-charge voltage (0xBB)
-  cmd(0xBB); data(0x00);  // 0.30 × VCC (LoopA setting)
+  // 13. Set Second Pre-charge Period (0xB6)
+  cmd(0xb6); data(0x08);  // 8 DCLKs
   
   // 14. Set VCOMH Voltage (0xBE)
-  cmd(0xBE); data(0x00);  // 0.72 × VCC (LoopA setting)
+  cmd(0xbe); data(0x00);  // 0.72 × VCC
   
-  // 15. Set Contrast Current (0xC1)
-  cmd(0xC1); data(0xFF);  // Maximum contrast
+  // 15. Normal Display (not inverted) (0xA6)
+  // This is 0xa4 | 0x02 in MIOS32 code = 0xa6
+  cmd(0xa4 | 0x02);  // 0xA6 = Normal display mode
   
-  // 16. Master Contrast Current Control (0xC7)
-  cmd(0xC7); data(0x0F);  // Maximum (no reduction)
-  
-  // 17. Set Display Enhancement B (0xD1)
-  // Normal enhancement, low GS quality
-  cmd_data2(0xD1, 0x82, 0x20);
-  
-  // 18. Set Phase Length (0xB1)
-  // [3:0] = Phase 1 period (reset phase length)
-  // [7:4] = Phase 2 period (first pre-charge phase length)
-  cmd(0xB1); data(0x56);  // Phase 1 = 6 DCLKs, Phase 2 = 5 DCLKs (LoopA)
-  
-  // 19. Display Mode Normal (0xA6)
-  // 0xA4 = All OFF, 0xA5 = All ON, 0xA6 = Normal, 0xA7 = Inverse
-  cmd(0xA6);
-  
-  // 20. Exit Partial Display (0xA9) - use full display
-  cmd(0xA9);
-  
-  // 21. Clear display RAM to prevent garbage
-  // CRITICAL: Use SINGLE data byte per address command (not range mode!)
-  // This matches MIOS32 test implementation exactly
+  // 16. Clear display RAM before turning on (MIOS32 APP_LCD_Clear equivalent)
+  // This matches the MIOS32 clear screen function exactly
   for (uint8_t row = 0; row < 64; row++) {
-    cmd(0x15); data(0x1C);  // Column start only (auto-increment)
-    cmd(0x75); data(row);   // Row address
-    cmd(0x5C);              // Write RAM
-    // Clear one row (128 bytes = 256 pixels)
+    // Set column address (start only, auto-increment enabled)
+    cmd(0x15); data(0x1c);
+    
+    // Set row address
+    cmd(0x75); data(row);
+    
+    // Write RAM command
+    cmd(0x5c);
+    
+    // Send 128 bytes of zeros (256 pixels)
     for (uint16_t i = 0; i < 128; i++) {
       data(0x00);
     }
   }
   
-  // 22. Display ON (0xAF) - CRITICAL: Turn display on BEFORE sending test pattern
-  cmd(0xAF);
+  // 17. Display ON (0xAF)
+  cmd(0xaf);
   
   // Wait for display to stabilize after wake-up
   delay_us(100000); // 100ms stabilization
