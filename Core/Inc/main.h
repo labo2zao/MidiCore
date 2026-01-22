@@ -115,8 +115,8 @@ void Error_Handler(void);
 #define J10A_D7_GPIO_Port GPIOE
 #define IOS_IIC0_SD_Pin GPIO_PIN_11
 #define IOS_IIC0_SD_GPIO_Port GPIOB
-#define OLED_CS_Pin GPIO_PIN_12
-#define OLED_CS_GPIO_Port GPIOB
+#define SRIO_DOUT_RCLK_Pin GPIO_PIN_12
+#define SRIO_DOUT_RCLK_GPIO_Port GPIOB
 #define MIOS_SPI1_SCK_Pin GPIO_PIN_13
 #define MIOS_SPI1_SCK_GPIO_Port GPIOB
 #define MIOS_SPI1_MISO_Pin GPIO_PIN_14

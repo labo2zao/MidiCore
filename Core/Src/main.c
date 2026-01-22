@@ -767,7 +767,7 @@ static void MX_GPIO_Init(void)
                           |GPIO_PIN_9|OLED_SDA_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, MIOS_SPI0_RC1_Pin|OLED_CS_Pin|MIOS_SPI2_RC2_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, MIOS_SPI0_RC1_Pin|SRIO_DOUT_RCLK_Pin|MIOS_SPI2_RC2_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOD, MIOS_SPI1_RC2_Pin|MIOS_SPI0_RC2_Pin|GREEN_LED_Pin|ORANGE_LED_Pin
@@ -813,8 +813,8 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(User_Button_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : MIOS_SPI0_RC1_Pin OLED_CS_Pin MIOS_SPI2_RC2_Pin */
-  GPIO_InitStruct.Pin = MIOS_SPI0_RC1_Pin|OLED_CS_Pin|MIOS_SPI2_RC2_Pin;
+  /*Configure GPIO pins : MIOS_SPI0_RC1_Pin SRIO_DOUT_RCLK_Pin MIOS_SPI2_RC2_Pin */
+  GPIO_InitStruct.Pin = MIOS_SPI0_RC1_Pin|SRIO_DOUT_RCLK_Pin|MIOS_SPI2_RC2_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
