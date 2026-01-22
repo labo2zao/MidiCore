@@ -36,29 +36,31 @@ static inline void delay_cycles(uint32_t cycles) {
 }
 
 static inline void spi_write_byte(uint8_t byte) {
+  // MIOS32-compatible bit-bang sequence
+  // Clock starts at idle LOW, data is sampled on rising edge (Mode 0)
   for (uint8_t i = 0; i < 8; i++) {
-    // 1. Clock LOW (prepare for rising edge where data is sampled)
-    SCL_LOW();
-    
-    // 2. Set data line (MSB first) - data must be stable before rising edge
+    // 1. Set data line (MSB first)
     if (byte & 0x80)
       HAL_GPIO_WritePin(OLED_SDA_GPIO_Port, OLED_SDA_Pin, GPIO_PIN_SET);
     else
       HAL_GPIO_WritePin(OLED_SDA_GPIO_Port, OLED_SDA_Pin, GPIO_PIN_RESET);
 
-    // 3. Data setup time - data must be stable BEFORE the rising edge
-    delay_cycles(17);  // 17 cycles @ 168 MHz ≈ 101 ns
+    // 2. Keep clock LOW for data setup time
+    //    MIOS32 does 5x SCLK_0 calls for setup delay
+    SCL_LOW();  // ensure clock is LOW
+    delay_cycles(17);  // 17 cycles @ 168 MHz ≈ 101 ns setup time
 
-    // 4. Clock LOW→HIGH (rising edge) - SSD1322 samples on this rising edge
+    // 3. Clock LOW→HIGH (rising edge) - SSD1322 samples on this edge
+    //    MIOS32 does 3x SCLK_1 calls for hold time
     SCL_HIGH();
-
-    // 5. Data hold time - keep data stable during HIGH period
-    delay_cycles(17);  // 17 cycles @ 168 MHz ≈ 101 ns
+    delay_cycles(17);  // 17 cycles @ 168 MHz ≈ 101 ns hold time
 
     byte <<= 1;  // shift to next bit (MSB first)
   }
 
-  SCL_LOW();  // return clock to idle LOW (idle state for Mode 0)
+  // 4. Return clock to idle LOW state (as MIOS32 does at end of SerDataShift)
+  SCL_LOW();
+  SCL_LOW();  // MIOS32 does this twice for safety
 }
 
 // Send command (DC=0) byte
