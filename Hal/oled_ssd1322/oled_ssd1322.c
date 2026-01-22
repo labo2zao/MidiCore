@@ -220,10 +220,12 @@ void oled_init_progressive(uint8_t max_step) {
   // Step 15: Full init with RAM clear
   // Clear display RAM before turning display on
   for (uint8_t row = 0; row < 64; ++row) {
-    cmd(0x15);                 // Set Column Address
-    data(0x00 + 0x1C);         // Column start
-    cmd(0x75);                 // Set Row Address  
-    data(row);                 // Current row
+    cmd(0x15);                 // Set Column Address (requires 2 bytes)
+    data(0x1C);                // Column start
+    data(0x5B);                // Column end (CRITICAL: must send both start AND end)
+    cmd(0x75);                 // Set Row Address (requires 2 bytes)
+    data(row);                 // Row start
+    data(0x3F);                // Row end
     cmd(0x5C);                 // Write RAM command
     for (uint16_t i = 0; i < 64; ++i) {
       data(0x00);              // Clear pixels
@@ -252,14 +254,19 @@ void oled_init(void) {
 
 void oled_flush(void) {
   // Transfer the local framebuffer to OLED GDDRAM (SSD1322 VRAM)
-  // Send data row by row, as done in MIOS32 LoopA (single-byte column & row addresses)
+  // Send data row by row, matching MIOS32 LoopA sequence exactly
+  // CRITICAL: Commands 0x15 and 0x75 require TWO data bytes each (start + end)
   for (uint8_t row = 0; row < 64; ++row) {
-    cmd(0x15); data(0x1C);    // set column start (only) to 0x1C
-    cmd(0x75); data(row);     // set current row (only)
-    cmd(0x5C);               // write RAM command (begin data write)
+    cmd(0x15);                // Set Column Address (requires 2 bytes)
+    data(0x1C);               // Column start = 0x1C (28 decimal)
+    data(0x5B);               // Column end = 0x5B (91 decimal) for 64 columns × 2
+    cmd(0x75);                // Set Row Address (requires 2 bytes)
+    data(row);                // Row start = current row
+    data(0x3F);               // Row end = 0x3F (63 decimal, last row)
+    cmd(0x5C);                // Write RAM command (begin data write)
     uint8_t *row_ptr = &fb[row * 128];
     for (uint16_t i = 0; i < 128; ++i) {
-      data(row_ptr[i]);      // write 128 bytes of pixel data for this row
+      data(row_ptr[i]);       // Write 128 bytes of pixel data for this row
     }
   }
 }
