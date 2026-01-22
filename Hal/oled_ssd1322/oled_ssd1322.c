@@ -213,3 +213,7 @@ void oled_flush(void) {
 uint8_t *oled_framebuffer(void) {
   return fb;
 }
+
+void oled_clear(void) {
+  memset(fb, 0x00, sizeof(fb));
+}
