@@ -1906,6 +1906,30 @@ int module_test_oled_ssd1322_run(void)
   
   dbg_print("\r\n=== Progressive Init Test Complete ===\r\n");
   dbg_print("Review the output above to see which step caused display to turn OFF.\r\n\r\n");
+  
+  // CRITICAL TEST: Re-run step 0 to check if OLED still responds
+  dbg_print("\r\n");
+  dbg_print("================================================\r\n");
+  dbg_print("CRITICAL TEST: Re-running Step 0 (Minimal)\r\n");
+  dbg_print("================================================\r\n");
+  dbg_print("This checks if OLED is still responsive after step 15.\r\n");
+  dbg_print("If display does NOT light up gray, OLED is locked/crashed.\r\n");
+  dbg_print("If display lights up gray, OLED is OK (issue is in step 15).\r\n\r\n");
+  
+  dbg_print(">>> RE-TESTING STEP 0 <<<\r\n");
+  dbg_print("Step 0: Minimal (unlock + display ON + all pixels ON)\r\n");
+  dbg_print("Executing init sequence...\r\n");
+  oled_init_progressive(0);
+  
+  dbg_print("** CHECK DISPLAY NOW **\r\n");
+  dbg_print("Expected: Display should light up GRAY if OLED is still alive\r\n");
+  dbg_print("Waiting 5 seconds for observation...\r\n");
+  dbg_print("================================================\r\n");
+  osDelay(5000);  // 5 seconds to observe
+  
+  dbg_print("\r\nResult interpretation:\r\n");
+  dbg_print("- Display GRAY: OLED is responsive, step 15 issue is fixable\r\n");
+  dbg_print("- Display BLACK: OLED locked up, requires power cycle\r\n\r\n");
 
   // Test 3: Display Pattern Tests
   dbg_print("Step 3/4: Display Pattern Tests\r\n");
