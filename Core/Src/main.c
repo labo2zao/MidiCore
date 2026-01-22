@@ -764,8 +764,8 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOC, BANK_A_Pin|BANK_B_Pin|BANK_C_Pin|AIN_CS_Pin
-                          |OLED_DC_Pin|OLED_RST_Pin|GPIO_PIN_7|GPIO_PIN_8
-                          |GPIO_PIN_9|GPIO_PIN_11, GPIO_PIN_RESET);
+                          |OLED_SCL_Pin|GPIO_PIN_7
+                          |GPIO_PIN_9|OLED_SDA_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOB, MIOS_SPI0_RC1_Pin|OLED_CS_Pin|MIOS_SPI2_RC2_Pin, GPIO_PIN_RESET);
@@ -776,7 +776,7 @@ static void MX_GPIO_Init(void)
                           |MUX_S2_Pin|GPIO_PIN_6|GPIO_PIN_7, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8|SRIO_RC1_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, OLED_RST_Pin|SRIO_RC1_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(SRIO_RC2_GPIO_Port, SRIO_RC2_Pin, GPIO_PIN_RESET);
@@ -800,11 +800,11 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
   /*Configure GPIO pins : BANK_A_Pin BANK_B_Pin BANK_C_Pin AIN_CS_Pin
-                           OLED_DC_Pin OLED_RST_Pin PC7 PC8
-                           PC9 PC11 */
+                           OLED_SCL_Pin PC7
+                           PC9 OLED_SDA_Pin */
   GPIO_InitStruct.Pin = BANK_A_Pin|BANK_B_Pin|BANK_C_Pin|AIN_CS_Pin
-                          |OLED_DC_Pin|OLED_RST_Pin|GPIO_PIN_7|GPIO_PIN_8
-                          |GPIO_PIN_9|GPIO_PIN_11;
+                          |OLED_SCL_Pin|GPIO_PIN_7
+                          |GPIO_PIN_9|OLED_SDA_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -842,8 +842,8 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Alternate = GPIO_AF8_USART6;
   HAL_GPIO_Init(MIDI3_OUT_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PA8 SRIO_RC1_Pin */
-  GPIO_InitStruct.Pin = GPIO_PIN_8|SRIO_RC1_Pin;
+  /*Configure GPIO pins : OLED_RST_Pin SRIO_RC1_Pin */
+  GPIO_InitStruct.Pin = OLED_RST_Pin|SRIO_RC1_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
