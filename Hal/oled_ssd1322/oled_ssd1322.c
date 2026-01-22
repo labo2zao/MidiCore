@@ -84,7 +84,9 @@ static void cmd_data2(uint8_t c, uint8_t d1, uint8_t d2) {
   data(d2);
 }
 
-void oled_init(void) {
+// Progressive initialization for debugging - stops at specified step
+// step: 0-15 (0=minimal, 15=full init)
+void oled_init_progressive(uint8_t max_step) {
   // Ensure DWT cycle counter is initialized (used by delay_cycles)
   CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
   DWT->CYCCNT = 0;
@@ -106,52 +108,146 @@ void oled_init(void) {
   // Wait an additional 300 ms for the reset cycle to complete and VDD to stabilize.
   delay_us(300000);  // 300 ms
 
-  // OLED connections: PA8 = DC, PC8 = SCL, PC11 = SDA (CS tied to GND)
-  // Following SSD1322 init sequence from MIOS32 (LoopA):
-  cmd(0xFD); data(0x12);       // 1. Unlock OLED driver IC (was locked after reset)
-  cmd(0xAE);                  // 2. Display OFF during configuration
-  cmd(0x15); data(0x1C); data(0x5B);  // 3. Set Column Address 0x1C to 0x5B (256px)
-  cmd(0x75); data(0x00); data(0x3F);  // 4. Set Row Address 0x00 to 0x3F (64 rows)
-  cmd(0xCA); data(0x3F);       // 5. Set MUX ratio to 64 (0x3F)
-  cmd(0xA0); data(0x14); data(0x11);  // 6. Set Remap (dual COM mode, dual COM line)
-  cmd(0xB3); data(0x00); data(0x0C);  // 7. Set Display Clock Div and Oscillator freq
-  cmd(0xC1); data(0xFF);       // 8. Set Segment Output Current (contrast) to max
-  cmd(0xC7); data(0x0F);       // 9. Master Current Control to max
-  cmd(0xB9);                  // 10. Use default linear gray scale table
-  cmd(0x00);                  //     (Send 0x00 as command to enable linear table)
-  cmd(0xB1); data(0x56);       // 11. Phase Length (front 5 DCLK, second 6 DCLK)
-  cmd(0xBB); data(0x00);       // 12. Pre-charge Voltage = 0.30 * VCC
-  cmd(0xB6); data(0x08);       // 13. Second Pre-charge Period = 8 DCLKs
-  cmd(0xBE); data(0x00);       // 14. Set VCOMH Voltage = 0.72 * VCC
-  cmd(0xA4 | 0x02);           // 15. Normal Display mode (0xA6)
+  // Progressive initialization - add one command at a time
+  // Step 0: Minimal (unlock + display ON + all pixels ON)
+  cmd(0xFD); data(0x12);       // Unlock OLED driver IC
+  if (max_step == 0) {
+    cmd(0xAF);                 // Display ON
+    cmd(0xA5);                 // All pixels ON (test pattern)
+    return;
+  }
 
-  // 16. Clear display RAM (fill all pixels with 0) before turning display on
-  //     CRITICAL: Match MIOS32 APP_LCD_Clear() exactly
+  // Step 1: + Display OFF before config
+  cmd(0xAE);                  // Display OFF during configuration
+  if (max_step == 1) {
+    cmd(0xAF);                 // Display ON
+    cmd(0xA5);                 // All pixels ON
+    return;
+  }
+
+  // Step 2: + Column Address
+  cmd(0x15); data(0x1C); data(0x5B);  // Set Column Address
+  if (max_step == 2) {
+    cmd(0xAF); cmd(0xA5);
+    return;
+  }
+
+  // Step 3: + Row Address
+  cmd(0x75); data(0x00); data(0x3F);  // Set Row Address
+  if (max_step == 3) {
+    cmd(0xAF); cmd(0xA5);
+    return;
+  }
+
+  // Step 4: + MUX ratio
+  cmd(0xCA); data(0x3F);       // Set MUX ratio to 64
+  if (max_step == 4) {
+    cmd(0xAF); cmd(0xA5);
+    return;
+  }
+
+  // Step 5: + Remap (dual COM mode)
+  cmd(0xA0); data(0x14); data(0x11);  // Set Remap
+  if (max_step == 5) {
+    cmd(0xAF); cmd(0xA5);
+    return;
+  }
+
+  // Step 6: + Display Clock
+  cmd(0xB3); data(0x00); data(0x0C);  // Set Display Clock
+  if (max_step == 6) {
+    cmd(0xAF); cmd(0xA5);
+    return;
+  }
+
+  // Step 7: + Segment Output Current (contrast)
+  cmd(0xC1); data(0xFF);       // Set Segment Output Current to max
+  if (max_step == 7) {
+    cmd(0xAF); cmd(0xA5);
+    return;
+  }
+
+  // Step 8: + Master Current Control
+  cmd(0xC7); data(0x0F);       // Master Current Control to max
+  if (max_step == 8) {
+    cmd(0xAF); cmd(0xA5);
+    return;
+  }
+
+  // Step 9: + Linear gray scale table
+  cmd(0xB9);                  // Use default linear gray scale table
+  cmd(0x00);                  // (Send 0x00 as command to enable linear table)
+  if (max_step == 9) {
+    cmd(0xAF); cmd(0xA5);
+    return;
+  }
+
+  // Step 10: + Phase Length
+  cmd(0xB1); data(0x56);       // Phase Length
+  if (max_step == 10) {
+    cmd(0xAF); cmd(0xA5);
+    return;
+  }
+
+  // Step 11: + Pre-charge Voltage
+  cmd(0xBB); data(0x00);       // Pre-charge Voltage
+  if (max_step == 11) {
+    cmd(0xAF); cmd(0xA5);
+    return;
+  }
+
+  // Step 12: + Second Pre-charge Period
+  cmd(0xB6); data(0x08);       // Second Pre-charge Period
+  if (max_step == 12) {
+    cmd(0xAF); cmd(0xA5);
+    return;
+  }
+
+  // Step 13: + VCOMH Voltage
+  cmd(0xBE); data(0x00);       // Set VCOMH Voltage
+  if (max_step == 13) {
+    cmd(0xAF); cmd(0xA5);
+    return;
+  }
+
+  // Step 14: + Normal Display mode
+  cmd(0xA4 | 0x02);           // Normal Display mode (0xA6)
+  if (max_step == 14) {
+    cmd(0xAF); cmd(0xA5);
+    return;
+  }
+
+  // Step 15: Full init with RAM clear
+  // Clear display RAM before turning display on
   for (uint8_t row = 0; row < 64; ++row) {
     cmd(0x15);                 // Set Column Address
-    data(0x00 + 0x1C);         // Column start (MIOS32: 0+0x1c)
+    data(0x00 + 0x1C);         // Column start
     cmd(0x75);                 // Set Row Address  
     data(row);                 // Current row
     cmd(0x5C);                 // Write RAM command
-    // MIOS32 writes 64 iterations of 2 bytes = 128 bytes total
     for (uint16_t i = 0; i < 64; ++i) {
-      data(0x00);              // First pixel pair
-      data(0x00);              // Second pixel pair
+      data(0x00);              // Clear pixels
+      data(0x00);
     }
   }
 
-  cmd(0xAF);  // 17. Display ON (MUST be after clearing RAM per MIOS32)
+  cmd(0xAF);  // Display ON
 
-  delay_us(100000);  // wait 100 ms after turning display on
+  delay_us(100000);  // wait 100 ms
 
-  // Show test pattern (white bar on top 4 rows, gray on rest) for 1s
-  memset(fb, 0xFF, 512);         // first 4 rows (512 bytes) = 0xFF (white)
-  memset(fb + 512, 0x77, 7680);  // remaining 60 rows = 0x77 (medium gray)
+  // Show test pattern for 1s
+  memset(fb, 0xFF, 512);         // first 4 rows = white
+  memset(fb + 512, 0x77, 7680);  // remaining rows = gray
   oled_flush();
-  delay_us(1000000);  // 1 second delay
+  delay_us(1000000);
 
-  // Clear the test pattern from framebuffer for normal UI use
+  // Clear framebuffer
   memset(fb, 0x00, sizeof(fb));
+}
+
+void oled_init(void) {
+  // Call full progressive init (step 15 = complete sequence)
+  oled_init_progressive(15);
 }
 
 void oled_flush(void) {

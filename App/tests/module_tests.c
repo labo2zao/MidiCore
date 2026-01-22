@@ -1852,21 +1852,60 @@ int module_test_oled_ssd1322_run(void)
     return -1;
   }
   
-  // Test 2: OLED Full Initialization
-  dbg_print("Step 2/4: OLED Full Initialization\r\n");
-  dbg_print("Calling oled_init()...\r\n");
-  uint32_t start_time = HAL_GetTick();
-  oled_init();
-  uint32_t end_time = HAL_GetTick();
-  dbg_printf("OLED initialization completed in %lu ms\r\n", end_time - start_time);
-  dbg_print("Expected: ~2100 ms (600+600+100+1000)\r\n\r\n");
+  // Test 2: OLED Progressive Initialization (step by step)
+  dbg_print("Step 2/4: OLED Progressive Initialization\r\n");
+  dbg_print("Testing each init command one at a time...\r\n");
+  dbg_print("Display should stay ON after each step.\r\n");
+  dbg_print("Observe if/when display turns OFF.\r\n\r\n");
   
-  dbg_print("** CHECK DISPLAY NOW **\r\n");
-  dbg_print("You should have seen:\r\n");
-  dbg_print("  - White bar on top 4 rows\r\n");
-  dbg_print("  - Gray fill on remaining rows\r\n");
-  dbg_print("  - Pattern displayed for 1 second\r\n");
-  dbg_print("  - Now display should be clear/blank\r\n\r\n");
+  // Test each step from 0 to 15
+  for (uint8_t step = 0; step <= 15; step++) {
+    dbg_printf("\r\n>>> TESTING STEP %u <<<\r\n", step);
+    
+    // Describe what this step does
+    switch(step) {
+      case 0: dbg_print("Step 0: Minimal (unlock + display ON + all pixels ON)\r\n"); break;
+      case 1: dbg_print("Step 1: + Display OFF before config\r\n"); break;
+      case 2: dbg_print("Step 2: + Column Address (0x15)\r\n"); break;
+      case 3: dbg_print("Step 3: + Row Address (0x75)\r\n"); break;
+      case 4: dbg_print("Step 4: + MUX ratio (0xCA)\r\n"); break;
+      case 5: dbg_print("Step 5: + Remap dual COM (0xA0)\r\n"); break;
+      case 6: dbg_print("Step 6: + Display Clock (0xB3)\r\n"); break;
+      case 7: dbg_print("Step 7: + Contrast (0xC1)\r\n"); break;
+      case 8: dbg_print("Step 8: + Master Current (0xC7)\r\n"); break;
+      case 9: dbg_print("Step 9: + Gray scale table (0xB9)\r\n"); break;
+      case 10: dbg_print("Step 10: + Phase Length (0xB1)\r\n"); break;
+      case 11: dbg_print("Step 11: + Pre-charge Voltage (0xBB)\r\n"); break;
+      case 12: dbg_print("Step 12: + Second Pre-charge (0xB6)\r\n"); break;
+      case 13: dbg_print("Step 13: + VCOMH Voltage (0xBE)\r\n"); break;
+      case 14: dbg_print("Step 14: + Normal Display mode (0xA6)\r\n"); break;
+      case 15: dbg_print("Step 15: Full init with RAM clear + Display ON\r\n"); break;
+    }
+    
+    dbg_print("Executing init sequence...\r\n");
+    oled_init_progressive(step);
+    
+    dbg_print("** CHECK DISPLAY NOW **\r\n");
+    if (step == 0) {
+      dbg_print("Expected: Display should be GRAY (all pixels ON)\r\n");
+    } else if (step < 15) {
+      dbg_print("Expected: Display should STAY GRAY\r\n");
+    } else {
+      dbg_print("Expected: White bar + gray fill for 1 sec, then clear\r\n");
+    }
+    
+    dbg_print("Waiting 3 seconds before next step...\r\n");
+    dbg_print("-------------------------------------------\r\n");
+    osDelay(3000);  // 3 seconds observation time
+    
+    // If display turned off, report which step caused it
+    if (step > 0 && step < 15) {
+      dbg_printf("If display turned OFF, step %u is the problem!\r\n", step);
+    }
+  }
+  
+  dbg_print("\r\n=== Progressive Init Test Complete ===\r\n");
+  dbg_print("Review the output above to see which step caused display to turn OFF.\r\n\r\n");
 
   // Test 3: Display Pattern Tests
   dbg_print("Step 3/4: Display Pattern Tests\r\n");
