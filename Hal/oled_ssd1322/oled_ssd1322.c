@@ -68,22 +68,24 @@ void oled_init(void) {
   for (uint16_t ctr = 0; ctr < 300; ++ctr)
     delay_us(1000); // 300ms total
   
-  // Hardware reset sequence - CRITICAL for waking up display
-  // PA8 is used as RST during initialization (active low)
-  // After reset, PA8 becomes DC (Data/Command select)
+  // ===== Hardware RC Reset Circuit =====
+  // RST pin has a hardware RC (resistor-capacitor) circuit for automatic power-on reset
+  // At power-up:
+  // 1. Capacitor is discharged → RST = 0V (reset asserted)
+  // 2. Capacitor charges through resistor → RST rises to 3.3V
+  // 3. This creates the required reset pulse (SSD1322 datasheet: min 2μs)
+  //
+  // The STM32 does NOT control RST - it's purely hardware timing.
+  // We just wait for the RC reset cycle to complete before sending commands.
+  //
   // Per SSD1322 datasheet Section 8.9:
-  // 1. RST = LOW for minimum 2μs
-  // 2. Wait minimum 2μs after RST = HIGH before sending commands
-  // We use much longer delays for reliability
+  // After RST rises and VDD is stable, wait before sending commands.
+  // The RC time constant determines reset pulse duration.
   
-  HAL_GPIO_WritePin(OLED_RST_GPIO_Port, OLED_RST_Pin, GPIO_PIN_RESET); // Assert reset (active low)
-  delay_us(100000); // Hold reset for 100ms (datasheet minimum: 2μs)
+  delay_us(300000); // 300ms power-up delay for RC reset + initialization (MIOS32 LoopA uses 300×1ms)
   
-  HAL_GPIO_WritePin(OLED_RST_GPIO_Port, OLED_RST_Pin, GPIO_PIN_SET);   // Release reset
-  delay_us(200000); // Wait 200ms for display to complete internal reset (datasheet minimum: 2μs)
-  
-  // From this point on, PA8 is used as DC (Data/Command select)
-  // The cmd() and data() functions will control this pin
+  // PA8 (DC pin) is used by cmd() and data() functions to signal command vs data
+  // It is NOT used as RST - that's handled by the hardware RC circuit
   
   // ===== SSD1322 Initialization Sequence =====
   // Adapted from MIOS32 LoopA with datasheet references
