@@ -68,24 +68,27 @@ void oled_init(void) {
   for (uint16_t ctr = 0; ctr < 300; ++ctr)
     delay_us(1000); // 300ms total
   
-  // ===== Hardware RC Reset Circuit =====
-  // RST pin has a hardware RC (resistor-capacitor) circuit for automatic power-on reset
+  // ===== On-Board RC Reset Circuit (on OLED module) =====
+  // The OLED display module has an on-board RC (resistor-capacitor) circuit
+  // that automatically generates a reset pulse when power is applied.
+  // There is NO RST connection from the STM32 board to the OLED module.
+  //
   // At power-up:
-  // 1. Capacitor is discharged → RST = 0V (reset asserted)
+  // 1. OLED module's capacitor is discharged → RST = 0V (reset asserted)
   // 2. Capacitor charges through resistor → RST rises to 3.3V
   // 3. This creates the required reset pulse (SSD1322 datasheet: min 2μs)
-  //
-  // The STM32 does NOT control RST - it's purely hardware timing.
-  // We just wait for the RC reset cycle to complete before sending commands.
+  // 4. STM32 just waits for reset cycle to complete
   //
   // Per SSD1322 datasheet Section 8.9:
   // After RST rises and VDD is stable, wait before sending commands.
-  // The RC time constant determines reset pulse duration.
+  // The OLED module's RC time constant determines reset pulse duration.
   
-  delay_us(300000); // 300ms power-up delay for RC reset + initialization (MIOS32 LoopA uses 300×1ms)
+  delay_us(300000); // 300ms power-up delay for OLED module RC reset + init (MIOS32 LoopA: 300×1ms)
   
-  // PA8 (DC pin) is used by cmd() and data() functions to signal command vs data
-  // It is NOT used as RST - that's handled by the hardware RC circuit
+  // Only 3 signals from STM32 to OLED:
+  // PA8 = DC (Data/Command select) - used by cmd() and data() functions
+  // PC8 = SCL (Clock)
+  // PC11 = SDA (Data)
   
   // ===== SSD1322 Initialization Sequence =====
   // Adapted from MIOS32 LoopA with datasheet references
