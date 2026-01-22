@@ -37,21 +37,23 @@ static inline void delay_cycles(uint32_t cycles) {
 
 static inline void spi_write_byte(uint8_t byte) {
   for (uint8_t i = 0; i < 8; i++) {
-    // 1. Set data line first (MSB of byte) – must be stable before clock falls
+    // 1. Set data line first (MSB of byte)
     if (byte & 0x80)
       HAL_GPIO_WritePin(OLED_SDA_GPIO_Port, OLED_SDA_Pin, GPIO_PIN_SET);
     else
       HAL_GPIO_WritePin(OLED_SDA_GPIO_Port, OLED_SDA_Pin, GPIO_PIN_RESET);
 
-    // 2. Clock HIGH→LOW (falling edge) - SSD1322 samples on this falling edge
-    //    Delay for data setup time (≥100 ns per datasheet)
-    SCL_LOW();
+    // 2. Data setup time - data must be stable BEFORE the falling edge
     delay_cycles(17);  // 17 cycles @ 168 MHz ≈ 101 ns
 
-    // 3. Clock LOW→HIGH (rising edge) - return clock to idle HIGH (CPOL=1)
-    //    Delay for data hold time (≥100 ns per datasheet)
-    SCL_HIGH();
+    // 3. Clock HIGH→LOW (falling edge) - SSD1322 samples on this falling edge
+    SCL_LOW();
+
+    // 4. Data hold time - keep data stable during LOW period
     delay_cycles(17);  // 17 cycles @ 168 MHz ≈ 101 ns
+
+    // 5. Clock LOW→HIGH (rising edge) - return clock to idle HIGH (CPOL=1)
+    SCL_HIGH();
 
     byte <<= 1;  // shift to next bit (MSB first)
   }
