@@ -62,14 +62,14 @@ static inline void spi_write_byte(uint8_t byte) {
 // Send command (DC=0) byte
 static void cmd(uint8_t c) {
   HAL_GPIO_WritePin(OLED_DC_GPIO_Port, OLED_DC_Pin, GPIO_PIN_RESET);  // DC=0 (command mode)
-  delay_cycles(7);  // 7 cycles @ 168 MHz ≈ 42 ns for DC stabilization
+  delay_cycles(10);  // 10 cycles @ 168 MHz ≈ 60 ns for DC stabilization
   spi_write_byte(c);
 }
 
 // Send data (DC=1) byte
 static void data(uint8_t d) {
   HAL_GPIO_WritePin(OLED_DC_GPIO_Port, OLED_DC_Pin, GPIO_PIN_SET);  // DC=1 (data mode)
-  delay_cycles(7);  // 7 cycles @ 168 MHz ≈ 42 ns for DC stabilization
+  delay_cycles(10);  // 10 cycles @ 168 MHz ≈ 60 ns for DC stabilization
   spi_write_byte(d);
 }
 
