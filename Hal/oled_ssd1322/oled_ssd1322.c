@@ -218,14 +218,13 @@ void oled_init_progressive(uint8_t max_step) {
   }
 
   // Step 15: Full init with RAM clear
-  // Clear display RAM before turning display on
+  // Clear display RAM - MATCH MIOS32 EXACTLY (only 1 data byte per address command!)
+  // CRITICAL: MIOS32 sends ONLY ONE data byte for 0x15/0x75, NOT two!
   for (uint8_t row = 0; row < 64; ++row) {
-    cmd(0x15);                 // Set Column Address (requires 2 bytes)
-    data(0x1C);                // Column start
-    data(0x5B);                // Column end (CRITICAL: must send both start AND end)
-    cmd(0x75);                 // Set Row Address (requires 2 bytes)
-    data(row);                 // Row start
-    data(0x3F);                // Row end
+    cmd(0x15);                 // Set Column Address
+    data(0x1C);                // Column start ONLY (MIOS32 doesn't send end!)
+    cmd(0x75);                 // Set Row Address
+    data(row);                 // Row start ONLY (MIOS32 doesn't send end!)
     cmd(0x5C);                 // Write RAM command
     for (uint16_t i = 0; i < 64; ++i) {
       data(0x00);              // Clear pixels
@@ -254,15 +253,14 @@ void oled_init(void) {
 
 void oled_flush(void) {
   // Transfer the local framebuffer to OLED GDDRAM (SSD1322 VRAM)
-  // Send data row by row, matching MIOS32 LoopA sequence exactly
-  // CRITICAL: Commands 0x15 and 0x75 require TWO data bytes each (start + end)
+  // Send data row by row, matching MIOS32 sequence EXACTLY
+  // CRITICAL: MIOS32 sends ONLY ONE data byte for 0x15/0x75, NOT two!
+  // This contradicts datasheet but is what actually works with SSD1322
   for (uint8_t row = 0; row < 64; ++row) {
-    cmd(0x15);                // Set Column Address (requires 2 bytes)
-    data(0x1C);               // Column start = 0x1C (28 decimal)
-    data(0x5B);               // Column end = 0x5B (91 decimal) for 64 columns × 2
-    cmd(0x75);                // Set Row Address (requires 2 bytes)
-    data(row);                // Row start = current row
-    data(0x3F);               // Row end = 0x3F (63 decimal, last row)
+    cmd(0x15);                // Set Column Address
+    data(0x1C);               // Column start ONLY (MIOS32 doesn't send end!)
+    cmd(0x75);                // Set Row Address  
+    data(row);                // Row start ONLY (MIOS32 doesn't send end!)
     cmd(0x5C);                // Write RAM command (begin data write)
     uint8_t *row_ptr = &fb[row * 128];
     for (uint16_t i = 0; i < 128; ++i) {
