@@ -28,6 +28,13 @@ static uint8_t fb[OLED_W * OLED_H / 2] __attribute__((section(".ccmram")));
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9, GPIO_PIN_SET); \
 } while(0)
 
+// Precise delay using DWT cycle counter (better than NOPs)
+// At 168 MHz: 1 cycle = 5.95 ns, so 17 cycles ≈ 100 ns
+static inline void delay_cycles(uint32_t cycles) {
+  uint32_t start = DWT->CYCCNT;
+  while ((DWT->CYCCNT - start) < cycles);
+}
+
 static inline void spi_write_byte(uint8_t byte) {
   for (uint8_t i = 0; i < 8; i++) {
     // 1. Set data line first (MSB of byte) – must be stable before clock falls
@@ -37,14 +44,14 @@ static inline void spi_write_byte(uint8_t byte) {
       HAL_GPIO_WritePin(OLED_SDA_GPIO_Port, OLED_SDA_Pin, GPIO_PIN_RESET);
 
     // 2. Clock HIGH→LOW (falling edge) - SSD1322 samples on this falling edge
-    //    Stretch (~8 NOPs) for data setup time before sampling
+    //    Delay for data setup time (≥100 ns per datasheet)
     SCL_LOW();
-    __NOP(); __NOP(); __NOP(); __NOP(); __NOP(); __NOP(); __NOP(); __NOP__;
+    delay_cycles(17);  // 17 cycles @ 168 MHz ≈ 101 ns
 
     // 3. Clock LOW→HIGH (rising edge) - return clock to idle HIGH (CPOL=1)
-    //    Stretch (~8 NOPs) for data hold time after sampling
+    //    Delay for data hold time (≥100 ns per datasheet)
     SCL_HIGH();
-    __NOP(); __NOP(); __NOP(); __NOP(); __NOP(); __NOP(); __NOP(); __NOP__;
+    delay_cycles(17);  // 17 cycles @ 168 MHz ≈ 101 ns
 
     byte <<= 1;  // shift to next bit (MSB first)
   }
@@ -55,14 +62,14 @@ static inline void spi_write_byte(uint8_t byte) {
 // Send command (DC=0) byte
 static void cmd(uint8_t c) {
   HAL_GPIO_WritePin(OLED_DC_GPIO_Port, OLED_DC_Pin, GPIO_PIN_RESET);  // DC=0 (command mode)
-  __NOP(); __NOP(); __NOP(); __NOP();  // small delay to let DC stabilize
+  delay_cycles(7);  // 7 cycles @ 168 MHz ≈ 42 ns for DC stabilization
   spi_write_byte(c);
 }
 
 // Send data (DC=1) byte
 static void data(uint8_t d) {
   HAL_GPIO_WritePin(OLED_DC_GPIO_Port, OLED_DC_Pin, GPIO_PIN_SET);  // DC=1 (data mode)
-  __NOP(); __NOP(); __NOP(); __NOP();  // let DC line settle
+  delay_cycles(7);  // 7 cycles @ 168 MHz ≈ 42 ns for DC stabilization
   spi_write_byte(d);
 }
 
@@ -74,6 +81,11 @@ static void cmd_data2(uint8_t c, uint8_t d1, uint8_t d2) {
 }
 
 void oled_init(void) {
+  // Ensure DWT cycle counter is initialized (used by delay_cycles)
+  CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+  DWT->CYCCNT = 0;
+  DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
+
   // Set initial SPI lines states for Mode 3 (CPOL=1, CPHA=1):
   SCL_HIGH();  // clock idle high
   HAL_GPIO_WritePin(OLED_SDA_GPIO_Port, OLED_SDA_Pin, GPIO_PIN_RESET);  // data line low
