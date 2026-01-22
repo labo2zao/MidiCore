@@ -28,6 +28,7 @@
 #include "App/app_entry.h"
 #include "Config/oled_pins.h"
 
+#include "App/tests/test_debug.h"  // For TEST_DEBUG_UART_BAUD configuration
 #include "App/tests/app_test_din_midi.h"
 #include "App/tests/app_test_ainser_midi.h"
 #include "App/tests/module_tests.h"
@@ -656,17 +657,17 @@ static void MX_USART2_UART_Init(void)
   huart2.Instance = USART2;
   
   /* USER CODE BEGIN USART2_BaudRate */
-  // When module tests are active, use 115200 for debug output
-  // Otherwise use 31250 for MIDI
-  #if defined(MODULE_TEST_AINSER64) || defined(MODULE_TEST_SRIO) || \
-      defined(MODULE_TEST_MIDI_DIN) || defined(MODULE_TEST_ROUTER) || \
-      defined(MODULE_TEST_LOOPER) || defined(MODULE_TEST_UI) || \
-      defined(MODULE_TEST_PATCH_SD) || defined(MODULE_TEST_PRESSURE) || \
-      defined(MODULE_TEST_USB_HOST_MIDI) || defined(MODULE_TEST_GDB_DEBUG) || \
-      defined(MODULE_TEST_OLED_SSD1322)
-  huart2.Init.BaudRate = 115200;  // Debug baud rate for tests
+  // UART2 baud rate: Use TEST_DEBUG_UART_BAUD if test_debug.h is included,
+  // otherwise default to 31250 (MIDI)
+  // This ensures UART2 is at 115200 when any test using dbg_print() is active
+  #ifdef TEST_DEBUG_UART_BAUD
+    #if TEST_DEBUG_UART_PORT == 1
+      huart2.Init.BaudRate = TEST_DEBUG_UART_BAUD;  // Use configured debug baud rate (typically 115200)
+    #else
+      huart2.Init.BaudRate = 31250;   // UART2 used for MIDI, not debug
+    #endif
   #else
-  huart2.Init.BaudRate = 31250;   // MIDI baud rate for production
+    huart2.Init.BaudRate = 31250;   // Default MIDI baud rate for production
   #endif
   /* USER CODE END USART2_BaudRate */
   
