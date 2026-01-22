@@ -12,36 +12,45 @@ static uint8_t fb[OLED_W * OLED_H / 2] __attribute__((section(".ccmram")));
 // Software SPI bit-bang implementation (MIOS32 compatible)
 // CS is hardwired to GND, so no CS control needed
 //
-// CRITICAL TIMING NOTES:
-// - SPI Mode 3: Clock idle HIGH, sample on rising edge
-// - Setup data BEFORE clock transition
-// - SSD1322 requires minimum 100ns setup/hold times
+// CRITICAL: SPI Mode 0 (CPOL=0, CPHA=0)
+// - Clock idle = LOW
+// - Sample on rising edge (LOW→HIGH)
+// - Data MUST be stable BEFORE clock rises
+//
+// MIOS32 uses DUAL clock pins (E1=PC8, E2=PC9) for COM split mode
+#define SCL_LOW() do { \
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, GPIO_PIN_RESET); \
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9, GPIO_PIN_RESET); \
+} while(0)
+
+#define SCL_HIGH() do { \
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, GPIO_PIN_SET); \
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9, GPIO_PIN_SET); \
+} while(0)
+
 static inline void spi_write_byte(uint8_t byte) {
   for (uint8_t i = 0; i < 8; i++) {
-    // Clock low first (prepare for rising edge)
-    HAL_GPIO_WritePin(OLED_SCL_GPIO_Port, OLED_SCL_Pin, GPIO_PIN_RESET);
-    
-    // Set data bit (MSB first) - MUST be stable before clock rises
+    // CRITICAL ORDER (from MIOS32):
+    // 1. Set data FIRST (must be stable before clock transition)
     if (byte & 0x80) {
       HAL_GPIO_WritePin(OLED_SDA_GPIO_Port, OLED_SDA_Pin, GPIO_PIN_SET);
     } else {
       HAL_GPIO_WritePin(OLED_SDA_GPIO_Port, OLED_SDA_Pin, GPIO_PIN_RESET);
     }
     
-    // Small delay for data setup time (SSD1322: min 100ns)
-    __NOP(); __NOP(); __NOP(); __NOP(); __NOP(); __NOP(); __NOP(); __NOP();
+    // 2. Clock LOW (5× stretch like MIOS32)
+    SCL_LOW();
+    __NOP(); __NOP(); __NOP(); __NOP(); __NOP();
     
-    // Clock high - SSD1322 samples data on this rising edge
-    HAL_GPIO_WritePin(OLED_SCL_GPIO_Port, OLED_SCL_Pin, GPIO_PIN_SET);
-    
-    // Hold time (SSD1322: min 100ns)
-    __NOP(); __NOP(); __NOP(); __NOP(); __NOP(); __NOP(); __NOP(); __NOP();
+    // 3. Clock HIGH (3× stretch) - SSD1322 samples on rising edge
+    SCL_HIGH();
+    __NOP(); __NOP(); __NOP();
     
     byte <<= 1;
   }
   
-  // Leave clock low after byte (ready for next byte)
-  HAL_GPIO_WritePin(OLED_SCL_GPIO_Port, OLED_SCL_Pin, GPIO_PIN_RESET);
+  // Leave clock LOW (idle state for Mode 0)
+  SCL_LOW();
 }
 
 // Low-level command transmission
@@ -71,10 +80,11 @@ static void cmd_data2(uint8_t c, uint8_t d1, uint8_t d2) {
 }
 
 void oled_init(void) {
-  // Initialize GPIO pins - CRITICAL: Set proper initial states
-  HAL_GPIO_WritePin(OLED_SCL_GPIO_Port, OLED_SCL_Pin, GPIO_PIN_RESET);  // Clock low (idle)
+  // Initialize GPIO pins - CRITICAL: Set proper initial states for SPI Mode 0
+  // SPI Mode 0: CPOL=0 (clock idle LOW), CPHA=0 (sample on rising edge)
+  SCL_LOW();                                                             // Clock idle = LOW (Mode 0)
   HAL_GPIO_WritePin(OLED_SDA_GPIO_Port, OLED_SDA_Pin, GPIO_PIN_RESET);  // Data low
-  HAL_GPIO_WritePin(OLED_DC_GPIO_Port, OLED_DC_Pin, GPIO_PIN_SET);      // DC/RST high (not in reset)
+  HAL_GPIO_WritePin(OLED_DC_GPIO_Port, OLED_DC_Pin, GPIO_PIN_SET);      // DC high (not in command mode)
 
   // Power stabilization delay - CRITICAL for SSD1322
   // Display needs time for internal power supply to stabilize
