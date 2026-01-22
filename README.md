@@ -30,6 +30,7 @@ MidiCore is a modular MIDI system featuring:
 - **[Testing Quick Start](Docs/testing/TESTING_QUICKSTART.md)** - Quick test examples
 
 ### Main Categories
+- **[Hardware](Docs/hardware/)** - Wiring guides, pinouts, OLED setup
 - **[User Guides](Docs/user-guides/)** - Looper, UI, footswitch, automation
 - **[Configuration](Docs/configuration/)** - System setup (UART, SPI, CubeMX, FreeRTOS)
 - **[Testing](Docs/testing/)** - Testing procedures and validation
@@ -39,6 +40,7 @@ MidiCore is a modular MIDI system featuring:
 - **[Commercial](Docs/commercial/)** - Product presentations and commercial docs
 
 ### Key Documents
+- **[OLED Wiring Guide](Docs/hardware/OLED_WIRING_GUIDE.md)** - Display wiring (SSD1322/SSD1306 LoopA)
 - **[Testing Quick Start](Docs/testing/TESTING_QUICKSTART.md)** - Quick test examples
 - **[USB Configuration Guide](Docs/usb/USB_CONFIGURATION_GUIDE.md)** - USB setup
 - **[MIOS32 UART Configuration](Docs/configuration/README_MIOS32_UART_CONFIG.md)** - UART and debug

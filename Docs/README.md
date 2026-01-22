@@ -20,6 +20,10 @@ End-user features and functionality guides
 - [Automation System](user-guides/AUTOMATION_SYSTEM.md) - Automation documentation
 - [SCS Buttons Analysis](user-guides/SCS_BUTTONS_ANALYSIS.md) - Button system analysis
 
+### 🔌 [Hardware](hardware/)
+Hardware setup, wiring guides, and pinout information
+- [OLED Wiring Guide](hardware/OLED_WIRING_GUIDE.md) - OLED display wiring (SSD1322/SSD1306 LoopA compatible)
+
 ### ⚙️ [Configuration](configuration/)
 System configuration and setup
 - [Module Configuration](configuration/README_MODULE_CONFIG.md) - Enable/disable modules

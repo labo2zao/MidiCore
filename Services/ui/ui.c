@@ -11,6 +11,7 @@
 #include "Services/ui/ui_page_config.h"
 #include "Services/ui/ui_page_livefx.h"
 #include "Services/ui/ui_page_rhythm.h"
+#include "Services/ui/ui_page_oled_test.h"
 #if MODULE_ENABLE_LFO && MODULE_ENABLE_HUMANIZER
 #include "Services/ui/ui_page_humanizer.h"
 #endif
@@ -67,7 +68,7 @@ void ui_set_chord_mode(uint8_t en) { g_chord_mode = en ? 1 : 0; ui_state_mark_di
 
 void ui_on_button(uint8_t id, uint8_t pressed) {
   if (pressed && id == 5) {
-    // cycle pages: OVERVIEW -> TIMELINE -> PIANOROLL -> SONG -> MIDI_MONITOR -> SYSEX -> CONFIG -> LIVEFX -> RHYTHM -> [HUMANIZER] -> OVERVIEW
+    // cycle pages: OVERVIEW -> TIMELINE -> PIANOROLL -> SONG -> MIDI_MONITOR -> SYSEX -> CONFIG -> LIVEFX -> RHYTHM -> [HUMANIZER] -> OLED_TEST -> OVERVIEW
     if (g_page == UI_PAGE_LOOPER) g_page = UI_PAGE_LOOPER_TL;
     else if (g_page == UI_PAGE_LOOPER_TL) g_page = UI_PAGE_LOOPER_PR;
     else if (g_page == UI_PAGE_LOOPER_PR) g_page = UI_PAGE_SONG;
@@ -78,10 +79,11 @@ void ui_on_button(uint8_t id, uint8_t pressed) {
     else if (g_page == UI_PAGE_LIVEFX) g_page = UI_PAGE_RHYTHM;
 #if MODULE_ENABLE_LFO && MODULE_ENABLE_HUMANIZER
     else if (g_page == UI_PAGE_RHYTHM) g_page = UI_PAGE_HUMANIZER;
-    else if (g_page == UI_PAGE_HUMANIZER) g_page = UI_PAGE_LOOPER;
+    else if (g_page == UI_PAGE_HUMANIZER) g_page = UI_PAGE_OLED_TEST;
 #else
-    else if (g_page == UI_PAGE_RHYTHM) g_page = UI_PAGE_LOOPER;
+    else if (g_page == UI_PAGE_RHYTHM) g_page = UI_PAGE_OLED_TEST;
 #endif
+    else if (g_page == UI_PAGE_OLED_TEST) g_page = UI_PAGE_LOOPER;
     else g_page = UI_PAGE_LOOPER;
     return;
   }
@@ -102,6 +104,7 @@ const char* page = (g_page == UI_PAGE_LOOPER) ? "LOOP" :
 #if MODULE_ENABLE_LFO && MODULE_ENABLE_HUMANIZER
                    (g_page == UI_PAGE_HUMANIZER) ? "HUMN" :
 #endif
+                   (g_page == UI_PAGE_OLED_TEST) ? "TEST" :
                    "UI";
 // Bank | Patch | Page
 snprintf(line1, sizeof(line1), "%s:%s  %s", g_bank_label, g_patch_label, page);
@@ -120,6 +123,7 @@ ui_gfx_text(0, 2, line1, 15);
 #if MODULE_ENABLE_LFO && MODULE_ENABLE_HUMANIZER
     case UI_PAGE_HUMANIZER: ui_page_humanizer_on_button(id, pressed); break;
 #endif
+    case UI_PAGE_OLED_TEST: ui_page_oled_test_on_button(id, pressed); break;
     default: break;
   }
 }
@@ -140,6 +144,7 @@ const char* page = (g_page == UI_PAGE_LOOPER) ? "LOOP" :
 #if MODULE_ENABLE_LFO && MODULE_ENABLE_HUMANIZER
                    (g_page == UI_PAGE_HUMANIZER) ? "HUMN" :
 #endif
+                   (g_page == UI_PAGE_OLED_TEST) ? "TEST" :
                    "UI";
 // Bank | Patch | Page
 snprintf(line1, sizeof(line1), "%s:%s  %s", g_bank_label, g_patch_label, page);
@@ -158,6 +163,7 @@ ui_gfx_text(0, 2, line1, 15);
 #if MODULE_ENABLE_LFO && MODULE_ENABLE_HUMANIZER
     case UI_PAGE_HUMANIZER: ui_page_humanizer_on_encoder(delta); break;
 #endif
+    case UI_PAGE_OLED_TEST: ui_page_oled_test_on_encoder(delta); break;
     default: break;
   }
 }
@@ -182,6 +188,7 @@ const char* page = (g_page == UI_PAGE_LOOPER) ? "LOOP" :
 #if MODULE_ENABLE_LFO && MODULE_ENABLE_HUMANIZER
                    (g_page == UI_PAGE_HUMANIZER) ? "HUMN" :
 #endif
+                   (g_page == UI_PAGE_OLED_TEST) ? "TEST" :
                    "UI";
 // Bank | Patch | Page
 snprintf(line1, sizeof(line1), "%s:%s  %s", g_bank_label, g_patch_label, page);
@@ -200,6 +207,7 @@ ui_gfx_text(0, 2, line1, 15);
 #if MODULE_ENABLE_LFO && MODULE_ENABLE_HUMANIZER
     case UI_PAGE_HUMANIZER: ui_page_humanizer_render(g_ms); break;
 #endif
+    case UI_PAGE_OLED_TEST: ui_page_oled_test_render(g_ms); break;
     default: break;
   }
 
