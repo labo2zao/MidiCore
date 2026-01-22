@@ -121,9 +121,10 @@ void oled_init(void) {
   cmd(0xAB); data(0x01);  // 0x01 = Enable internal VDD regulator
   
   // 8. Set Display Clock Divide Ratio / Oscillator Frequency (0xB3)
-  // [3:0] = Divide ratio (0 = divide by 1)
-  // [7:4] = Oscillator frequency (12)
-  cmd(0xB3); data(0xC0);  // 0xC0 = Clock divide 0, Osc freq 12 (LoopA settings)
+  // MIOS32 sends TWO separate data bytes: divide ratio, then oscillator
+  cmd(0xB3); 
+  data(0);    // Clock divide ratio: 0 (divide by 1)
+  data(12);   // Oscillator frequency: 12
   
   // 9. Set Display Enhancement A (0xB4)
   // External VSL, Enhanced low GS display quality
@@ -198,24 +199,31 @@ void oled_init(void) {
 }
 
 void oled_flush(void) {
-  // Transfer framebuffer to display RAM (adapted from LoopA's display() function)
-  // Send data row-by-row for better reliability
+  // Transfer framebuffer to display RAM
+  // CRITICAL: Match MIOS32 LoopA APP_LCD_Clear() row-by-row approach EXACTLY
+  //
+  // MIOS32 sends commands in this exact sequence per row:
+  // 1. Set column address (0x15) with ONE data byte (start column only)
+  // 2. Set row address (0x75) with ONE data byte (row number only)  
+  // 3. Write RAM command (0x5C)
+  // 4. Send pixel data
+  //
+  // This differs from typical init which sends start+end for both commands
   
   for (uint8_t row = 0; row < 64; row++) {
-    // Set column address window: 0x1C-0x5B (28-91, which is 64 columns = 128 bytes = 256 pixels)
+    // Set column start address - CRITICAL: Only ONE data byte!
     cmd(0x15);
-    data(0x1C); // Start column
-    data(0x5B); // End column
+    data(0x1C);  // Column 0x1C (28) - MIOS32: "data(0+0x1c)" - no end address
     
-    // Set row address window: current row to end (allows partial updates)
+    // Set row address - CRITICAL: Only ONE data byte!
     cmd(0x75);
-    data(row);  // Start row
-    data(0x3F); // End row (63)
+    data(row);  // Current row - MIOS32: "data(j)" - no end address
     
     // Write RAM command
     cmd(0x5C);
     
     // Send 128 bytes for this row (256 pixels at 4bpp)
+    // MIOS32 sends pairs: "APP_LCD_Data(0); APP_LCD_Data(0);" per column
     uint8_t *row_data = &fb[row * 128];
     for (uint16_t i = 0; i < 128; i++) {
       data(row_data[i]);
