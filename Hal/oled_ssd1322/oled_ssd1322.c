@@ -135,10 +135,11 @@ void oled_init(void) {
   cmd(0xAB); data(0x01);  // 0x01 = Enable internal VDD regulator
   
   // 8. Set Display Clock Divide Ratio / Oscillator Frequency (0xB3)
-  // MIOS32 sends TWO separate data bytes: divide ratio, then oscillator
-  cmd(0xB3); 
-  data(0);    // Clock divide ratio: 0 (divide by 1)
-  data(12);   // Oscillator frequency: 12
+  // CRITICAL: This takes ONE byte with TWO packed values!
+  // Bits[3:0] = divide ratio, Bits[7:4] = oscillator frequency
+  // 0x91 = 1001 0001 = oscillator 9, divider 1 (common value)
+  // 0xC0 = 1100 0000 = oscillator 12, divider 0 (LoopA value)
+  cmd(0xB3); data(0xC0);  // Oscillator 12, Divider 0 (MIOS32 LoopA)
   
   // 9. Set Display Enhancement A (0xB4)
   // External VSL, Enhanced low GS display quality
@@ -182,15 +183,16 @@ void oled_init(void) {
   cmd(0xA9);
   
   // 21. Clear display RAM to prevent garbage
-  // Set column address 0x1C-0x5B (28-91 for 256px display)
-  cmd(0x15); data(0x1C); data(0x5B);
-  // Set row address 0-63
-  cmd(0x75); data(0x00); data(0x3F);
-  // Write RAM command
-  cmd(0x5C);
-  // Clear all pixels (send zeros)
-  for (uint16_t i = 0; i < 8192; i++) {
-    data(0x00);
+  // CRITICAL: Use SINGLE data byte per address command (not range mode!)
+  // This matches MIOS32 test implementation exactly
+  for (uint8_t row = 0; row < 64; row++) {
+    cmd(0x15); data(0x1C);  // Column start only (auto-increment)
+    cmd(0x75); data(row);   // Row address
+    cmd(0x5C);              // Write RAM
+    // Clear one row (128 bytes = 256 pixels)
+    for (uint16_t i = 0; i < 128; i++) {
+      data(0x00);
+    }
   }
   
   // 22. Display ON (0xAF) - CRITICAL: Turn display on BEFORE sending test pattern
