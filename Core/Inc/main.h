@@ -84,8 +84,9 @@ void Error_Handler(void);
 #define MIOS_AN3_Pin GPIO_PIN_4
 #define MIOS_AN3_GPIO_Port GPIOA
 // OLED pin definitions - Software SPI (bit-bang) on PA8/PC8/PC11
-#define OLED_RST_Pin GPIO_PIN_8
-#define OLED_RST_GPIO_Port GPIOA
+// PA8 = DC (Data/Command), NOT RST (OLED has on-board RC reset circuit)
+#define OLED_DC_Pin GPIO_PIN_8
+#define OLED_DC_GPIO_Port GPIOA
 #define OLED_SCL_Pin GPIO_PIN_8
 #define OLED_SCL_GPIO_Port GPIOC
 #define OLED_SDA_Pin GPIO_PIN_11

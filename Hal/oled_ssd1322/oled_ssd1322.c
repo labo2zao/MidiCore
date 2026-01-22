@@ -87,7 +87,9 @@ void oled_init(void) {
   DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
 
   // Set initial SPI lines states for Mode 3 (CPOL=1, CPHA=1):
-  SCL_HIGH();  // clock idle high
+  // CRITICAL: CubeMX GPIO init sets all pins to LOW by default, but SSD1322
+  // expects SCL at idle HIGH (CPOL=1). We must set SCL_HIGH before any communication.
+  SCL_HIGH();  // clock idle high (required for Mode 3)
   HAL_GPIO_WritePin(OLED_SDA_GPIO_Port, OLED_SDA_Pin, GPIO_PIN_RESET);  // data line low
   HAL_GPIO_WritePin(OLED_DC_GPIO_Port, OLED_DC_Pin, GPIO_PIN_SET);      // DC high (defaults to data mode)
 
