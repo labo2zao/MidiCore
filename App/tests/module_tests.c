@@ -1546,6 +1546,112 @@ void module_test_usb_device_midi_run(void)
 #include "Config/oled_pins.h"
 
 /**
+ * @brief Minimal hardware test - bypasses full init, tests basic SPI communication
+ * @return 0 on success, -1 on failure
+ */
+static int module_test_oled_minimal_hardware(void)
+{
+  dbg_print_separator();
+  dbg_print("=== MINIMAL OLED Hardware Test ===\r\n");
+  dbg_print("This test bypasses full initialization\r\n");
+  dbg_print("Commands: 0xFD 0x12 (unlock), 0xAF (display ON), 0xA5 (all pixels ON)\r\n");
+  dbg_print_separator();
+  
+  // Initialize DWT for precise timing
+  CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+  DWT->CYCCNT = 0;
+  DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
+  
+  // Set initial states (SPI Mode 0: clock idle LOW)
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, GPIO_PIN_RESET);   // SCL LOW (idle)
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9, GPIO_PIN_RESET);   // E2 LOW
+  HAL_GPIO_WritePin(OLED_SDA_GPIO_Port, OLED_SDA_Pin, GPIO_PIN_RESET);  // Data LOW
+  HAL_GPIO_WritePin(OLED_DC_GPIO_Port, OLED_DC_Pin, GPIO_PIN_RESET);    // DC LOW (command mode)
+  
+  dbg_print("Initial GPIO states set (SCL=LOW, SDA=LOW, DC=LOW)\r\n");
+  osDelay(100);
+  
+  // Inline send_byte function
+  void send_byte(uint8_t byte) {
+    for (uint8_t i = 0; i < 8; i++) {
+      // Set data bit
+      if (byte & 0x80) {
+        HAL_GPIO_WritePin(OLED_SDA_GPIO_Port, OLED_SDA_Pin, GPIO_PIN_SET);
+      } else {
+        HAL_GPIO_WritePin(OLED_SDA_GPIO_Port, OLED_SDA_Pin, GPIO_PIN_RESET);
+      }
+      
+      // Small delay for data setup
+      uint32_t start = DWT->CYCCNT;
+      while ((DWT->CYCCNT - start) < 20);
+      
+      // Clock HIGH (sample edge)
+      HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9, GPIO_PIN_SET);
+      
+      // Hold time
+      start = DWT->CYCCNT;
+      while ((DWT->CYCCNT - start) < 20);
+      
+      // Clock back to LOW
+      HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, GPIO_PIN_RESET);
+      HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9, GPIO_PIN_RESET);
+      
+      start = DWT->CYCCNT;
+      while ((DWT->CYCCNT - start) < 20);
+      
+      byte <<= 1;
+    }
+  }
+  
+  void send_cmd(uint8_t cmd) {
+    HAL_GPIO_WritePin(OLED_DC_GPIO_Port, OLED_DC_Pin, GPIO_PIN_RESET);
+    uint32_t start = DWT->CYCCNT;
+    while ((DWT->CYCCNT - start) < 10);
+    send_byte(cmd);
+  }
+  
+  void send_data_byte(uint8_t d) {
+    HAL_GPIO_WritePin(OLED_DC_GPIO_Port, OLED_DC_Pin, GPIO_PIN_SET);
+    uint32_t start = DWT->CYCCNT;
+    while ((DWT->CYCCNT - start) < 10);
+    send_byte(d);
+  }
+  
+  dbg_print("\r\nSending command sequence:\r\n");
+  
+  // 1. Unlock (0xFD 0x12)
+  dbg_print("  0xFD (unlock command)...\r\n");
+  send_cmd(0xFD);
+  dbg_print("  0x12 (unlock data)...\r\n");
+  send_data_byte(0x12);
+  osDelay(10);
+  
+  // 2. Display ON (0xAF)
+  dbg_print("  0xAF (display ON)...\r\n");
+  send_cmd(0xAF);
+  osDelay(10);
+  
+  // 3. All pixels ON - bypass GDDRAM (0xA5)
+  dbg_print("  0xA5 (all pixels ON - bypass RAM)...\r\n");
+  send_cmd(0xA5);
+  osDelay(100);
+  
+  dbg_print("\r\n");
+  dbg_print_separator();
+  dbg_print("=== Hardware Test Complete ===\r\n");
+  dbg_print("EXPECTED: Display should show ALL pixels lit (full white)\r\n");
+  dbg_print("If display is still blank:\r\n");
+  dbg_print("  - Check VCC (should be 3.3V stable)\r\n");
+  dbg_print("  - Check all wire connections\r\n");
+  dbg_print("  - Measure signals with logic analyzer\r\n");
+  dbg_print("  - Possible hardware issue with OLED module\r\n");
+  dbg_print_separator();
+  
+  return 0;
+}
+
+/**
  * @brief Test GPIO pin control for OLED
  * @return 0 on success, -1 on failure
  */
@@ -1727,16 +1833,27 @@ int module_test_oled_ssd1322_run(void)
   dbg_print("  Clock period:    >100 ns [OK: 200 ns]\r\n");
   dbg_print("  Max clock:       10 MHz  [OK: ~5 MHz]\r\n\r\n");
   
+  // Test 0: Minimal Hardware Test (bypass full init)
+  dbg_print("Step 0/4: MINIMAL Hardware Communication Test\r\n");
+  dbg_print("(Testing basic SPI with 3 simple commands)\r\n");
+  int minimal_result = module_test_oled_minimal_hardware();
+  if (minimal_result < 0) {
+    dbg_print("[ERROR] Minimal hardware test failed!\r\n");
+    return -1;
+  }
+  dbg_print("Waiting 5 seconds to observe display...\r\n");
+  osDelay(5000);
+  
   // Test 1: GPIO Control
-  dbg_print("Step 1/3: GPIO Control Test\r\n");
+  dbg_print("\r\nStep 1/4: GPIO Control Test\r\n");
   int result = module_test_oled_gpio_control();
   if (result < 0) {
     dbg_print("[ERROR] GPIO test failed!\r\n");
     return -1;
   }
   
-  // Test 2: OLED Initialization
-  dbg_print("Step 2/3: OLED Initialization\r\n");
+  // Test 2: OLED Full Initialization
+  dbg_print("Step 2/4: OLED Full Initialization\r\n");
   dbg_print("Calling oled_init()...\r\n");
   uint32_t start_time = HAL_GetTick();
   oled_init();
@@ -1750,9 +1867,9 @@ int module_test_oled_ssd1322_run(void)
   dbg_print("  - Gray fill on remaining rows\r\n");
   dbg_print("  - Pattern displayed for 1 second\r\n");
   dbg_print("  - Now display should be clear/blank\r\n\r\n");
-  
-  // Test 3: Display Patterns
-  dbg_print("Step 3/3: Display Pattern Tests\r\n");
+
+  // Test 3: Display Pattern Tests
+  dbg_print("Step 3/4: Display Pattern Tests\r\n");
   result = module_test_oled_display_patterns();
   if (result < 0) {
     dbg_print("[ERROR] Pattern test failed!\r\n");
@@ -1763,6 +1880,7 @@ int module_test_oled_ssd1322_run(void)
   dbg_print("=====================================\r\n");
   dbg_print("  TEST SUMMARY\r\n");
   dbg_print("=====================================\r\n");
+  dbg_print("Minimal HW Test:   [PASS]\r\n");
   dbg_print("GPIO Control:      [PASS]\r\n");
   dbg_print("OLED Init:         [COMPLETE]\r\n");
   dbg_print("Display Patterns:  [COMPLETE]\r\n");
