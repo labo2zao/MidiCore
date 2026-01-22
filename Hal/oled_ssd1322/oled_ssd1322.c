@@ -12,10 +12,10 @@ static uint8_t fb[OLED_W * OLED_H / 2] __attribute__((section(".ccmram")));
 // Software SPI bit-bang implementation (MIOS32 compatible)
 // CS is hardwired to GND, so no CS control needed
 //
-// CRITICAL: SPI Mode 0 (CPOL=0, CPHA=0)
-// - Clock idle = LOW
-// - Sample on rising edge (LOW→HIGH)
-// - Data MUST be stable BEFORE clock rises
+// CRITICAL: SPI Mode 3 (CPOL=1, CPHA=1) per SSD1322 Datasheet Section 8.1.3
+// - Clock idle = HIGH (CPOL=1)
+// - Sample on FALLING edge HIGH→LOW (CPHA=1, 2nd edge)
+// - Data MUST be stable BEFORE falling edge
 //
 // MIOS32 uses DUAL clock pins (E1=PC8, E2=PC9) for COM split mode
 #define SCL_LOW() do { \
@@ -30,27 +30,29 @@ static uint8_t fb[OLED_W * OLED_H / 2] __attribute__((section(".ccmram")));
 
 static inline void spi_write_byte(uint8_t byte) {
   for (uint8_t i = 0; i < 8; i++) {
-    // CRITICAL ORDER (from MIOS32):
-    // 1. Set data FIRST (must be stable before clock transition)
+    // CRITICAL ORDER (from MIOS32 + SSD1322 datasheet):
+    // 1. Set data FIRST (must be stable before falling edge)
     if (byte & 0x80) {
       HAL_GPIO_WritePin(OLED_SDA_GPIO_Port, OLED_SDA_Pin, GPIO_PIN_SET);
     } else {
       HAL_GPIO_WritePin(OLED_SDA_GPIO_Port, OLED_SDA_Pin, GPIO_PIN_RESET);
     }
     
-    // 2. Clock LOW (5× stretch like MIOS32)
+    // 2. Clock HIGH→LOW (falling edge) - SSD1322 SAMPLES HERE (CPHA=1)
+    //    5× stretch for data setup time
     SCL_LOW();
     __NOP(); __NOP(); __NOP(); __NOP(); __NOP();
     
-    // 3. Clock HIGH (3× stretch) - SSD1322 samples on rising edge
+    // 3. Clock LOW→HIGH (rising edge) - return to idle HIGH (CPOL=1)
+    //    3× stretch for hold time
     SCL_HIGH();
     __NOP(); __NOP(); __NOP();
     
     byte <<= 1;
   }
   
-  // Leave clock LOW (idle state for Mode 0)
-  SCL_LOW();
+  // Leave clock HIGH (idle state for Mode 3: CPOL=1)
+  SCL_HIGH();
 }
 
 // Low-level command transmission
@@ -80,9 +82,9 @@ static void cmd_data2(uint8_t c, uint8_t d1, uint8_t d2) {
 }
 
 void oled_init(void) {
-  // Initialize GPIO pins - CRITICAL: Set proper initial states for SPI Mode 0
-  // SPI Mode 0: CPOL=0 (clock idle LOW), CPHA=0 (sample on rising edge)
-  SCL_LOW();                                                             // Clock idle = LOW (Mode 0)
+  // Initialize GPIO pins - CRITICAL: Set proper initial states for SPI Mode 3
+  // SPI Mode 3: CPOL=1 (clock idle HIGH), CPHA=1 (sample on falling edge)
+  SCL_HIGH();                                                            // Clock idle = HIGH (Mode 3: CPOL=1)
   HAL_GPIO_WritePin(OLED_SDA_GPIO_Port, OLED_SDA_Pin, GPIO_PIN_RESET);  // Data low
   HAL_GPIO_WritePin(OLED_DC_GPIO_Port, OLED_DC_Pin, GPIO_PIN_SET);      // DC high (not in command mode)
 
