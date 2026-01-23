@@ -1338,7 +1338,11 @@ int module_test_patch_sd_run(void)
   dbg_print("==============================================\r\n");
   dbg_print("  MODULE_TEST_PATCH_SD - Comprehensive Test\r\n");
   dbg_print("==============================================\r\n");
-  dbg_print("UART Debug Verification: OK\r\n");
+  osDelay(100);
+  
+  // Verify UART is working
+  dbg_print("Initializing UART debug output...\r\n");
+  dbg_print("UART Debug Output: OK\r\n");
   dbg_print("\r\n");
   osDelay(100);
   
@@ -1372,6 +1376,7 @@ int module_test_patch_sd_run(void)
     dbg_print("              2) Card formatted FAT32\r\n");
     dbg_print("              3) Proper SPI connections\r\n");
     test_failed++;
+    // Jump to summary since remaining tests depend on SD card
     goto test_summary;
   }
   dbg_print("\r\n");
@@ -1461,8 +1466,10 @@ int module_test_patch_sd_run(void)
   dbg_print("--------------------------------------\r\n");
   
   // Set some test parameters
-  patch_set("TEST_PARAM_1", "123");
-  patch_set("TEST_PARAM_2", "456");
+  const char* TEST_VALUE_1 = "123";
+  const char* TEST_VALUE_2 = "456";
+  patch_set("TEST_PARAM_1", TEST_VALUE_1);
+  patch_set("TEST_PARAM_2", TEST_VALUE_2);
   
   // Save to a test file
   const char* test_config = "0:/test_config.ngc";
