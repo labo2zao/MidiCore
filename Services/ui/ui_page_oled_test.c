@@ -9,7 +9,7 @@ static uint8_t test_mode = 0; // 0=patterns, 1=grayscale, 2=pixels, 3=text, 4=an
 static uint32_t last_update = 0;
 static uint8_t anim_frame = 0;
 static int scroll_offset = 0;
-static int ball_x = 128;
+static int ball_x = OLED_W / 2;  // Center horizontally for better maintainability
 static int ball_y = 32;
 static int ball_dx = 2;
 static int ball_dy = 1;
@@ -178,8 +178,12 @@ void ui_page_oled_test_render(uint32_t ms) {
       for (int by = 0; by < 6; by++) {
         for (int bx = 0; bx < 6; bx++) {
           int dist_from_center = (bx - 3) * (bx - 3) + (by - 3) * (by - 3);
-          uint8_t brightness = (uint8_t)(15 - (dist_from_center / 2));
-          if (brightness > 15) brightness = 15;
+          uint8_t brightness;
+          if (dist_from_center / 2 > 15) {
+            brightness = 0;  // Too far from center, make it black
+          } else {
+            brightness = (uint8_t)(15 - (dist_from_center / 2));
+          }
           ui_gfx_pixel(ball_x + bx, ball_y + by, brightness);
         }
       }
@@ -242,11 +246,25 @@ void ui_page_oled_test_render(uint32_t ms) {
       ui_gfx_line(0, 38 + offset % 20, OLED_W - 1, 38 + (offset + 10) % 20, 10);
       ui_gfx_line(0, 50 + offset % 14, OLED_W - 1, 50 + (offset + 7) % 14, 8);
       
-      // Draw a rotating line from center
-      int angle_offset = (anim_frame * 5) % 360;
+      // Draw a rotating line from center (simplified approximation)
+      // Using simplified angle calculation for 4 cardinal directions
+      int angle_step = (anim_frame / 10) % 8;  // 8 steps for smoother rotation
       int line_len = 20;
-      int line_x = center_x + (line_len * ((angle_offset / 90) - 1));
-      int line_y = center_y + (line_len * (((angle_offset + 90) / 90) - 2)) / 2;
+      int line_x = center_x;
+      int line_y = center_y;
+      
+      // Simple 8-direction rotation using lookup
+      switch (angle_step) {
+        case 0: line_x += line_len; break;                    // East
+        case 1: line_x += line_len; line_y -= line_len; break; // NE
+        case 2: line_y -= line_len; break;                    // North
+        case 3: line_x -= line_len; line_y -= line_len; break; // NW
+        case 4: line_x -= line_len; break;                    // West
+        case 5: line_x -= line_len; line_y += line_len; break; // SW
+        case 6: line_y += line_len; break;                    // South
+        case 7: line_x += line_len; line_y += line_len; break; // SE
+      }
+      
       ui_gfx_line(center_x, center_y, line_x, line_y, 15);
       
       break;
@@ -276,14 +294,16 @@ void ui_page_oled_test_on_button(uint8_t id, uint8_t pressed) {
     // Reset animation state
     anim_frame = 0;
     scroll_offset = 0;
-    ball_x = 128; ball_y = 32;
+    ball_x = OLED_W / 2; 
+    ball_y = 32;
   } else if (id == 1) {
     // Button 1: Next test
     test_mode = (test_mode + 1) % 11; // Updated max test mode
     // Reset animation state
     anim_frame = 0;
     scroll_offset = 0;
-    ball_x = 128; ball_y = 32;
+    ball_x = OLED_W / 2; 
+    ball_y = 32;
   } else if (id == 2) {
     // Button 2: Clear screen test
     oled_clear();
@@ -308,7 +328,8 @@ void ui_page_oled_test_on_encoder(int8_t delta) {
     // Reset animation state
     anim_frame = 0;
     scroll_offset = 0;
-    ball_x = 128; ball_y = 32;
+    ball_x = OLED_W / 2; 
+    ball_y = 32;
   } else if (delta < 0) {
     if (test_mode > 0) {
       test_mode--;
@@ -318,6 +339,7 @@ void ui_page_oled_test_on_encoder(int8_t delta) {
     // Reset animation state
     anim_frame = 0;
     scroll_offset = 0;
-    ball_x = 128; ball_y = 32;
+    ball_x = OLED_W / 2; 
+    ball_y = 32;
   }
 }
