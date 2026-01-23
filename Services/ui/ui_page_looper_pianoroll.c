@@ -165,10 +165,13 @@ static int note_to_y(uint8_t note) {
 static void draw_header(void) {
   char line[64];
   looper_transport_t tp; looper_get_transport(&tp);
-  snprintf(line, sizeof(line), "PR T%u BPM:%u Z:%u %s",
+  
+  // Use 8×8 font for header
+  ui_gfx_set_font(UI_FONT_8X8);
+  snprintf(line, sizeof(line), "PIANO T%u BPM:%u Z:%u %s",
            (unsigned)(g_track+1), (unsigned)tp.bpm, (unsigned)g_zoom, g_edit?"EDIT":"NAV");
   ui_gfx_text(0, 0, line, 15);
-  ui_gfx_rect(0, 9, 256, 1, 4);
+  ui_gfx_hline(0, 11, 256, 8);
 }
 
 static void draw_grid(uint32_t base, uint32_t span) {
@@ -225,8 +228,9 @@ static void apply_zoom(void) {
 }
 
 static void draw_footer(void) {
-  if (!g_edit) ui_gfx_text(0, 56, "ENC:scroll  B1:trk  B2:zoom  B3:sel  B4:edit  B6:dup B7:^ B8:v B9:hum", 8);
-  else         ui_gfx_text(0, 56, "ENC:chg  B3:field  B4:apply  B2:cancel  B1:del", 8);
+  ui_gfx_set_font(UI_FONT_5X7);
+  if (!g_edit) ui_gfx_text(0, 56, "ENC:scroll B1:trk B2:zoom B3:sel B4:edit B6:dup B7:^ B8:v B9:hum", 10);
+  else         ui_gfx_text(0, 56, "ENC:chg B3:field B4:apply B2:cancel B1:del", 10);
 }
 
 static void select_nearest(void) {
