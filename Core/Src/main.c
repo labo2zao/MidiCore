@@ -28,6 +28,7 @@
 #include "App/app_entry.h"
 #include "Config/oled_pins.h"
 
+#include "App/tests/test_debug.h"  // For TEST_DEBUG_UART_BAUD configuration
 #include "App/tests/app_test_din_midi.h"
 #include "App/tests/app_test_ainser_midi.h"
 #include "App/tests/module_tests.h"
@@ -656,16 +657,17 @@ static void MX_USART2_UART_Init(void)
   huart2.Instance = USART2;
   
   /* USER CODE BEGIN USART2_BaudRate */
-  // When module tests are active, use 115200 for debug output
-  // Otherwise use 31250 for MIDI
-  #if defined(MODULE_TEST_AINSER64) || defined(MODULE_TEST_SRIO) || \
-      defined(MODULE_TEST_MIDI_DIN) || defined(MODULE_TEST_ROUTER) || \
-      defined(MODULE_TEST_LOOPER) || defined(MODULE_TEST_UI) || \
-      defined(MODULE_TEST_PATCH_SD) || defined(MODULE_TEST_PRESSURE) || \
-      defined(MODULE_TEST_USB_HOST_MIDI) || defined(MODULE_TEST_GDB_DEBUG)
-  huart2.Init.BaudRate = 115200;  // Debug baud rate for tests
+  // UART2 baud rate: Use TEST_DEBUG_UART_BAUD if test_debug.h is included,
+  // otherwise default to 31250 (MIDI)
+  // This ensures UART2 is at 115200 when any test using dbg_print() is active
+  #ifdef TEST_DEBUG_UART_BAUD
+    #if TEST_DEBUG_UART_PORT == 1
+      huart2.Init.BaudRate = TEST_DEBUG_UART_BAUD;  // Use configured debug baud rate (typically 115200)
+    #else
+      huart2.Init.BaudRate = 31250;   // UART2 used for MIDI, not debug
+    #endif
   #else
-  huart2.Init.BaudRate = 31250;   // MIDI baud rate for production
+    huart2.Init.BaudRate = 31250;   // Default MIDI baud rate for production
   #endif
   /* USER CODE END USART2_BaudRate */
   
@@ -763,11 +765,11 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOC, BANK_A_Pin|BANK_B_Pin|BANK_C_Pin|AIN_CS_Pin
-                          |OLED_SCL_Pin|OLED_RST_Pin|GPIO_PIN_7|GPIO_PIN_8
-                          |GPIO_PIN_9|GPIO_PIN_11, GPIO_PIN_RESET);
+                          |OLED_SCL_Pin|GPIO_PIN_7|GPIO_PIN_8
+                          |GPIO_PIN_9|OLED_SDA_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, MIOS_SPI0_RC1_Pin|OLED_CS_Pin|MIOS_SPI2_RC2_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, MIOS_SPI0_RC1_Pin|SRIO_DOUT_RCLK_Pin|MIOS_SPI2_RC2_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOD, MIOS_SPI1_RC2_Pin|MIOS_SPI0_RC2_Pin|GREEN_LED_Pin|ORANGE_LED_Pin
@@ -775,7 +777,7 @@ static void MX_GPIO_Init(void)
                           |MUX_S2_Pin|GPIO_PIN_6|GPIO_PIN_7, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8|SRIO_RC1_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, OLED_DC_Pin|SRIO_RC1_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(SRIO_RC2_GPIO_Port, SRIO_RC2_Pin, GPIO_PIN_RESET);
@@ -813,8 +815,8 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(User_Button_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : MIOS_SPI0_RC1_Pin OLED_CS_Pin MIOS_SPI2_RC2_Pin */
-  GPIO_InitStruct.Pin = MIOS_SPI0_RC1_Pin|OLED_CS_Pin|MIOS_SPI2_RC2_Pin;
+  /*Configure GPIO pins : MIOS_SPI0_RC1_Pin SRIO_DOUT_RCLK_Pin MIOS_SPI2_RC2_Pin */
+  GPIO_InitStruct.Pin = MIOS_SPI0_RC1_Pin|SRIO_DOUT_RCLK_Pin|MIOS_SPI2_RC2_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;

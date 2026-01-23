@@ -11,6 +11,10 @@
 #include <string.h>
 #include <stdbool.h>
 
+// UI framework for framebuffer-based testing
+#include "Services/ui/ui_page_oled_test.h"
+#include "Services/ui/ui_gfx.h"
+
 // Conditional includes for all modules that might be tested
 #if MODULE_ENABLE_AINSER64
 #include "Hal/spi_bus.h"
@@ -168,6 +172,8 @@ static const char* test_names[] = {
   "PATCH_SD",
   "PRESSURE",
   "USB_HOST_MIDI",
+  "USB_DEVICE_MIDI",
+  "OLED_SSD1322",
   "ALL"
 };
 
@@ -242,6 +248,8 @@ module_test_t module_tests_get_compile_time_selection(void)
 #elif defined(MODULE_TEST_USB_DEVICE_MIDI) || defined(APP_TEST_USB_MIDI)
   // Support both symbols: MODULE_TEST_* (framework style) and APP_TEST_* (legacy style)
   return MODULE_TEST_USB_DEVICE_MIDI_ID;
+#elif defined(MODULE_TEST_OLED_SSD1322)
+  return MODULE_TEST_OLED_SSD1322_ID;
 #elif defined(MODULE_TEST_ALL)
   return MODULE_TEST_ALL_ID;
 #else
@@ -302,6 +310,9 @@ int module_tests_run(module_test_t test)
     case MODULE_TEST_USB_DEVICE_MIDI_ID:
       module_test_usb_device_midi_run();
       break;
+      
+    case MODULE_TEST_OLED_SSD1322_ID:
+      return module_test_oled_ssd1322_run();
       
     case MODULE_TEST_ALL_ID:
       // Run all tests sequentially (where possible)
@@ -1527,5 +1538,415 @@ void module_test_usb_device_midi_run(void)
   dbg_print("Enable MODULE_ENABLE_USB_MIDI in Config/module_config.h\r\n");
   dbg_print_separator();
   for (;;) osDelay(1000);
+#endif
+}
+
+// =============================================================================
+// OLED SSD1322 TEST
+// =============================================================================
+
+#if MODULE_ENABLE_OLED
+#include "Hal/oled_ssd1322/oled_ssd1322.h"
+#include "Config/oled_pins.h"
+
+/**
+ * @brief Minimal hardware test - bypasses full init, tests basic SPI communication
+ * @return 0 on success, -1 on failure
+ */
+static int module_test_oled_minimal_hardware(void)
+{
+  dbg_print_separator();
+  dbg_print("=== MINIMAL OLED Hardware Test ===\r\n");
+  dbg_print("This test bypasses full initialization\r\n");
+  dbg_print("Commands: 0xFD 0x12 (unlock), 0xAF (display ON), 0xA5 (all pixels ON)\r\n");
+  dbg_print_separator();
+  
+  // Initialize DWT for precise timing
+  CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+  DWT->CYCCNT = 0;
+  DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
+  
+  // Set initial states (SPI Mode 0: clock idle LOW)
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, GPIO_PIN_RESET);   // SCL LOW (idle)
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9, GPIO_PIN_RESET);   // E2 LOW
+  HAL_GPIO_WritePin(OLED_SDA_GPIO_Port, OLED_SDA_Pin, GPIO_PIN_RESET);  // Data LOW
+  HAL_GPIO_WritePin(OLED_DC_GPIO_Port, OLED_DC_Pin, GPIO_PIN_RESET);    // DC LOW (command mode)
+  
+  dbg_print("Initial GPIO states set (SCL=LOW, SDA=LOW, DC=LOW)\r\n");
+  osDelay(100);
+  
+  // Inline send_byte function
+  void send_byte(uint8_t byte) {
+    for (uint8_t i = 0; i < 8; i++) {
+      // Set data bit
+      if (byte & 0x80) {
+        HAL_GPIO_WritePin(OLED_SDA_GPIO_Port, OLED_SDA_Pin, GPIO_PIN_SET);
+      } else {
+        HAL_GPIO_WritePin(OLED_SDA_GPIO_Port, OLED_SDA_Pin, GPIO_PIN_RESET);
+      }
+      
+      // Small delay for data setup
+      uint32_t start = DWT->CYCCNT;
+      while ((DWT->CYCCNT - start) < 20);
+      
+      // Clock HIGH (sample edge)
+      HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, GPIO_PIN_SET);
+      HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9, GPIO_PIN_SET);
+      
+      // Hold time
+      start = DWT->CYCCNT;
+      while ((DWT->CYCCNT - start) < 20);
+      
+      // Clock back to LOW
+      HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, GPIO_PIN_RESET);
+      HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9, GPIO_PIN_RESET);
+      
+      start = DWT->CYCCNT;
+      while ((DWT->CYCCNT - start) < 20);
+      
+      byte <<= 1;
+    }
+  }
+  
+  void send_cmd(uint8_t cmd) {
+    HAL_GPIO_WritePin(OLED_DC_GPIO_Port, OLED_DC_Pin, GPIO_PIN_RESET);
+    uint32_t start = DWT->CYCCNT;
+    while ((DWT->CYCCNT - start) < 10);
+    send_byte(cmd);
+  }
+  
+  void send_data_byte(uint8_t d) {
+    HAL_GPIO_WritePin(OLED_DC_GPIO_Port, OLED_DC_Pin, GPIO_PIN_SET);
+    uint32_t start = DWT->CYCCNT;
+    while ((DWT->CYCCNT - start) < 10);
+    send_byte(d);
+  }
+  
+  dbg_print("\r\nSending command sequence:\r\n");
+  
+  // 1. Unlock (0xFD 0x12)
+  dbg_print("  0xFD (unlock command)...\r\n");
+  send_cmd(0xFD);
+  dbg_print("  0x12 (unlock data)...\r\n");
+  send_data_byte(0x12);
+  osDelay(10);
+  
+  // 2. Display ON (0xAF)
+  dbg_print("  0xAF (display ON)...\r\n");
+  send_cmd(0xAF);
+  osDelay(10);
+  
+  // 3. All pixels ON - bypass GDDRAM (0xA5)
+  dbg_print("  0xA5 (all pixels ON - bypass RAM)...\r\n");
+  send_cmd(0xA5);
+  osDelay(100);
+  
+  dbg_print("\r\n");
+  dbg_print_separator();
+  dbg_print("=== Hardware Test Complete ===\r\n");
+  dbg_print("EXPECTED: Display should show ALL pixels lit (full white)\r\n");
+  dbg_print("If display is still blank:\r\n");
+  dbg_print("  - Check VCC (should be 3.3V stable)\r\n");
+  dbg_print("  - Check all wire connections\r\n");
+  dbg_print("  - Measure signals with logic analyzer\r\n");
+  dbg_print("  - Possible hardware issue with OLED module\r\n");
+  dbg_print_separator();
+  
+  return 0;
+}
+
+/**
+ * @brief Test GPIO pin control for OLED
+ * @return 0 on success, -1 on failure
+ */
+static int module_test_oled_gpio_control(void)
+{
+  dbg_print("=== GPIO Control Test ===\r\n");
+  
+  // Test PA8 (DC pin)
+  dbg_print("Testing PA8 (DC pin)...\r\n");
+  HAL_GPIO_WritePin(OLED_DC_GPIO_Port, OLED_DC_Pin, GPIO_PIN_RESET);
+  HAL_Delay(1);
+  uint8_t dc_low = HAL_GPIO_ReadPin(OLED_DC_GPIO_Port, OLED_DC_Pin);
+  
+  HAL_GPIO_WritePin(OLED_DC_GPIO_Port, OLED_DC_Pin, GPIO_PIN_SET);
+  HAL_Delay(1);
+  uint8_t dc_high = HAL_GPIO_ReadPin(OLED_DC_GPIO_Port, OLED_DC_Pin);
+  
+  dbg_printf("  PA8 LOW=%d, HIGH=%d ", dc_low, dc_high);
+  if (dc_low == 0 && dc_high == 1) {
+    dbg_print("[PASS]\r\n");
+  } else {
+    dbg_print("[FAIL]\r\n");
+    return -1;
+  }
+  
+  // Test PC8 (Clock pin 1)
+  dbg_print("Testing PC8 (SCL/E1 pin)...\r\n");
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, GPIO_PIN_RESET);
+  HAL_Delay(1);
+  uint8_t clk1_low = HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_8);
+  
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, GPIO_PIN_SET);
+  HAL_Delay(1);
+  uint8_t clk1_high = HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_8);
+  
+  dbg_printf("  PC8 LOW=%d, HIGH=%d ", clk1_low, clk1_high);
+  if (clk1_low == 0 && clk1_high == 1) {
+    dbg_print("[PASS]\r\n");
+  } else {
+    dbg_print("[FAIL]\r\n");
+    return -1;
+  }
+  
+  // Test PC9 (Clock pin 2)
+  dbg_print("Testing PC9 (E2 pin)...\r\n");
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9, GPIO_PIN_RESET);
+  HAL_Delay(1);
+  uint8_t clk2_low = HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_9);
+  
+  HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9, GPIO_PIN_SET);
+  HAL_Delay(1);
+  uint8_t clk2_high = HAL_GPIO_ReadPin(GPIOC, GPIO_PIN_9);
+  
+  dbg_printf("  PC9 LOW=%d, HIGH=%d ", clk2_low, clk2_high);
+  if (clk2_low == 0 && clk2_high == 1) {
+    dbg_print("[PASS]\r\n");
+  } else {
+    dbg_print("[FAIL]\r\n");
+    return -1;
+  }
+  
+  // Test PC11 (Data pin)
+  dbg_print("Testing PC11 (SDA pin)...\r\n");
+  HAL_GPIO_WritePin(OLED_SDA_GPIO_Port, OLED_SDA_Pin, GPIO_PIN_RESET);
+  HAL_Delay(1);
+  uint8_t sda_low = HAL_GPIO_ReadPin(OLED_SDA_GPIO_Port, OLED_SDA_Pin);
+  
+  HAL_GPIO_WritePin(OLED_SDA_GPIO_Port, OLED_SDA_Pin, GPIO_PIN_SET);
+  HAL_Delay(1);
+  uint8_t sda_high = HAL_GPIO_ReadPin(OLED_SDA_GPIO_Port, OLED_SDA_Pin);
+  
+  dbg_printf("  PC11 LOW=%d, HIGH=%d ", sda_low, sda_high);
+  if (sda_low == 0 && sda_high == 1) {
+    dbg_print("[PASS]\r\n");
+  } else {
+    dbg_print("[FAIL]\r\n");
+    return -1;
+  }
+  
+  dbg_print("GPIO Control Test: [PASS]\r\n\r\n");
+  return 0;
+}
+
+/**
+ * @brief Display test patterns on OLED
+ * @return 0 on success
+ */
+static int module_test_oled_display_patterns(void)
+{
+  dbg_print("=== Display Pattern Tests ===\r\n");
+  uint8_t *fb = oled_framebuffer();
+  
+  // Test 1: All white
+  dbg_print("Test 1: All WHITE (2 seconds)...\r\n");
+  memset(fb, 0xFF, 8192);
+  oled_flush();
+  osDelay(2000);
+  
+  // Test 2: All black
+  dbg_print("Test 2: All BLACK (2 seconds)...\r\n");
+  memset(fb, 0x00, 8192);
+  oled_flush();
+  osDelay(2000);
+  
+  // Test 3: Checkerboard
+  dbg_print("Test 3: CHECKERBOARD (2 seconds)...\r\n");
+  for (int i = 0; i < 8192; i++) {
+    fb[i] = (i & 1) ? 0xFF : 0x00;
+  }
+  oled_flush();
+  osDelay(2000);
+  
+  // Test 4: Horizontal stripes
+  dbg_print("Test 4: HORIZONTAL STRIPES (2 seconds)...\r\n");
+  for (int row = 0; row < 64; row++) {
+    uint8_t value = (row & 4) ? 0xFF : 0x00;
+    memset(&fb[row * 128], value, 128);
+  }
+  oled_flush();
+  osDelay(2000);
+  
+  // Test 5: Grayscale gradient
+  dbg_print("Test 5: GRAYSCALE GRADIENT (2 seconds)...\r\n");
+  for (int row = 0; row < 64; row++) {
+    uint8_t gray = (row * 4) & 0xFF;
+    memset(&fb[row * 128], gray, 128);
+  }
+  oled_flush();
+  osDelay(2000);
+  
+  // Clear display
+  dbg_print("Clearing display...\r\n");
+  oled_clear();
+  oled_flush();
+  
+  dbg_print("Display Pattern Tests: [COMPLETE]\r\n\r\n");
+  return 0;
+}
+#endif
+
+int module_test_oled_ssd1322_run(void)
+{
+#if MODULE_ENABLE_OLED
+  dbg_print("\r\n");
+  dbg_print("=====================================\r\n");
+  dbg_print("  MIOS32 SSD1322 Test (Simplified)\r\n");
+  dbg_print("=====================================\r\n");
+  dbg_print("Based on: midibox/mios32/apps/mios32_test/app_lcd/ssd1322\r\n");
+  dbg_print("Target: STM32F407 @ 168 MHz\r\n");
+  dbg_print("Display: SSD1322 256x64 OLED\r\n\r\n");
+  
+  dbg_print("Pin Mapping:\r\n");
+  dbg_print("  PA8  = DC  (Data/Command)\r\n");
+  dbg_print("  PC8  = SCL (Clock 1)\r\n");
+  dbg_print("  PC9  = SCL (Clock 2, dual COM)\r\n");
+  dbg_print("  PC11 = SDA (Data)\r\n");
+  dbg_print("  CS#  = GND (hardwired)\r\n\r\n");
+  
+  // Comprehensive OLED test suite with BOTH init methods
+  dbg_print("=== COMPREHENSIVE OLED TEST SUITE ===\r\n\r\n");
+  
+  dbg_print("Choose initialization method:\r\n");
+  dbg_print("  1. Simple MIOS32 test init (basic, proven working)\r\n");
+  dbg_print("  2. Complete Newhaven NHD-3.12 init (LoopA production)\r\n\r\n");
+  
+  // Use Newhaven init by default (LoopA production code)
+  #define USE_NEWHAVEN_INIT 1
+  
+  dbg_print("Step 1: Initialize OLED...\r\n");
+  
+  #if USE_NEWHAVEN_INIT
+    dbg_print("Using: Complete Newhaven NHD-3.12 initialization\r\n");
+    dbg_print("  - Display Clock: 80 Frames/Sec (0x91)\r\n");
+    dbg_print("  - Custom gray scale table\r\n");
+    dbg_print("  - Display enhancement enabled\r\n");
+    dbg_print("  - Pre-charge voltage: 0.60*VCC\r\n\r\n");
+    oled_init_newhaven();
+  #else
+    dbg_print("Using: Simple MIOS32 test initialization\r\n");
+    dbg_print("  - Display Clock: ~58 Frames/Sec (divider=0, freq=12)\r\n");
+    dbg_print("  - Linear gray scale table\r\n");
+    dbg_print("  - Basic settings only\r\n\r\n");
+    oled_init();
+  #endif
+  
+  dbg_print("[OK] Init complete\r\n\r\n");
+  
+  // Array of test functions and their descriptions
+  typedef struct {
+    void (*test_func)(void);
+    const char* name;
+    const char* description;
+  } oled_test_t;
+  
+  const oled_test_t tests[] = {
+    {oled_test_mios32_pattern, "MIOS32 Pattern", "Gradient (left) + White (right) - MIOS32 original test"},
+    {oled_test_checkerboard,   "Checkerboard",   "Alternating black/white squares - pixel uniformity test"},
+    {oled_test_h_gradient,     "H-Gradient",     "Horizontal gradient from black to white"},
+    {oled_test_v_gradient,     "V-Gradient",     "Vertical gradient from black to white"},
+    {oled_test_gray_levels,    "Gray Levels",    "All 16 grayscale levels as vertical bars"},
+    {oled_test_rectangles,     "Rectangles",     "Concentric rectangles - geometric pattern"},
+    {oled_test_stripes,        "Diagonal Stripes", "Diagonal stripe pattern"},
+    {oled_test_voxel_landscape, "Voxel Landscape", "Simple 3D terrain visualization (voxelspace)"},
+    {oled_test_text_pattern,   "Text Pattern",   "Simulated text rendering pattern"},
+  };
+  
+  const uint8_t num_tests = sizeof(tests) / sizeof(tests[0]);
+  
+  dbg_printf("Step 2: Running %d visual tests...\r\n", num_tests);
+  dbg_print("Each test displays for 3 seconds\r\n");
+  dbg_print("Watch the OLED display!\r\n\r\n");
+  
+  // Run all tests in sequence
+  for (uint8_t i = 0; i < num_tests; i++) {
+    dbg_printf("Test %d/%d: %s\r\n", i+1, num_tests, tests[i].name);
+    dbg_printf("  %s\r\n", tests[i].description);
+    
+    // Render the test pattern
+    tests[i].test_func();
+    
+    dbg_print("  [OK] Pattern rendered\r\n\r\n");
+    
+    // Display for 3 seconds
+    osDelay(3000);
+  }
+  
+  dbg_print("=== ALL DIRECT PATTERN TESTS COMPLETE ===\r\n\r\n");
+  
+  // ============================================================================
+  // Step 3: UI Page Test (Framebuffer-based rendering)
+  // ============================================================================
+  dbg_print("Step 3: UI Page Test (Framebuffer + Graphics API)\r\n");
+  dbg_print("===============================================\r\n");
+  dbg_print("This test demonstrates the production UI framework:\r\n");
+  dbg_print("  - Framebuffer-based rendering\r\n");
+  dbg_print("  - Graphics primitives (text, lines, rectangles, pixels)\r\n");
+  dbg_print("  - Multiple test modes (use encoder/buttons to switch)\r\n");
+  dbg_print("  - Real-time updates with millisecond counter\r\n\r\n");
+  
+  dbg_print("Available UI test modes:\r\n");
+  dbg_print("  Mode 0: Pattern Test - Stripes and checkerboard\r\n");
+  dbg_print("  Mode 1: Grayscale Test - All 16 levels with labels\r\n");
+  dbg_print("  Mode 2: Pixel Test - Individual pixel grid\r\n");
+  dbg_print("  Mode 3: Text Test - Font rendering (different sizes)\r\n");
+  dbg_print("  Mode 4: Animation Test - Moving bar and pulsing square\r\n");
+  dbg_print("  Mode 5: Hardware Info - Display specifications\r\n");
+  dbg_print("  Mode 6: Direct Framebuffer - Raw buffer manipulation\r\n\r\n");
+  
+  dbg_print("NOTE: Encoder/button control not available in test mode.\r\n");
+  dbg_print("      Modes will cycle automatically.\r\n\r\n");
+  
+  // Initialize UI graphics with OLED framebuffer
+  uint8_t* fb = oled_framebuffer();
+  ui_gfx_set_fb(fb, OLED_W, OLED_H);
+  
+  dbg_print("Starting UI page test loop...\r\n");
+  dbg_print("Each mode displays for 5 seconds before cycling.\r\n");
+  dbg_print("Watch the OLED display!\r\n\r\n");
+  
+  // Continuous loop through UI test modes
+  uint32_t loop_count = 0;
+  uint32_t mode_start_time = 0;
+  const uint32_t mode_duration_ms = 5000;  // 5 seconds per mode
+  
+  while(1) {
+    uint32_t current_time = osKernelGetTickCount();
+    
+    // Cycle through modes every 5 seconds
+    if (current_time - mode_start_time >= mode_duration_ms) {
+      mode_start_time = current_time;
+      loop_count++;
+      
+      // Simulate encoder to cycle through modes (0-6)
+      ui_page_oled_test_on_encoder(1);  // Next mode
+      
+      dbg_printf("--- Loop #%lu: Switching to next test mode ---\r\n", loop_count);
+    }
+    
+    // Render the current UI page
+    ui_page_oled_test_render(current_time);
+    
+    // Flush framebuffer to display
+    oled_flush();
+    
+    // Small delay for smooth animation (16ms = ~60 FPS)
+    osDelay(16);
+  }
+  
+  return 0;
+#else
+  dbg_print("OLED is not enabled in module_config.h\r\n");
+  return -1;
 #endif
 }

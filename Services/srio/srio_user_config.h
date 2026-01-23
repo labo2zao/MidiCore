@@ -8,7 +8,7 @@
 // IMPORTANT: MIOS32 SPI numbering is different from STM32 SPI numbering!
 // SRIO uses MIOS32_SPI1 which maps to:
 //   - SPI2 for SCK/MISO/MOSI: PB13(SCK) PB14(MISO) PB15(MOSI)
-//   - RC1 (74HC595 RCLK for DOUT): PB12 (OLED_CS_Pin in main.h - rename OLED_CS in CubeMX for actual SSD display)
+//   - RC1 (74HC595 RCLK for DOUT): PB12 (SRIO_DOUT_RCLK_Pin in main.h)
 //   - RC2 (74HC165 /PL for DIN): PD10 (MIOS_SPI1_RC2_Pin in main.h)
 //
 // This is different from AINSER64 which uses MIOS32_SPI0 (STM32 SPI3, RC=PA14)
@@ -61,8 +61,8 @@ extern SPI_HandleTypeDef hspi2;
 #else
 #define SRIO_DIN_PL_PORT MIOS_SPI1_RC2_GPIO_Port
 #define SRIO_DIN_PL_PIN  MIOS_SPI1_RC2_Pin
-#define SRIO_DOUT_RCLK_PORT OLED_CS_GPIO_Port
-#define SRIO_DOUT_RCLK_PIN  OLED_CS_Pin
+#define SRIO_DOUT_RCLK_PORT SRIO_DOUT_RCLK_GPIO_Port
+#define SRIO_DOUT_RCLK_PIN  SRIO_DOUT_RCLK_Pin
 #endif
 
 // 64 inputs / 64 outputs by default (8 bytes each)
