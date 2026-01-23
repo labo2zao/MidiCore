@@ -4,7 +4,7 @@ Comprehensive guide to the enhanced OLED SSD1322 test page features in MidiCore.
 
 ## Overview
 
-The OLED test page provides 11 different test modes to validate display functionality, performance, and visual quality. This is useful for:
+The OLED test page provides 15 different test modes to validate display functionality, performance, and visual quality. This is useful for:
 - Verifying OLED driver implementation
 - Testing display hardware
 - Debugging rendering issues
@@ -196,12 +196,98 @@ Tests advanced geometry rendering with circles and lines.
 - Update interval: 100ms
 - 3 animated circles with different radii
 
+### Mode 11: Bitmap Test ✨ NEW
+Tests bitmap/image rendering capabilities with graphical demo.
+
+**Features**:
+- Smiley face rendered using circles and pixels
+- Demonstrates combining primitives for complex graphics
+- Simple bitmap graphics example
+
+**Use Cases**:
+- Verify bitmap rendering capability
+- Test combining multiple drawing primitives
+- Demonstrate image-like graphics
+- Prototype icon/logo display
+
+**Technical Details**:
+- Uses ui_gfx_circle() for face and eyes
+- Parabolic curve approximation for smile
+- Centered at display midpoint
+
+### Mode 12: Fill Patterns ✨ NEW
+Tests various fill patterns with automatic cycling.
+
+**Features**:
+- 4 different fill patterns (cycles every 500ms)
+- Pattern 1: Dots (varied brightness based on position)
+- Pattern 2: Dither (checkerboard black/white)
+- Pattern 3: Waves (diagonal gradient waves)
+- Pattern 4: Grid (8×8 pixel grid lines)
+- Pattern counter display
+
+**Use Cases**:
+- Test fill algorithms
+- Verify pixel uniformity across patterns
+- Check pattern rendering performance
+- Demonstrate texture/background effects
+
+**Technical Details**:
+- Update interval: 500ms per pattern
+- Auto-cycles through 4 patterns
+- Uses mathematical formulas for procedural patterns
+
+### Mode 13: Stress Test ✨ NEW
+Maximum graphics throughput stress test with 18 animated elements.
+
+**Features**:
+- 10 moving rectangles at different speeds
+- 3 expanding circles with varying radii
+- 5 diagonal scrolling lines
+- Real-time element count display
+- Target frame rate: 60 FPS
+
+**Use Cases**:
+- Benchmark maximum graphics performance
+- Test system under heavy rendering load
+- Identify performance bottlenecks
+- Verify display can handle complex scenes
+
+**Technical Details**:
+- Update interval: 16ms (~60 FPS target)
+- 18 simultaneous animated elements
+- Tests rectangles, circles, and lines together
+- Measures actual vs target FPS
+
+### Mode 14: Auto-Cycle Demo ✨ NEW
+Automatically cycles through all test modes for demonstrations.
+
+**Features**:
+- 3-second dwell time per mode
+- Visual progress bar showing time remaining
+- Countdown timer in milliseconds
+- Exits on any button press or encoder rotation
+- Cycles modes 0-13 automatically
+
+**Use Cases**:
+- Unattended demonstration mode
+- Trade show/exhibition displays
+- Automated testing sequence
+- Quick overview of all features
+
+**Technical Details**:
+- 3000ms cycle interval
+- Progress bar width: proportional to time elapsed
+- Automatically skips self (mode 14) in cycle
+- Resets animation state on each mode change
+
 ## Navigation
 
 ### Encoder Control
-- **Rotate Right**: Next test mode (0 → 1 → 2 → ... → 10 → 0)
-- **Rotate Left**: Previous test mode (0 → 10 → 9 → ... → 1 → 0)
+- **Rotate Right**: Next test mode (0 → 1 → 2 → ... → 14 → 0)
+- **Rotate Left**: Previous test mode (0 → 14 → 13 → ... → 1 → 0)
 - Animation state resets on mode change
+- Exits auto-cycle mode (14) immediately
 
 ### Button Controls
 - **Button 0**: Previous test mode
@@ -210,12 +296,13 @@ Tests advanced geometry rendering with circles and lines.
 - **Button 3**: Fill screen white (all pixels max brightness)
 - **Button 4**: Clear screen (same as button 2)
 - **Button 5**: Reset FPS counter ✨ NEW
+- **Any button in Mode 14**: Exit auto-cycle and return to mode 0
 
 ## Status Display
 
 ### Header Information
 Always displayed at the top of the screen:
-- Current test mode number (0-10)
+- Current test mode number (0-14)
 - Instruction: "Use ENC" (rotate encoder to change modes)
 
 ### Footer Information ✨ NEW
@@ -226,9 +313,11 @@ Always displayed at the top right:
 ## Performance Metrics
 
 ### Expected Frame Rates
-- **Static Modes** (0-3, 5-6): 60 FPS
-- **Animation Modes** (4, 7-10): 30-50 FPS
-- **Stress Test** (Mode 9): 20-40 FPS
+- **Static Modes** (0-3, 5-6, 11): 60 FPS
+- **Animation Modes** (4, 7-10, 12): 30-50 FPS
+- **Performance Test** (Mode 9): 20-40 FPS
+- **Stress Test** (Mode 13): 40-60 FPS
+- **Auto-Cycle** (Mode 14): Varies by current mode
 
 ### Performance Factors
 Frame rate is affected by:
@@ -347,39 +436,44 @@ Approximate CPU usage per mode:
 | 8    | 30ms           | 30-40        |
 | 9    | 20ms           | 20-30        |
 | 10   | 100ms          | 30-40        |
+| 11   | N/A (static)   | 60           |
+| 12   | 500ms          | 30-40        |
+| 13   | 16ms           | 40-60        |
+| 14   | 3000ms         | Varies       |
 
 ## Use Cases
 
 ### Development Testing
 1. **Initial Hardware Bring-Up**: Use Mode 0-2 to verify basic display function
 2. **Driver Development**: Use Mode 6 to test direct framebuffer access
-3. **Performance Tuning**: Use Mode 9 to benchmark optimizations
-4. **Graphics Library**: Use Mode 10 to test new drawing functions
+3. **Performance Tuning**: Use Modes 9 and 13 to benchmark optimizations
+4. **Graphics Library**: Use Modes 10 and 11 to test new drawing functions
 
 ### Quality Assurance
 1. **Manufacturing Test**: Run all modes to verify display quality
-2. **Burn-In Test**: Leave Mode 4 or 9 running for extended period
+2. **Burn-In Test**: Leave Mode 4, 9, or 13 running for extended period
 3. **Pixel Defect Check**: Use Mode 2 with all brightness levels
 4. **Grayscale Calibration**: Use Mode 1 to verify gray levels
+5. **Automated Testing**: Use Mode 14 for hands-free testing cycle
 
 ### Demonstration
-1. **Customer Demo**: Show capabilities with Mode 8 and 10
-2. **Trade Show**: Use Mode 7 for scrolling company name
-3. **Technical Presentation**: Use Mode 9 to show performance metrics
-4. **Feature Showcase**: Cycle through all modes automatically
+1. **Customer Demo**: Show capabilities with Modes 8, 10, and 11
+2. **Trade Show**: Use Mode 14 for automatic continuous demo
+3. **Technical Presentation**: Use Modes 9 and 13 to show performance metrics
+4. **Feature Showcase**: Mode 14 automatically cycles through all modes
 
 ## Future Enhancements
 
 Potential additions for future versions:
-- [ ] Bitmap image display test
-- [ ] Custom pattern upload
-- [ ] Automatic mode cycling
-- [ ] Screen burn-in prevention mode
+- [x] Bitmap image display test (Mode 11 ✅)
+- [ ] Custom pattern upload via SD card
+- [x] Automatic mode cycling (Mode 14 ✅)
+- [ ] Screen burn-in prevention mode with moving patterns
 - [ ] Touch/gesture testing (if hardware supports)
 - [ ] Color test mode (for future RGB displays)
 - [ ] QR code rendering test
-- [ ] Font size variations
-- [ ] 3D wireframe rendering
+- [ ] Font size variations (small/medium/large)
+- [ ] 3D wireframe cube rendering
 - [ ] Video playback test (frame buffering)
 
 ## Related Documentation
@@ -398,7 +492,8 @@ Potential additions for future versions:
 
 ---
 
-**Document Version**: 1.0  
+**Document Version**: 2.0  
 **Last Updated**: 2026-01-23  
 **Feature Status**: ✅ Production Ready  
+**Test Modes**: 15 (expanded from 11)  
 **Tested On**: STM32F407VGT6 with SSD1322 256×64 OLED
