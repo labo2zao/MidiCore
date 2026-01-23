@@ -1296,8 +1296,17 @@ void module_test_ui_run(void)
     dbg_print("] ");
     dbg_print(page_names[page]);
     
+    // Clear framebuffer before switching pages to prevent text overlay/ghosting
+    oled_clear();
+    
     ui_set_page((ui_page_t)page);
-    ui_tick_20ms(); // Force UI update
+    
+    // Render page multiple times with proper 20ms delays
+    // This allows animations to work and ensures proper flushing
+    for (uint8_t i = 0; i < 150; i++) {  // 150 * 20ms = 3 seconds per page
+      ui_tick_20ms(); // Updates g_ms, renders, flushes every 100ms
+      osDelay(20);    // Actual 20ms delay
+    }
     
     // Verify page was set correctly
     if (ui_get_page() == (ui_page_t)page) {
@@ -1305,8 +1314,6 @@ void module_test_ui_run(void)
     } else {
       dbg_print(" - FAILED (page mismatch)\r\n");
     }
-    
-    osDelay(3000); // 3 seconds per page
   }
   dbg_print("[Phase 2] Complete - All pages tested via direct navigation\r\n\r\n");
   
@@ -1328,17 +1335,30 @@ void module_test_ui_run(void)
   nav_cycles = 11; // One less without HUMANIZER page
 #endif
   
+  // Clear screen before starting button navigation test
+  oled_clear();
+  
   for (uint8_t i = 0; i < nav_cycles; i++) {
     ui_page_t page_before = ui_get_page();
     
+    // Clear before button press to prevent ghosting
+    oled_clear();
+    
     // Simulate button 5 press (pressed)
     ui_on_button(5, 1);
-    ui_tick_20ms();
-    osDelay(50);
+    for (uint8_t j = 0; j < 5; j++) {
+      ui_tick_20ms();
+      osDelay(20);
+    }
     
     // Simulate button 5 release
     ui_on_button(5, 0);
-    ui_tick_20ms();
+    
+    // Let page render properly
+    for (uint8_t j = 0; j < 50; j++) {  // 1 second per page
+      ui_tick_20ms();
+      osDelay(20);
+    }
     
     ui_page_t page_after = ui_get_page();
     
