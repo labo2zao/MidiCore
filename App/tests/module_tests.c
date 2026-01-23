@@ -1430,8 +1430,15 @@ void module_test_router_run(void)
     
     // Periodic status update every 30 seconds
     if (tick_counter % 30 == 0) {
+      // Recalculate active route count
+      uint8_t active_routes = 0;
+      for (uint8_t in = 0; in < ROUTER_NUM_NODES; in++) {
+        for (uint8_t out = 0; out < ROUTER_NUM_NODES; out++) {
+          if (router_get_route(in, out)) active_routes++;
+        }
+      }
       dbg_printf("[%lu min] Router running, %d active routes\r\n", 
-                 tick_counter / 60, route_count);
+                 tick_counter / 60, active_routes);
     }
   }
   
