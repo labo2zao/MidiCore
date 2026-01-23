@@ -5,7 +5,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-static uint8_t test_mode = 0; // 0=patterns, 1=grayscale, 2=pixels, 3=text, 4=animations, 5=hardware info, 6=framebuffer, 7=scrolling text, 8=bouncing ball, 9=performance, 10=circles, 11=bitmap, 12=fill patterns, 13=stress test, 14=auto-cycle, 15=burn-in prevention, 16=stats display, 17=3D wireframe, 18=advanced graphics, 19=UI elements demo
+static uint8_t test_mode = 0; // 0=patterns, 1=grayscale, 2=pixels, 3=text, 4=animations, 5=hardware info, 6=framebuffer, 7=scrolling text, 8=bouncing ball, 9=performance, 10=circles, 11=bitmap, 12=fill patterns, 13=stress test, 14=auto-cycle, 15=burn-in prevention, 16=stats display, 17=3D wireframe, 18=advanced graphics, 19=UI elements demo, 20-27=hardware tests
 static uint32_t last_update = 0;
 static uint8_t anim_frame = 0;
 static int scroll_offset = 0;
@@ -426,7 +426,7 @@ void ui_page_oled_test_render(uint32_t ms) {
       if (ms - auto_cycle_timer > 3000) {
         // Cycle to next mode (skip auto-cycle mode itself)
         uint8_t next_mode = (test_mode + 1);
-        if (next_mode >= 20) next_mode = 0;  // Wrap around after mode 19
+        if (next_mode >= 28) next_mode = 0;  // Wrap around after mode 27 (28 modes total)
         if (next_mode == 14) next_mode = 15;  // Skip auto-cycle mode itself
         test_mode = next_mode;
         auto_cycle_timer = ms;
@@ -676,6 +676,62 @@ void ui_page_oled_test_render(uint32_t ms) {
       break;
     }
     
+    case 20: { // HW Test: MIOS32 Pattern
+      ui_gfx_text(0, 26, "HW: MIOS32 Pattern", 15);
+      oled_test_mios32_pattern();
+      ui_gfx_text(0, 2, "Hardware test - gradient + white", 10);
+      return; // Skip footer, hardware test overwrites everything
+    }
+    
+    case 21: { // HW Test: Checkerboard
+      ui_gfx_text(0, 26, "HW: Checkerboard", 15);
+      oled_test_checkerboard();
+      ui_gfx_text(0, 2, "Hardware test - pixel uniformity", 10);
+      return; // Skip footer
+    }
+    
+    case 22: { // HW Test: Horizontal Gradient
+      ui_gfx_text(0, 26, "HW: H Gradient", 15);
+      oled_test_h_gradient();
+      ui_gfx_text(0, 2, "Hardware test - left=black, right=white", 10);
+      return; // Skip footer
+    }
+    
+    case 23: { // HW Test: Vertical Gradient
+      ui_gfx_text(0, 26, "HW: V Gradient", 15);
+      oled_test_v_gradient();
+      ui_gfx_text(0, 2, "Hardware test - top=black, bottom=white", 10);
+      return; // Skip footer
+    }
+    
+    case 24: { // HW Test: Rectangles
+      ui_gfx_text(0, 26, "HW: Rectangles", 15);
+      oled_test_rectangles();
+      ui_gfx_text(0, 2, "Hardware test - concentric patterns", 10);
+      return; // Skip footer
+    }
+    
+    case 25: { // HW Test: Stripes
+      ui_gfx_text(0, 26, "HW: Stripes", 15);
+      oled_test_stripes();
+      ui_gfx_text(0, 2, "Hardware test - diagonal stripes", 10);
+      return; // Skip footer
+    }
+    
+    case 26: { // HW Test: Voxel Landscape
+      ui_gfx_text(0, 26, "HW: Voxel Landscape", 15);
+      oled_test_voxel_landscape();
+      ui_gfx_text(0, 2, "Hardware test - 3D terrain viz", 10);
+      return; // Skip footer
+    }
+    
+    case 27: { // HW Test: Gray Levels
+      ui_gfx_text(0, 26, "HW: Gray Levels", 15);
+      oled_test_gray_levels();
+      ui_gfx_text(0, 2, "Hardware test - 16 grayscale levels", 10);
+      return; // Skip footer
+    }
+    
     default:
       test_mode = 0;
       break;
@@ -703,7 +759,7 @@ void ui_page_oled_test_on_button(uint8_t id, uint8_t pressed) {
     if (test_mode > 0) {
       test_mode--;
     } else {
-      test_mode = 19; // Updated max test mode
+      test_mode = 27; // Updated max test mode (0-27 = 28 modes)
     }
     // Reset animation state
     anim_frame = 0;
@@ -713,7 +769,7 @@ void ui_page_oled_test_on_button(uint8_t id, uint8_t pressed) {
     auto_cycle_timer = 0;
   } else if (id == 1) {
     // Button 1: Next test
-    test_mode = (test_mode + 1) % 20; // Updated max test mode
+    test_mode = (test_mode + 1) % 28; // Updated max test mode (28 modes total)
     // Reset animation state
     anim_frame = 0;
     scroll_offset = 0;
@@ -752,7 +808,7 @@ void ui_page_oled_test_on_encoder(int8_t delta) {
   }
   
   if (delta > 0) {
-    test_mode = (test_mode + 1) % 20; // Updated max test mode
+    test_mode = (test_mode + 1) % 28; // Updated max test mode (28 modes total)
     // Reset animation state
     anim_frame = 0;
     scroll_offset = 0;
@@ -763,7 +819,7 @@ void ui_page_oled_test_on_encoder(int8_t delta) {
     if (test_mode > 0) {
       test_mode--;
     } else {
-      test_mode = 19; // Updated max test mode
+      test_mode = 27; // Updated max test mode (0-27 = 28 modes)
     }
     // Reset animation state
     anim_frame = 0;
