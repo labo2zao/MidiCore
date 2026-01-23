@@ -264,12 +264,12 @@ void module_test_router_run(void);
  *     - Record different patterns on tracks 1-3
  *     - Test multi-track mute/solo
  *     - Validate all tracks playing together
+ * 
+ * **Phase 12-17: Advanced Testing**
  * 12. **Test save/load to SD card**
  *     - Save track to file
  *     - Clear and reload track
  *     - Verify event restoration
- * 
- * **Phase 12-17: Advanced Testing**
  * 13. **Test scene chaining**
  *     - Configure scene chain (0→1→2→0)
  *     - Test automatic scene transitions
@@ -293,14 +293,15 @@ void module_test_router_run(void);
  *     - Event export performance
  *     - State transition latency
  *     - Scene operation timing
+ * 
+ * **Phase 18: Humanizer/LFO Validation & Continuous Monitor**
  * 18. **Test humanizer/LFO validation**
  *     - Record identical notes
  *     - Apply humanization and compare
  *     - Validate velocity/timing variations
  *     - Test LFO configuration and BPM sync
  * 
- * **Phase 18: Continuous Monitor**
- * After automated tests, enters continuous monitoring mode that:
+ * After phase 18, enters continuous monitoring mode that:
  * - Allows live MIDI recording/playback via DIN IN or USB
  * - Prints status updates every 30 seconds
  * - Shows track states, event counts, mute/solo status
