@@ -221,28 +221,30 @@ void oled_init_progressive(uint8_t max_step) {
   }
 
   // Step 15: Full init with SIMPLE WHITE SCREEN TEST
-  // CRITICAL: Turn display OFF before changing modes and writing RAM!
-  cmd(0xAE);  // Display OFF
+  // DATASHEET-COMPLIANT: Per SSD1322 datasheet Section 8.1.3:
+  // After 0x5C (Write RAM), data bytes MUST immediately follow without ANY other commands
   
-  // Exit test mode (0xA5) and set normal display mode
-  cmd(0xA4 | 0x02);  // Normal display mode (0xA6 - matches MIOS32 exactly)
+  // Set normal display mode FIRST (while display is already OFF from previous config)
+  cmd(0xA4 | 0x02);  // Normal display mode (0xA6 - matches MIOS32)
+  
+  // Turn display ON BEFORE writing RAM (per MIOS32 and datasheet)
+  cmd(0xAE | 1);  // Display ON (0xAF)
   
   // ULTRA-SIMPLE TEST: Fill entire screen with WHITE
-  // This bypasses framebuffer complexity and tests RAM write directly
+  // CRITICAL: Minimize commands between address setup and RAM write
   for (uint8_t row = 0; row < 64; ++row) {
     cmd(0x15);                 // Set Column Address
     data(0x1C);                // Column start ONLY (MIOS32 style - 1 byte)
     cmd(0x75);                 // Set Row Address
     data(row);                 // Row start ONLY (MIOS32 style - 1 byte)
     cmd(0x5C);                 // Write RAM command
+    // CRITICAL: Data MUST immediately follow 0x5C per datasheet!
+    // NO other commands or delays between 0x5C and data stream!
     for (uint16_t i = 0; i < 64; ++i) {
       data(0xFF);              // White pixels
       data(0xFF);              // White pixels
     }
   }
-
-  // CRITICAL: MIOS32 sends Display ON AFTER writing RAM!
-  cmd(0xAE | 1);  // Display ON (0xAF - matches MIOS32 exactly)
 
   delay_us(1000000);  // Wait 1 second to see white screen
 
