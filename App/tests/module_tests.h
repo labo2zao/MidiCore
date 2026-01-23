@@ -219,9 +219,13 @@ void module_test_router_run(void);
  * - Scene management (8 scenes with track snapshots)
  * - Transport controls (tempo, time signature, tap tempo)
  * - Advanced features (LFO, humanizer, undo/redo)
+ * - Step mode with cursor control (step read/write)
+ * - Track randomization (velocity/timing variations)
+ * - Multi-track simultaneous playback
+ * - Save/Load tracks to SD card
  * - Event export and analysis
  * 
- * Test sequence (8 phases):
+ * Test sequence (12 phases):
  * 1. Initialize looper and configure transport (120 BPM, 4/4 time)
  * 2. Test basic recording with MIDI note sequence (C4, E4, G4)
  * 3. Test playback and event export
@@ -230,6 +234,25 @@ void module_test_router_run(void);
  * 6. Test mute/solo controls and audibility checks
  * 7. Test scene save/load and scene switching
  * 8. Test advanced features (tempo tap, humanizer, LFO, undo/redo)
+ * 9. **Test step mode - manual cursor control (step read/write)**
+ *    - Enable/disable step mode
+ *    - Step forward event-by-event (step read)
+ *    - Step forward by fixed ticks
+ *    - Step backward navigation
+ *    - Direct cursor positioning (step write)
+ *    - Step size configuration
+ * 10. **Test track randomization**
+ *     - Configure randomization parameters
+ *     - Apply velocity and timing randomization
+ *     - Verify event modifications
+ * 11. **Test multi-track simultaneous operation**
+ *     - Record different patterns on tracks 1-3
+ *     - Test multi-track mute/solo
+ *     - Validate all tracks playing together
+ * 12. **Test save/load to SD card**
+ *     - Save track to file
+ *     - Clear and reload track
+ *     - Verify event restoration
  * 
  * After automated tests, enters continuous monitoring mode that:
  * - Allows live MIDI recording/playback via DIN IN or USB
@@ -240,20 +263,26 @@ void module_test_router_run(void);
  * - UART connection for debug output (115200 baud)
  * - Optional: MIDI DIN or USB input for live testing
  * - Optional: MIDI output to hear playback
+ * - Optional: SD card for save/load testing
  * 
- * Expected duration: ~20-30 seconds for automated tests
+ * Expected duration: ~60-90 seconds for automated tests
  * 
  * Output: Comprehensive UART debug log with:
  * - Phase-by-phase progress and results
  * - MIDI event details (note values, velocities, timing)
  * - Track state information (recording/playback/overdub)
  * - Scene management operations
+ * - Step mode cursor positions
+ * - Randomization effects
+ * - Multi-track status
+ * - Save/load results
  * - Advanced feature verification
  * - Test summary with PASS/FAIL results
  * 
  * Usage: Enable MODULE_TEST_LOOPER=1 in test configuration
  * Connect UART terminal (115200 baud) to observe test execution
  * Optionally connect MIDI input/output for live interaction
+ * Optionally connect SD card for save/load testing
  * 
  * @note This function runs forever after completing automated tests
  */
