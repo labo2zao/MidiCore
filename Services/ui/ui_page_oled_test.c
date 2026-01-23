@@ -5,7 +5,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-static uint8_t test_mode = 0; // 0=patterns, 1=grayscale, 2=pixels, 3=text, 4=animations, 5=hardware info, 6=framebuffer, 7=scrolling text, 8=bouncing ball, 9=performance, 10=circles
+static uint8_t test_mode = 0; // 0=patterns, 1=grayscale, 2=pixels, 3=text, 4=animations, 5=hardware info, 6=framebuffer, 7=scrolling text, 8=bouncing ball, 9=performance, 10=circles, 11=bitmap, 12=fill patterns, 13=stress test, 14=auto-cycle
 static uint32_t last_update = 0;
 static uint8_t anim_frame = 0;
 static int scroll_offset = 0;
@@ -16,6 +16,8 @@ static int ball_dy = 1;
 static uint32_t fps_counter = 0;
 static uint32_t fps_last_time = 0;
 static uint32_t fps_value = 0;
+static uint8_t auto_cycle_enabled = 0;  // Auto-cycle mode flag
+static uint32_t auto_cycle_timer = 0;    // Timer for auto-cycling
 
 void ui_page_oled_test_render(uint32_t ms) {
   uint8_t* fb = oled_framebuffer();
@@ -276,6 +278,154 @@ void ui_page_oled_test_render(uint32_t ms) {
       break;
     }
     
+    case 11: { // Bitmap/Image test
+      ui_gfx_text(0, 26, "Bitmap Test", 15);
+      
+      // Draw a simple smiley face bitmap
+      int face_x = OLED_W / 2 - 16;
+      int face_y = 40;
+      
+      // Face outline (circle)
+      ui_gfx_circle(face_x + 16, face_y + 8, 15, 12);
+      
+      // Left eye
+      ui_gfx_circle(face_x + 10, face_y + 5, 2, 15);
+      
+      // Right eye
+      ui_gfx_circle(face_x + 22, face_y + 5, 2, 15);
+      
+      // Smile (arc approximation with line)
+      for (int x = 0; x < 16; x++) {
+        int y_offset = (x - 8) * (x - 8) / 16;
+        ui_gfx_pixel(face_x + 8 + x, face_y + 12 + y_offset / 4, 15);
+      }
+      
+      ui_gfx_text(0, 38, "Simple Graphics Demo", 10);
+      break;
+    }
+    
+    case 12: { // Fill patterns test
+      ui_gfx_text(0, 26, "Fill Patterns", 15);
+      
+      if (ms - last_update > 500) {
+        anim_frame++;
+        last_update = ms;
+      }
+      
+      int pattern = anim_frame % 4;
+      
+      switch (pattern) {
+        case 0: // Dots pattern
+          for (int y = 40; y < 64; y += 3) {
+            for (int x = 0; x < OLED_W; x += 3) {
+              ui_gfx_pixel(x, y, ((x + y) / 3) % 16);
+            }
+          }
+          ui_gfx_text(0, 38, "Dots Pattern", 10);
+          break;
+          
+        case 1: // Dither pattern
+          for (int y = 40; y < 64; y++) {
+            for (int x = 0; x < OLED_W; x++) {
+              uint8_t val = ((x ^ y) & 1) ? 15 : 0;
+              ui_gfx_pixel(x, y, val);
+            }
+          }
+          ui_gfx_text(0, 38, "Dither Pattern", 10);
+          break;
+          
+        case 2: // Waves pattern
+          for (int y = 40; y < 64; y++) {
+            for (int x = 0; x < OLED_W; x += 2) {
+              int wave = ((x / 8) + (y / 4)) % 16;
+              ui_gfx_pixel(x, y, wave);
+            }
+          }
+          ui_gfx_text(0, 38, "Waves Pattern", 10);
+          break;
+          
+        case 3: // Grid pattern
+          for (int y = 40; y < 64; y++) {
+            for (int x = 0; x < OLED_W; x++) {
+              if (x % 8 == 0 || y % 8 == 40) {
+                ui_gfx_pixel(x, y, 15);
+              }
+            }
+          }
+          ui_gfx_text(0, 38, "Grid Pattern", 10);
+          break;
+      }
+      
+      char pattern_info[32];
+      snprintf(pattern_info, sizeof(pattern_info), "Pattern %d/4", pattern + 1);
+      ui_gfx_text(OLED_W - 70, 38, pattern_info, 8);
+      break;
+    }
+    
+    case 13: { // Stress test - maximum graphics throughput
+      ui_gfx_text(0, 26, "Stress Test", 15);
+      
+      if (ms - last_update > 16) {  // ~60 FPS target
+        anim_frame++;
+        last_update = ms;
+      }
+      
+      // Draw multiple animated elements simultaneously
+      for (int i = 0; i < 10; i++) {
+        int x = ((anim_frame * (i + 1) * 3) % OLED_W);
+        int y = 40 + (i * 2);
+        ui_gfx_rect(x, y, 8, 2, 10 + (i % 6));
+      }
+      
+      // Draw circles
+      for (int i = 0; i < 3; i++) {
+        int cx = 50 + i * 70;
+        int cy = 50;
+        int radius = 5 + ((anim_frame + i * 10) % 8);
+        ui_gfx_circle(cx, cy, radius, 8 + i * 2);
+      }
+      
+      // Draw lines
+      for (int i = 0; i < 5; i++) {
+        int offset = (anim_frame * 2 + i * 20) % OLED_W;
+        ui_gfx_line(offset, 40, (offset + 30) % OLED_W, 60, 6 + i);
+      }
+      
+      char stress_info[64];
+      snprintf(stress_info, sizeof(stress_info), "Elements: 18 | Target: 60 FPS");
+      ui_gfx_text(0, 38, stress_info, 12);
+      break;
+    }
+    
+    case 14: { // Auto-cycle mode
+      ui_gfx_text(0, 26, "Auto-Cycle Demo", 15);
+      
+      // Auto-cycle through modes every 3 seconds
+      if (ms - auto_cycle_timer > 3000) {
+        // Cycle to next mode (skip auto-cycle itself)
+        uint8_t next_mode = (test_mode + 1) % 14;
+        test_mode = next_mode;
+        auto_cycle_timer = ms;
+        anim_frame = 0;
+        scroll_offset = 0;
+        ball_x = 128;
+        ball_y = 32;
+      }
+      
+      uint32_t time_remaining = 3000 - (ms - auto_cycle_timer);
+      char cycle_info[64];
+      snprintf(cycle_info, sizeof(cycle_info), "Next mode in: %lu ms", time_remaining);
+      ui_gfx_text(0, 40, cycle_info, 12);
+      
+      ui_gfx_text(0, 52, "Press any button to exit", 10);
+      
+      // Draw progress bar
+      int progress_width = (int)((OLED_W - 20) * (3000 - time_remaining) / 3000);
+      ui_gfx_rect(10, 60, progress_width, 3, 15);
+      ui_gfx_rect(10 + progress_width, 60, (OLED_W - 20) - progress_width, 3, 3);
+      break;
+    }
+    
     default:
       test_mode = 0;
       break;
@@ -290,26 +440,36 @@ void ui_page_oled_test_render(uint32_t ms) {
 void ui_page_oled_test_on_button(uint8_t id, uint8_t pressed) {
   if (!pressed) return;
   
+  // Exit auto-cycle mode if any button pressed
+  if (test_mode == 14) {
+    test_mode = 0;
+    auto_cycle_timer = 0;
+    anim_frame = 0;
+    return;
+  }
+  
   if (id == 0) {
     // Button 0: Previous test
     if (test_mode > 0) {
       test_mode--;
     } else {
-      test_mode = 10; // Updated max test mode
+      test_mode = 14; // Updated max test mode
     }
     // Reset animation state
     anim_frame = 0;
     scroll_offset = 0;
     ball_x = 128;  // OLED_W / 2
     ball_y = 32;
+    auto_cycle_timer = 0;
   } else if (id == 1) {
     // Button 1: Next test
-    test_mode = (test_mode + 1) % 11; // Updated max test mode
+    test_mode = (test_mode + 1) % 15; // Updated max test mode
     // Reset animation state
     anim_frame = 0;
     scroll_offset = 0;
     ball_x = 128;  // OLED_W / 2
     ball_y = 32;
+    auto_cycle_timer = 0;
   } else if (id == 2) {
     // Button 2: Clear screen test
     oled_clear();
@@ -329,23 +489,33 @@ void ui_page_oled_test_on_button(uint8_t id, uint8_t pressed) {
 }
 
 void ui_page_oled_test_on_encoder(int8_t delta) {
+  // Exit auto-cycle mode if encoder used
+  if (test_mode == 14) {
+    test_mode = 0;
+    auto_cycle_timer = 0;
+    anim_frame = 0;
+    return;
+  }
+  
   if (delta > 0) {
-    test_mode = (test_mode + 1) % 11; // Updated max test mode
+    test_mode = (test_mode + 1) % 15; // Updated max test mode
     // Reset animation state
     anim_frame = 0;
     scroll_offset = 0;
     ball_x = 128;  // OLED_W / 2
     ball_y = 32;
+    auto_cycle_timer = 0;
   } else if (delta < 0) {
     if (test_mode > 0) {
       test_mode--;
     } else {
-      test_mode = 10; // Updated max test mode
+      test_mode = 14; // Updated max test mode
     }
     // Reset animation state
     anim_frame = 0;
     scroll_offset = 0;
     ball_x = 128;  // OLED_W / 2
     ball_y = 32;
+    auto_cycle_timer = 0;
   }
 }
