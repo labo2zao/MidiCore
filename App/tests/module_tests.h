@@ -47,6 +47,7 @@ typedef enum {
   MODULE_TEST_UI_PAGE_HUMANIZER_ID, // Test Humanizer/LFO UI page
   MODULE_TEST_PATCH_SD_ID,      // Test patch loading from SD
   MODULE_TEST_PRESSURE_ID,      // Test pressure sensor I2C
+  MODULE_TEST_BREATH_ID,        // Test breath controller (pressure sensor + expression/MIDI CC output)
   MODULE_TEST_USB_HOST_MIDI_ID, // Test USB Host MIDI
   MODULE_TEST_USB_DEVICE_MIDI_ID, // Test USB Device MIDI (receive from DAW, print to UART, send test data)
   MODULE_TEST_OLED_SSD1322_ID,  // Test OLED SSD1322 driver (GPIO, SPI, display patterns)
@@ -391,6 +392,73 @@ int module_test_patch_sd_run(void);
  * @note This function runs forever
  */
 void module_test_pressure_run(void);
+
+/**
+ * @brief Test Breath Controller module (pressure sensor + expression/MIDI output)
+ * 
+ * Comprehensive test of the complete breath controller signal chain:
+ * - Pressure sensor I2C communication (XGZP6847D or generic 16-bit sensors)
+ * - Raw sensor value reading (24-bit or 16-bit ADC)
+ * - Pressure conversion to Pascal (Pa) units
+ * - Expression module pressure-to-CC mapping
+ * - MIDI CC output generation (typically CC#2 for breath controller)
+ * - Real-time value monitoring via UART debug output
+ * 
+ * Hardware tested:
+ * - I2C pressure sensor (XGZP6847D 24-bit or generic 16-bit I2C ADC)
+ * - Pressure module: sensor reading and calibration
+ * - Expression module: curve application (linear/expo/S-curve), deadband, hysteresis
+ * - MIDI Router: CC message routing to USB/DIN outputs
+ * - Bidirectional support: Push (inhale) and Pull (exhale) for accordion/bellows
+ * 
+ * Test output (UART debug):
+ * - Sensor type and I2C configuration
+ * - Raw sensor values (0-16777215 for 24-bit, 0-65535 for 16-bit)
+ * - Pressure in Pascal (Pa) - signed relative to atmospheric zero
+ * - 12-bit mapped value (0-4095)
+ * - MIDI CC number and value (0-127)
+ * - Update rate and timing statistics
+ * 
+ * Configuration sources:
+ * - SD card: pressure.ngc (sensor config), expression.ngc (CC mapping)
+ * - Defaults: If SD files missing, uses hardcoded defaults
+ * 
+ * Typical breath controller mapping:
+ * - CC#2 (Breath Controller) for wind instruments
+ * - CC#11 (Expression) for general use
+ * - Bidirectional: CC#11 (push/inhale), CC#2 (pull/exhale) for accordion
+ * 
+ * Hardware connections:
+ * - I2C sensor: SCL/SDA (typically I2C1 or I2C2)
+ * - Pull-up resistors: 4.7kΩ on SCL/SDA
+ * - Power: 3.3V to sensor VCC, GND
+ * 
+ * Troubleshooting output:
+ * - I2C communication errors (NACK, timeout)
+ * - Sensor not detected
+ * - Incorrect I2C address
+ * - Missing configuration files
+ * - Invalid pressure readings
+ * 
+ * Performance characteristics:
+ * - Latency: <5ms from breath to MIDI CC output
+ * - Resolution: 12-bit (4096 levels) mapped to 7-bit MIDI (0-127)
+ * - Update rate: Configurable 5-50ms (default 20ms)
+ * - Smoothing: EMA filter to reduce jitter
+ * 
+ * Use cases:
+ * - Wind controller setup and calibration
+ * - Accordion bellows pressure mapping
+ * - Breath-controlled synthesizers
+ * - Expression pedal alternative
+ * - Hardware validation and troubleshooting
+ * 
+ * @note This function runs forever (continuous monitoring loop)
+ * @note Requires MODULE_ENABLE_PRESSURE and expression module enabled
+ * @note Connect UART terminal at 115200 baud to view debug output
+ * @note Blow/suck on breath sensor to see values change
+ */
+void module_test_breath_run(void);
 
 /**
  * @brief Test USB Host MIDI module
