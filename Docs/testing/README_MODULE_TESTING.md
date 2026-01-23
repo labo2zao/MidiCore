@@ -31,6 +31,7 @@ MidiCore now provides a unified module testing framework that allows testing ind
 | UI | `MODULE_TEST_UI` | Tests OLED display and user interface |
 | Patch/SD | `MODULE_TEST_PATCH_SD` | Tests SD card mounting and patch loading |
 | Pressure | `MODULE_TEST_PRESSURE` | Tests I2C pressure sensor (XGZP6847) |
+| Breath | `MODULE_TEST_BREATH` | Tests breath controller (pressure sensor + MIDI CC) - [Guide](BREATH_CONTROLLER_TEST_GUIDE.md) |
 | USB Host MIDI | `MODULE_TEST_USB_HOST_MIDI` | Tests USB Host MIDI device communication |
 
 **Note:** The table above shows **preprocessor defines** you use in your build configuration. The internal enum values (in code) have an `_ID` suffix (e.g., `MODULE_TEST_AINSER64_ID`) to avoid naming conflicts.
@@ -264,6 +265,7 @@ Some tests require specific modules to be enabled in `Config/module_config.h`:
 | `MODULE_TEST_UI` | `MODULE_ENABLE_UI`, `MODULE_ENABLE_OLED` |
 | `MODULE_TEST_PATCH_SD` | `MODULE_ENABLE_PATCH` |
 | `MODULE_TEST_PRESSURE` | `MODULE_ENABLE_PRESSURE` |
+| `MODULE_TEST_BREATH` | `MODULE_ENABLE_PRESSURE`, `MODULE_ENABLE_EXPRESSION` (optional) |
 
 If required modules are not enabled, the test will idle in an infinite loop.
 
