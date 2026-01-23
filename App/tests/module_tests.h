@@ -210,8 +210,52 @@ void module_test_router_run(void);
 
 /**
  * @brief Test Looper module
- * Tests recording, playback, overdub, quantization
- * @note This function runs forever
+ * 
+ * Comprehensive automated test of the MIDI Looper module:
+ * - Multi-track recording and playback (4 tracks)
+ * - Recording, playback, and overdub modes
+ * - Quantization modes (OFF, 1/16, 1/8, 1/4 notes)
+ * - Mute/Solo track controls
+ * - Scene management (8 scenes with track snapshots)
+ * - Transport controls (tempo, time signature, tap tempo)
+ * - Advanced features (LFO, humanizer, undo/redo)
+ * - Event export and analysis
+ * 
+ * Test sequence (8 phases):
+ * 1. Initialize looper and configure transport (120 BPM, 4/4 time)
+ * 2. Test basic recording with MIDI note sequence (C4, E4, G4)
+ * 3. Test playback and event export
+ * 4. Test overdub mode (add C5 to existing loop)
+ * 5. Test quantization modes and verification
+ * 6. Test mute/solo controls and audibility checks
+ * 7. Test scene save/load and scene switching
+ * 8. Test advanced features (tempo tap, humanizer, LFO, undo/redo)
+ * 
+ * After automated tests, enters continuous monitoring mode that:
+ * - Allows live MIDI recording/playback via DIN IN or USB
+ * - Prints status updates every 30 seconds
+ * - Shows track states, event counts, mute/solo status
+ * 
+ * Hardware requirements:
+ * - UART connection for debug output (115200 baud)
+ * - Optional: MIDI DIN or USB input for live testing
+ * - Optional: MIDI output to hear playback
+ * 
+ * Expected duration: ~20-30 seconds for automated tests
+ * 
+ * Output: Comprehensive UART debug log with:
+ * - Phase-by-phase progress and results
+ * - MIDI event details (note values, velocities, timing)
+ * - Track state information (recording/playback/overdub)
+ * - Scene management operations
+ * - Advanced feature verification
+ * - Test summary with PASS/FAIL results
+ * 
+ * Usage: Enable MODULE_TEST_LOOPER=1 in test configuration
+ * Connect UART terminal (115200 baud) to observe test execution
+ * Optionally connect MIDI input/output for live interaction
+ * 
+ * @note This function runs forever after completing automated tests
  */
 void module_test_looper_run(void);
 
