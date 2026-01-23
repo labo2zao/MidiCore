@@ -126,14 +126,14 @@ void oled_init_progressive(uint8_t max_step) {
   }
 
   // Step 2: + Column Address
-  cmd(0x15); data(0x1C); data(0x5B);  // Set Column Address
+  cmd(0x15); data(0x1C);  // Set Column Address (ONLY 1 byte like MIOS32!)
   if (max_step == 2) {
     cmd(0xAF); cmd(0xA5);
     return;
   }
 
   // Step 3: + Row Address
-  cmd(0x75); data(0x00); data(0x3F);  // Set Row Address
+  cmd(0x75); data(0x00);  // Set Row Address (ONLY 1 byte like MIOS32!)
   if (max_step == 3) {
     cmd(0xAF); cmd(0xA5);
     return;
@@ -218,6 +218,9 @@ void oled_init_progressive(uint8_t max_step) {
   }
 
   // Step 15: Full init with RAM clear
+  // CRITICAL: Exit test mode (0xA5) before writing to RAM!
+  cmd(0xA4);  // Normal display mode (exit all pixels ON mode)
+  
   // Clear display RAM - MATCH MIOS32 EXACTLY (only 1 data byte per address command!)
   // CRITICAL: MIOS32 sends ONLY ONE data byte for 0x15/0x75, NOT two!
   for (uint8_t row = 0; row < 64; ++row) {
