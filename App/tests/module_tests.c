@@ -1096,7 +1096,7 @@ void module_test_router_run(void)
   dbg_print("OK\r\n");
   
   dbg_printf("  Matrix Size: %d x %d nodes\r\n", ROUTER_NUM_NODES, ROUTER_NUM_NODES);
-  dbg_printf("  Total Routes: %d possible connections\r\n", ROUTER_NUM_NODES * ROUTER_NUM_NODES);
+  dbg_printf("  Total Routes: %d possible connections\r\n", (int)(ROUTER_NUM_NODES * ROUTER_NUM_NODES));
   dbg_print("\r\n");
   
   dbg_print("Node Mapping:\r\n");
@@ -1437,8 +1437,8 @@ void module_test_router_run(void)
           if (router_get_route(in, out)) active_routes++;
         }
       }
-      dbg_printf("[%lu min] Router running, %d active routes\r\n", 
-                 tick_counter / 60, active_routes);
+      dbg_printf("[%u min] Router running, %d active routes\r\n", 
+                 (unsigned int)(tick_counter / 60), active_routes);
     }
   }
   

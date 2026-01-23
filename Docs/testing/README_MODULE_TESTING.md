@@ -26,7 +26,7 @@ MidiCore now provides a unified module testing framework that allows testing ind
 | AINSER64 | `MODULE_TEST_AINSER64` | Tests 64-channel analog input (MCP3208 + mux) |
 | SRIO | `MODULE_TEST_SRIO` | Tests shift register DIN/DOUT (74HC165/595) |
 | MIDI DIN | `MODULE_TEST_MIDI_DIN` | Tests MIDI DIN input/output via UART |
-| Router | `MODULE_TEST_ROUTER` | Comprehensive MIDI routing matrix test (8 phases: init, basic routing, channel filtering, message types, multi-destination, route modification, validation, monitoring) |
+| Router | `MODULE_TEST_ROUTER` | Comprehensive MIDI routing matrix test (8 phases) |
 | Looper | `MODULE_TEST_LOOPER` | Tests MIDI looper recording/playback |
 | UI | `MODULE_TEST_UI` | Comprehensive automated UI page navigation & OLED test (all 29 modes) |
 | Patch/SD | `MODULE_TEST_PATCH_SD` | Tests SD card mounting and patch loading |
