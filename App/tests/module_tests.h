@@ -176,8 +176,51 @@ void module_test_srio_run(void);
 void module_test_srio_dout_run(void);
 
 /**
- * @brief Test MIDI DIN module
- * Echoes MIDI input to output, shows status
+ * @brief Test MIDI DIN module with LiveFX transform and MIDI learn
+ * 
+ * Comprehensive test of MIDI DIN I/O with real-time processing:
+ * - MIDI I/O: Receives from DIN IN, sends to DIN OUT
+ * - LiveFX Transform: Transpose, velocity scaling, force-to-scale
+ * - MIDI Learn: Map CC messages to LiveFX parameters
+ * 
+ * Features tested:
+ * - MIDI DIN input/output communication
+ * - Real-time MIDI message transformation
+ * - Live parameter control via CC messages
+ * - Transpose (-12 to +12 semitones)
+ * - Velocity scaling (0-200%)
+ * - Musical scale quantization (force-to-scale)
+ * 
+ * MIDI Learn Commands (Channel 1):
+ * - CC 20: Enable/Disable LiveFX (value > 64 = enabled)
+ * - CC 21: Transpose down (-1 semitone)
+ * - CC 22: Transpose up (+1 semitone)
+ * - CC 23: Transpose reset (0)
+ * - CC 24: Velocity scale down (-10%)
+ * - CC 25: Velocity scale up (+10%)
+ * - CC 26: Velocity scale reset (100%)
+ * - CC 27: Force-to-scale toggle (value > 64 = on)
+ * - CC 28: Scale type (0-11)
+ * - CC 29: Scale root (0=C, 1=C#, ..., 11=B)
+ * 
+ * Test workflow:
+ * 1. Connect MIDI controller to DIN IN1
+ * 2. Connect DIN OUT1 to synth/DAW
+ * 3. Send CC 20 (value 127) to enable LiveFX
+ * 4. Send CC 22 to transpose notes up
+ * 5. Play notes - they will be transposed and sent to OUT
+ * 6. Send CC 27 (value 127) to enable force-to-scale
+ * 7. Play notes - they will snap to selected scale
+ * 8. Monitor UART debug output for status
+ * 
+ * Hardware requirements:
+ * - MIDI DIN IN/OUT hardware (UART-based)
+ * - MIDI controller or test device
+ * - UART debug connection (115200 baud)
+ * 
+ * Enable with: MODULE_TEST_MIDI_DIN=1
+ * Requires: MODULE_ENABLE_MIDI_DIN=1, MODULE_ENABLE_LIVEFX=1, MODULE_ENABLE_ROUTER=1
+ * 
  * @note This function runs forever
  */
 void module_test_midi_din_run(void);
