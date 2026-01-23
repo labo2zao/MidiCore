@@ -1797,186 +1797,45 @@ int module_test_oled_ssd1322_run(void)
 #if MODULE_ENABLE_OLED
   dbg_print("\r\n");
   dbg_print("=====================================\r\n");
-  dbg_print("  SSD1322 OLED Driver Test Suite\r\n");
+  dbg_print("  MIOS32 SSD1322 Test (Simplified)\r\n");
   dbg_print("=====================================\r\n");
-  dbg_print("Version: 1.0\r\n");
-  dbg_print("Target: STM32F407VGT6 @ 168 MHz\r\n");
+  dbg_print("Based on: midibox/mios32/apps/mios32_test/app_lcd/ssd1322\r\n");
+  dbg_print("Target: STM32F407 @ 168 MHz\r\n");
   dbg_print("Display: SSD1322 256x64 OLED\r\n\r\n");
   
-  // Show pin and timing info
-  dbg_print("=== Pin Mapping (MIOS32 Compatible) ===\r\n");
-  dbg_print("PA8  = DC   (Data/Command, J15_SER/RS)\r\n");
-  dbg_print("PC8  = SCL  (Clock 1, J15_E1)\r\n");
-  dbg_print("PC9  = SCL  (Clock 2, J15_E2, dual COM)\r\n");
-  dbg_print("PC11 = SDA  (Data, J15_RW)\r\n");
-  dbg_print("CS#  = GND  (hardwired on OLED module)\r\n");
-  dbg_print("RST  = RC   (on-board RC reset circuit)\r\n\r\n");
+  dbg_print("Pin Mapping:\r\n");
+  dbg_print("  PA8  = DC  (Data/Command)\r\n");
+  dbg_print("  PC8  = SCL (Clock 1)\r\n");
+  dbg_print("  PC9  = SCL (Clock 2, dual COM)\r\n");
+  dbg_print("  PC11 = SDA (Data)\r\n");
+  dbg_print("  CS#  = GND (hardwired)\r\n\r\n");
   
-  dbg_print("=== SPI Timing Information ===\r\n");
-  dbg_print("Implementation: DWT cycle counter\r\n");
-  dbg_print("MCU Clock: 168 MHz\r\n");
-  dbg_print("Cycle time: 5.95 ns\r\n\r\n");
+  // Simple test: Init and show MIOS32 testScreen()
+  dbg_print("Step 1: Initialize OLED...\r\n");
+  oled_init();
+  dbg_print("[OK] Init complete\r\n\r\n");
   
-  dbg_print("SPI Mode 0 (CPOL=0, CPHA=0):\r\n");
-  dbg_print("  Clock idle: LOW\r\n");
-  dbg_print("  Data sampled: RISING edge\r\n\r\n");
-  
-  dbg_print("Timing (our implementation):\r\n");
-  dbg_print("  Data setup time: 17 cycles = 101.2 ns\r\n");
-  dbg_print("  Data hold time:  17 cycles = 101.2 ns\r\n");
-  dbg_print("  DC setup time:   10 cycles = 59.5 ns\r\n");
-  dbg_print("  Clock period:    ~200 ns (~5 MHz)\r\n\r\n");
-  
-  dbg_print("SSD1322 Requirements (from datasheet):\r\n");
-  dbg_print("  Data setup time: >15 ns  [OK: 101 ns]\r\n");
-  dbg_print("  Data hold time:  >10 ns  [OK: 101 ns]\r\n");
-  dbg_print("  Clock period:    >100 ns [OK: 200 ns]\r\n");
-  dbg_print("  Max clock:       10 MHz  [OK: ~5 MHz]\r\n\r\n");
-  
-  // Test 0: Minimal Hardware Test (bypass full init)
-  dbg_print("Step 0/5: MINIMAL Hardware Communication Test\r\n");
-  dbg_print("(Testing basic SPI with 3 simple commands)\r\n");
-  int minimal_result = module_test_oled_minimal_hardware();
-  if (minimal_result < 0) {
-    dbg_print("[ERROR] Minimal hardware test failed!\r\n");
-    return -1;
-  }
-  dbg_print("Waiting 1 second to observe display...\r\n");
-  osDelay(1000);
-  
-  // Test 1: GPIO Control
-  dbg_print("\r\nStep 1/5: GPIO Control Test\r\n");
-  int result = module_test_oled_gpio_control();
-  if (result < 0) {
-    dbg_print("[ERROR] GPIO test failed!\r\n");
-    return -1;
-  }
-  
-  // Test 2: OLED Progressive Initialization (step by step)
-  dbg_print("Step 2/5: OLED Progressive Initialization\r\n");
-  dbg_print("Testing each init command one at a time...\r\n");
-  dbg_print("Display should stay ON after each step.\r\n");
-  dbg_print("Observe if/when display turns OFF.\r\n\r\n");
-  
-  // Test each step from 0 to 15
-  for (uint8_t step = 0; step <= 15; step++) {
-    dbg_printf("\r\n>>> TESTING STEP %u <<<\r\n", step);
-    
-    // Describe what this step does
-    switch(step) {
-      case 0: dbg_print("Step 0: Minimal (unlock + display ON + all pixels ON)\r\n"); break;
-      case 1: dbg_print("Step 1: + Display OFF before config\r\n"); break;
-      case 2: dbg_print("Step 2: + Column Address (0x15)\r\n"); break;
-      case 3: dbg_print("Step 3: + Row Address (0x75)\r\n"); break;
-      case 4: dbg_print("Step 4: + MUX ratio (0xCA)\r\n"); break;
-      case 5: dbg_print("Step 5: + Remap dual COM (0xA0)\r\n"); break;
-      case 6: dbg_print("Step 6: + Display Clock (0xB3)\r\n"); break;
-      case 7: dbg_print("Step 7: + Contrast (0xC1)\r\n"); break;
-      case 8: dbg_print("Step 8: + Master Current (0xC7)\r\n"); break;
-      case 9: dbg_print("Step 9: + Gray scale table (0xB9)\r\n"); break;
-      case 10: dbg_print("Step 10: + Phase Length (0xB1)\r\n"); break;
-      case 11: dbg_print("Step 11: + Pre-charge Voltage (0xBB)\r\n"); break;
-      case 12: dbg_print("Step 12: + Second Pre-charge (0xB6)\r\n"); break;
-      case 13: dbg_print("Step 13: + VCOMH Voltage (0xBE)\r\n"); break;
-      case 14: dbg_print("Step 14: + Normal Display mode (0xA6)\r\n"); break;
-      case 15: dbg_print("Step 15: Full init with RAM clear + Display ON\r\n"); break;
-    }
-    
-    dbg_print("Executing init sequence...\r\n");
-    oled_init_progressive(step);
-    
-    dbg_print("** CHECK DISPLAY NOW **\r\n");
-    if (step == 0) {
-      dbg_print("Expected: Display should be GRAY (all pixels ON)\r\n");
-    } else if (step < 15) {
-      dbg_print("Expected: Display should STAY GRAY\r\n");
-    } else {
-      dbg_print("Expected: White bar + gray fill for 1 sec, then clear\r\n");
-    }
-    
-    dbg_print("Waiting 1 second before next step...\r\n");
-    dbg_print("-------------------------------------------\r\n");
-    osDelay(1000);  // 1 second observation time
-    
-    // If display turned off, report which step caused it
-    if (step > 0 && step < 15) {
-      dbg_printf("If display turned OFF, step %u is the problem!\r\n", step);
-    }
-  }
-  
-  dbg_print("\r\n=== Progressive Init Test Complete ===\r\n");
-  dbg_print("Review the output above to see which step caused display to turn OFF.\r\n\r\n");
-  
-  // CRITICAL TEST: Re-run step 0 to check if OLED still responds
-  dbg_print("\r\n");
-  dbg_print("================================================\r\n");
-  dbg_print("CRITICAL TEST: Re-running Step 0 (Minimal)\r\n");
-  dbg_print("================================================\r\n");
-  dbg_print("This checks if OLED is still responsive after step 15.\r\n");
-  dbg_print("If display does NOT light up gray, OLED is locked/crashed.\r\n");
-  dbg_print("If display lights up gray, OLED is OK (issue is in step 15).\r\n\r\n");
-  
-  dbg_print(">>> RE-TESTING STEP 0 <<<\r\n");
-  dbg_print("Step 0: Minimal (unlock + display ON + all pixels ON)\r\n");
-  dbg_print("Executing init sequence...\r\n");
-  oled_init_progressive(0);
-  
-  dbg_print("** CHECK DISPLAY NOW **\r\n");
-  dbg_print("Expected: Display should light up GRAY if OLED is still alive\r\n");
-  dbg_print("Waiting 1 second for observation...\r\n");
-  dbg_print("================================================\r\n");
-  osDelay(1000);  // 1 second to observe
-  
-  dbg_print("\r\nResult interpretation:\r\n");
-  dbg_print("- Display GRAY: OLED is responsive, step 15 issue is fixable\r\n");
-  dbg_print("- Display BLACK: OLED locked up, requires power cycle\r\n\r\n");
-
-  // Test 3: Display Pattern Tests
-  dbg_print("Step 3/5: Display Pattern Tests\r\n");
-  result = module_test_oled_display_patterns();
-  if (result < 0) {
-    dbg_print("[ERROR] Pattern test failed!\r\n");
-    return -2;
-  }
-  
-  // Test 4: MIOS32-compatible test pattern
-  dbg_print("\r\nStep 4/5: MIOS32 Test Pattern\r\n");
-  dbg_print("================================================\r\n");
-  dbg_print("Recreating exact MIOS32 test pattern\r\n");
-  dbg_print("Source: github.com/midibox/mios32/apps/mios32_test/app_lcd/ssd1322\r\n");
-  dbg_print("================================================\r\n");
-  dbg_print("Pattern: Left half = gradient, Right half = white\r\n");
-  dbg_print("Rendering test pattern directly to OLED RAM...\r\n");
+  dbg_print("Step 2: Render MIOS32 testScreen() pattern...\r\n");
+  dbg_print("  Left half:  Gradient pattern\r\n");
+  dbg_print("  Right half: Full white\r\n\r\n");
   
   oled_test_mios32_pattern();
   
   dbg_print("** CHECK DISPLAY NOW **\r\n");
-  dbg_print("Expected: Left half shows gradient pattern, right half is white\r\n");
-  dbg_print("Waiting 1 second as requested...\r\n");
-  osDelay(1000);  // 1 second delay as requested
-  dbg_print("MIOS32 pattern test complete.\r\n\r\n");
+  dbg_print("Expected: Gradient on left, white on right\r\n\r\n");
   
-  // Final summary
-  dbg_print("=====================================\r\n");
-  dbg_print("  TEST SUMMARY\r\n");
-  dbg_print("=====================================\r\n");
-  dbg_print("Minimal HW Test:   [PASS]\r\n");
-  dbg_print("GPIO Control:      [PASS]\r\n");
-  dbg_print("OLED Init:         [COMPLETE]\r\n");
-  dbg_print("Display Patterns:  [COMPLETE]\r\n");
-  dbg_print("=====================================\r\n");
-  dbg_print("Overall: [SUCCESS]\r\n\r\n");
+  dbg_print("Test will loop pattern rendering forever...\r\n");
+  dbg_print("(Matches MIOS32 testScreen behavior)\r\n\r\n");
   
-  dbg_print("If display is blank, check:\r\n");
-  dbg_print("1. Power: 3.3V at OLED VCC pin\r\n");
-  dbg_print("2. Wiring: All 5 connections secure\r\n");
-  dbg_print("3. Module: Compatible SSD1322 OLED\r\n");
-  dbg_print("4. Logic analyzer: Verify signal integrity\r\n\r\n");
+  // Loop forever like MIOS32 testScreen()
+  while(1) {
+    oled_test_mios32_pattern();
+    osDelay(100);  // Small delay to avoid flooding
+  }
   
   return 0;
 #else
   dbg_print("OLED is not enabled in module_config.h\r\n");
-  dbg_print("Define MODULE_ENABLE_OLED=1 to enable this test.\r\n");
   return -1;
 #endif
 }

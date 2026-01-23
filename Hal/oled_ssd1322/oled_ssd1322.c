@@ -255,9 +255,57 @@ void oled_init_progressive(uint8_t max_step) {
   memset(fb, 0x00, sizeof(fb));
 }
 
+// MIOS32-compatible initialization - EXACT replica
+// Source: midibox/mios32/modules/app_lcd/ssd1322/app_lcd.c APP_LCD_Init()
 void oled_init(void) {
-  // Call full progressive init (step 15 = complete sequence)
-  oled_init_progressive(15);
+  // Ensure DWT cycle counter is initialized
+  CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+  DWT->CYCCNT = 0;
+  DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
+
+  // Set initial SPI lines for Mode 0 (CPOL=0, CPHA=0)
+  SCL_LOW();  // Clock idle LOW
+  HAL_GPIO_WritePin(OLED_SDA_GPIO_Port, OLED_SDA_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(OLED_DC_GPIO_Port, OLED_DC_Pin, GPIO_PIN_SET);
+
+  // MIOS32: Wait 300ms for power stabilization
+  for (uint16_t ctr = 0; ctr < 300; ++ctr) {
+    delay_us(1000);
+  }
+
+  // EXACT MIOS32 APP_LCD_Init() sequence:
+  cmd(0xfd); data(0x12);                          // Unlock
+  cmd(0xae | 0);                                  // Display OFF
+  cmd(0x15); data(0x1c); data(0x5b);             // Column Address
+  cmd(0x75); data(0x00); data(0x3f);             // Row Address
+  cmd(0xca); data(0x3f);                         // Multiplex Ratio
+  cmd(0xa0); data(0x14); data(0x11);             // Remap Format
+  cmd(0xb3); data(0); data(12);                  // Display Clock
+  cmd(0xc1); data(0xff);                         // Contrast Current
+  cmd(0xc7); data(0x0f);                         // Master Current
+  cmd(0xb9);                                     // Linear Gray Scale Table
+  cmd(0x00);                                     // Enable gray scale (MIOS32 has this!)
+  cmd(0xb1); data(0x56);                         // Phase Length
+  cmd(0xbb); data(0x0);                          // Precharge Voltage
+  cmd(0xb6); data(0x08);                         // Precharge Period
+  cmd(0xbe); data(0x00);                         // VCOMH
+  cmd(0xa4 | 0x02);                              // Display Mode Normal
+
+  // MIOS32: APP_LCD_Clear() - clear display while OFF
+  for (uint8_t j = 0; j < 64; j++) {
+    cmd(0x15); data(0 + 0x1c);
+    cmd(0x75); data(j);
+    cmd(0x5c);
+    for (uint8_t i = 0; i < 64; i++) {
+      data(0);
+      data(0);
+    }
+  }
+
+  cmd(0xae | 1);                                 // Display ON
+
+  // Clear framebuffer for future use
+  memset(fb, 0x00, sizeof(fb));
 }
 
 void oled_flush(void) {
