@@ -251,34 +251,55 @@ void module_test_lfo_run(void);
 void module_test_humanizer_run(void);
 
 /**
- * @brief Test UI/OLED module
+ * @brief Test UI/OLED module with comprehensive automated navigation
  * 
- * Tests the complete UI system including OLED display, page navigation,
- * button/encoder input handling, and status line updates.
+ * Comprehensive automated test of the complete UI system including OLED display,
+ * page navigation, button/encoder input handling, status line updates, and all
+ * OLED test modes (including SSD1322 enhancements).
  * 
  * Features tested:
  * - OLED SSD1322 display initialization and rendering
- * - UI page cycling (Looper, Timeline, Pianoroll, Router, Patch)
- * - Button input simulation and handling
- * - Rotary encoder input simulation
- * - Status line updates
- * - Graphics rendering
+ * - All UI pages: Looper, Timeline, Pianoroll, Song, MIDI Monitor, SysEx,
+ *   Config, LiveFX, Rhythm, Humanizer (if enabled), OLED Test
+ * - Direct page navigation via ui_set_page()
+ * - Button-based navigation (Button 5 cycles through all pages)
+ * - Rotary encoder navigation on OLED test page
+ * - All 29 OLED test modes (0-28) including:
+ *   - Pattern/Grayscale tests (0-6)
+ *   - Animations (7-10, 15-19)
+ *   - Advanced graphics (11-14, 17-19)
+ *   - Hardware driver tests (20-27)
+ *   - Vortex tunnel demo (28)
+ * - Encoder stress test (rapid forward/backward, large jumps)
+ * - Status line updates with various message lengths
+ * - Graphics rendering validation
  * 
  * Hardware requirements:
- * - OLED Display: SSD1322 256x64 (grayscale)
- * - Control Input: Buttons + rotary encoder (via SRIO or GPIO)
+ * - OLED Display: SSD1322 256x64 (grayscale, Software SPI)
+ * - Control Input: Buttons + rotary encoder (via SRIO DIN or GPIO)
  * 
- * Test sequence:
+ * Test sequence (6 phases):
  * 1. Initialize OLED and UI subsystem
- * 2. Cycle through all available UI pages (auto-demo)
- * 3. Simulate button presses
- * 4. Simulate encoder rotation
- * 5. Update status messages
- * 6. Enter manual testing mode for visual verification
+ * 2. Test direct page navigation through all UI pages (3s per page)
+ * 3. Test button-based navigation (Button 5, full cycle)
+ * 4. Test all 29 OLED test modes with encoder navigation
+ * 5. Encoder stress test (rapid changes, large jumps)
+ * 6. Status line validation with various messages
+ * 7. Enter manual testing mode for visual verification
+ * 
+ * Expected duration: ~2-3 minutes for automated tests
+ * 
+ * Output: Comprehensive UART debug log with test results including:
+ * - Phase-by-phase progress
+ * - Pass/fail status for each test
+ * - Detailed mode descriptions for OLED tests
+ * - Final summary with all test results
  * 
  * Usage: Enable MODULE_TEST_UI=1 in test configuration
- * Connect OLED display and observe automatic page cycling,
- * then test with actual buttons/encoders.
+ * Connect OLED display and UART terminal (115200 baud)
+ * Observe automated test execution, then test with actual buttons/encoders
+ * 
+ * @note This function runs forever after completing automated tests
  */
 void module_test_ui_run(void);
 

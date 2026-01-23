@@ -28,7 +28,7 @@ MidiCore now provides a unified module testing framework that allows testing ind
 | MIDI DIN | `MODULE_TEST_MIDI_DIN` | Tests MIDI DIN input/output via UART |
 | Router | `MODULE_TEST_ROUTER` | Tests MIDI router and message forwarding |
 | Looper | `MODULE_TEST_LOOPER` | Tests MIDI looper recording/playback |
-| UI | `MODULE_TEST_UI` | Tests OLED display and user interface |
+| UI | `MODULE_TEST_UI` | Comprehensive automated UI page navigation & OLED test (all 29 modes) |
 | Patch/SD | `MODULE_TEST_PATCH_SD` | Tests SD card mounting and patch loading |
 | Pressure | `MODULE_TEST_PRESSURE` | Tests I2C pressure sensor (XGZP6847) |
 | USB Host MIDI | `MODULE_TEST_USB_HOST_MIDI` | Tests USB Host MIDI device communication |
@@ -180,18 +180,44 @@ make CFLAGS+="-DMODULE_TEST_LOOPER=1"
 - Looper cycles through REC → PLAY → STOP states
 - MIDI events recorded and played back
 
-### Example 6: Test UI (OLED)
+### Example 6: Test UI (OLED) with Automated Navigation
 
 ```bash
 # Compile with UI test
 make CFLAGS+="-DMODULE_TEST_UI=1"
 
-# Observe the OLED for status updates
+# Connect UART terminal at 115200 baud to view test progress
+# Observe the OLED for automated page navigation and test mode rendering
 ```
 
 **Expected Output:**
-- OLED initializes and renders test UI screens
-- Buttons/encoders update the UI if connected
+- Comprehensive UART log showing 6 test phases:
+  - Phase 1: OLED and UI initialization
+  - Phase 2: Direct page navigation through all UI pages (3s each)
+  - Phase 3: Button-based navigation test (Button 5 cycles)
+  - Phase 4: All 29 OLED test modes rendered and validated
+  - Phase 5: Encoder stress test (rapid changes, large jumps)
+  - Phase 6: Status line validation
+- OLED display shows:
+  - Each UI page rendered in sequence
+  - All 29 OLED test modes including:
+    - Pattern/Grayscale tests (0-6)
+    - Animations (7-10, 15-19)
+    - Advanced graphics (11-14, 17-19)
+    - Hardware driver tests (20-27)
+    - Vortex tunnel demo (28)
+- Test completes in ~2-3 minutes, then enters manual mode
+- Buttons/encoders can be used for manual testing after automated tests
+
+**OLED Test Modes Validated:**
+The test automatically validates all SSD1322 enhancements:
+- Mode 0-6: Basic display tests (patterns, grayscale, text)
+- Mode 7-10: Animation tests (scrolling, ball, performance, circles)
+- Mode 11-14: Advanced features (bitmap, patterns, stress, auto-cycle)
+- Mode 15-16: Utility tests (burn-in prevention, performance stats)
+- Mode 17-19: 3D & UI elements (wireframe cube, advanced graphics, UI widgets)
+- Mode 20-27: Hardware driver tests (8 hardware test patterns)
+- Mode 28: Vortex tunnel demo
 
 ### Example 7: Test Patch/SD
 
