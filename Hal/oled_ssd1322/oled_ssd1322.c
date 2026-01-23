@@ -390,3 +390,183 @@ void oled_test_mios32_pattern(void) {
   // MIOS32: while(1); - wait forever to show pattern
   // We'll just return and let caller decide what to do
 }
+
+// ============================================================================
+// Enhanced OLED Test Functions - Beyond basic MIOS32 test
+// ============================================================================
+
+/**
+ * @brief Test 1: Checkerboard pattern
+ * Tests pixel-level control and display uniformity
+ */
+void oled_test_checkerboard(void) {
+  for (uint16_t y = 0; y < 64; y++) {
+    cmd(0x15); data(0x1c);
+    cmd(0x75); data(y);
+    cmd(0x5c);
+    
+    for (uint16_t x = 0; x < 64; x++) {
+      // Checkerboard: alternate 0x00 and 0xFF every 4 pixels
+      uint8_t val = ((x >> 2) ^ (y >> 2)) & 1 ? 0xFF : 0x00;
+      data(val); data(val);
+    }
+  }
+}
+
+/**
+ * @brief Test 2: Horizontal gradient
+ * Tests grayscale levels (0x00 to 0xFF)
+ */
+void oled_test_h_gradient(void) {
+  for (uint16_t y = 0; y < 64; y++) {
+    cmd(0x15); data(0x1c);
+    cmd(0x75); data(y);
+    cmd(0x5c);
+    
+    for (uint16_t x = 0; x < 64; x++) {
+      // Horizontal gradient: left=black (0x00) to right=white (0xFF)
+      uint8_t val = (x * 255) / 63;
+      data(val); data(val);
+    }
+  }
+}
+
+/**
+ * @brief Test 3: Vertical gradient
+ * Tests grayscale levels vertically
+ */
+void oled_test_v_gradient(void) {
+  for (uint16_t y = 0; y < 64; y++) {
+    cmd(0x15); data(0x1c);
+    cmd(0x75); data(y);
+    cmd(0x5c);
+    
+    // Vertical gradient: top=black (0x00) to bottom=white (0xFF)
+    uint8_t val = (y * 255) / 63;
+    for (uint16_t x = 0; x < 64; x++) {
+      data(val); data(val);
+    }
+  }
+}
+
+/**
+ * @brief Test 4: Concentric rectangles
+ * Tests geometric patterns
+ */
+void oled_test_rectangles(void) {
+  for (uint16_t y = 0; y < 64; y++) {
+    cmd(0x15); data(0x1c);
+    cmd(0x75); data(y);
+    cmd(0x5c);
+    
+    for (uint16_t x = 0; x < 128; x++) {
+      // Distance from center determines brightness
+      int16_t dx = x - 64;
+      int16_t dy = y - 32;
+      uint16_t dist = (dx < 0 ? -dx : dx) + (dy < 0 ? -dy : dy);
+      uint8_t val = (dist * 8) & 0xFF;
+      data(val); data(val);
+    }
+  }
+}
+
+/**
+ * @brief Test 5: Diagonal stripes
+ * Tests diagonal patterns
+ */
+void oled_test_stripes(void) {
+  for (uint16_t y = 0; y < 64; y++) {
+    cmd(0x15); data(0x1c);
+    cmd(0x75); data(y);
+    cmd(0x5c);
+    
+    for (uint16_t x = 0; x < 64; x++) {
+      // Diagonal stripes
+      uint8_t val = ((x + y) >> 2) & 0x0F;
+      val = val | (val << 4);  // Expand 4-bit to 8-bit
+      data(val); data(val);
+    }
+  }
+}
+
+/**
+ * @brief Test 6: Simple voxel landscape visualization
+ * Simulates 3D terrain (simplified from LoopA voxelspace)
+ */
+void oled_test_voxel_landscape(void) {
+  // Simple height map (mountains and valleys)
+  static uint8_t heightmap[128];
+  
+  // Generate simple sine-based terrain
+  for (uint16_t x = 0; x < 128; x++) {
+    // Create mountain-like terrain using simple math
+    heightmap[x] = 32 + (((x * 3) & 0x1F) - 16);
+  }
+  
+  // Render from back to front (painter's algorithm)
+  for (uint16_t y = 0; y < 64; y++) {
+    cmd(0x15); data(0x1c);
+    cmd(0x75); data(y);
+    cmd(0x5c);
+    
+    for (uint16_t x = 0; x < 64; x++) {
+      uint16_t xpos = x * 2;  // Scale to 128-pixel width
+      uint8_t terrain_height = heightmap[xpos];
+      
+      // Sky above terrain, ground below
+      uint8_t val;
+      if (y < terrain_height) {
+        // Sky - gradient from dark (top) to light (horizon)
+        val = y * 2;
+      } else {
+        // Ground - darker at bottom
+        val = 255 - ((y - terrain_height) * 4);
+      }
+      
+      data(val); data(val);
+    }
+  }
+}
+
+/**
+ * @brief Test 7: All grayscale levels
+ * Shows all 16 grayscale levels as vertical bars
+ */
+void oled_test_gray_levels(void) {
+  for (uint16_t y = 0; y < 64; y++) {
+    cmd(0x15); data(0x1c);
+    cmd(0x75); data(y);
+    cmd(0x5c);
+    
+    for (uint16_t x = 0; x < 64; x++) {
+      // 16 vertical bars, each showing one grayscale level
+      uint8_t level = (x * 16) / 64;  // 0-15
+      uint8_t val = level | (level << 4);  // Both pixels same level
+      data(val); data(val);
+    }
+  }
+}
+
+/**
+ * @brief Test 8: Text simulation using simple pixel pattern
+ * Simulates text rendering capability
+ */
+void oled_test_text_pattern(void) {
+  for (uint16_t y = 0; y < 64; y++) {
+    cmd(0x15); data(0x1c);
+    cmd(0x75); data(y);
+    cmd(0x5c);
+    
+    for (uint16_t x = 0; x < 64; x++) {
+      // Simple character-like pattern
+      uint8_t val = 0x00;
+      
+      // Create horizontal "text lines" at regular intervals
+      if ((y & 0x0F) < 8 && (x & 0x07) > 1 && (x & 0x07) < 6) {
+        val = 0xFF;  // White "character"
+      }
+      
+      data(val); data(val);
+    }
+  }
+}

@@ -1810,27 +1810,70 @@ int module_test_oled_ssd1322_run(void)
   dbg_print("  PC11 = SDA (Data)\r\n");
   dbg_print("  CS#  = GND (hardwired)\r\n\r\n");
   
-  // Simple test: Init and show MIOS32 testScreen()
+  // Comprehensive OLED test suite
+  dbg_print("=== COMPREHENSIVE OLED TEST SUITE ===\r\n\r\n");
+  
   dbg_print("Step 1: Initialize OLED...\r\n");
   oled_init();
   dbg_print("[OK] Init complete\r\n\r\n");
   
-  dbg_print("Step 2: Render MIOS32 testScreen() pattern...\r\n");
-  dbg_print("  Left half:  Gradient pattern\r\n");
-  dbg_print("  Right half: Full white\r\n\r\n");
+  // Array of test functions and their descriptions
+  typedef struct {
+    void (*test_func)(void);
+    const char* name;
+    const char* description;
+  } oled_test_t;
   
-  oled_test_mios32_pattern();
+  const oled_test_t tests[] = {
+    {oled_test_mios32_pattern, "MIOS32 Pattern", "Gradient (left) + White (right) - MIOS32 original test"},
+    {oled_test_checkerboard,   "Checkerboard",   "Alternating black/white squares - pixel uniformity test"},
+    {oled_test_h_gradient,     "H-Gradient",     "Horizontal gradient from black to white"},
+    {oled_test_v_gradient,     "V-Gradient",     "Vertical gradient from black to white"},
+    {oled_test_gray_levels,    "Gray Levels",    "All 16 grayscale levels as vertical bars"},
+    {oled_test_rectangles,     "Rectangles",     "Concentric rectangles - geometric pattern"},
+    {oled_test_stripes,        "Diagonal Stripes", "Diagonal stripe pattern"},
+    {oled_test_voxel_landscape, "Voxel Landscape", "Simple 3D terrain visualization (voxelspace)"},
+    {oled_test_text_pattern,   "Text Pattern",   "Simulated text rendering pattern"},
+  };
   
-  dbg_print("** CHECK DISPLAY NOW **\r\n");
-  dbg_print("Expected: Gradient on left, white on right\r\n\r\n");
+  const uint8_t num_tests = sizeof(tests) / sizeof(tests[0]);
   
-  dbg_print("Test will loop pattern rendering forever...\r\n");
-  dbg_print("(Matches MIOS32 testScreen behavior)\r\n\r\n");
+  dbg_print("Step 2: Running %d visual tests...\r\n", num_tests);
+  dbg_print("Each test displays for 3 seconds\r\n");
+  dbg_print("Watch the OLED display!\r\n\r\n");
   
-  // Loop forever like MIOS32 testScreen()
+  // Run all tests in sequence
+  for (uint8_t i = 0; i < num_tests; i++) {
+    dbg_print("Test %d/%d: %s\r\n", i+1, num_tests, tests[i].name);
+    dbg_print("  %s\r\n", tests[i].description);
+    
+    // Render the test pattern
+    tests[i].test_func();
+    
+    dbg_print("  [OK] Pattern rendered\r\n\r\n");
+    
+    // Display for 3 seconds
+    osDelay(3000);
+  }
+  
+  dbg_print("=== ALL TESTS COMPLETE ===\r\n\r\n");
+  dbg_print("Test suite will now loop continuously...\r\n");
+  dbg_print("Each pattern displays for 3 seconds.\r\n\r\n");
+  
+  // Continuous loop through all tests
+  uint32_t loop_count = 0;
   while(1) {
-    oled_test_mios32_pattern();
-    osDelay(100);  // Small delay to avoid flooding
+    loop_count++;
+    dbg_print("--- Loop #%lu ---\r\n", loop_count);
+    
+    for (uint8_t i = 0; i < num_tests; i++) {
+      dbg_print("%s... ", tests[i].name);
+      tests[i].test_func();
+      dbg_print("OK\r\n");
+      osDelay(3000);
+    }
+    
+    dbg_print("\r\n");
   }
   
   return 0;
