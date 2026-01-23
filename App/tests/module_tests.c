@@ -1834,7 +1834,7 @@ int module_test_oled_ssd1322_run(void)
   dbg_print("  Max clock:       10 MHz  [OK: ~5 MHz]\r\n\r\n");
   
   // Test 0: Minimal Hardware Test (bypass full init)
-  dbg_print("Step 0/4: MINIMAL Hardware Communication Test\r\n");
+  dbg_print("Step 0/5: MINIMAL Hardware Communication Test\r\n");
   dbg_print("(Testing basic SPI with 3 simple commands)\r\n");
   int minimal_result = module_test_oled_minimal_hardware();
   if (minimal_result < 0) {
@@ -1845,7 +1845,7 @@ int module_test_oled_ssd1322_run(void)
   osDelay(5000);
   
   // Test 1: GPIO Control
-  dbg_print("\r\nStep 1/4: GPIO Control Test\r\n");
+  dbg_print("\r\nStep 1/5: GPIO Control Test\r\n");
   int result = module_test_oled_gpio_control();
   if (result < 0) {
     dbg_print("[ERROR] GPIO test failed!\r\n");
@@ -1853,7 +1853,7 @@ int module_test_oled_ssd1322_run(void)
   }
   
   // Test 2: OLED Progressive Initialization (step by step)
-  dbg_print("Step 2/4: OLED Progressive Initialization\r\n");
+  dbg_print("Step 2/5: OLED Progressive Initialization\r\n");
   dbg_print("Testing each init command one at a time...\r\n");
   dbg_print("Display should stay ON after each step.\r\n");
   dbg_print("Observe if/when display turns OFF.\r\n\r\n");
@@ -1932,12 +1932,29 @@ int module_test_oled_ssd1322_run(void)
   dbg_print("- Display BLACK: OLED locked up, requires power cycle\r\n\r\n");
 
   // Test 3: Display Pattern Tests
-  dbg_print("Step 3/4: Display Pattern Tests\r\n");
+  dbg_print("Step 3/5: Display Pattern Tests\r\n");
   result = module_test_oled_display_patterns();
   if (result < 0) {
     dbg_print("[ERROR] Pattern test failed!\r\n");
     return -2;
   }
+  
+  // Test 4: MIOS32-compatible test pattern
+  dbg_print("\r\nStep 4/5: MIOS32 Test Pattern\r\n");
+  dbg_print("================================================\r\n");
+  dbg_print("Recreating exact MIOS32 test pattern\r\n");
+  dbg_print("Source: github.com/midibox/mios32/apps/mios32_test/app_lcd/ssd1322\r\n");
+  dbg_print("================================================\r\n");
+  dbg_print("Pattern: Left half = gradient, Right half = white\r\n");
+  dbg_print("Rendering test pattern directly to OLED RAM...\r\n");
+  
+  oled_test_mios32_pattern();
+  
+  dbg_print("** CHECK DISPLAY NOW **\r\n");
+  dbg_print("Expected: Left half shows gradient pattern, right half is white\r\n");
+  dbg_print("Waiting 1 second as requested...\r\n");
+  osDelay(1000);  // 1 second delay as requested
+  dbg_print("MIOS32 pattern test complete.\r\n\r\n");
   
   // Final summary
   dbg_print("=====================================\r\n");

@@ -9,3 +9,4 @@ void oled_init_progressive(uint8_t max_step);  // For debugging
 uint8_t* oled_framebuffer(void);
 void oled_flush(void);
 void oled_clear(void);
+void oled_test_mios32_pattern(void);  // MIOS32-compatible test pattern

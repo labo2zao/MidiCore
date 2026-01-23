@@ -279,3 +279,36 @@ uint8_t *oled_framebuffer(void) {
 void oled_clear(void) {
   memset(fb, 0x00, sizeof(fb));
 }
+
+// MIOS32-compatible test screen function
+// Matches testScreen() from github.com/midibox/mios32/apps/mios32_test/app_lcd/ssd1322/app.c
+// Left half: gradient pattern, Right half: full white
+// This test bypasses the framebuffer and writes directly to OLED RAM
+void oled_test_mios32_pattern(void) {
+  uint16_t x = 0;
+  uint16_t y = 0;
+
+  // Render test screen exactly like MIOS32
+  for (y = 0; y < 64; y++) {
+    cmd(0x15);                    // Set Column Address
+    data(0x1C);                   // Column start (MIOS32 sends only 1 byte)
+
+    cmd(0x75);                    // Set Row Address
+    data(y);                      // Row start (MIOS32 sends only 1 byte)
+
+    cmd(0x5C);                    // Write RAM command
+
+    for (x = 0; x < 64; x++) {    // 64 column pairs = 128 bytes = 256 pixels
+      if (x < 32) {               // Left half: pattern
+        // MIOS32 pattern: gradient based on position
+        // Original MIOS32 code had: if (x || 4 == 0 || y || 4 == 0)
+        // This is always true (logical OR with constants), creating gradient
+        data(y & 0x0F);           // First pixel: gradient based on Y
+        data(0x00);               // Second pixel: black
+      } else {                    // Right half: full white
+        data(0xFF);               // First pixel: white
+        data(0xFF);               // Second pixel: white
+      }
+    }
+  }
+}
