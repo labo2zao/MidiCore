@@ -219,7 +219,10 @@ void oled_init_progressive(uint8_t max_step) {
   }
 
   // Step 15: Full init with SIMPLE WHITE SCREEN TEST
-  // CRITICAL: Exit test mode (0xA5) before writing to RAM!
+  // CRITICAL: Turn display OFF before changing modes and writing RAM!
+  cmd(0xAE);  // Display OFF
+  
+  // Exit test mode (0xA5) and set normal display mode
   cmd(0xA4 | 0x02);  // Normal display mode (0xA6 - matches MIOS32 exactly)
   
   // ULTRA-SIMPLE TEST: Fill entire screen with WHITE
