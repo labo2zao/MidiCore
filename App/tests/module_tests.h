@@ -314,7 +314,7 @@ void module_test_router_run(void);
  *     - Paste to different track
  *     - Verify event count matches
  * 22. **Test footswitch control**
- *     - Configure 8 footswitch actions (play/stop, record, mute, solo, scene)
+ *     - Configure 5 footswitch actions (play/stop, record, mute, solo, scene)
  *     - Simulate footswitch press/release
  *     - Verify state changes
  * 23. **Test MIDI learn**
@@ -327,7 +327,7 @@ void module_test_router_run(void);
  *     - Save session to slot (tempo, scene, track data)
  *     - Modify current session
  *     - Load from slot and verify restoration
- *     - Test multiple slots (0-7)
+ *     - Test 4 slots (0-3)
  *     - Clear slot operation
  * 25. **Test event editing**
  *     - Export events for examination
