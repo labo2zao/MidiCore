@@ -61,59 +61,61 @@ void ui_page_automation_render(uint32_t now_ms) {
   
   ui_gfx_clear(0);
   
-  // Header
+  // Header with 8x8 font
+  ui_gfx_set_font(UI_FONT_8X8);
   char header[64];
-  snprintf(header, sizeof(header), "AUTOMATION  BPM:%3u  [%s]", 
+  snprintf(header, sizeof(header), "AUTO BPM:%3u [%s]", 
            tp.bpm, tp.playing ? "PLAY" : "STOP");
   ui_gfx_text(0, 0, header, 15);
-  ui_gfx_rect(0, 9, 256, 1, 4);
+  ui_gfx_hline(0, 11, 256, 8);
   
   // Mode selection
-  ui_gfx_text(0, 14, "Mode:", cursor_pos == 0 ? 15 : 10);
-  const char* mode_names[] = {"OFF", "SCENE_CHAIN", "WORKFLOW", "CUSTOM"};
-  ui_gfx_text(40, 14, mode_names[current_mode], cursor_pos == 0 ? 15 : 12);
+  ui_gfx_text(0, 15, "Mode:", cursor_pos == 0 ? 15 : 11);
+  const char* mode_names[] = {"OFF", "SCENE_CHN", "WORKFLOW", "CUSTOM"};
+  ui_gfx_text(40, 15, mode_names[current_mode], cursor_pos == 0 ? 15 : 13);
   
   // Scene Chain Configuration
-  ui_gfx_text(0, 24, "Scene Chain:", 10);
+  ui_gfx_text(0, 26, "Scene Chain:", 11);
   
   // Chain enable toggle
-  ui_gfx_text(4, 32, "Enable:", cursor_pos == 2 ? 15 : 8);
-  ui_gfx_text(50, 32, scene_chain_enabled ? "ON " : "OFF", 
-              scene_chain_enabled ? 15 : 8);
+  ui_gfx_text(4, 34, "Enable:", cursor_pos == 2 ? 15 : 10);
+  ui_gfx_text(50, 34, scene_chain_enabled ? "ON " : "OFF", 
+              scene_chain_enabled ? 15 : 10);
   
   // From → To scene
   if (scene_chain_enabled || current_mode == AUTO_MODE_SCENE_CHAIN) {
     char chain_text[32];
     snprintf(chain_text, sizeof(chain_text), "From: %c", 'A' + chain_from_scene);
-    ui_gfx_text(4, 40, chain_text, cursor_pos == 3 ? 15 : 10);
+    ui_gfx_text(4, 42, chain_text, cursor_pos == 3 ? 15 : 11);
     
     snprintf(chain_text, sizeof(chain_text), "To: %c", 'A' + chain_to_scene);
-    ui_gfx_text(60, 40, chain_text, cursor_pos == 4 ? 15 : 10);
+    ui_gfx_text(60, 42, chain_text, cursor_pos == 4 ? 15 : 11);
     
     // Visual chain indicator
-    ui_gfx_text(100, 40, "->", 12);
+    ui_gfx_text(100, 42, "->", 12);
   }
   
   // Workflow Presets
-  ui_gfx_text(140, 24, "Workflow:", 10);
+  ui_gfx_text(140, 26, "Workflow:", 11);
   const char* workflow_names[] = {"RECORD", "PERFORM", "PRACTICE", "JAM"};
-  ui_gfx_text(140, 32, workflow_names[current_workflow], 
-              cursor_pos == 1 ? 15 : 10);
+  ui_gfx_text(140, 34, workflow_names[current_workflow], 
+              cursor_pos == 1 ? 15 : 11);
   
   // Auto-trigger settings
-  ui_gfx_rect(0, 49, 256, 1, 3);
-  ui_gfx_text(0, 51, "Auto-Trigger:", cursor_pos == 5 ? 15 : 8);
-  ui_gfx_text(80, 51, auto_trigger_enabled ? "ENABLED " : "DISABLED", 
-              auto_trigger_enabled ? 15 : 6);
+  ui_gfx_hline(0, 50, 256, 4);
+  ui_gfx_text(0, 52, "Auto-Trigger:", cursor_pos == 5 ? 15 : 10);
+  ui_gfx_text(80, 52, auto_trigger_enabled ? "ENABLED " : "DISABLED", 
+              auto_trigger_enabled ? 15 : 8);
   
   // Status indicator
   if (current_mode != AUTO_MODE_OFF) {
-    ui_gfx_text(160, 51, "[ACTIVE]", 13);
+    ui_gfx_text(160, 52, "[ACTIVE]", 14);
   }
   
-  // Footer with button hints
-  ui_gfx_rect(0, 62, 256, 1, 4);
-  ui_gfx_text(0, 54, "B1 APPLY  B2 RESET  B3 TEST  B4 SAVE  ENC nav", 6);
+  // Footer with smaller font
+  ui_gfx_hline(0, 54, 256, 6);
+  ui_gfx_set_font(UI_FONT_5X7);
+  ui_gfx_text(0, 56, "B1:APPLY B2:RESET B3:TEST B4:SAVE ENC:nav", 10);
 }
 
 /**
