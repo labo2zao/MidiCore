@@ -11,6 +11,10 @@
 #include <string.h>
 #include <stdbool.h>
 
+// UI framework for framebuffer-based testing
+#include "Services/ui/ui_page_oled_test.h"
+#include "Services/ui/ui_gfx.h"
+
 // Conditional includes for all modules that might be tested
 #if MODULE_ENABLE_AINSER64
 #include "Hal/spi_bus.h"
@@ -1878,24 +1882,66 @@ int module_test_oled_ssd1322_run(void)
     osDelay(3000);
   }
   
-  dbg_print("=== ALL TESTS COMPLETE ===\r\n\r\n");
-  dbg_print("Test suite will now loop continuously...\r\n");
-  dbg_print("Each pattern displays for 3 seconds.\r\n\r\n");
+  dbg_print("=== ALL DIRECT PATTERN TESTS COMPLETE ===\r\n\r\n");
   
-  // Continuous loop through all tests
+  // ============================================================================
+  // Step 3: UI Page Test (Framebuffer-based rendering)
+  // ============================================================================
+  dbg_print("Step 3: UI Page Test (Framebuffer + Graphics API)\r\n");
+  dbg_print("===============================================\r\n");
+  dbg_print("This test demonstrates the production UI framework:\r\n");
+  dbg_print("  - Framebuffer-based rendering\r\n");
+  dbg_print("  - Graphics primitives (text, lines, rectangles, pixels)\r\n");
+  dbg_print("  - Multiple test modes (use encoder/buttons to switch)\r\n");
+  dbg_print("  - Real-time updates with millisecond counter\r\n\r\n");
+  
+  dbg_print("Available UI test modes:\r\n");
+  dbg_print("  Mode 0: Pattern Test - Stripes and checkerboard\r\n");
+  dbg_print("  Mode 1: Grayscale Test - All 16 levels with labels\r\n");
+  dbg_print("  Mode 2: Pixel Test - Individual pixel grid\r\n");
+  dbg_print("  Mode 3: Text Test - Font rendering (different sizes)\r\n");
+  dbg_print("  Mode 4: Animation Test - Moving bar and pulsing square\r\n");
+  dbg_print("  Mode 5: Hardware Info - Display specifications\r\n");
+  dbg_print("  Mode 6: Direct Framebuffer - Raw buffer manipulation\r\n\r\n");
+  
+  dbg_print("NOTE: Encoder/button control not available in test mode.\r\n");
+  dbg_print("      Modes will cycle automatically.\r\n\r\n");
+  
+  // Initialize UI graphics with OLED framebuffer
+  uint8_t* fb = oled_framebuffer();
+  ui_gfx_set_fb(fb, OLED_W, OLED_H);
+  
+  dbg_print("Starting UI page test loop...\r\n");
+  dbg_print("Each mode displays for 5 seconds before cycling.\r\n");
+  dbg_print("Watch the OLED display!\r\n\r\n");
+  
+  // Continuous loop through UI test modes
   uint32_t loop_count = 0;
+  uint32_t mode_start_time = 0;
+  const uint32_t mode_duration_ms = 5000;  // 5 seconds per mode
+  
   while(1) {
-    loop_count++;
-    dbg_printf("--- Loop #%lu ---\r\n", loop_count);
+    uint32_t current_time = osKernelGetTickCount();
     
-    for (uint8_t i = 0; i < num_tests; i++) {
-      dbg_printf("%s... ", tests[i].name);
-      tests[i].test_func();
-      dbg_print("OK\r\n");
-      osDelay(3000);
+    // Cycle through modes every 5 seconds
+    if (current_time - mode_start_time >= mode_duration_ms) {
+      mode_start_time = current_time;
+      loop_count++;
+      
+      // Simulate encoder to cycle through modes (0-6)
+      ui_page_oled_test_on_encoder(1);  // Next mode
+      
+      dbg_printf("--- Loop #%lu: Switching to next test mode ---\r\n", loop_count);
     }
     
-    dbg_print("\r\n");
+    // Render the current UI page
+    ui_page_oled_test_render(current_time);
+    
+    // Flush framebuffer to display
+    oled_flush();
+    
+    // Small delay for smooth animation (16ms = ~60 FPS)
+    osDelay(16);
   }
   
   return 0;
