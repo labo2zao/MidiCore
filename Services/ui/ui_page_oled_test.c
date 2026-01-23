@@ -5,7 +5,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-static uint8_t test_mode = 0; // 0=patterns, 1=grayscale, 2=pixels, 3=text, 4=animations, 5=hardware info, 6=framebuffer, 7=scrolling text, 8=bouncing ball, 9=performance, 10=circles, 11=bitmap, 12=fill patterns, 13=stress test, 14=auto-cycle, 15=burn-in prevention, 16=stats display, 17=3D wireframe, 18=advanced graphics, 19=UI elements demo, 20-27=hardware tests
+static uint8_t test_mode = 0; // 0=patterns, 1=grayscale, 2=pixels, 3=text, 4=animations, 5=hardware info, 6=framebuffer, 7=scrolling text, 8=bouncing ball, 9=performance, 10=circles, 11=bitmap, 12=fill patterns, 13=stress test, 14=auto-cycle, 15=burn-in prevention, 16=stats display, 17=3D wireframe, 18=advanced graphics, 19=UI elements demo, 20-27=hardware tests, 28=vortex tunnel
 static uint32_t last_update = 0;
 static uint8_t anim_frame = 0;
 static int scroll_offset = 0;
@@ -426,7 +426,7 @@ void ui_page_oled_test_render(uint32_t ms) {
       if (ms - auto_cycle_timer > 3000) {
         // Cycle to next mode (skip auto-cycle mode itself)
         uint8_t next_mode = (test_mode + 1);
-        if (next_mode >= 28) next_mode = 0;  // Wrap around after mode 27 (28 modes total)
+        if (next_mode >= 29) next_mode = 0;  // Wrap around after mode 28 (29 modes total)
         if (next_mode == 14) next_mode = 15;  // Skip auto-cycle mode itself
         test_mode = next_mode;
         auto_cycle_timer = ms;
@@ -732,6 +732,65 @@ void ui_page_oled_test_render(uint32_t ms) {
       return; // Skip footer
     }
     
+    case 28: { // Vortex Tunnel Effect
+      ui_gfx_text(0, 26, "Vortex Tunnel", 15);
+      
+      if (ms - last_update > 30) { // 30ms update = ~33 FPS
+        last_update = ms;
+        anim_frame++;
+        
+        // Draw rotating tunnel/vortex effect using concentric circles
+        int cx = OLED_W / 2;
+        int cy = OLED_H / 2;
+        
+        // Animate depth with frame counter
+        int depth_offset = (anim_frame * 2) % 40;
+        
+        // Draw 8 concentric circles with animated radii and rotation
+        for (int i = 0; i < 8; i++) {
+          int radius = 10 + (i * 8) + depth_offset;
+          if (radius > 0 && radius < 100) {
+            // Brightness decreases with radius for depth perception
+            uint8_t brightness = 15 - (i * 2);
+            if (brightness < 5) brightness = 5;
+            
+            ui_gfx_circle(cx, cy, radius, brightness);
+          }
+        }
+        
+        // Add rotating spokes for tunnel effect (8 lines radiating from center)
+        for (int spoke = 0; spoke < 8; spoke++) {
+          // Rotate spokes using frame counter
+          int angle_idx = (spoke * 2 + (anim_frame / 4)) % 16;
+          
+          // Use arc lookup for angle (0-360 in 22.5° steps)
+          // Simplified: just draw 8 lines at fixed angles rotating
+          int x_offset = 0, y_offset = 0;
+          
+          switch (angle_idx % 8) {
+            case 0: x_offset = 50; y_offset = 0; break;
+            case 1: x_offset = 35; y_offset = 35; break;
+            case 2: x_offset = 0; y_offset = 50; break;
+            case 3: x_offset = -35; y_offset = 35; break;
+            case 4: x_offset = -50; y_offset = 0; break;
+            case 5: x_offset = -35; y_offset = -35; break;
+            case 6: x_offset = 0; y_offset = -50; break;
+            case 7: x_offset = 35; y_offset = -35; break;
+          }
+          
+          ui_gfx_line(cx, cy, cx + x_offset, cy + y_offset, 8);
+        }
+        
+        // Draw angle indicator
+        char angle_info[32];
+        snprintf(angle_info, sizeof(angle_info), "Depth:%d", anim_frame % 100);
+        ui_gfx_text(OLED_W - 70, OLED_H - 12, angle_info, 10);
+      }
+      
+      ui_gfx_text(0, 2, "Rotating vortex tunnel with depth animation", 10);
+      break;
+    }
+    
     default:
       test_mode = 0;
       break;
@@ -759,7 +818,7 @@ void ui_page_oled_test_on_button(uint8_t id, uint8_t pressed) {
     if (test_mode > 0) {
       test_mode--;
     } else {
-      test_mode = 27; // Updated max test mode (0-27 = 28 modes)
+      test_mode = 28; // Updated max test mode (0-28 = 29 modes)
     }
     // Reset animation state
     anim_frame = 0;
@@ -769,7 +828,7 @@ void ui_page_oled_test_on_button(uint8_t id, uint8_t pressed) {
     auto_cycle_timer = 0;
   } else if (id == 1) {
     // Button 1: Next test
-    test_mode = (test_mode + 1) % 28; // Updated max test mode (28 modes total)
+    test_mode = (test_mode + 1) % 29; // Updated max test mode (29 modes total)
     // Reset animation state
     anim_frame = 0;
     scroll_offset = 0;
@@ -808,7 +867,7 @@ void ui_page_oled_test_on_encoder(int8_t delta) {
   }
   
   if (delta > 0) {
-    test_mode = (test_mode + 1) % 28; // Updated max test mode (28 modes total)
+    test_mode = (test_mode + 1) % 29; // Updated max test mode (29 modes total)
     // Reset animation state
     anim_frame = 0;
     scroll_offset = 0;
@@ -819,7 +878,7 @@ void ui_page_oled_test_on_encoder(int8_t delta) {
     if (test_mode > 0) {
       test_mode--;
     } else {
-      test_mode = 27; // Updated max test mode (0-27 = 28 modes)
+      test_mode = 28; // Updated max test mode (0-28 = 29 modes)
     }
     // Reset animation state
     anim_frame = 0;
