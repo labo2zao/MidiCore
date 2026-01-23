@@ -424,8 +424,10 @@ void ui_page_oled_test_render(uint32_t ms) {
       
       // Auto-cycle through modes every 3 seconds
       if (ms - auto_cycle_timer > 3000) {
-        // Cycle to next mode (skip auto-cycle and new modes)
-        uint8_t next_mode = (test_mode + 1) % 14;
+        // Cycle to next mode (skip auto-cycle mode itself)
+        uint8_t next_mode = (test_mode + 1);
+        if (next_mode >= 20) next_mode = 0;  // Wrap around after mode 19
+        if (next_mode == 14) next_mode = 15;  // Skip auto-cycle mode itself
         test_mode = next_mode;
         auto_cycle_timer = ms;
         anim_frame = 0;
