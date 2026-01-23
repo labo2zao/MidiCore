@@ -1860,14 +1860,14 @@ int module_test_oled_ssd1322_run(void)
   
   const uint8_t num_tests = sizeof(tests) / sizeof(tests[0]);
   
-  dbg_print("Step 2: Running %d visual tests...\r\n", num_tests);
+  dbg_printf("Step 2: Running %d visual tests...\r\n", num_tests);
   dbg_print("Each test displays for 3 seconds\r\n");
   dbg_print("Watch the OLED display!\r\n\r\n");
   
   // Run all tests in sequence
   for (uint8_t i = 0; i < num_tests; i++) {
-    dbg_print("Test %d/%d: %s\r\n", i+1, num_tests, tests[i].name);
-    dbg_print("  %s\r\n", tests[i].description);
+    dbg_printf("Test %d/%d: %s\r\n", i+1, num_tests, tests[i].name);
+    dbg_printf("  %s\r\n", tests[i].description);
     
     // Render the test pattern
     tests[i].test_func();
@@ -1886,10 +1886,10 @@ int module_test_oled_ssd1322_run(void)
   uint32_t loop_count = 0;
   while(1) {
     loop_count++;
-    dbg_print("--- Loop #%lu ---\r\n", loop_count);
+    dbg_printf("--- Loop #%lu ---\r\n", loop_count);
     
     for (uint8_t i = 0; i < num_tests; i++) {
-      dbg_print("%s... ", tests[i].name);
+      dbg_printf("%s... ", tests[i].name);
       tests[i].test_func();
       dbg_print("OK\r\n");
       osDelay(3000);
