@@ -478,10 +478,12 @@ Potential additions for future versions:
 
 ## Related Documentation
 
+- [OLED Test Protocol](../testing/OLED_TEST_PROTOCOL.md) - Comprehensive testing protocol matching LoopA/UI standards
 - [OLED Quick Test](OLED_QUICK_TEST.md) - Basic OLED testing procedures
 - [OLED Troubleshooting](OLED_TROUBLESHOOTING.md) - Hardware troubleshooting guide
 - [OLED Wiring Guide](OLED_WIRING_GUIDE.md) - Complete wiring documentation
 - [Module Testing](../testing/README_MODULE_TESTING.md) - Testing framework documentation
+- [Testing Protocol](../testing/TESTING_PROTOCOL.md) - LoopA feature testing (300+ tests)
 
 ## References
 
