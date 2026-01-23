@@ -946,8 +946,9 @@ void module_test_midi_din_run(void)
   dbg_print(" OK\r\n");
   
   // Configure routing: DIN IN1 → DIN OUT1 (echo)
-  router_set_route(0, 4, 1);  // DIN IN1 (node 0) → DIN OUT1 (node 4)
-  router_set_chanmask(0, 4, 0xFFFF);  // All channels
+  // Router node 0 = DIN IN1, node 4 = DIN OUT1 (see router.h for node mapping)
+  router_set_route(0, 4, 1);  // Source: DIN IN1, Dest: DIN OUT1, Enable: 1
+  router_set_chanmask(0, 4, 0xFFFF);  // All channels (0xFFFF = all 16 channels enabled)
   dbg_print("Router configured: DIN IN1 → DIN OUT1\r\n");
 #endif
 
@@ -1026,8 +1027,10 @@ void module_test_midi_din_run(void)
   // LiveFX state variables (function scope for access across blocks)
   uint8_t scale_type = 0, scale_root = 0, scale_en = 0;
   
-  // Velocity scale adjustment constant
-  #define VELOCITY_SCALE_10_PERCENT 13  // (128 * 10%) / 100% = 12.8 ≈ 13
+  // Velocity scale adjustment constant (approximately 10% in 0-255 scale)
+  // 128 represents 100%, so 10% = 128 * 0.1 = 12.8, rounded to 13 for integer math
+  // Actual percentage: (13/128)*100 = 10.16% (acceptable for user control)
+  #define VELOCITY_SCALE_10_PERCENT 13
 #endif
 
   for (;;) {
