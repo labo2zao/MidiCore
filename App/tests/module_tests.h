@@ -50,6 +50,7 @@ typedef enum {
   MODULE_TEST_USB_HOST_MIDI_ID, // Test USB Host MIDI
   MODULE_TEST_USB_DEVICE_MIDI_ID, // Test USB Device MIDI (receive from DAW, print to UART, send test data)
   MODULE_TEST_OLED_SSD1322_ID,  // Test OLED SSD1322 driver (GPIO, SPI, display patterns)
+  MODULE_TEST_FOOTSWITCH_ID,    // Test footswitch mapping validation (requires 8 footswitches)
   MODULE_TEST_ALL_ID,           // Run all tests sequentially
 } module_test_t;
 
@@ -502,6 +503,57 @@ void module_test_usb_device_midi_run(void);
  * @note Returns after pattern tests complete (unlike most tests that run forever)
  */
 int module_test_oled_ssd1322_run(void);
+
+/**
+ * @brief Test Footswitch module
+ * 
+ * Comprehensive test of the footswitch mapping system (8 footswitches).
+ * 
+ * Tests:
+ * - Footswitch input detection via SRIO DIN
+ * - Mapping configuration for all 13 action types
+ * - Action execution (Play/Stop, Record, Overdub, Undo, Redo, etc.)
+ * - Looper integration
+ * - Button press/release detection
+ * - Real-time status display
+ * 
+ * Hardware requirements:
+ * - 8 footswitches connected to SRIO DIN inputs (buttons 0-7)
+ * - SRIO hardware (74HC165 shift registers)
+ * - UART connection for debug output (115200 baud)
+ * 
+ * Test sequence:
+ * 1. Initialize SRIO for button input
+ * 2. Initialize looper module
+ * 3. Configure 8 footswitch mappings to test all actions:
+ *    - FS0: Play/Stop (Track 0)
+ *    - FS1: Record (Track 0)
+ *    - FS2: Overdub (Track 0)
+ *    - FS3: Undo (Track 0)
+ *    - FS4: Mute (Track 1)
+ *    - FS5: Tap Tempo
+ *    - FS6: Trigger Scene (Scene A/0)
+ *    - FS7: Clear (Track 0)
+ * 4. Monitor button presses continuously
+ * 5. Display action triggered for each footswitch press
+ * 6. Display looper state changes
+ * 
+ * UART output format:
+ * - Footswitch mapping table
+ * - Button press/release events
+ * - Action triggered for each footswitch
+ * - Looper state changes (Play, Record, etc.)
+ * 
+ * Usage:
+ * - Enable MODULE_TEST_FOOTSWITCH=1 in test configuration
+ * - Connect 8 footswitches to SRIO DIN inputs (buttons 0-7)
+ * - Connect UART to serial terminal (115200 baud)
+ * - Press footswitches and observe action execution
+ * - Verify each footswitch triggers correct action
+ * 
+ * @note This function runs forever
+ */
+void module_test_footswitch_run(void);
 
 // =============================================================================
 // COMPILE-TIME TEST SELECTION HELPERS

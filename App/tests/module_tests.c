@@ -174,6 +174,7 @@ static const char* test_names[] = {
   "USB_HOST_MIDI",
   "USB_DEVICE_MIDI",
   "OLED_SSD1322",
+  "FOOTSWITCH",
   "ALL"
 };
 
@@ -250,6 +251,8 @@ module_test_t module_tests_get_compile_time_selection(void)
   return MODULE_TEST_USB_DEVICE_MIDI_ID;
 #elif defined(MODULE_TEST_OLED_SSD1322)
   return MODULE_TEST_OLED_SSD1322_ID;
+#elif defined(MODULE_TEST_FOOTSWITCH)
+  return MODULE_TEST_FOOTSWITCH_ID;
 #elif defined(MODULE_TEST_ALL)
   return MODULE_TEST_ALL_ID;
 #else
@@ -313,6 +316,10 @@ int module_tests_run(module_test_t test)
       
     case MODULE_TEST_OLED_SSD1322_ID:
       return module_test_oled_ssd1322_run();
+      
+    case MODULE_TEST_FOOTSWITCH_ID:
+      module_test_footswitch_run();
+      break;
       
     case MODULE_TEST_ALL_ID:
       // Run all tests sequentially (where possible)
@@ -1795,6 +1802,277 @@ static int module_test_oled_display_patterns(void)
   return 0;
 }
 #endif
+
+// =============================================================================
+// FOOTSWITCH TEST
+// =============================================================================
+
+void module_test_footswitch_run(void)
+{
+  // Early UART verification
+  dbg_print("\r\n");
+  dbg_print("==============================================\r\n");
+  dbg_print("UART Debug Verification: OK\r\n");
+  dbg_print("==============================================\r\n");
+  dbg_print("\r\n");
+  osDelay(100); // Give time for UART transmission
+  
+#if MODULE_ENABLE_SRIO && defined(SRIO_ENABLE) && MODULE_ENABLE_LOOPER
+  dbg_print_test_header("Footswitch Mapping Validation Test");
+  
+  dbg_print("This test validates the complete footswitch system:\r\n");
+  dbg_print("  Button Press (SRIO DIN) → Footswitch Mapping → Looper Action\r\n");
+  dbg_print("\r\n");
+  
+  // Initialize SRIO
+  dbg_print("Initializing SRIO...");
+  srio_config_t scfg = {
+    .hspi = SRIO_SPI_HANDLE,
+    .din_pl_port = SRIO_DIN_PL_PORT,
+    .din_pl_pin = SRIO_DIN_PL_PIN,
+    .dout_rclk_port = SRIO_DOUT_RCLK_PORT,
+    .dout_rclk_pin = SRIO_DOUT_RCLK_PIN,
+    .dout_oe_port = NULL,
+    .dout_oe_pin = 0,
+    .dout_oe_active_low = 1,
+    .din_bytes = SRIO_DIN_BYTES,
+    .dout_bytes = SRIO_DOUT_BYTES,
+  };
+  srio_init(&scfg);
+  dbg_print(" OK\r\n");
+  
+  // Allow time for /PL pin to stabilize at idle HIGH before first read
+  osDelay(10);
+  
+  // Initialize looper
+  dbg_print("Initializing Looper...");
+  looper_init();
+  dbg_print(" OK\r\n");
+  
+  dbg_print_separator();
+  dbg_print("Hardware Configuration:\r\n");
+  dbg_printf("  SRIO DIN bytes: %d\r\n", SRIO_DIN_BYTES);
+  dbg_printf("  Total footswitches: 8 (buttons 0-7)\r\n");
+  dbg_print("\r\n");
+  
+  // Configure footswitch mappings to test all major actions
+  dbg_print("Configuring Footswitch Mappings:\r\n");
+  dbg_print_separator();
+  
+  looper_set_footswitch_action(0, FS_ACTION_PLAY_STOP, 0);
+  dbg_print("  FS0 (Button 0): Play/Stop Track 0\r\n");
+  
+  looper_set_footswitch_action(1, FS_ACTION_RECORD, 0);
+  dbg_print("  FS1 (Button 1): Record Track 0\r\n");
+  
+  looper_set_footswitch_action(2, FS_ACTION_OVERDUB, 0);
+  dbg_print("  FS2 (Button 2): Overdub Track 0\r\n");
+  
+  looper_set_footswitch_action(3, FS_ACTION_UNDO, 0);
+  dbg_print("  FS3 (Button 3): Undo Track 0\r\n");
+  
+  looper_set_footswitch_action(4, FS_ACTION_MUTE_TRACK, 1);
+  dbg_print("  FS4 (Button 4): Mute Track 1\r\n");
+  
+  looper_set_footswitch_action(5, FS_ACTION_TAP_TEMPO, 0);
+  dbg_print("  FS5 (Button 5): Tap Tempo\r\n");
+  
+  looper_set_footswitch_action(6, FS_ACTION_TRIGGER_SCENE, 0);
+  dbg_print("  FS6 (Button 6): Trigger Scene A (0)\r\n");
+  
+  looper_set_footswitch_action(7, FS_ACTION_CLEAR_TRACK, 0);
+  dbg_print("  FS7 (Button 7): Clear Track 0\r\n");
+  
+  dbg_print_separator();
+  dbg_print("\r\n");
+  
+  // Verify mappings
+  dbg_print("Verifying Mappings:\r\n");
+  for (uint8_t fs = 0; fs < 8; fs++) {
+    uint8_t param = 0;
+    footswitch_action_t action = looper_get_footswitch_action(fs, &param);
+    
+    const char* action_name = "UNKNOWN";
+    switch (action) {
+      case FS_ACTION_NONE: action_name = "None"; break;
+      case FS_ACTION_PLAY_STOP: action_name = "Play/Stop"; break;
+      case FS_ACTION_RECORD: action_name = "Record"; break;
+      case FS_ACTION_OVERDUB: action_name = "Overdub"; break;
+      case FS_ACTION_UNDO: action_name = "Undo"; break;
+      case FS_ACTION_REDO: action_name = "Redo"; break;
+      case FS_ACTION_TAP_TEMPO: action_name = "Tap Tempo"; break;
+      case FS_ACTION_SELECT_TRACK: action_name = "Select Track"; break;
+      case FS_ACTION_TRIGGER_SCENE: action_name = "Trigger Scene"; break;
+      case FS_ACTION_MUTE_TRACK: action_name = "Mute Track"; break;
+      case FS_ACTION_SOLO_TRACK: action_name = "Solo Track"; break;
+      case FS_ACTION_CLEAR_TRACK: action_name = "Clear Track"; break;
+      case FS_ACTION_QUANTIZE_TRACK: action_name = "Quantize Track"; break;
+    }
+    
+    dbg_printf("  FS%d: %s (param=%d) [", fs, action_name, param);
+    if (action != FS_ACTION_NONE) {
+      dbg_print("PASS]\r\n");
+    } else {
+      dbg_print("FAIL]\r\n");
+    }
+  }
+  
+  dbg_print_separator();
+  dbg_print("\r\n");
+  
+  dbg_print("Test Instructions:\r\n");
+  dbg_print("  1. Press footswitch 0-7 (connected to SRIO DIN buttons 0-7)\r\n");
+  dbg_print("  2. Observe action triggered and looper state changes\r\n");
+  dbg_print("  3. Verify each footswitch triggers correct action\r\n");
+  dbg_print("  4. Check button press/release detection\r\n");
+  dbg_print("\r\n");
+  
+  dbg_print("Expected Hardware:\r\n");
+  dbg_print("  - 8 footswitches connected to SRIO DIN inputs (buttons 0-7)\r\n");
+  dbg_print("  - Footswitches should be momentary SPST-NO (normally open)\r\n");
+  dbg_print("  - Pull-up resistors (10kΩ) on all inputs\r\n");
+  dbg_print("  - Buttons should read HIGH when not pressed, LOW when pressed\r\n");
+  dbg_print("\r\n");
+  
+  dbg_print_separator();
+  dbg_print("Starting continuous monitoring...\r\n");
+  dbg_print("Press any footswitch to see action!\r\n");
+  dbg_print_separator();
+  dbg_print("\r\n");
+  
+  uint8_t din[SRIO_DIN_BYTES];
+  uint8_t last_button_state[8] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+  uint32_t scan_counter = 0;
+  uint32_t last_activity_ms = osKernelGetTickCount();
+  uint32_t last_status_ms = osKernelGetTickCount();
+  
+  // Initial read
+  srio_read_din(din);
+  
+  for (;;) {
+    // Read button states
+    int result = srio_read_din(din);
+    if (result != 0) {
+      dbg_printf("ERROR: SRIO read failed with code %d\r\n", result);
+      osDelay(1000);
+      continue;
+    }
+    
+    scan_counter++;
+    
+    // Check first 8 buttons (footswitches 0-7) in first byte
+    // Note: We only use the first 8 buttons for footswitches
+    bool activity = false;
+    uint8_t current_state = srio_din_get(0); // First byte contains buttons 0-7
+    
+    for (uint8_t fs = 0; fs < 8; fs++) {
+      bool pressed_now = (current_state & (1 << fs)) == 0; // Active low
+      bool was_pressed = (last_button_state[0] & (1 << fs)) == 0;
+      
+      if (pressed_now != was_pressed) {
+        activity = true;
+        last_activity_ms = osKernelGetTickCount();
+        
+        // Get footswitch mapping
+        uint8_t param = 0;
+        footswitch_action_t action = looper_get_footswitch_action(fs, &param);
+        
+        const char* action_name = "UNKNOWN";
+        switch (action) {
+          case FS_ACTION_NONE: action_name = "None"; break;
+          case FS_ACTION_PLAY_STOP: action_name = "Play/Stop"; break;
+          case FS_ACTION_RECORD: action_name = "Record"; break;
+          case FS_ACTION_OVERDUB: action_name = "Overdub"; break;
+          case FS_ACTION_UNDO: action_name = "Undo"; break;
+          case FS_ACTION_REDO: action_name = "Redo"; break;
+          case FS_ACTION_TAP_TEMPO: action_name = "Tap Tempo"; break;
+          case FS_ACTION_SELECT_TRACK: action_name = "Select Track"; break;
+          case FS_ACTION_TRIGGER_SCENE: action_name = "Trigger Scene"; break;
+          case FS_ACTION_MUTE_TRACK: action_name = "Mute Track"; break;
+          case FS_ACTION_SOLO_TRACK: action_name = "Solo Track"; break;
+          case FS_ACTION_CLEAR_TRACK: action_name = "Clear Track"; break;
+          case FS_ACTION_QUANTIZE_TRACK: action_name = "Quantize Track"; break;
+        }
+        
+        if (pressed_now) {
+          // Button pressed - trigger action
+          dbg_printf("[Scan #%lu] FS%d PRESSED → %s", scan_counter, fs, action_name);
+          if (param != 0 || action == FS_ACTION_TRIGGER_SCENE) {
+            dbg_printf(" (param=%d)", param);
+          }
+          dbg_print("\r\n");
+          
+          // Call looper footswitch press handler
+          looper_footswitch_press(fs);
+          
+          // Display looper state for relevant tracks
+          if (action == FS_ACTION_PLAY_STOP || action == FS_ACTION_RECORD || 
+              action == FS_ACTION_OVERDUB || action == FS_ACTION_CLEAR_TRACK) {
+            uint8_t track = param;
+            if (track < 4) { // LOOPER_TRACKS = 4
+              looper_state_t state = looper_get_state(track);
+              const char* state_name = "UNKNOWN";
+              switch (state) {
+                case LOOPER_STATE_STOP: state_name = "STOP"; break;
+                case LOOPER_STATE_PLAY: state_name = "PLAY"; break;
+                case LOOPER_STATE_REC: state_name = "RECORD"; break;
+                case LOOPER_STATE_OVERDUB: state_name = "OVERDUB"; break;
+              }
+              dbg_printf("  → Track %d state: %s\r\n", track, state_name);
+            }
+          }
+          
+        } else {
+          // Button released
+          dbg_printf("[Scan #%lu] FS%d RELEASED\r\n", scan_counter, fs);
+          
+          // Call looper footswitch release handler
+          looper_footswitch_release(fs);
+        }
+      }
+    }
+    
+    // Update last button state
+    last_button_state[0] = current_state;
+    
+    // Print idle status every 10 seconds if no activity
+    uint32_t now_ms = osKernelGetTickCount();
+    if (now_ms - last_activity_ms >= 10000 && now_ms - last_status_ms >= 10000) {
+      dbg_printf("Waiting for footswitch press... (scan count: %lu)\r\n", scan_counter);
+      dbg_print("Current DIN state (byte 0): 0x");
+      dbg_print_hex8(current_state);
+      dbg_print(" (buttons 0-7)\r\n");
+      dbg_print("Expected: 0xFF = all buttons released (with pull-ups)\r\n");
+      if (current_state != 0xFF) {
+        dbg_print("WARNING: Some buttons may be pressed or inputs are stuck!\r\n");
+      }
+      dbg_print("\r\n");
+      last_status_ms = now_ms;
+    }
+    
+    osDelay(10); // 10ms scan rate = 100 Hz
+  }
+  
+#else
+  dbg_print_test_header("Footswitch Test");
+  dbg_print("ERROR: Required modules not enabled!\r\n");
+  #if !MODULE_ENABLE_SRIO || !defined(SRIO_ENABLE)
+  dbg_print("  - SRIO module not enabled (MODULE_ENABLE_SRIO and SRIO_ENABLE)\r\n");
+  #endif
+  #if !MODULE_ENABLE_LOOPER
+  dbg_print("  - Looper module not enabled (MODULE_ENABLE_LOOPER)\r\n");
+  #endif
+  dbg_print("\r\n");
+  dbg_print("Please enable required modules in Config/module_config.h\r\n");
+  for (;;) {
+    osDelay(1000);
+  }
+#endif
+}
+
+// =============================================================================
+// OLED SSD1322 TEST
+// =============================================================================
 
 int module_test_oled_ssd1322_run(void)
 {
