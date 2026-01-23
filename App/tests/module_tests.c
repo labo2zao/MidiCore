@@ -1043,6 +1043,7 @@ void module_test_midi_din_run(void)
 #if MODULE_ENABLE_UI && MODULE_ENABLE_OLED
   dbg_print("  CC 70 (val>64) = Enable UI Sync\r\n");
 #endif
+  dbg_print("  CC 80 (val>64) = Run Automated Test Suite\r\n");
   dbg_print("\r\n");
   dbg_print("  CC 41 (0-7) = Load Preset from SD slot\r\n");
   dbg_print("  CC 50 (0-2) = Velocity Curve (0=Linear, 1=Exp, 2=Log)\r\n");
@@ -1515,6 +1516,18 @@ void module_test_midi_din_run(void)
                   dbg_printf("[UI] Sync %s\r\n", ui_sync_enabled ? "ENABLED" : "DISABLED");
                   break;
 #endif
+
+                // Integration Feature A3: Run Automated Tests
+                case 80:  // Run automated test suite
+                  if (val > 64) {
+                    dbg_print("[TEST] Running automated test suite...\r\n");
+                    #include "App/tests/test_midi_din_livefx_automated.h"
+                    extern test_result_t test_midi_din_livefx_run_all(void);
+                    test_result_t test_res = test_midi_din_livefx_run_all();
+                    dbg_printf("[TEST] Results: %lu/%lu passed\r\n", 
+                               test_res.tests_passed, test_res.tests_run);
+                  }
+                  break;
               }
               
               // Feature 4: Increment CC statistics
