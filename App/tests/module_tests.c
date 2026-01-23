@@ -123,6 +123,10 @@ static void dbg_print_srio_pinout(void)
 #include "Services/pressure/pressure_i2c.h"
 #endif
 
+#if MODULE_ENABLE_EXPRESSION
+#include "Services/expression/expression.h"
+#endif
+
 #if MODULE_ENABLE_USBH_MIDI
 #include "Services/usb_host_midi/usb_host_midi.h"
 #endif
@@ -172,6 +176,7 @@ static const char* test_names[] = {
   "UI_PAGE_HUMANIZER",
   "PATCH_SD",
   "PRESSURE",
+  "BREATH",
   "USB_HOST_MIDI",
   "USB_DEVICE_MIDI",
   "OLED_SSD1322",
@@ -244,6 +249,8 @@ module_test_t module_tests_get_compile_time_selection(void)
   return MODULE_TEST_PATCH_SD_ID;
 #elif defined(MODULE_TEST_PRESSURE)
   return MODULE_TEST_PRESSURE_ID;
+#elif defined(MODULE_TEST_BREATH)
+  return MODULE_TEST_BREATH_ID;
 #elif defined(MODULE_TEST_USB_HOST_MIDI)
   return MODULE_TEST_USB_HOST_MIDI_ID;
 #elif defined(MODULE_TEST_USB_DEVICE_MIDI) || defined(APP_TEST_USB_MIDI)
@@ -302,6 +309,10 @@ int module_tests_run(module_test_t test)
       
     case MODULE_TEST_PRESSURE_ID:
       module_test_pressure_run();
+      break;
+      
+    case MODULE_TEST_BREATH_ID:
+      module_test_breath_run();
       break;
       
     case MODULE_TEST_USB_HOST_MIDI_ID:
@@ -2029,6 +2040,234 @@ void module_test_pressure_run(void)
   }
 #else
   // Module not enabled
+  for (;;) osDelay(1000);
+#endif
+}
+
+void module_test_breath_run(void)
+{
+  // Early UART verification
+  dbg_print("\r\n");
+  dbg_print("==============================================\r\n");
+  dbg_print("UART Debug Verification: OK\r\n");
+  dbg_print("==============================================\r\n");
+  dbg_print("\r\n");
+  osDelay(100);
+  
+#if MODULE_ENABLE_PRESSURE
+  dbg_print_test_header("Breath Controller Module Test");
+  
+  dbg_print("This test demonstrates the complete breath controller signal chain:\r\n");
+  dbg_print("  Pressure Sensor (I2C) → Expression Mapping → MIDI CC Output → USB/DIN\r\n");
+  dbg_print("\r\n");
+  
+  // Get configuration
+  const pressure_cfg_t* press_cfg = pressure_get_cfg();
+  const expr_cfg_t* expr_cfg = expression_get_cfg();
+  
+  // Print configuration
+  dbg_print("=== Pressure Sensor Configuration ===\r\n");
+  dbg_printf("  Enabled:     %s\r\n", press_cfg->enable ? "YES" : "NO");
+  dbg_printf("  I2C Bus:     %d\r\n", press_cfg->i2c_bus);
+  dbg_printf("  I2C Address: 0x%02X\r\n", press_cfg->addr7);
+  
+  // Decode sensor type
+  const char* sensor_type = "UNKNOWN";
+  switch (press_cfg->type) {
+    case PRESS_TYPE_GENERIC_U16BE: sensor_type = "Generic U16 Big-Endian"; break;
+    case PRESS_TYPE_GENERIC_S16BE: sensor_type = "Generic S16 Big-Endian"; break;
+    case PRESS_TYPE_XGZP6847D_24B: sensor_type = "XGZP6847D 24-bit"; break;
+  }
+  dbg_printf("  Sensor Type: %s\r\n", sensor_type);
+  
+  // Decode mapping mode
+  const char* map_mode = "UNKNOWN";
+  switch (press_cfg->map_mode) {
+    case PRESS_MAP_CLAMP_0_4095: map_mode = "Clamp 0-4095"; break;
+    case PRESS_MAP_CENTER_0PA:   map_mode = "Center at 0 Pa"; break;
+  }
+  dbg_printf("  Map Mode:    %s\r\n", map_mode);
+  
+  if (press_cfg->type == PRESS_TYPE_XGZP6847D_24B) {
+    dbg_printf("  Range:       %ld to %ld Pa\r\n", press_cfg->pmin_pa, press_cfg->pmax_pa);
+    dbg_printf("  Atm Zero:    %ld Pa\r\n", press_cfg->atm0_pa);
+  }
+  dbg_printf("  Interval:    %d ms\r\n", press_cfg->interval_ms);
+  dbg_print("\r\n");
+  
+  dbg_print("=== Expression/MIDI CC Configuration ===\r\n");
+  dbg_printf("  Enabled:     %s\r\n", expr_cfg->enable ? "YES" : "NO");
+  dbg_printf("  MIDI Ch:     %d\r\n", expr_cfg->midi_ch + 1);
+  
+  // Bidirectional or unidirectional?
+  if (expr_cfg->bidir == EXPR_BIDIR_PUSH_PULL) {
+    dbg_print("  Mode:        BIDIRECTIONAL (Push/Pull)\r\n");
+    dbg_printf("  CC Push:     %d\r\n", expr_cfg->cc_push);
+    dbg_printf("  CC Pull:     %d\r\n", expr_cfg->cc_pull);
+    dbg_printf("  Zero Band:   ±%d Pa\r\n", expr_cfg->zero_deadband_pa);
+  } else {
+    dbg_print("  Mode:        UNIDIRECTIONAL\r\n");
+    dbg_printf("  CC Number:   %d", expr_cfg->cc_num);
+    if (expr_cfg->cc_num == 2) {
+      dbg_print(" (Breath Controller)");
+    } else if (expr_cfg->cc_num == 11) {
+      dbg_print(" (Expression)");
+    }
+    dbg_print("\r\n");
+  }
+  
+  // Decode curve type
+  const char* curve_type = "UNKNOWN";
+  switch (expr_cfg->curve) {
+    case EXPR_CURVE_LINEAR: curve_type = "Linear"; break;
+    case EXPR_CURVE_EXPO:   curve_type = "Exponential"; break;
+    case EXPR_CURVE_S:      curve_type = "S-Curve"; break;
+  }
+  dbg_printf("  Curve:       %s", curve_type);
+  if (expr_cfg->curve == EXPR_CURVE_EXPO) {
+    float gamma = (float)expr_cfg->curve_param / 100.0f;
+    dbg_printf(" (gamma=%.2f)", gamma);
+  }
+  dbg_print("\r\n");
+  
+  dbg_printf("  Output:      %d to %d (7-bit MIDI)\r\n", expr_cfg->out_min, expr_cfg->out_max);
+  dbg_printf("  Raw Input:   %d to %d (12-bit)\r\n", expr_cfg->raw_min, expr_cfg->raw_max);
+  dbg_printf("  Rate:        %d ms\r\n", expr_cfg->rate_ms);
+  dbg_printf("  Smoothing:   %d (0=none, 255=max)\r\n", expr_cfg->smoothing);
+  dbg_printf("  Deadband:    %d CC steps\r\n", expr_cfg->deadband_cc);
+  dbg_printf("  Hysteresis:  %d CC steps\r\n", expr_cfg->hyst_cc);
+  dbg_print("\r\n");
+  
+  if (!press_cfg->enable) {
+    dbg_print("WARNING: Pressure sensor is DISABLED in configuration!\r\n");
+    dbg_print("         Enable it in pressure.ngc or module_config.h\r\n");
+    dbg_print("\r\n");
+  }
+  
+  if (!expr_cfg->enable) {
+    dbg_print("WARNING: Expression module is DISABLED in configuration!\r\n");
+    dbg_print("         Enable it in expression.ngc or module_config.h\r\n");
+    dbg_print("         MIDI CC messages will NOT be sent!\r\n");
+    dbg_print("\r\n");
+  }
+  
+  dbg_print_separator();
+  dbg_print("Starting continuous monitoring...\r\n");
+  dbg_print("Blow/suck on breath sensor to see values change\r\n");
+  dbg_print("Press Ctrl+C to stop\r\n");
+  dbg_print_separator();
+  dbg_print("\r\n");
+  
+  // Print header for values
+  dbg_print("Time(s) | Raw Value | Pressure(Pa) | 12-bit | CC# | CC Val | Status\r\n");
+  dbg_print("--------|-----------|--------------|--------|-----|--------|--------\r\n");
+  
+  uint32_t start_time = osKernelGetTickCount();
+  uint32_t last_print_time = 0;
+  uint32_t sample_count = 0;
+  int32_t last_raw = 0;
+  int32_t last_pa = 0;
+  uint16_t last_12b = 0;
+  
+  // Main monitoring loop
+  for (;;) {
+    // Read sensor
+    int32_t raw_value = 0;
+    int32_t pa_value = 0;
+    int sensor_result = -1;
+    
+    if (press_cfg->enable) {
+      // Try to read raw value
+      if (press_cfg->type == PRESS_TYPE_XGZP6847D_24B) {
+        // For XGZP, read Pa value
+        sensor_result = pressure_read_pa(&pa_value);
+        raw_value = pa_value; // For display purposes
+      } else {
+        // For generic sensors, read raw
+        sensor_result = pressure_read_once(&raw_value);
+        pa_value = raw_value; // Generic sensors don't convert to Pa
+      }
+      
+      if (sensor_result == 0) {
+        sample_count++;
+        last_raw = raw_value;
+        last_pa = pa_value;
+        last_12b = pressure_to_12b(pa_value);
+      }
+    }
+    
+    // Print values every 200ms (5 Hz)
+    uint32_t current_time = osKernelGetTickCount();
+    if ((current_time - last_print_time) >= 200) {
+      last_print_time = current_time;
+      
+      float elapsed_sec = (float)(current_time - start_time) / 1000.0f;
+      
+      // Print time
+      dbg_printf("%7.1f | ", elapsed_sec);
+      
+      if (sensor_result == 0) {
+        // Print raw value (right-aligned in 9 chars)
+        if (press_cfg->type == PRESS_TYPE_XGZP6847D_24B) {
+          dbg_printf("%9ld | ", last_raw);  // Pa value
+        } else {
+          dbg_printf("%9ld | ", last_raw);  // Raw ADC
+        }
+        
+        // Print pressure in Pa (right-aligned, with sign)
+        dbg_printf("%+12ld | ", last_pa);
+        
+        // Print 12-bit value
+        dbg_printf("%6d | ", last_12b);
+        
+        // Print CC info
+        if (expr_cfg->enable) {
+          if (expr_cfg->bidir == EXPR_BIDIR_PUSH_PULL) {
+            // Bidirectional mode
+            if (last_pa >= 0) {
+              dbg_printf("%3d | ", expr_cfg->cc_push);
+            } else {
+              dbg_printf("%3d | ", expr_cfg->cc_pull);
+            }
+          } else {
+            // Unidirectional mode
+            dbg_printf("%3d | ", expr_cfg->cc_num);
+          }
+          
+          // Calculate what CC value would be sent (simplified)
+          // Note: The actual value sent depends on expression module internal state
+          int cc_estimate = (int)((last_12b * 127) / 4095);
+          if (cc_estimate < expr_cfg->out_min) cc_estimate = expr_cfg->out_min;
+          if (cc_estimate > expr_cfg->out_max) cc_estimate = expr_cfg->out_max;
+          dbg_printf("%6d | ", cc_estimate);
+          
+          dbg_print("OK");
+        } else {
+          dbg_print("N/A |    N/A | EXPR_OFF");
+        }
+      } else {
+        // Sensor read error
+        dbg_print("     ERROR | ERROR        |    N/A | N/A |    N/A | ");
+        
+        if (!press_cfg->enable) {
+          dbg_print("DISABLED");
+        } else {
+          dbg_print("I2C_ERR");
+        }
+      }
+      
+      dbg_print("\r\n");
+    }
+    
+    // Small delay
+    osDelay(10);
+  }
+  
+#else
+  // Module not enabled
+  dbg_print("ERROR: PRESSURE module not enabled!\r\n");
+  dbg_print("Enable MODULE_ENABLE_PRESSURE in Config/module_config.h\r\n");
+  dbg_print("\r\n");
   for (;;) osDelay(1000);
 #endif
 }
