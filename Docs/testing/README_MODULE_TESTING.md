@@ -32,6 +32,7 @@ MidiCore now provides a unified module testing framework that allows testing ind
 | Patch/SD | `MODULE_TEST_PATCH_SD` | **Tests SD card config, MIDI export, scene chaining persistence** |
 | Pressure | `MODULE_TEST_PRESSURE` | Tests I2C pressure sensor (XGZP6847) |
 | USB Host MIDI | `MODULE_TEST_USB_HOST_MIDI` | Tests USB Host MIDI device communication |
+| **All Tests** | `MODULE_TEST_ALL` | **Runs all finite tests sequentially (OLED + PATCH_SD)** |
 
 **Note:** The table above shows **preprocessor defines** you use in your build configuration. The internal enum values (in code) have an `_ID` suffix (e.g., `MODULE_TEST_AINSER64_ID`) to avoid naming conflicts.
 
@@ -237,6 +238,47 @@ make CFLAGS+="-DMODULE_TEST_USB_HOST_MIDI=1"
 **Expected Output:**
 - USB device enumeration messages
 - Incoming MIDI events printed to UART
+
+### Example 10: Run All Tests (Sequential)
+
+```bash
+# Compile with MODULE_TEST_ALL
+make CFLAGS+="-DMODULE_TEST_ALL"
+
+# Runs all finite tests in sequence
+```
+
+**Expected Output:**
+```
+==============================================
+   MODULE_TEST_ALL - Comprehensive Suite
+==============================================
+
+Running: MODULE_TEST_OLED_SSD1322
+[PASS] MODULE_TEST_OLED_SSD1322 completed
+
+Running: MODULE_TEST_PATCH_SD  
+[PASS] MODULE_TEST_PATCH_SD completed
+
+==============================================
+       MODULE_TEST_ALL - FINAL SUMMARY
+==============================================
+
+Individual Test Results:
+  OLED_SSD1322    : [PASS]
+  PATCH_SD        : [PASS]
+
+Test Statistics:
+Tests Passed:  2
+Tests Failed:  0
+Total Run:     2
+
+RESULT: ALL TESTS PASSED!
+```
+
+**Note:** Only finite tests included (OLED_SSD1322, PATCH_SD). Tests that run forever must be run individually.
+
+**See also:** [MODULE_TEST_ALL.md](MODULE_TEST_ALL.md) for comprehensive documentation
 
 ## Production Mode (Default)
 
