@@ -126,14 +126,16 @@ void oled_init_progressive(uint8_t max_step) {
   }
 
   // Step 2: + Column Address
-  cmd(0x15); data(0x1C);  // Set Column Address (ONLY 1 byte like MIOS32!)
+  // CRITICAL: During INIT, MIOS32 sends 2 bytes to set full window range!
+  cmd(0x15); data(0x1C); data(0x5B);  // Set Column Address (start=0x1C, end=0x5B)
   if (max_step == 2) {
     cmd(0xAF); cmd(0xA5);
     return;
   }
 
-  // Step 3: + Row Address
-  cmd(0x75); data(0x00);  // Set Row Address (ONLY 1 byte like MIOS32!)
+  // Step 3: + Row Address  
+  // CRITICAL: During INIT, MIOS32 sends 2 bytes to set full window range!
+  cmd(0x75); data(0x00); data(0x3F);  // Set Row Address (start=0x00, end=0x3F)
   if (max_step == 3) {
     cmd(0xAF); cmd(0xA5);
     return;
