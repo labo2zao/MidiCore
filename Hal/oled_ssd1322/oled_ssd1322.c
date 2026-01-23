@@ -534,15 +534,24 @@ void oled_test_checkerboard(void) {
  * Tests grayscale levels (0x00 to 0xFF)
  */
 void oled_test_h_gradient(void) {
+  // Pre-calculate gradient values (avoid arithmetic in loop)
+  static uint8_t gradient[64];
+  static uint8_t initialized = 0;
+  
+  if (!initialized) {
+    for (uint16_t i = 0; i < 64; i++) {
+      gradient[i] = (uint8_t)(i * 4);  // 0, 4, 8, 12, ... 252
+    }
+    initialized = 1;
+  }
+  
   for (uint16_t y = 0; y < 64; y++) {
     cmd(0x15); data(0x1c);
     cmd(0x75); data(y);
     cmd(0x5c);
     
     for (uint16_t x = 0; x < 64; x++) {
-      // Horizontal gradient: left=black (0x00) to right=white (0xFF)
-      // Simpler calculation: x << 2 gives 0-252 range (close to 0-255)
-      uint8_t val = (uint8_t)(x << 2);
+      uint8_t val = gradient[x];
       data(val); data(val);
     }
   }
@@ -553,14 +562,23 @@ void oled_test_h_gradient(void) {
  * Tests grayscale levels vertically
  */
 void oled_test_v_gradient(void) {
+  // Pre-calculate gradient values (avoid arithmetic in loop)
+  static uint8_t gradient[64];
+  static uint8_t initialized = 0;
+  
+  if (!initialized) {
+    for (uint16_t i = 0; i < 64; i++) {
+      gradient[i] = (uint8_t)(i * 4);  // 0, 4, 8, 12, ... 252
+    }
+    initialized = 1;
+  }
+  
   for (uint16_t y = 0; y < 64; y++) {
     cmd(0x15); data(0x1c);
     cmd(0x75); data(y);
     cmd(0x5c);
     
-    // Vertical gradient: top=black (0x00) to bottom=white (0xFF)
-    // Simpler calculation: y << 2 gives 0-252 range
-    uint8_t val = (uint8_t)(y << 2);
+    uint8_t val = gradient[y];
     for (uint16_t x = 0; x < 64; x++) {
       data(val); data(val);
     }
@@ -577,12 +595,12 @@ void oled_test_rectangles(void) {
     cmd(0x75); data(y);
     cmd(0x5c);
     
-    for (uint16_t x = 0; x < 64; x++) {  // FIXED: 64 iterations, not 128
-      // Distance from center determines brightness
-      int16_t dx = (int16_t)x - 32;
-      int16_t dy = (int16_t)y - 32;
-      uint16_t dist = (uint16_t)((dx < 0 ? -dx : dx) + (dy < 0 ? -dy : dy));
-      uint8_t val = (uint8_t)((dist << 3) & 0xFF);
+    for (uint16_t x = 0; x < 64; x++) {
+      // Manhattan distance from center
+      uint8_t dx = (x > 32) ? (x - 32) : (32 - x);
+      uint8_t dy = (y > 32) ? (y - 32) : (32 - y);
+      uint8_t dist = dx + dy;
+      uint8_t val = (dist * 8) & 0xFF;
       data(val); data(val);
     }
   }
@@ -599,9 +617,10 @@ void oled_test_stripes(void) {
     cmd(0x5c);
     
     for (uint16_t x = 0; x < 64; x++) {
-      // Diagonal stripes
-      uint8_t val = ((x + y) >> 2) & 0x0F;
-      val = val | (val << 4);  // Expand 4-bit to 8-bit
+      // Diagonal stripes using simple addition
+      uint8_t sum = (uint8_t)((x + y) / 4);
+      sum = sum & 0x0F;  // Keep only 4 bits
+      uint8_t val = sum | (sum << 4);  // Both nibbles same
       data(val); data(val);
     }
   }
@@ -650,15 +669,25 @@ void oled_test_voxel_landscape(void) {
  * Shows all 16 grayscale levels as vertical bars
  */
 void oled_test_gray_levels(void) {
+  // Pre-calculate gray level patterns
+  static uint8_t levels[64];
+  static uint8_t initialized = 0;
+  
+  if (!initialized) {
+    for (uint16_t i = 0; i < 64; i++) {
+      uint8_t level = i / 4;  // 0-15 repeated 4 times each
+      levels[i] = level | (level << 4);  // Both nibbles same
+    }
+    initialized = 1;
+  }
+  
   for (uint16_t y = 0; y < 64; y++) {
     cmd(0x15); data(0x1c);
     cmd(0x75); data(y);
     cmd(0x5c);
     
     for (uint16_t x = 0; x < 64; x++) {
-      // 16 vertical bars, each showing one grayscale level
-      uint8_t level = (uint8_t)(x >> 2);  // Divide by 4: gives 0-15
-      uint8_t val = level | (level << 4);  // Both pixels same level
+      uint8_t val = levels[x];
       data(val); data(val);
     }
   }
