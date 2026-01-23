@@ -1011,24 +1011,58 @@ void module_test_midi_din_run(void)
 }
 
 /**
- * @brief ROUTER Module Test
+ * @brief ROUTER Module Test - Comprehensive
  * 
- * Tests the MIDI routing matrix functionality.
+ * Comprehensive validation of the MIDI routing matrix (16x16 nodes).
  * 
- * The router is a 16x16 matrix that routes MIDI messages between nodes:
- * - DIN IN1-4 → DIN OUT1-4
- * - USB Device IN/OUT
- * - USB Host IN/OUT
- * - Logical nodes (Looper, Keys, etc.)
+ * The router is a flexible 16x16 matrix that routes MIDI messages between:
+ * - Physical ports: DIN IN1-4, DIN OUT1-4
+ * - USB Device: 4 ports (cables 0-3)
+ * - USB Host: IN/OUT
+ * - Logical nodes: Looper, Keys (AINSER/Hall)
+ * 
+ * Test Phases:
+ * 1. Router initialization - matrix setup, node mapping
+ * 2. Basic routing - single source to single destination
+ * 3. Channel filtering - per-channel route control (16 channels)
+ * 4. Message types - Note, CC, PC, Pressure, Pitch Bend routing
+ * 5. Multi-destination - one source to multiple outputs
+ * 6. Route modification - dynamic enable/disable
+ * 7. Channel validation - mask filtering with multiple channels
+ * 8. Routing table - complete active route display
  * 
  * Features tested:
- * - Route enable/disable
- * - Channel filtering (chanmask)
- * - Message types (Note On/Off, CC, Sysex)
- * - Multiple simultaneous routes
- * - Label assignment
+ * - Route enable/disable per connection
+ * - Channel filtering (16-bit chanmask per route)
+ * - All message types: Note On/Off, CC, PC, Pressure, Pitch Bend
+ * - Multi-destination routing (1→N outputs)
+ * - Route labels (16-char names)
+ * - Dynamic route modification
+ * - Continuous monitoring with statistics
+ * 
+ * Hardware tested:
+ * - DIN MIDI IN1-4 → Various outputs
+ * - USB MIDI ↔ DIN routing
+ * - Internal nodes (Looper, Keys) routing
+ * 
+ * Output:
+ * - Comprehensive UART debug log with test results
+ * - Visual ✓/✗ indicators for each test phase
+ * - Complete routing table display
+ * - Periodic status updates in monitoring mode
+ * 
+ * Duration: ~5 seconds for automated tests + continuous monitoring
+ * 
+ * Usage:
+ * - Enable MODULE_TEST_ROUTER=1 in test configuration
+ * - Connect UART terminal (115200 baud)
+ * - Optionally connect DIN MIDI or USB MIDI to test routing
+ * - Monitor output to verify routing behavior
  * 
  * Enable with: MODULE_TEST_ROUTER=1
+ * Requires: MODULE_ENABLE_ROUTER=1
+ * 
+ * @note This function runs forever in monitoring mode after tests complete
  */
 void module_test_router_run(void)
 {

@@ -231,7 +231,7 @@ This creates a minimal build that only tests AINSER64.
 | `MODULE_TEST_AINSER64` | 64-ch analog input |
 | `MODULE_TEST_SRIO` | Shift register DIN/DOUT |
 | `MODULE_TEST_MIDI_DIN` | MIDI IN/OUT via UART |
-| `MODULE_TEST_ROUTER` | MIDI routing |
+| `MODULE_TEST_ROUTER` | MIDI routing matrix (comprehensive 8-phase test) |
 | `MODULE_TEST_LOOPER` | MIDI recording/playback |
 | `MODULE_TEST_UI` | OLED display & UI |
 | `MODULE_TEST_PATCH_SD` | SD card & patches |
