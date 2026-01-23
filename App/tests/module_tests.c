@@ -5,6 +5,7 @@
 
 #include "App/tests/module_tests.h"
 #include "App/tests/test_debug.h"
+#include "App/tests/test_config_runtime.h"
 #include "Config/module_config.h"
 
 #include "cmsis_os2.h"
