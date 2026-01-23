@@ -1202,7 +1202,9 @@ void module_test_midi_din_run(void)
     
 #if MODULE_ENABLE_LOOPER
     // Call looper tick for timing
-    if (looper_record_enabled || looper_get_state(looper_track) == LOOPER_STATE_PLAY) {
+    // Safety: Validate track before calling looper functions
+    if ((looper_record_enabled || looper_get_state(looper_track) == LOOPER_STATE_PLAY) &&
+        looper_track < LOOPER_TRACKS) {
       looper_tick_1ms();
     }
 #endif
@@ -1475,37 +1477,57 @@ void module_test_midi_din_run(void)
 #if MODULE_ENABLE_LOOPER
                 // Integration Feature A1: Looper Recording Control
                 case 60:  // Enable/Disable Looper Recording
-                  looper_record_enabled = (val > 64) ? 1 : 0;
-                  if (looper_record_enabled) {
-                    looper_set_state(looper_track, LOOPER_STATE_REC);
-                    dbg_printf("[LOOPER] Recording ENABLED on Track %u\r\n", looper_track);
+                  // Safety: Validate track before enabling recording
+                  if (looper_track < LOOPER_TRACKS) {
+                    looper_record_enabled = (val > 64) ? 1 : 0;
+                    if (looper_record_enabled) {
+                      looper_set_state(looper_track, LOOPER_STATE_REC);
+                      dbg_printf("[LOOPER] Recording ENABLED on Track %u\r\n", looper_track);
+                    } else {
+                      looper_set_state(looper_track, LOOPER_STATE_STOP);
+                      dbg_print("[LOOPER] Recording DISABLED\r\n");
+                    }
                   } else {
-                    looper_set_state(looper_track, LOOPER_STATE_STOP);
-                    dbg_print("[LOOPER] Recording DISABLED\r\n");
+                    dbg_printf("[ERROR] Cannot enable recording: invalid track %u\r\n", looper_track);
                   }
                   break;
                   
                 case 61:  // Select Looper Track
-                  looper_track = val % LOOPER_TRACKS;
-                  dbg_printf("[LOOPER] Selected Track: %u\r\n", looper_track);
+                  {
+                    uint8_t new_track = val % LOOPER_TRACKS;
+                    // Safety: Validate track number
+                    if (new_track < LOOPER_TRACKS) {
+                      looper_track = new_track;
+                      dbg_printf("[LOOPER] Selected Track: %u\r\n", looper_track);
+                    } else {
+                      dbg_printf("[ERROR] Invalid looper track %u (max: %u)\r\n", 
+                                 val, LOOPER_TRACKS - 1);
+                    }
+                  }
                   break;
                   
                 case 62:  // Start/Stop Looper Playback
                   {
-                    looper_state_t current_state = looper_get_state(looper_track);
-                    if (current_state == LOOPER_STATE_PLAY) {
-                      looper_set_state(looper_track, LOOPER_STATE_STOP);
-                      dbg_printf("[LOOPER] Track %u STOPPED\r\n", looper_track);
-                    } else {
-                      looper_set_state(looper_track, LOOPER_STATE_PLAY);
-                      dbg_printf("[LOOPER] Track %u PLAYING\r\n", looper_track);
+                    // Safety: Validate track before accessing
+                    if (looper_track < LOOPER_TRACKS) {
+                      looper_state_t current_state = looper_get_state(looper_track);
+                      if (current_state == LOOPER_STATE_PLAY) {
+                        looper_set_state(looper_track, LOOPER_STATE_STOP);
+                        dbg_printf("[LOOPER] Track %u STOPPED\r\n", looper_track);
+                      } else {
+                        looper_set_state(looper_track, LOOPER_STATE_PLAY);
+                        dbg_printf("[LOOPER] Track %u PLAYING\r\n", looper_track);
+                      }
                     }
                   }
                   break;
                   
                 case 63:  // Clear Current Looper Track
-                  looper_clear(looper_track);
-                  dbg_printf("[LOOPER] Track %u CLEARED\r\n", looper_track);
+                  // Safety: Validate track before clearing
+                  if (looper_track < LOOPER_TRACKS) {
+                    looper_clear(looper_track);
+                    dbg_printf("[LOOPER] Track %u CLEARED\r\n", looper_track);
+                  }
                   break;
 #endif
 
@@ -1526,6 +1548,16 @@ void module_test_midi_din_run(void)
                     test_result_t test_res = test_midi_din_livefx_run_all();
                     dbg_printf("[TEST] Results: %lu/%lu passed\r\n", 
                                test_res.tests_passed, test_res.tests_run);
+                  }
+                  break;
+                  
+                // Safety: Handle unknown CC commands
+                default:
+                  // Silently ignore unknown CC commands to prevent crashes
+                  // Only log if in verbose mode to avoid spam
+                  if (cc < 20 || cc > 200) {
+                    // Only warn for CC outside expected range
+                    dbg_printf("[WARN] Unknown CC %u (val:%u) - ignoring\r\n", cc, val);
                   }
                   break;
               }
@@ -1602,7 +1634,10 @@ void module_test_midi_din_run(void)
                 
 #if MODULE_ENABLE_LOOPER
                 // Integration Feature A1: Send to looper if recording
-                if (looper_record_enabled && looper_get_state(looper_track) == LOOPER_STATE_REC) {
+                // Safety: Validate track and state before feeding MIDI
+                if (looper_record_enabled && 
+                    looper_track < LOOPER_TRACKS &&
+                    looper_get_state(looper_track) == LOOPER_STATE_REC) {
                   looper_on_router_msg(0, &msg);  // Feed transformed MIDI to looper
                 }
 #endif
