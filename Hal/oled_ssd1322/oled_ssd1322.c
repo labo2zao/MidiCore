@@ -176,8 +176,10 @@ void oled_init_progressive(uint8_t max_step) {
     return;
   }
 
-  // Step 9: + Linear gray scale table
-  cmd(0xB9);                  // Use default linear gray scale table (no data follows!)
+  // Step 9: + Linear gray scale table + Enable grayscale  
+  // CRITICAL: MIOS32 sends this EXACT sequence!
+  cmd(0xB9);                  // Set_Linear_Gray_Scale_Table
+  cmd(0x00);                  // Enable gray scale table (MIOS32 "OLD" command)
   if (max_step == 9) {
     cmd(0xAF); cmd(0xA5);
     return;
