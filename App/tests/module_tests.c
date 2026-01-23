@@ -5,6 +5,7 @@
 
 #include "App/tests/module_tests.h"
 #include "App/tests/test_debug.h"
+#include "App/tests/test_oled_mirror.h"
 #include "Config/module_config.h"
 
 #include "cmsis_os2.h"
@@ -985,6 +986,11 @@ void module_test_midi_din_run(void)
   dbg_print("Initializing UI...");
   // UI init is typically done in main, but we ensure it's available
   dbg_print(" (Already initialized)\r\n");
+  
+  // Initialize OLED debug mirror
+  dbg_print("Initializing OLED Debug Mirror...");
+  oled_mirror_init();
+  dbg_print(" OK (use CC 85 to enable)\r\n");
 #endif
 
   dbg_print("\r\n");
@@ -1008,6 +1014,7 @@ void module_test_midi_din_run(void)
 #endif
 #if MODULE_ENABLE_UI && MODULE_ENABLE_OLED
   dbg_print("  10. UI Integration: Visual feedback on OLED\r\n");
+  dbg_print("  11. OLED Debug Mirror: Test output on OLED display\r\n");
 #endif
 #else
   dbg_print("  2. LiveFX: DISABLED (enable MODULE_ENABLE_LIVEFX)\r\n");
@@ -1042,6 +1049,7 @@ void module_test_midi_din_run(void)
 #endif
 #if MODULE_ENABLE_UI && MODULE_ENABLE_OLED
   dbg_print("  CC 70 (val>64) = Enable UI Sync\r\n");
+  dbg_print("  CC 85 (val>64) = Enable OLED Debug Mirror\r\n");
 #endif
   dbg_print("  CC 80 (val>64) = Run Automated Test Suite\r\n");
   dbg_print("\r\n");
@@ -1197,6 +1205,11 @@ void module_test_midi_din_run(void)
       last_ui_sync_ms = now_ms;
       // UI sync happens automatically through livefx_get_* calls in UI page
       // This just ensures the UI is refreshed periodically
+    }
+    
+    // Update OLED Debug Mirror every 100ms
+    if (oled_mirror_is_enabled() && (now_ms - last_ui_sync_ms >= 100)) {
+      dbg_mirror_update();
     }
 #endif
     
@@ -1536,6 +1549,21 @@ void module_test_midi_din_run(void)
                 case 70:  // Enable/Disable UI Sync
                   ui_sync_enabled = (val > 64) ? 1 : 0;
                   dbg_printf("[UI] Sync %s\r\n", ui_sync_enabled ? "ENABLED" : "DISABLED");
+                  break;
+                  
+                // New Feature: OLED Debug Mirror
+                case 85:  // Enable/Disable OLED Debug Mirror
+                  {
+                    uint8_t enabled = (val > 64) ? 1 : 0;
+                    oled_mirror_set_enabled(enabled);
+                    dbg_printf("[OLED] Debug Mirror %s\r\n", enabled ? "ENABLED" : "DISABLED");
+                    if (enabled) {
+                      oled_mirror_clear();
+                      oled_mirror_print("OLED Debug Mirror Active\n");
+                      oled_mirror_print("Test output appears here\n");
+                      dbg_mirror_update();
+                    }
+                  }
                   break;
 #endif
 
