@@ -5,7 +5,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-static uint8_t test_mode = 0; // 0=patterns, 1=grayscale, 2=pixels, 3=text, 4=animations, 5=hardware info, 6=framebuffer, 7=scrolling text, 8=bouncing ball, 9=performance, 10=circles, 11=bitmap, 12=fill patterns, 13=stress test, 14=auto-cycle, 15=burn-in prevention, 16=stats display, 17=3D wireframe
+static uint8_t test_mode = 0; // 0=patterns, 1=grayscale, 2=pixels, 3=text, 4=animations, 5=hardware info, 6=framebuffer, 7=scrolling text, 8=bouncing ball, 9=performance, 10=circles, 11=bitmap, 12=fill patterns, 13=stress test, 14=auto-cycle, 15=burn-in prevention, 16=stats display, 17=3D wireframe, 18=advanced graphics, 19=UI elements demo
 static uint32_t last_update = 0;
 static uint8_t anim_frame = 0;
 static int scroll_offset = 0;
@@ -598,6 +598,82 @@ void ui_page_oled_test_render(uint32_t ms) {
       break;
     }
     
+    case 18: { // Advanced graphics primitives
+      ui_gfx_text(0, 26, "Advanced Graphics", 15);
+      
+      if (ms - last_update > 100) {
+        anim_frame++;
+        last_update = ms;
+      }
+      
+      // Filled circles
+      int circle_y = 42;
+      for (int i = 0; i < 3; i++) {
+        int radius = 5 + ((anim_frame + i * 5) % 8);
+        ui_gfx_filled_circle(40 + i * 35, circle_y, radius, 12 - i * 2);
+      }
+      
+      // Triangles
+      int tri_y = 50;
+      for (int i = 0; i < 2; i++) {
+        int offset = ((anim_frame * 2 + i * 15) % 30);
+        ui_gfx_triangle(
+          140 + offset, tri_y,
+          150 + offset, tri_y + 10,
+          145 + offset, tri_y - 5,
+          10 + i * 3
+        );
+      }
+      
+      // Filled triangle (arrow)
+      int arrow_offset = ((anim_frame) % 40);
+      ui_gfx_filled_triangle(
+        200 + arrow_offset, 45,
+        210 + arrow_offset, 50,
+        200 + arrow_offset, 55,
+        15
+      );
+      
+      ui_gfx_text(0, 38, "Circles, Triangles, Arrows", 8);
+      break;
+    }
+    
+    case 19: { // UI elements demonstration
+      ui_gfx_text(0, 26, "UI Elements Demo", 15);
+      
+      if (ms - last_update > 50) {
+        anim_frame++;
+        last_update = ms;
+      }
+      
+      // Progress indicator (arc)
+      int progress = (anim_frame * 5) % 360;
+      ui_gfx_arc(50, 48, 12, 0, progress, 15);
+      ui_gfx_text(40, 58, "Load", 8);
+      
+      // Pie chart simulation
+      ui_gfx_arc(120, 48, 12, 0, 90, 12);
+      ui_gfx_arc(120, 48, 12, 90, 180, 10);
+      ui_gfx_arc(120, 48, 12, 180, 270, 8);
+      ui_gfx_arc(120, 48, 12, 270, 360, 6);
+      ui_gfx_text(110, 58, "Pie", 8);
+      
+      // Animated arrows
+      int arrow_pos = (anim_frame / 4) % 3;
+      for (int i = 0; i < 3; i++) {
+        uint8_t brightness = (i == arrow_pos) ? 15 : 6;
+        ui_gfx_filled_triangle(
+          180 + i * 15, 45,
+          190 + i * 15, 50,
+          180 + i * 15, 55,
+          brightness
+        );
+      }
+      
+      ui_gfx_text(0, 38, "Progress, Pies, Indicators", 8);
+      break;
+    }
+    
     default:
       test_mode = 0;
       break;
@@ -625,7 +701,7 @@ void ui_page_oled_test_on_button(uint8_t id, uint8_t pressed) {
     if (test_mode > 0) {
       test_mode--;
     } else {
-      test_mode = 17; // Updated max test mode
+      test_mode = 19; // Updated max test mode
     }
     // Reset animation state
     anim_frame = 0;
@@ -635,7 +711,7 @@ void ui_page_oled_test_on_button(uint8_t id, uint8_t pressed) {
     auto_cycle_timer = 0;
   } else if (id == 1) {
     // Button 1: Next test
-    test_mode = (test_mode + 1) % 18; // Updated max test mode
+    test_mode = (test_mode + 1) % 20; // Updated max test mode
     // Reset animation state
     anim_frame = 0;
     scroll_offset = 0;
@@ -674,7 +750,7 @@ void ui_page_oled_test_on_encoder(int8_t delta) {
   }
   
   if (delta > 0) {
-    test_mode = (test_mode + 1) % 18; // Updated max test mode
+    test_mode = (test_mode + 1) % 20; // Updated max test mode
     // Reset animation state
     anim_frame = 0;
     scroll_offset = 0;
@@ -685,7 +761,7 @@ void ui_page_oled_test_on_encoder(int8_t delta) {
     if (test_mode > 0) {
       test_mode--;
     } else {
-      test_mode = 17; // Updated max test mode
+      test_mode = 19; // Updated max test mode
     }
     // Reset animation state
     anim_frame = 0;
