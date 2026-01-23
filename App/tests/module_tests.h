@@ -503,6 +503,24 @@ void module_test_usb_device_midi_run(void);
  */
 int module_test_oled_ssd1322_run(void);
 
+/**
+ * @brief Run all finite tests sequentially
+ * @return 0 if all tests passed, negative if any failed
+ * 
+ * Executes all tests that complete and return (as opposed to tests that
+ * loop forever). Provides comprehensive validation of:
+ * - OLED SSD1322 driver (display patterns and GPIO)
+ * - Patch/SD system (config, MIDI export, scene chains)
+ * 
+ * Tests excluded (run forever):
+ * - GDB_DEBUG, AINSER64, SRIO, SRIO_DOUT, MIDI_DIN, ROUTER, LOOPER,
+ *   LFO, HUMANIZER, UI_*, PRESSURE, USB_HOST_MIDI, USB_DEVICE_MIDI
+ * 
+ * Generates aggregated statistics and detailed results for each test.
+ * Ideal for automated testing and system validation.
+ */
+int module_test_all_run(void);
+
 // =============================================================================
 // COMPILE-TIME TEST SELECTION HELPERS
 // =============================================================================

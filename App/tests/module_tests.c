@@ -315,9 +315,9 @@ int module_tests_run(module_test_t test)
       return module_test_oled_ssd1322_run();
       
     case MODULE_TEST_ALL_ID:
-      // Run all tests sequentially (where possible)
-      // Most tests loop forever, so this is limited
-      return -1; // Not implemented for now
+      // Run all finite tests sequentially
+      // Most tests loop forever and cannot be included
+      return module_test_all_run();
       
     case MODULE_TEST_NONE_ID:
     default:
@@ -1717,6 +1717,169 @@ test_summary:
   
   // Return success if all tests passed
   return (test_failed == 0) ? 0 : -1;
+}
+
+// =============================================================================
+// MODULE_TEST_ALL - Run All Finite Tests
+// =============================================================================
+
+/**
+ * @brief Run all finite tests sequentially
+ * @return 0 if all tests passed, negative if any failed
+ * 
+ * This function runs all tests that complete and return (as opposed to
+ * tests that loop forever). Currently includes:
+ * - MODULE_TEST_OLED_SSD1322 (returns after pattern display)
+ * - MODULE_TEST_PATCH_SD (returns after validation)
+ * 
+ * Tests that run forever (excluded):
+ * - GDB_DEBUG, AINSER64, SRIO, SRIO_DOUT, MIDI_DIN, ROUTER, LOOPER,
+ *   LFO, HUMANIZER, UI_*, PRESSURE, USB_HOST_MIDI, USB_DEVICE_MIDI
+ */
+int module_test_all_run(void)
+{
+  dbg_print("\r\n");
+  dbg_print("==============================================\r\n");
+  dbg_print("   MODULE_TEST_ALL - Comprehensive Suite\r\n");
+  dbg_print("==============================================\r\n");
+  dbg_print("\r\n");
+  osDelay(200);
+  
+  int total_passed = 0;
+  int total_failed = 0;
+  
+  // Track which tests were run
+  typedef struct {
+    const char* name;
+    int result;
+    uint8_t skipped;
+  } test_result_t;
+  
+  test_result_t results[2] = {0};
+  int test_idx = 0;
+  
+  // ========================================
+  // TEST 1: OLED SSD1322 Driver
+  // ========================================
+#if MODULE_ENABLE_OLED
+  dbg_print("==============================================\r\n");
+  dbg_print("Running: MODULE_TEST_OLED_SSD1322\r\n");
+  dbg_print("==============================================\r\n");
+  osDelay(200);
+  
+  results[test_idx].name = "OLED_SSD1322";
+  results[test_idx].result = module_test_oled_ssd1322_run();
+  results[test_idx].skipped = 0;
+  
+  if (results[test_idx].result == 0) {
+    dbg_print("\r\n[PASS] MODULE_TEST_OLED_SSD1322 completed successfully\r\n\r\n");
+    total_passed++;
+  } else {
+    dbg_print("\r\n[FAIL] MODULE_TEST_OLED_SSD1322 failed\r\n\r\n");
+    total_failed++;
+  }
+  test_idx++;
+  osDelay(500);
+#else
+  dbg_print("[SKIP] MODULE_TEST_OLED_SSD1322 (MODULE_ENABLE_OLED disabled)\r\n");
+  results[test_idx].name = "OLED_SSD1322";
+  results[test_idx].skipped = 1;
+  test_idx++;
+#endif
+  
+  // ========================================
+  // TEST 2: Patch/SD Card
+  // ========================================
+#if MODULE_ENABLE_PATCH
+  dbg_print("==============================================\r\n");
+  dbg_print("Running: MODULE_TEST_PATCH_SD\r\n");
+  dbg_print("==============================================\r\n");
+  osDelay(200);
+  
+  results[test_idx].name = "PATCH_SD";
+  results[test_idx].result = module_test_patch_sd_run();
+  results[test_idx].skipped = 0;
+  
+  if (results[test_idx].result == 0) {
+    dbg_print("\r\n[PASS] MODULE_TEST_PATCH_SD completed successfully\r\n\r\n");
+    total_passed++;
+  } else {
+    dbg_print("\r\n[FAIL] MODULE_TEST_PATCH_SD failed\r\n\r\n");
+    total_failed++;
+  }
+  test_idx++;
+  osDelay(500);
+#else
+  dbg_print("[SKIP] MODULE_TEST_PATCH_SD (MODULE_ENABLE_PATCH disabled)\r\n");
+  results[test_idx].name = "PATCH_SD";
+  results[test_idx].skipped = 1;
+  test_idx++;
+#endif
+  
+  // ========================================
+  // FINAL SUMMARY
+  // ========================================
+  dbg_print("\r\n");
+  dbg_print("==============================================\r\n");
+  dbg_print("       MODULE_TEST_ALL - FINAL SUMMARY\r\n");
+  dbg_print("==============================================\r\n");
+  dbg_print("\r\n");
+  
+  // Print individual test results
+  dbg_print("Individual Test Results:\r\n");
+  dbg_print("----------------------------------------------\r\n");
+  for (int i = 0; i < test_idx; i++) {
+    dbg_printf("  %-15s : ", results[i].name);
+    if (results[i].skipped) {
+      dbg_print("[SKIP]\r\n");
+    } else if (results[i].result == 0) {
+      dbg_print("[PASS]\r\n");
+    } else {
+      dbg_print("[FAIL]\r\n");
+    }
+  }
+  dbg_print("\r\n");
+  
+  // Print statistics
+  dbg_print("Test Statistics:\r\n");
+  dbg_print("----------------------------------------------\r\n");
+  dbg_printf("Tests Passed:  %d\r\n", total_passed);
+  dbg_printf("Tests Failed:  %d\r\n", total_failed);
+  dbg_printf("Tests Skipped: %d\r\n", test_idx - total_passed - total_failed);
+  dbg_printf("Total Run:     %d\r\n", total_passed + total_failed);
+  dbg_print("----------------------------------------------\r\n");
+  dbg_print("\r\n");
+  
+  // Final verdict
+  if (total_failed == 0 && total_passed > 0) {
+    dbg_print("RESULT: ALL TESTS PASSED!\r\n");
+    dbg_print("\r\n");
+    dbg_print("All finite tests completed successfully.\r\n");
+    dbg_print("System validated and ready for operation.\r\n");
+  } else if (total_failed > 0) {
+    dbg_print("RESULT: SOME TESTS FAILED\r\n");
+    dbg_print("\r\n");
+    dbg_print("Please review failed tests above and check:\r\n");
+    dbg_print("  - Hardware connections\r\n");
+    dbg_print("  - Module configurations\r\n");
+    dbg_print("  - Required peripherals present\r\n");
+  } else {
+    dbg_print("RESULT: NO TESTS RUN\r\n");
+    dbg_print("\r\n");
+    dbg_print("All tests were skipped. Check that modules are enabled.\r\n");
+  }
+  
+  dbg_print("\r\n");
+  dbg_print("Note: Tests that run forever are not included:\r\n");
+  dbg_print("  - AINSER64, SRIO, MIDI_DIN, Router, Looper,\r\n");
+  dbg_print("  - LFO, Humanizer, UI pages, Pressure,\r\n");
+  dbg_print("  - USB Host/Device MIDI\r\n");
+  dbg_print("  Run these tests individually for validation.\r\n");
+  dbg_print("==============================================\r\n");
+  dbg_print("\r\n");
+  
+  // Return success if all tests passed
+  return (total_failed == 0 && total_passed > 0) ? 0 : -1;
 }
 
 void module_test_pressure_run(void)
