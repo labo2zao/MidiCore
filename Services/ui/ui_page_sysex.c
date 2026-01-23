@@ -62,12 +62,12 @@ void ui_page_sysex_render(uint32_t now_ms) {
   ui_gfx_set_font(UI_FONT_8X8);
   if (sysex_captured) {
     if (sysex_captured == 2) {
-      snprintf(header, sizeof(header), "SYSEX %u bytes [TRUNC]", sysex_length);
+      snprintf(header, sizeof(header), "SYSEX VIEW %ub [TRUNC]", sysex_length);
     } else {
-      snprintf(header, sizeof(header), "SYSEX %u bytes", sysex_length);
+      snprintf(header, sizeof(header), "SYSEX VIEW %u bytes", sysex_length);
     }
   } else {
-    snprintf(header, sizeof(header), "SYSEX Waiting...");
+    snprintf(header, sizeof(header), "SYSEX VIEWER Ready");
   }
   ui_gfx_text(0, 0, header, 15);
   ui_gfx_hline(0, 11, 256, 8);

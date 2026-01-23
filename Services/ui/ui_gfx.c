@@ -5,7 +5,7 @@
 static uint8_t* g_fb = 0;
 static uint16_t g_w = 0, g_h = 0;
 
-// Font selection: 0 = 5x7 (default), 1 = 8x8, 2 = 8x16
+// Font selection: 0 = 5x7 (default), 1 = 8x8
 static uint8_t g_current_font = 0;
 
 static const uint8_t font5x7[96][5] = {

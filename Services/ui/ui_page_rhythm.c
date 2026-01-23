@@ -255,7 +255,7 @@ void ui_page_rhythm_update(uint8_t force_redraw) {
     rhythm_stats_t stats;
     rhythm_trainer_get_stats(&stats);
     
-    snprintf(buf, sizeof(buf), "Acc: %d%%", stats.accuracy_percent);
+    snprintf(buf, sizeof(buf), "Accuracy: %d%%", stats.accuracy_percent);
     ui_gfx_text(130, 33, buf, 13);
     
     snprintf(buf, sizeof(buf), "P:%lu G:%lu", stats.perfect_count, stats.good_count);

@@ -71,7 +71,7 @@ void ui_page_automation_render(uint32_t now_ms) {
   
   // Mode selection
   ui_gfx_text(0, 15, "Mode:", cursor_pos == 0 ? 15 : 11);
-  const char* mode_names[] = {"OFF", "SCENE_CHN", "WORKFLOW", "CUSTOM"};
+  const char* mode_names[] = {"OFF", "SCENE_CHAIN", "WORKFLOW", "CUSTOM"};
   ui_gfx_text(40, 15, mode_names[current_mode], cursor_pos == 0 ? 15 : 13);
   
   // Scene Chain Configuration
