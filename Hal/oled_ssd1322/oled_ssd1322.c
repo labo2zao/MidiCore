@@ -177,8 +177,10 @@ void oled_init_progressive(uint8_t max_step) {
   }
 
   // Step 9: + Linear gray scale table
-  // Per NEWHAVEN MANUFACTURER SPEC: Just Set_Linear_Gray_Scale_Table(), NO cmd(0x00) after!
-  cmd(0xB9);                  // Set_Linear_Gray_Scale_Table (manufacturer spec)
+  // MIOS32 INCLUDES cmd(0x00) after cmd(0xB9) despite "OLD" comment!
+  // This is what actually works on hardware - following MIOS32 exactly
+  cmd(0xB9);                  // Set_Linear_Gray_Scale_Table
+  cmd(0x00);                  // Enable gray scale table (MIOS32 includes this!)
   if (max_step == 9) {
     cmd(0xAF); cmd(0xA5);
     return;
@@ -220,30 +222,32 @@ void oled_init_progressive(uint8_t max_step) {
   }
 
   // Step 15: Full init with SIMPLE WHITE SCREEN TEST
-  // DATASHEET-COMPLIANT: Per SSD1322 datasheet Section 8.1.3:
-  // After 0x5C (Write RAM), data bytes MUST immediately follow without ANY other commands
+  // EXACT MIOS32 SEQUENCE:
+  // 1. Set normal display mode (0xA6)
+  // 2. Clear/write to RAM (display still OFF)
+  // 3. Turn display ON (0xAF)
   
-  // Set normal display mode FIRST (while display is already OFF from previous config)
+  // Set normal display mode (0xA6) - display still OFF
   cmd(0xA4 | 0x02);  // Normal display mode (0xA6 - matches MIOS32)
   
-  // Turn display ON BEFORE writing RAM (per MIOS32 and datasheet)
-  cmd(0xAE | 1);  // Display ON (0xAF)
-  
-  // ULTRA-SIMPLE TEST: Fill entire screen with WHITE
-  // CRITICAL: Minimize commands between address setup and RAM write
+  // Write white screen to RAM (MIOS32 does this while display is OFF!)
+  // MIOS32 sequence: 1 byte address + 128 bytes data per row
   for (uint8_t row = 0; row < 64; ++row) {
     cmd(0x15);                 // Set Column Address
-    data(0x1C);                // Column start ONLY (MIOS32 style - 1 byte)
+    data(0x1C);                // Column start ONLY (1 byte like MIOS32)
     cmd(0x75);                 // Set Row Address
-    data(row);                 // Row start ONLY (MIOS32 style - 1 byte)
+    data(row);                 // Row start ONLY (1 byte like MIOS32)
     cmd(0x5C);                 // Write RAM command
     // CRITICAL: Data MUST immediately follow 0x5C per datasheet!
-    // NO other commands or delays between 0x5C and data stream!
+    // MIOS32 writes 128 bytes per row (64 iterations × 2 bytes)
     for (uint16_t i = 0; i < 64; ++i) {
       data(0xFF);              // White pixels
-      data(0xFF);              // White pixels
+      data(0xFF);              // White pixels (128 bytes total)
     }
   }
+  
+  // NOW turn display ON (after RAM write - EXACT MIOS32 sequence!)
+  cmd(0xAE | 1);  // Display ON (0xAF)
 
   delay_us(1000000);  // Wait 1 second to see white screen
 
@@ -258,18 +262,16 @@ void oled_init(void) {
 
 void oled_flush(void) {
   // Transfer the local framebuffer to OLED GDDRAM (SSD1322 VRAM)
-  // Send data row by row, matching MIOS32 sequence EXACTLY
-  // CRITICAL: MIOS32 sends ONLY ONE data byte for 0x15/0x75, NOT two!
-  // This contradicts datasheet but is what actually works with SSD1322
+  // EXACT MIOS32 sequence: 1 byte address + 128 bytes data per row
   for (uint8_t row = 0; row < 64; ++row) {
     cmd(0x15);                // Set Column Address
-    data(0x1C);               // Column start ONLY (MIOS32 doesn't send end!)
+    data(0x1C);               // Column start ONLY (1 byte like MIOS32)
     cmd(0x75);                // Set Row Address  
-    data(row);                // Row start ONLY (MIOS32 doesn't send end!)
-    cmd(0x5C);                // Write RAM command (begin data write)
-    uint8_t *row_ptr = &fb[row * 128];
+    data(row);                // Row start ONLY (1 byte like MIOS32)
+    cmd(0x5C);                // Write RAM command
+    uint8_t *row_ptr = &fb[row * 128];  // 128 bytes per row
     for (uint16_t i = 0; i < 128; ++i) {
-      data(row_ptr[i]);       // Write 128 bytes of pixel data for this row
+      data(row_ptr[i]);       // Write 128 bytes like MIOS32
     }
   }
 }
