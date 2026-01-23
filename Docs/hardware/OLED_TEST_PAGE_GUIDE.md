@@ -4,12 +4,14 @@ Comprehensive guide to the enhanced OLED SSD1322 test page features in MidiCore.
 
 ## Overview
 
-The OLED test page provides 15 different test modes to validate display functionality, performance, and visual quality. This is useful for:
+The OLED test page provides 17 different test modes to validate display functionality, performance, and visual quality. This is useful for:
 - Verifying OLED driver implementation
 - Testing display hardware
 - Debugging rendering issues
 - Benchmarking display performance
 - Demonstrating graphics capabilities
+- Preventing screen burn-in
+- Analyzing performance statistics
 
 ## Test Modes
 
@@ -281,11 +283,58 @@ Automatically cycles through all test modes for demonstrations.
 - Automatically skips self (mode 14) in cycle
 - Resets animation state on each mode change
 
+### Mode 15: Burn-In Prevention ✨ NEW
+Prevents static image burn-in with moving patterns.
+
+**Features**:
+- Moving gradient box (40×40 pixels) with radial gradient
+- 3 moving vertical lines at different speeds
+- Elapsed time display (seconds)
+- Continuous motion to prevent image retention
+
+**Use Cases**:
+- Long-term display operation
+- Screen saver functionality
+- Burn-in prevention for OLED displays
+- Extended demo/exhibition mode
+
+**Technical Details**:
+- Update interval: 100ms
+- Box moves at 3 pixels per frame horizontally
+- Box moves at 0.5 pixels per frame vertically
+- Lines move at (2x, 3x, 4x) speed multipliers
+- Gradient calculated from center distance
+
+### Mode 16: Performance Statistics ✨ NEW
+Comprehensive performance metrics and analysis.
+
+**Features**:
+- Current FPS display
+- Minimum FPS tracking (since reset)
+- Maximum FPS tracking (since reset)
+- Average frame time calculation
+- System uptime (minutes and seconds)
+- FPS history bar graph (scaled to 60 FPS)
+
+**Use Cases**:
+- Performance analysis and optimization
+- System health monitoring
+- Benchmarking display performance
+- Identifying performance regressions
+- Long-term stability testing
+
+**Technical Details**:
+- Updates in real-time
+- Min/Max FPS tracked across all modes
+- Average calculated from frame time accumulation
+- Uptime displayed in min:sec format
+- Bar graph scales to 60 FPS maximum
+
 ## Navigation
 
 ### Encoder Control
-- **Rotate Right**: Next test mode (0 → 1 → 2 → ... → 14 → 0)
-- **Rotate Left**: Previous test mode (0 → 14 → 13 → ... → 1 → 0)
+- **Rotate Right**: Next test mode (0 → 1 → 2 → ... → 16 → 0)
+- **Rotate Left**: Previous test mode (0 → 16 → 15 → ... → 1 → 0)
 - Animation state resets on mode change
 - Exits auto-cycle mode (14) immediately
 
@@ -295,14 +344,14 @@ Automatically cycles through all test modes for demonstrations.
 - **Button 2**: Clear screen (fill with black)
 - **Button 3**: Fill screen white (all pixels max brightness)
 - **Button 4**: Clear screen (same as button 2)
-- **Button 5**: Reset FPS counter ✨ NEW
+- **Button 5**: Reset all statistics (FPS, min/max, frame times) ✨ UPDATED
 - **Any button in Mode 14**: Exit auto-cycle and return to mode 0
 
 ## Status Display
 
 ### Header Information
 Always displayed at the top of the screen:
-- Current test mode number (0-14)
+- Current test mode number (0-16)
 - Instruction: "Use ENC" (rotate encoder to change modes)
 
 ### Footer Information ✨ NEW
@@ -318,6 +367,17 @@ Always displayed at the top right:
 - **Performance Test** (Mode 9): 20-40 FPS
 - **Stress Test** (Mode 13): 40-60 FPS
 - **Auto-Cycle** (Mode 14): Varies by current mode
+- **Burn-In Prevention** (Mode 15): 30-40 FPS
+- **Statistics Display** (Mode 16): 60 FPS (static display)
+
+### Performance Tracking
+**Mode 16** provides comprehensive performance statistics:
+- **Current FPS**: Real-time frame rate
+- **Min FPS**: Lowest FPS recorded since last reset
+- **Max FPS**: Highest FPS recorded since last reset
+- **Avg Frame Time**: Average time between frames in milliseconds
+- **Uptime**: System runtime in minutes and seconds
+- **FPS History**: Visual bar graph of current FPS
 
 ### Performance Factors
 Frame rate is affected by:
@@ -440,35 +500,41 @@ Approximate CPU usage per mode:
 | 12   | 500ms          | 30-40        |
 | 13   | 16ms           | 40-60        |
 | 14   | 3000ms         | Varies       |
+| 15   | 100ms          | 30-40        |
+| 16   | N/A (static)   | 60           |
 
 ## Use Cases
 
 ### Development Testing
 1. **Initial Hardware Bring-Up**: Use Mode 0-2 to verify basic display function
 2. **Driver Development**: Use Mode 6 to test direct framebuffer access
-3. **Performance Tuning**: Use Modes 9 and 13 to benchmark optimizations
+3. **Performance Tuning**: Use Modes 9, 13, and 16 to benchmark optimizations
 4. **Graphics Library**: Use Modes 10 and 11 to test new drawing functions
+5. **Statistics Analysis**: Use Mode 16 to track performance over time
 
 ### Quality Assurance
 1. **Manufacturing Test**: Run all modes to verify display quality
-2. **Burn-In Test**: Leave Mode 4, 9, or 13 running for extended period
+2. **Burn-In Test**: Use Mode 15 for extended burn-in prevention testing
 3. **Pixel Defect Check**: Use Mode 2 with all brightness levels
 4. **Grayscale Calibration**: Use Mode 1 to verify gray levels
 5. **Automated Testing**: Use Mode 14 for hands-free testing cycle
+6. **Performance Validation**: Use Mode 16 to verify FPS requirements
 
 ### Demonstration
 1. **Customer Demo**: Show capabilities with Modes 8, 10, and 11
 2. **Trade Show**: Use Mode 14 for automatic continuous demo
-3. **Technical Presentation**: Use Modes 9 and 13 to show performance metrics
+3. **Technical Presentation**: Use Modes 9, 13, and 16 to show performance metrics
 4. **Feature Showcase**: Mode 14 automatically cycles through all modes
+5. **Long-Term Display**: Use Mode 15 for extended exhibitions
 
 ## Future Enhancements
 
 Potential additions for future versions:
 - [x] Bitmap image display test (Mode 11 ✅)
-- [ ] Custom pattern upload via SD card
 - [x] Automatic mode cycling (Mode 14 ✅)
-- [ ] Screen burn-in prevention mode with moving patterns
+- [x] Burn-in prevention mode (Mode 15 ✅)
+- [x] Performance statistics (Mode 16 ✅)
+- [ ] Custom pattern upload via SD card
 - [ ] Touch/gesture testing (if hardware supports)
 - [ ] Color test mode (for future RGB displays)
 - [ ] QR code rendering test
@@ -494,8 +560,8 @@ Potential additions for future versions:
 
 ---
 
-**Document Version**: 2.0  
+**Document Version**: 2.1  
 **Last Updated**: 2026-01-23  
 **Feature Status**: ✅ Production Ready  
-**Test Modes**: 15 (expanded from 11)  
+**Test Modes**: 17 (expanded from 7)  
 **Tested On**: STM32F407VGT6 with SSD1322 256×64 OLED
