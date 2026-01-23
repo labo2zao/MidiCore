@@ -5,7 +5,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-static uint8_t test_mode = 0; // 0=patterns, 1=grayscale, 2=pixels, 3=text, 4=animations, 5=hardware info, 6=framebuffer, 7=scrolling text, 8=bouncing ball, 9=performance, 10=circles, 11=bitmap, 12=fill patterns, 13=stress test, 14=auto-cycle, 15=burn-in prevention, 16=stats display
+static uint8_t test_mode = 0; // 0=patterns, 1=grayscale, 2=pixels, 3=text, 4=animations, 5=hardware info, 6=framebuffer, 7=scrolling text, 8=bouncing ball, 9=performance, 10=circles, 11=bitmap, 12=fill patterns, 13=stress test, 14=auto-cycle, 15=burn-in prevention, 16=stats display, 17=3D wireframe
 static uint32_t last_update = 0;
 static uint8_t anim_frame = 0;
 static int scroll_offset = 0;
@@ -525,6 +525,79 @@ void ui_page_oled_test_render(uint32_t ms) {
       break;
     }
     
+    case 17: { // 3D Wireframe cube
+      ui_gfx_text(0, 26, "3D Wireframe Cube", 15);
+      
+      if (ms - last_update > 50) {
+        anim_frame++;
+        last_update = ms;
+      }
+      
+      // Cube center and size
+      int cx = OLED_W / 2;
+      int cy = 48;
+      int size = 15;
+      
+      // Rotation angles (simplified using frame counter)
+      int angle = (anim_frame * 2) % 360;
+      
+      // Simple 3D cube vertices (8 corners)
+      // Using simplified rotation without trigonometry
+      int vertices[8][2];
+      
+      // Calculate rotation using lookup table approach (8 steps = 45 degrees each)
+      int step = (angle / 45) % 8;
+      
+      // Front face (z near)
+      int offset_x = (step < 4) ? (size * (2 - step)) / 2 : (size * (step - 6)) / 2;
+      int offset_y = (step < 2 || step > 6) ? -size / 2 : (step < 4) ? size / 2 : (step < 6) ? size / 2 : -size / 2;
+      
+      vertices[0][0] = cx - size + offset_x / 3;  // Top-left-front
+      vertices[0][1] = cy - size + offset_y / 3;
+      vertices[1][0] = cx + size + offset_x / 3;  // Top-right-front
+      vertices[1][1] = cy - size + offset_y / 3;
+      vertices[2][0] = cx + size + offset_x / 3;  // Bottom-right-front
+      vertices[2][1] = cy + size + offset_y / 3;
+      vertices[3][0] = cx - size + offset_x / 3;  // Bottom-left-front
+      vertices[3][1] = cy + size + offset_y / 3;
+      
+      // Back face (z far) - slightly offset for depth
+      int depth = 8;
+      vertices[4][0] = cx - size / 2 - offset_x / 4;  // Top-left-back
+      vertices[4][1] = cy - size / 2 - offset_y / 4;
+      vertices[5][0] = cx + size / 2 - offset_x / 4;  // Top-right-back
+      vertices[5][1] = cy - size / 2 - offset_y / 4;
+      vertices[6][0] = cx + size / 2 - offset_x / 4;  // Bottom-right-back
+      vertices[6][1] = cy + size / 2 - offset_y / 4;
+      vertices[7][0] = cx - size / 2 - offset_x / 4;  // Bottom-left-back
+      vertices[7][1] = cy + size / 2 - offset_y / 4;
+      
+      // Draw front face
+      ui_gfx_line(vertices[0][0], vertices[0][1], vertices[1][0], vertices[1][1], 15);
+      ui_gfx_line(vertices[1][0], vertices[1][1], vertices[2][0], vertices[2][1], 15);
+      ui_gfx_line(vertices[2][0], vertices[2][1], vertices[3][0], vertices[3][1], 15);
+      ui_gfx_line(vertices[3][0], vertices[3][1], vertices[0][0], vertices[0][1], 15);
+      
+      // Draw back face
+      ui_gfx_line(vertices[4][0], vertices[4][1], vertices[5][0], vertices[5][1], 10);
+      ui_gfx_line(vertices[5][0], vertices[5][1], vertices[6][0], vertices[6][1], 10);
+      ui_gfx_line(vertices[6][0], vertices[6][1], vertices[7][0], vertices[7][1], 10);
+      ui_gfx_line(vertices[7][0], vertices[7][1], vertices[4][0], vertices[4][1], 10);
+      
+      // Draw connecting lines (edges between front and back)
+      ui_gfx_line(vertices[0][0], vertices[0][1], vertices[4][0], vertices[4][1], 12);
+      ui_gfx_line(vertices[1][0], vertices[1][1], vertices[5][0], vertices[5][1], 12);
+      ui_gfx_line(vertices[2][0], vertices[2][1], vertices[6][0], vertices[6][1], 12);
+      ui_gfx_line(vertices[3][0], vertices[3][1], vertices[7][0], vertices[7][1], 12);
+      
+      // Show rotation angle
+      char angle_info[32];
+      snprintf(angle_info, sizeof(angle_info), "Angle: %d deg", angle);
+      ui_gfx_text(0, 38, angle_info, 8);
+      
+      break;
+    }
+    
     default:
       test_mode = 0;
       break;
@@ -552,7 +625,7 @@ void ui_page_oled_test_on_button(uint8_t id, uint8_t pressed) {
     if (test_mode > 0) {
       test_mode--;
     } else {
-      test_mode = 16; // Updated max test mode
+      test_mode = 17; // Updated max test mode
     }
     // Reset animation state
     anim_frame = 0;
@@ -562,7 +635,7 @@ void ui_page_oled_test_on_button(uint8_t id, uint8_t pressed) {
     auto_cycle_timer = 0;
   } else if (id == 1) {
     // Button 1: Next test
-    test_mode = (test_mode + 1) % 17; // Updated max test mode
+    test_mode = (test_mode + 1) % 18; // Updated max test mode
     // Reset animation state
     anim_frame = 0;
     scroll_offset = 0;
@@ -601,7 +674,7 @@ void ui_page_oled_test_on_encoder(int8_t delta) {
   }
   
   if (delta > 0) {
-    test_mode = (test_mode + 1) % 17; // Updated max test mode
+    test_mode = (test_mode + 1) % 18; // Updated max test mode
     // Reset animation state
     anim_frame = 0;
     scroll_offset = 0;
@@ -612,7 +685,7 @@ void ui_page_oled_test_on_encoder(int8_t delta) {
     if (test_mode > 0) {
       test_mode--;
     } else {
-      test_mode = 16; // Updated max test mode
+      test_mode = 17; // Updated max test mode
     }
     // Reset animation state
     anim_frame = 0;
