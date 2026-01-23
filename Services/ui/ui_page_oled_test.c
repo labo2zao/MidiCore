@@ -5,7 +5,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-static uint8_t test_mode = 0; // 0=patterns, 1=grayscale, 2=pixels, 3=text, 4=animations, 5=hardware info, 6=framebuffer, 7=scrolling text, 8=bouncing ball, 9=performance, 10=circles, 11=bitmap, 12=fill patterns, 13=stress test, 14=auto-cycle
+static uint8_t test_mode = 0; // 0=patterns, 1=grayscale, 2=pixels, 3=text, 4=animations, 5=hardware info, 6=framebuffer, 7=scrolling text, 8=bouncing ball, 9=performance, 10=circles, 11=bitmap, 12=fill patterns, 13=stress test, 14=auto-cycle, 15=burn-in prevention, 16=stats display
 static uint32_t last_update = 0;
 static uint8_t anim_frame = 0;
 static int scroll_offset = 0;
@@ -18,14 +18,36 @@ static uint32_t fps_last_time = 0;
 static uint32_t fps_value = 0;
 static uint8_t auto_cycle_enabled = 0;  // Auto-cycle mode flag
 static uint32_t auto_cycle_timer = 0;    // Timer for auto-cycling
+static uint32_t fps_min = 999;           // Minimum FPS recorded
+static uint32_t fps_max = 0;             // Maximum FPS recorded
+static uint32_t frame_time_sum = 0;      // Sum of frame times for average
+static uint32_t frame_time_count = 0;    // Count of frame times
+static uint32_t last_frame_time = 0;     // Time of last frame
 
 void ui_page_oled_test_render(uint32_t ms) {
   uint8_t* fb = oled_framebuffer();
   
-  // FPS calculation
+  // Frame time tracking
+  if (last_frame_time > 0) {
+    uint32_t frame_time = ms - last_frame_time;
+    if (frame_time > 0 && frame_time < 1000) {  // Sanity check
+      frame_time_sum += frame_time;
+      frame_time_count++;
+    }
+  }
+  last_frame_time = ms;
+  
+  // FPS calculation with min/max tracking
   fps_counter++;
   if (ms - fps_last_time >= 1000) {
     fps_value = fps_counter;
+    
+    // Track min/max
+    if (fps_value > 0) {
+      if (fps_value < fps_min) fps_min = fps_value;
+      if (fps_value > fps_max) fps_max = fps_value;
+    }
+    
     fps_counter = 0;
     fps_last_time = ms;
   }
@@ -402,7 +424,7 @@ void ui_page_oled_test_render(uint32_t ms) {
       
       // Auto-cycle through modes every 3 seconds
       if (ms - auto_cycle_timer > 3000) {
-        // Cycle to next mode (skip auto-cycle itself)
+        // Cycle to next mode (skip auto-cycle and new modes)
         uint8_t next_mode = (test_mode + 1) % 14;
         test_mode = next_mode;
         auto_cycle_timer = ms;
@@ -423,6 +445,83 @@ void ui_page_oled_test_render(uint32_t ms) {
       int progress_width = (int)((OLED_W - 20) * (3000 - time_remaining) / 3000);
       ui_gfx_rect(10, 60, progress_width, 3, 15);
       ui_gfx_rect(10 + progress_width, 60, (OLED_W - 20) - progress_width, 3, 3);
+      break;
+    }
+    
+    case 15: { // Burn-in prevention mode
+      ui_gfx_text(0, 26, "Burn-In Prevention", 15);
+      
+      if (ms - last_update > 100) {
+        anim_frame++;
+        last_update = ms;
+      }
+      
+      // Moving box pattern to prevent burn-in
+      int box_size = 40;
+      int box_x = ((anim_frame * 3) % (OLED_W - box_size));
+      int box_y = 38 + ((anim_frame / 2) % (OLED_H - 38 - box_size));
+      
+      // Draw moving box with gradient
+      for (int y = 0; y < box_size; y++) {
+        for (int x = 0; x < box_size; x++) {
+          int dist_from_center = abs(x - box_size/2) + abs(y - box_size/2);
+          uint8_t brightness = (uint8_t)(15 - (dist_from_center / 3));
+          if (brightness > 15) brightness = 0;
+          ui_gfx_pixel(box_x + x, box_y + y, brightness);
+        }
+      }
+      
+      // Moving lines
+      for (int i = 0; i < 3; i++) {
+        int line_offset = ((anim_frame * (i + 2)) % OLED_W);
+        ui_gfx_vline(line_offset, 38, OLED_H - 38, 8 + i * 2);
+      }
+      
+      ui_gfx_text(0, 38, "Prevents static image", 10);
+      
+      // Show elapsed time
+      uint32_t elapsed_sec = ms / 1000;
+      char time_info[32];
+      snprintf(time_info, sizeof(time_info), "Running: %lu sec", elapsed_sec);
+      ui_gfx_text(OLED_W - 110, 38, time_info, 8);
+      break;
+    }
+    
+    case 16: { // Statistics display
+      ui_gfx_text(0, 26, "Performance Stats", 15);
+      
+      // Calculate average frame time
+      uint32_t avg_frame_time = 0;
+      if (frame_time_count > 0) {
+        avg_frame_time = frame_time_sum / frame_time_count;
+      }
+      
+      // Display detailed statistics
+      char stat1[48];
+      snprintf(stat1, sizeof(stat1), "Current FPS: %lu", fps_value);
+      ui_gfx_text(0, 38, stat1, 12);
+      
+      char stat2[48];
+      snprintf(stat2, sizeof(stat2), "Min FPS: %lu  Max FPS: %lu", fps_min, fps_max);
+      ui_gfx_text(0, 46, stat2, 10);
+      
+      char stat3[48];
+      snprintf(stat3, sizeof(stat3), "Avg Frame Time: %lu ms", avg_frame_time);
+      ui_gfx_text(0, 54, stat3, 10);
+      
+      char stat4[48];
+      uint32_t uptime_sec = ms / 1000;
+      uint32_t uptime_min = uptime_sec / 60;
+      snprintf(stat4, sizeof(stat4), "Uptime: %lu min %lu sec", uptime_min, uptime_sec % 60);
+      ui_gfx_text(0, 62, stat4, 8);
+      
+      // Draw FPS history bar graph (simple representation)
+      if (fps_value > 0) {
+        int bar_width = (int)((fps_value * (OLED_W - 20)) / 60);  // Scale to 60 FPS max
+        if (bar_width > OLED_W - 20) bar_width = OLED_W - 20;
+        ui_gfx_rect(10, 58, bar_width, 2, 15);
+      }
+      
       break;
     }
     
@@ -453,7 +552,7 @@ void ui_page_oled_test_on_button(uint8_t id, uint8_t pressed) {
     if (test_mode > 0) {
       test_mode--;
     } else {
-      test_mode = 14; // Updated max test mode
+      test_mode = 16; // Updated max test mode
     }
     // Reset animation state
     anim_frame = 0;
@@ -463,7 +562,7 @@ void ui_page_oled_test_on_button(uint8_t id, uint8_t pressed) {
     auto_cycle_timer = 0;
   } else if (id == 1) {
     // Button 1: Next test
-    test_mode = (test_mode + 1) % 15; // Updated max test mode
+    test_mode = (test_mode + 1) % 17; // Updated max test mode
     // Reset animation state
     anim_frame = 0;
     scroll_offset = 0;
@@ -481,10 +580,14 @@ void ui_page_oled_test_on_button(uint8_t id, uint8_t pressed) {
     // Button 4: Fill screen black
     oled_clear();
   } else if (id == 5) {
-    // Button 5: Reset FPS counter
+    // Button 5: Reset statistics
     fps_counter = 0;
     fps_last_time = 0;
     fps_value = 0;
+    fps_min = 999;
+    fps_max = 0;
+    frame_time_sum = 0;
+    frame_time_count = 0;
   }
 }
 
@@ -498,7 +601,7 @@ void ui_page_oled_test_on_encoder(int8_t delta) {
   }
   
   if (delta > 0) {
-    test_mode = (test_mode + 1) % 15; // Updated max test mode
+    test_mode = (test_mode + 1) % 17; // Updated max test mode
     // Reset animation state
     anim_frame = 0;
     scroll_offset = 0;
@@ -509,7 +612,7 @@ void ui_page_oled_test_on_encoder(int8_t delta) {
     if (test_mode > 0) {
       test_mode--;
     } else {
-      test_mode = 14; // Updated max test mode
+      test_mode = 16; // Updated max test mode
     }
     // Reset animation state
     anim_frame = 0;
