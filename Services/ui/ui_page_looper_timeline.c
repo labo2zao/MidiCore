@@ -126,8 +126,24 @@ static void draw_events(uint32_t base, uint32_t span) {
     uint32_t x = tick_to_x(snap[i].tick, base, span);
     if (x == 0xFFFFFFFFu) continue;
     int y = note_to_y(snap[i].b1);
-    uint8_t g = (i == g_sel_idx) ? 15 : 9;
-    ui_gfx_rect((int)x, y, 2, 2, g);
+    
+    // LoopA-style: Show velocity through brightness
+    uint8_t vel = snap[i].b2;
+    uint8_t g;
+    if (i == g_sel_idx) {
+      g = 15; // Selected event is brightest
+    } else {
+      // Map velocity to brightness (6-12 range)
+      g = 6 + ((uint32_t)vel * 6) / 127;
+    }
+    
+    // LoopA-style: Larger event markers (3x3 instead of 2x2)
+    ui_gfx_fill_rect((int)x-1, y-1, 3, 3, g);
+    
+    // Add border to selected events
+    if (i == g_sel_idx) {
+      ui_gfx_rect((int)x-1, y-1, 3, 3, 15);
+    }
   }
 }
 
