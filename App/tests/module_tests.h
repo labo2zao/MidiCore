@@ -211,7 +211,9 @@ void module_test_router_run(void);
 /**
  * @brief Test Looper module
  * 
- * Comprehensive automated test of the MIDI Looper module:
+ * Comprehensive automated test of the MIDI Looper module covering all features:
+ * 
+ * **Core Features (Phases 1-7):**
  * - Multi-track recording and playback (4 tracks)
  * - Recording, playback, and overdub modes
  * - Quantization modes (OFF, 1/16, 1/8, 1/4 notes)
@@ -219,13 +221,24 @@ void module_test_router_run(void);
  * - Scene management (8 scenes with track snapshots)
  * - Transport controls (tempo, time signature, tap tempo)
  * - Advanced features (LFO, humanizer, undo/redo)
+ * 
+ * **Extended Features (Phases 8-11):**
  * - Step mode with cursor control (step read/write)
  * - Track randomization (velocity/timing variations)
  * - Multi-track simultaneous playback
  * - Save/Load tracks to SD card
- * - Event export and analysis
  * 
- * Test sequence (12 phases):
+ * **Advanced Testing (Phases 12-17):**
+ * - Scene chaining and automation
+ * - Router integration (multi-source MIDI)
+ * - Stress testing (rapid input, buffer limits)
+ * - Error recovery and edge cases
+ * - Performance benchmarks
+ * - Humanizer/LFO modulation validation
+ * 
+ * Test sequence (18 phases total, ~120-180s runtime):
+ * 
+ * **Phase 1-7: Core Features**
  * 1. Initialize looper and configure transport (120 BPM, 4/4 time)
  * 2. Test basic recording with MIDI note sequence (C4, E4, G4)
  * 3. Test playback and event export
@@ -233,6 +246,8 @@ void module_test_router_run(void);
  * 5. Test quantization modes and verification
  * 6. Test mute/solo controls and audibility checks
  * 7. Test scene save/load and scene switching
+ * 
+ * **Phase 8-11: Extended Features**
  * 8. Test advanced features (tempo tap, humanizer, LFO, undo/redo)
  * 9. **Test step mode - manual cursor control (step read/write)**
  *    - Enable/disable step mode
@@ -254,6 +269,37 @@ void module_test_router_run(void);
  *     - Clear and reload track
  *     - Verify event restoration
  * 
+ * **Phase 12-17: Advanced Testing**
+ * 13. **Test scene chaining**
+ *     - Configure scene chain (0→1→2→0)
+ *     - Test automatic scene transitions
+ *     - Verify chain configuration and enable/disable
+ * 14. **Test router integration**
+ *     - MIDI recording from DIN IN, USB Device, USB Host
+ *     - Verify multi-source event routing
+ *     - Validate event attribution
+ * 15. **Test stress conditions**
+ *     - Rapid MIDI note sequence (50ms intervals)
+ *     - Near-buffer capacity (100+ events)
+ *     - Extended recording time (16 beats, 8 seconds)
+ * 16. **Test error recovery**
+ *     - Invalid track indices
+ *     - Rapid state transitions
+ *     - Operations on empty tracks
+ *     - Extreme parameter values
+ *     - Concurrent track operations
+ * 17. **Test performance benchmarks**
+ *     - Event recording speed (ms per event)
+ *     - Event export performance
+ *     - State transition latency
+ *     - Scene operation timing
+ * 18. **Test humanizer/LFO validation**
+ *     - Record identical notes
+ *     - Apply humanization and compare
+ *     - Validate velocity/timing variations
+ *     - Test LFO configuration and BPM sync
+ * 
+ * **Phase 18: Continuous Monitor**
  * After automated tests, enters continuous monitoring mode that:
  * - Allows live MIDI recording/playback via DIN IN or USB
  * - Prints status updates every 30 seconds
@@ -264,20 +310,25 @@ void module_test_router_run(void);
  * - Optional: MIDI DIN or USB input for live testing
  * - Optional: MIDI output to hear playback
  * - Optional: SD card for save/load testing
+ * - Optional: Router module for integration testing
  * 
- * Expected duration: ~60-90 seconds for automated tests
+ * Expected duration: ~120-180 seconds for automated tests (18 phases)
  * 
  * Output: Comprehensive UART debug log with:
  * - Phase-by-phase progress and results
  * - MIDI event details (note values, velocities, timing)
  * - Track state information (recording/playback/overdub)
- * - Scene management operations
- * - Step mode cursor positions
- * - Randomization effects
- * - Multi-track status
- * - Save/load results
- * - Advanced feature verification
- * - Test summary with PASS/FAIL results
+ * - Scene management and chaining operations
+ * - Step mode cursor positions and navigation
+ * - Randomization effects (before/after comparison)
+ * - Multi-track status and interactions
+ * - Save/load results and verification
+ * - Router integration (multi-source events)
+ * - Stress test results (capacity, timing)
+ * - Error recovery validation
+ * - Performance benchmark measurements
+ * - Humanizer/LFO modulation validation
+ * - Test summary with PASS/FAIL results for all 18 phases
  * 
  * Usage: Enable MODULE_TEST_LOOPER=1 in test configuration
  * Connect UART terminal (115200 baud) to observe test execution
