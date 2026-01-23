@@ -1402,9 +1402,9 @@ void module_test_ui_run(void)
     
     dbg_print(mode_desc[mode]);
     
-    // Render test mode (call the render function with current time)
-    uint32_t ms = osKernelGetTickCount();
-    ui_page_oled_test_render(ms);
+    // Render test mode via UI framework (renders current page with proper header)
+    // Note: We're on UI_PAGE_OLED_TEST, so this calls ui_page_oled_test_render internally
+    ui_tick_20ms();
     
     dbg_print(" - Rendered OK\r\n");
     
@@ -1419,7 +1419,7 @@ void module_test_ui_run(void)
     
     // Move to next mode via encoder (except for last mode)
     if (mode < 28) {
-      ui_page_oled_test_on_encoder(1); // Encoder +1 (next mode)
+      ui_on_encoder(1); // Encoder +1 (next mode) - routes to ui_page_oled_test_on_encoder
       ui_tick_20ms();
     }
   }
@@ -1438,7 +1438,7 @@ void module_test_ui_run(void)
   // Rapid forward navigation
   dbg_print("  Forward: ");
   for (uint8_t i = 0; i < 10; i++) {
-    ui_page_oled_test_on_encoder(1);
+    ui_on_encoder(1); // Routes to ui_page_oled_test_on_encoder since we're on OLED_TEST page
     ui_tick_20ms();
     osDelay(100);
     dbg_print("+");
@@ -1448,7 +1448,7 @@ void module_test_ui_run(void)
   // Rapid backward navigation
   dbg_print("  Backward: ");
   for (uint8_t i = 0; i < 10; i++) {
-    ui_page_oled_test_on_encoder(-1);
+    ui_on_encoder(-1); // Routes to ui_page_oled_test_on_encoder since we're on OLED_TEST page
     ui_tick_20ms();
     osDelay(100);
     dbg_print("-");
@@ -1457,14 +1457,14 @@ void module_test_ui_run(void)
   
   // Large jump forward
   dbg_print("  Large jump (+10): ");
-  ui_page_oled_test_on_encoder(10);
+  ui_on_encoder(10); // Routes to ui_page_oled_test_on_encoder since we're on OLED_TEST page
   ui_tick_20ms();
   osDelay(500);
   dbg_print("OK\r\n");
   
   // Large jump backward
   dbg_print("  Large jump (-5): ");
-  ui_page_oled_test_on_encoder(-5);
+  ui_on_encoder(-5); // Routes to ui_page_oled_test_on_encoder since we're on OLED_TEST page
   ui_tick_20ms();
   osDelay(500);
   dbg_print("OK\r\n");
