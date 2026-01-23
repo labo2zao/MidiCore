@@ -219,9 +219,8 @@ static void draw_parameters(uint8_t x, uint8_t y) {
  * @brief Update rhythm trainer UI page
  */
 void ui_page_rhythm_update(uint8_t force_redraw) {
-  if (force_redraw) {
-    ui_gfx_clear(0);
-  }
+  // Always clear screen to prevent text overlay/garbage
+  ui_gfx_clear(0);
   
   // Header
   ui_gfx_text(0, 0, "RHYTHM TRAINER", GFX_FONT_NORMAL);
