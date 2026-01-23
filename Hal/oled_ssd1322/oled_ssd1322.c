@@ -219,36 +219,30 @@ void oled_init_progressive(uint8_t max_step) {
     return;
   }
 
-  // Step 15: Full init with RAM clear
+  // Step 15: Full init with SIMPLE WHITE SCREEN TEST
   // CRITICAL: Exit test mode (0xA5) before writing to RAM!
   cmd(0xA4 | 0x02);  // Normal display mode (0xA6 - matches MIOS32 exactly)
   
-  // Clear display RAM - MATCH MIOS32 EXACTLY (only 1 data byte per address command!)
-  // CRITICAL: MIOS32 sends ONLY ONE data byte for 0x15/0x75, NOT two!
+  // ULTRA-SIMPLE TEST: Fill entire screen with WHITE
+  // This bypasses framebuffer complexity and tests RAM write directly
   for (uint8_t row = 0; row < 64; ++row) {
     cmd(0x15);                 // Set Column Address
-    data(0x1C);                // Column start ONLY (MIOS32 doesn't send end!)
+    data(0x1C);                // Column start ONLY (MIOS32 style - 1 byte)
     cmd(0x75);                 // Set Row Address
-    data(row);                 // Row start ONLY (MIOS32 doesn't send end!)
+    data(row);                 // Row start ONLY (MIOS32 style - 1 byte)
     cmd(0x5C);                 // Write RAM command
     for (uint16_t i = 0; i < 64; ++i) {
-      data(0x00);              // Clear pixels
-      data(0x00);
+      data(0xFF);              // White pixels
+      data(0xFF);              // White pixels
     }
   }
 
-  // CRITICAL: MIOS32 sends Display ON AFTER clearing RAM!
+  // CRITICAL: MIOS32 sends Display ON AFTER writing RAM!
   cmd(0xAE | 1);  // Display ON (0xAF - matches MIOS32 exactly)
 
-  delay_us(100000);  // wait 100 ms
+  delay_us(2000000);  // Wait 2 seconds to see white screen
 
-  // Show test pattern for 1s
-  memset(fb, 0xFF, 512);         // first 4 rows = white
-  memset(fb + 512, 0x77, 7680);  // remaining rows = gray
-  oled_flush();
-  delay_us(1000000);
-
-  // Clear framebuffer
+  // Clear framebuffer for future use
   memset(fb, 0x00, sizeof(fb));
 }
 
