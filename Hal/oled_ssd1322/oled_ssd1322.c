@@ -284,35 +284,44 @@ void oled_clear(void) {
   memset(fb, 0x00, sizeof(fb));
 }
 
-// MIOS32-compatible test screen function
-// Matches testScreen() from github.com/midibox/mios32/apps/mios32_test/app_lcd/ssd1322/app.c
+// MIOS32-compatible test screen function - EXACT replica
+// Source: github.com/midibox/mios32/apps/mios32_test/app_lcd/ssd1322/app.c testScreen()
 // Left half: gradient pattern, Right half: full white
 // This test bypasses the framebuffer and writes directly to OLED RAM
 void oled_test_mios32_pattern(void) {
   uint16_t x = 0;
   uint16_t y = 0;
 
-  // Render test screen exactly like MIOS32
+  // EXACT MIOS32 testScreen() replication
   for (y = 0; y < 64; y++) {
-    cmd(0x15);                    // Set Column Address
-    data(0x1C);                   // Column start (MIOS32 sends only 1 byte)
+    // APP_LCD_Cmd(0x15); APP_LCD_Data(0x1c);
+    cmd(0x15);
+    data(0x1c);
 
-    cmd(0x75);                    // Set Row Address
-    data(y);                      // Row start (MIOS32 sends only 1 byte)
+    // APP_LCD_Cmd(0x75); APP_LCD_Data(y);
+    cmd(0x75);
+    data(y);
 
-    cmd(0x5C);                    // Write RAM command
+    // APP_LCD_Cmd(0x5c);
+    cmd(0x5c);
 
-    for (x = 0; x < 64; x++) {    // 64 column pairs = 128 bytes = 256 pixels
-      if (x < 32) {               // Left half: pattern
-        // MIOS32 pattern: gradient based on position
-        // Original MIOS32 code had: if (x || 4 == 0 || y || 4 == 0)
-        // This is always true (logical OR with constants), creating gradient
-        data(y & 0x0F);           // First pixel: gradient based on Y
-        data(0x00);               // Second pixel: black
-      } else {                    // Right half: full white
-        data(0xFF);               // First pixel: white
-        data(0xFF);               // Second pixel: white
+    // MIOS32: for (x = 0; x < 64; x++)
+    for (x = 0; x < 64; x++) {
+      if (x < 32) {
+        // Left half: pattern
+        // MIOS32 original: if (x || 4 == 0 || y || 4 == 0) - always true
+        // APP_LCD_Data(y & 0x0f); APP_LCD_Data(0);
+        data(y & 0x0f);
+        data(0);
+      } else {
+        // Right half: full white
+        // APP_LCD_Data(0xff); APP_LCD_Data(0xff);
+        data(0xff);
+        data(0xff);
       }
     }
   }
+
+  // MIOS32: while(1); - wait forever to show pattern
+  // We'll just return and let caller decide what to do
 }
