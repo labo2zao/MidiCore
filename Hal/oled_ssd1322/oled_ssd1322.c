@@ -177,8 +177,7 @@ void oled_init_progressive(uint8_t max_step) {
   }
 
   // Step 9: + Linear gray scale table
-  cmd(0xB9);                  // Use default linear gray scale table
-  cmd(0x00);                  // (Send 0x00 as command to enable linear table)
+  cmd(0xB9);                  // Use default linear gray scale table (no data follows!)
   if (max_step == 9) {
     cmd(0xAF); cmd(0xA5);
     return;
