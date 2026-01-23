@@ -239,7 +239,7 @@ void oled_init_progressive(uint8_t max_step) {
   // CRITICAL: MIOS32 sends Display ON AFTER writing RAM!
   cmd(0xAE | 1);  // Display ON (0xAF - matches MIOS32 exactly)
 
-  delay_us(2000000);  // Wait 2 seconds to see white screen
+  delay_us(1000000);  // Wait 1 second to see white screen
 
   // Clear framebuffer for future use
   memset(fb, 0x00, sizeof(fb));

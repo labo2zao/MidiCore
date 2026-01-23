@@ -1841,8 +1841,8 @@ int module_test_oled_ssd1322_run(void)
     dbg_print("[ERROR] Minimal hardware test failed!\r\n");
     return -1;
   }
-  dbg_print("Waiting 5 seconds to observe display...\r\n");
-  osDelay(5000);
+  dbg_print("Waiting 1 second to observe display...\r\n");
+  osDelay(1000);
   
   // Test 1: GPIO Control
   dbg_print("\r\nStep 1/5: GPIO Control Test\r\n");
@@ -1894,9 +1894,9 @@ int module_test_oled_ssd1322_run(void)
       dbg_print("Expected: White bar + gray fill for 1 sec, then clear\r\n");
     }
     
-    dbg_print("Waiting 3 seconds before next step...\r\n");
+    dbg_print("Waiting 1 second before next step...\r\n");
     dbg_print("-------------------------------------------\r\n");
-    osDelay(3000);  // 3 seconds observation time
+    osDelay(1000);  // 1 second observation time
     
     // If display turned off, report which step caused it
     if (step > 0 && step < 15) {
@@ -1923,9 +1923,9 @@ int module_test_oled_ssd1322_run(void)
   
   dbg_print("** CHECK DISPLAY NOW **\r\n");
   dbg_print("Expected: Display should light up GRAY if OLED is still alive\r\n");
-  dbg_print("Waiting 5 seconds for observation...\r\n");
+  dbg_print("Waiting 1 second for observation...\r\n");
   dbg_print("================================================\r\n");
-  osDelay(5000);  // 5 seconds to observe
+  osDelay(1000);  // 1 second to observe
   
   dbg_print("\r\nResult interpretation:\r\n");
   dbg_print("- Display GRAY: OLED is responsive, step 15 issue is fixable\r\n");
