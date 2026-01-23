@@ -541,7 +541,8 @@ void oled_test_h_gradient(void) {
     
     for (uint16_t x = 0; x < 64; x++) {
       // Horizontal gradient: left=black (0x00) to right=white (0xFF)
-      uint8_t val = (x * 255) / 63;
+      // Simpler calculation: x << 2 gives 0-252 range (close to 0-255)
+      uint8_t val = (uint8_t)(x << 2);
       data(val); data(val);
     }
   }
@@ -558,7 +559,8 @@ void oled_test_v_gradient(void) {
     cmd(0x5c);
     
     // Vertical gradient: top=black (0x00) to bottom=white (0xFF)
-    uint8_t val = (y * 255) / 63;
+    // Simpler calculation: y << 2 gives 0-252 range
+    uint8_t val = (uint8_t)(y << 2);
     for (uint16_t x = 0; x < 64; x++) {
       data(val); data(val);
     }
@@ -575,12 +577,12 @@ void oled_test_rectangles(void) {
     cmd(0x75); data(y);
     cmd(0x5c);
     
-    for (uint16_t x = 0; x < 128; x++) {
+    for (uint16_t x = 0; x < 64; x++) {  // FIXED: 64 iterations, not 128
       // Distance from center determines brightness
-      int16_t dx = x - 64;
-      int16_t dy = y - 32;
-      uint16_t dist = (dx < 0 ? -dx : dx) + (dy < 0 ? -dy : dy);
-      uint8_t val = (dist * 8) & 0xFF;
+      int16_t dx = (int16_t)x - 32;
+      int16_t dy = (int16_t)y - 32;
+      uint16_t dist = (uint16_t)((dx < 0 ? -dx : dx) + (dy < 0 ? -dy : dy));
+      uint8_t val = (uint8_t)((dist << 3) & 0xFF);
       data(val); data(val);
     }
   }
@@ -611,12 +613,12 @@ void oled_test_stripes(void) {
  */
 void oled_test_voxel_landscape(void) {
   // Simple height map (mountains and valleys)
-  static uint8_t heightmap[128];
+  static uint8_t heightmap[64];  // Changed to 64 to match x-loop
   
   // Generate simple sine-based terrain
-  for (uint16_t x = 0; x < 128; x++) {
+  for (uint16_t x = 0; x < 64; x++) {
     // Create mountain-like terrain using simple math
-    heightmap[x] = 32 + (((x * 3) & 0x1F) - 16);
+    heightmap[x] = (uint8_t)(32 + ((((uint16_t)x * 3) & 0x1F) - 16));
   }
   
   // Render from back to front (painter's algorithm)
@@ -626,17 +628,16 @@ void oled_test_voxel_landscape(void) {
     cmd(0x5c);
     
     for (uint16_t x = 0; x < 64; x++) {
-      uint16_t xpos = x * 2;  // Scale to 128-pixel width
-      uint8_t terrain_height = heightmap[xpos];
+      uint8_t terrain_height = heightmap[x];
       
       // Sky above terrain, ground below
       uint8_t val;
       if (y < terrain_height) {
         // Sky - gradient from dark (top) to light (horizon)
-        val = y * 2;
+        val = (uint8_t)(y << 2);
       } else {
         // Ground - darker at bottom
-        val = 255 - ((y - terrain_height) * 4);
+        val = (uint8_t)(255 - ((y - terrain_height) << 2));
       }
       
       data(val); data(val);
@@ -656,7 +657,7 @@ void oled_test_gray_levels(void) {
     
     for (uint16_t x = 0; x < 64; x++) {
       // 16 vertical bars, each showing one grayscale level
-      uint8_t level = (x * 16) / 64;  // 0-15
+      uint8_t level = (uint8_t)(x >> 2);  // Divide by 4: gives 0-15
       uint8_t val = level | (level << 4);  // Both pixels same level
       data(val); data(val);
     }
