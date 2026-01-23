@@ -21,6 +21,16 @@ void ui_gfx_fill_rect(int x, int y, int w, int h, uint8_t gray);
 void ui_gfx_hline(int x, int y, int w, uint8_t gray);
 void ui_gfx_vline(int x, int y, int h, uint8_t gray);
 
+// New drawing functions for enhanced OLED tests
+void ui_gfx_circle(int cx, int cy, int radius, uint8_t gray);
+void ui_gfx_line(int x0, int y0, int x1, int y1, uint8_t gray);
+
+// Advanced graphics primitives for UI elements
+void ui_gfx_filled_circle(int cx, int cy, int radius, uint8_t gray);
+void ui_gfx_triangle(int x0, int y0, int x1, int y1, int x2, int y2, uint8_t gray);
+void ui_gfx_filled_triangle(int x0, int y0, int x1, int y1, int x2, int y2, uint8_t gray);
+void ui_gfx_arc(int cx, int cy, int radius, int start_angle, int end_angle, uint8_t gray);
+
 #ifdef __cplusplus
 }
 #endif

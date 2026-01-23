@@ -37,6 +37,7 @@ Testing procedures and validation
 - [Testing Quick Start](testing/TESTING_QUICKSTART.md) - Quick test examples
 - [Module Testing Guide](testing/README_MODULE_TESTING.md) - Complete testing guide
 - [Testing Protocol](testing/TESTING_PROTOCOL.md) - Comprehensive procedures (300+ tests)
+- [OLED Test Protocol](testing/OLED_TEST_PROTOCOL.md) - OLED display validation (15 test modes)
 - [Test Execution](testing/TEST_EXECUTION.md) - Execution details
 - [Test Validation Report](testing/TEST_VALIDATION_REPORT.md) - Validation results
 - [Debug Checklist](testing/FINAL_DEBUG_CHECKLIST.md) - Systematic verification
