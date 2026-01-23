@@ -212,8 +212,8 @@ void oled_init_progressive(uint8_t max_step) {
     return;
   }
 
-  // Step 14: + Normal Display mode
-  cmd(0xA4 | 0x02);           // Normal Display mode (0xA6)
+  // Step 14: Skip normal display mode for now (test later in step 15)
+  // Just add a delay to verify step 13 worked
   if (max_step == 14) {
     cmd(0xAF); cmd(0xA5);
     return;
