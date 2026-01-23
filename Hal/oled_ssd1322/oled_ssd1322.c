@@ -28,16 +28,31 @@ static uint8_t fb[OLED_W * OLED_H / 2] __attribute__((section(".ccmram")));
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9, GPIO_PIN_SET); \
 } while(0)
 
-// Precise delay using DWT cycle counter (better than NOPs)
-// At 168 MHz: 1 cycle = 5.95 ns, so 17 cycles ≈ 100 ns
-static inline void delay_cycles(uint32_t cycles) {
-  uint32_t start = DWT->CYCCNT;
-  while ((DWT->CYCCNT - start) < cycles);
-}
+// MIOS32 uses GPIO write repetition for timing (not explicit delays!)
+// Each GPIO write takes ~2-3 cycles @ 168 MHz
+// MIOS32 timing: 5x SCLK_0 (setup) + 3x SCLK_1 (hold)
+//
+// For stability testing, we can slow down by adding more GPIO writes
+#define SPI_TIMING_MIOS32      // EXACT MIOS32 timing (5 setup + 3 hold)
+//#define SPI_TIMING_MEDIUM    // 2x slower (10 setup + 6 hold)
+//#define SPI_TIMING_SLOW      // 4x slower (20 setup + 12 hold)
+
+#ifdef SPI_TIMING_MEDIUM
+  #define SPI_SETUP_REPS  10   // 2x slower than MIOS32
+  #define SPI_HOLD_REPS   6
+#elif defined(SPI_TIMING_SLOW)
+  #define SPI_SETUP_REPS  20   // 4x slower than MIOS32
+  #define SPI_HOLD_REPS   12
+#else // SPI_TIMING_MIOS32 (default - EXACT MIOS32)
+  #define SPI_SETUP_REPS  5    // EXACT MIOS32: 5x SCLK_0
+  #define SPI_HOLD_REPS   3    // EXACT MIOS32: 3x SCLK_1
+#endif
 
 static inline void spi_write_byte(uint8_t byte) {
-  // MIOS32-compatible bit-bang sequence
+  // EXACT MIOS32 bit-bang sequence using GPIO write repetition for timing
+  // MIOS32 does: 5x SCLK_0 (setup) + 3x SCLK_1 (hold) + 2x SCLK_0 (cleanup)
   // Clock starts at idle LOW, data is sampled on rising edge (Mode 0)
+  
   for (uint8_t i = 0; i < 8; i++) {
     // 1. Set data line (MSB first)
     if (byte & 0x80)
@@ -45,35 +60,37 @@ static inline void spi_write_byte(uint8_t byte) {
     else
       HAL_GPIO_WritePin(OLED_SDA_GPIO_Port, OLED_SDA_Pin, GPIO_PIN_RESET);
 
-    // 2. Keep clock LOW for data setup time
-    //    MIOS32 does 5x SCLK_0 calls for setup delay
-    SCL_LOW();  // ensure clock is LOW
-    delay_cycles(17);  // 17 cycles @ 168 MHz ≈ 101 ns setup time
+    // 2. Setup time: MIOS32 does 5x SCLK_0 (5 GPIO writes with clock LOW)
+    //    Each GPIO write provides natural delay from CPU instruction execution
+    for (uint8_t j = 0; j < SPI_SETUP_REPS; j++) {
+      SCL_LOW();
+    }
 
-    // 3. Clock LOW→HIGH (rising edge) - SSD1322 samples on this edge
-    //    MIOS32 does 3x SCLK_1 calls for hold time
-    SCL_HIGH();
-    delay_cycles(17);  // 17 cycles @ 168 MHz ≈ 101 ns hold time
+    // 3. Hold time: MIOS32 does 3x SCLK_1 (3 GPIO writes with clock HIGH)
+    //    Rising edge occurs on first SCLK_1 - display samples data here
+    for (uint8_t j = 0; j < SPI_HOLD_REPS; j++) {
+      SCL_HIGH();
+    }
 
     byte <<= 1;  // shift to next bit (MSB first)
   }
 
-  // 4. Return clock to idle LOW state (as MIOS32 does at end of SerDataShift)
+  // 4. Cleanup: MIOS32 does 2x SCLK_0 to return clock to idle LOW state
   SCL_LOW();
-  SCL_LOW();  // MIOS32 does this twice for safety
+  SCL_LOW();
 }
 
 // Send command (DC=0) byte
 static void cmd(uint8_t c) {
   HAL_GPIO_WritePin(OLED_DC_GPIO_Port, OLED_DC_Pin, GPIO_PIN_RESET);  // DC=0 (command mode)
-  delay_cycles(10);  // 10 cycles @ 168 MHz ≈ 60 ns for DC stabilization
+  // No explicit delay - MIOS32 doesn't add delay between DC set and data shift
   spi_write_byte(c);
 }
 
 // Send data (DC=1) byte
 static void data(uint8_t d) {
   HAL_GPIO_WritePin(OLED_DC_GPIO_Port, OLED_DC_Pin, GPIO_PIN_SET);  // DC=1 (data mode)
-  delay_cycles(10);  // 10 cycles @ 168 MHz ≈ 60 ns for DC stabilization
+  // No explicit delay - MIOS32 doesn't add delay between DC set and data shift
   spi_write_byte(d);
 }
 
