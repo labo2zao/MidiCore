@@ -111,6 +111,7 @@ static void dbg_print_srio_pinout(void)
 
 #if MODULE_ENABLE_UI && MODULE_ENABLE_OLED
 #include "Services/ui/ui.h"
+#include "Hal/oled_ssd1322/oled_ssd1322.h"
 #endif
 
 #if MODULE_ENABLE_PATCH
@@ -1247,7 +1248,15 @@ void module_test_ui_run(void)
   dbg_print("------------------------------\r\n");
   dbg_print("[Init] Initializing OLED...");
   osDelay(100);
-  dbg_print(" OK\r\n");
+  
+  // Initialize OLED hardware (choose appropriate init for your hardware)
+#if defined(OLED_USE_NEWHAVEN_INIT)
+  oled_init_newhaven();  // Complete Newhaven NHD-3.12 initialization
+  dbg_print(" Newhaven OK\r\n");
+#else
+  oled_init();  // Simple MIOS32 test initialization
+  dbg_print(" MIOS32 OK\r\n");
+#endif
   
   dbg_print("[Init] Initializing UI...");
   ui_init();
