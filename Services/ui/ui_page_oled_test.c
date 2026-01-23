@@ -9,7 +9,7 @@ static uint8_t test_mode = 0; // 0=patterns, 1=grayscale, 2=pixels, 3=text, 4=an
 static uint32_t last_update = 0;
 static uint8_t anim_frame = 0;
 static int scroll_offset = 0;
-static int ball_x = OLED_W / 2;  // Center horizontally for better maintainability
+static int ball_x = 128;  // OLED_W / 2 = 256 / 2 = 128 (center horizontally)
 static int ball_y = 32;
 static int ball_dx = 2;
 static int ball_dy = 1;
@@ -179,11 +179,17 @@ void ui_page_oled_test_render(uint32_t ms) {
         for (int bx = 0; bx < 6; bx++) {
           int dist_from_center = (bx - 3) * (bx - 3) + (by - 3) * (by - 3);
           uint8_t brightness;
-          if (dist_from_center / 2 > 15) {
-            brightness = 0;  // Too far from center, make it black
+          int brightness_calc = 15 - (dist_from_center / 2);
+          
+          // Ensure brightness stays within valid range (0-15)
+          if (brightness_calc < 0) {
+            brightness = 0;
+          } else if (brightness_calc > 15) {
+            brightness = 15;
           } else {
-            brightness = (uint8_t)(15 - (dist_from_center / 2));
+            brightness = (uint8_t)brightness_calc;
           }
+          
           ui_gfx_pixel(ball_x + bx, ball_y + by, brightness);
         }
       }
@@ -294,7 +300,7 @@ void ui_page_oled_test_on_button(uint8_t id, uint8_t pressed) {
     // Reset animation state
     anim_frame = 0;
     scroll_offset = 0;
-    ball_x = OLED_W / 2; 
+    ball_x = 128;  // OLED_W / 2
     ball_y = 32;
   } else if (id == 1) {
     // Button 1: Next test
@@ -302,7 +308,7 @@ void ui_page_oled_test_on_button(uint8_t id, uint8_t pressed) {
     // Reset animation state
     anim_frame = 0;
     scroll_offset = 0;
-    ball_x = OLED_W / 2; 
+    ball_x = 128;  // OLED_W / 2
     ball_y = 32;
   } else if (id == 2) {
     // Button 2: Clear screen test
@@ -328,7 +334,7 @@ void ui_page_oled_test_on_encoder(int8_t delta) {
     // Reset animation state
     anim_frame = 0;
     scroll_offset = 0;
-    ball_x = OLED_W / 2; 
+    ball_x = 128;  // OLED_W / 2
     ball_y = 32;
   } else if (delta < 0) {
     if (test_mode > 0) {
@@ -339,7 +345,7 @@ void ui_page_oled_test_on_encoder(int8_t delta) {
     // Reset animation state
     anim_frame = 0;
     scroll_offset = 0;
-    ball_x = OLED_W / 2; 
+    ball_x = 128;  // OLED_W / 2
     ball_y = 32;
   }
 }

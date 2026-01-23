@@ -1,5 +1,6 @@
 #include "Services/ui/ui_gfx.h"
 #include <string.h>
+#include <stdlib.h>  // For abs()
 
 static uint8_t* g_fb = 0;
 static uint16_t g_w = 0, g_h = 0;
@@ -93,11 +94,11 @@ void ui_gfx_line(int x0, int y0, int x1, int y1, uint8_t gray) {
   int dx = x1 - x0;
   int dy = y1 - y0;
   
-  // Handle negative deltas
+  // Handle negative deltas - determine step direction and get absolute values
   int sx = (dx > 0) ? 1 : -1;
   int sy = (dy > 0) ? 1 : -1;
-  dx = (dx > 0) ? dx : -dx;
-  dy = (dy > 0) ? dy : -dy;
+  dx = abs(dx);
+  dy = abs(dy);
   
   int err = dx - dy;
   
