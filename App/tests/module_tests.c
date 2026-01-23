@@ -1810,11 +1810,33 @@ int module_test_oled_ssd1322_run(void)
   dbg_print("  PC11 = SDA (Data)\r\n");
   dbg_print("  CS#  = GND (hardwired)\r\n\r\n");
   
-  // Comprehensive OLED test suite
+  // Comprehensive OLED test suite with BOTH init methods
   dbg_print("=== COMPREHENSIVE OLED TEST SUITE ===\r\n\r\n");
   
+  dbg_print("Choose initialization method:\r\n");
+  dbg_print("  1. Simple MIOS32 test init (basic, proven working)\r\n");
+  dbg_print("  2. Complete Newhaven NHD-3.12 init (LoopA production)\r\n\r\n");
+  
+  // Use Newhaven init by default (LoopA production code)
+  #define USE_NEWHAVEN_INIT 1
+  
   dbg_print("Step 1: Initialize OLED...\r\n");
-  oled_init();
+  
+  #if USE_NEWHAVEN_INIT
+    dbg_print("Using: Complete Newhaven NHD-3.12 initialization\r\n");
+    dbg_print("  - Display Clock: 80 Frames/Sec (0x91)\r\n");
+    dbg_print("  - Custom gray scale table\r\n");
+    dbg_print("  - Display enhancement enabled\r\n");
+    dbg_print("  - Pre-charge voltage: 0.60*VCC\r\n\r\n");
+    oled_init_newhaven();
+  #else
+    dbg_print("Using: Simple MIOS32 test initialization\r\n");
+    dbg_print("  - Display Clock: ~58 Frames/Sec (divider=0, freq=12)\r\n");
+    dbg_print("  - Linear gray scale table\r\n");
+    dbg_print("  - Basic settings only\r\n\r\n");
+    oled_init();
+  #endif
+  
   dbg_print("[OK] Init complete\r\n\r\n");
   
   // Array of test functions and their descriptions

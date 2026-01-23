@@ -4,11 +4,19 @@
 #define OLED_W 256
 #define OLED_H 64
 
-void oled_init(void);
-void oled_init_progressive(uint8_t max_step);  // For debugging
-uint8_t* oled_framebuffer(void);
-void oled_flush(void);
-void oled_clear(void);
+// ============================================================================
+// Initialization Functions
+// ============================================================================
+void oled_init(void);                    // Simple MIOS32 test init (basic, working)
+void oled_init_newhaven(void);           // Complete Newhaven NHD-3.12 init (LoopA production)
+void oled_init_progressive(uint8_t max_step);  // For debugging (step-by-step)
+
+// ============================================================================
+// Framebuffer Functions
+// ============================================================================
+uint8_t* oled_framebuffer(void);         // Get framebuffer pointer
+void oled_flush(void);                   // Transfer framebuffer to display
+void oled_clear(void);                   // Clear framebuffer
 
 // ============================================================================
 // OLED Test Functions - Visual verification of display capabilities

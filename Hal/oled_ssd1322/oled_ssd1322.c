@@ -325,6 +325,122 @@ void oled_init(void) {
   memset(fb, 0x00, sizeof(fb));
 }
 
+// Newhaven NHD-3.12 datasheet initialization (LoopA production code)
+// Source: LoopA app_lcd.c - active "Initialize display (NHD 3.12 datasheet)" section
+// This is MORE COMPLETE than the simple MIOS32 test init above
+void oled_init_newhaven(void) {
+  // Ensure DWT cycle counter is initialized
+  CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+  DWT->CYCCNT = 0;
+  DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
+
+  // Set initial SPI lines for Mode 0 (CPOL=0, CPHA=0)
+  SCL_LOW();  // Clock idle LOW
+  HAL_GPIO_WritePin(OLED_SDA_GPIO_Port, OLED_SDA_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(OLED_DC_GPIO_Port, OLED_DC_Pin, GPIO_PIN_SET);
+
+  // Wait 300ms for power stabilization
+  for (uint16_t ctr = 0; ctr < 300; ++ctr) {
+    delay_us(1000);
+  }
+
+  // === EXACT NEWHAVEN NHD-3.12 DATASHEET INITIALIZATION ===
+  // Reference: LoopA app_lcd.c active init sequence
+  
+  // Set_Command_Lock(0x12) - Unlock Basic Commands (0x12/0x16)
+  cmd(0xFD); data(0x12);
+  
+  // Set_Display_Off() - Display Off (0x00/0x01)
+  cmd(0xAE);
+  
+  // Set_Column_Address(0x1C,0x5B)
+  cmd(0x15); data(0x1C); data(0x5B);
+  
+  // Set_Row_Address(0x00,0x3F)
+  cmd(0x75); data(0x00); data(0x3F);
+  
+  // Set_Display_Clock(0x91) - Set Clock as 80 Frames/Sec
+  cmd(0xB3); data(0x91);
+  
+  // Set_Multiplex_Ratio(0x3F) - 1/64 Duty (0x0F~0x3F)
+  cmd(0xCA); data(0x3F);
+  
+  // Set_Display_Offset(0x00) - Shift Mapping RAM Counter (0x00~0x3F)
+  cmd(0xA2); data(0x00);
+  
+  // Set_Start_Line(0x00) - Set Mapping RAM Display Start Line (0x00~0x7F)
+  cmd(0xA1); data(0x00);
+  
+  // Set_Remap_Format(0x14) - Set Horizontal Address Increment
+  //   Column Address 0 Mapped to SEG0
+  //   Disable Nibble Remap
+  //   Scan from COM[N-1] to COM0
+  //   Disable COM Split Odd Even
+  //   Enable Dual COM Line Mode
+  cmd(0xA0); data(0x14); data(0x11);
+  
+  // Set_GPIO(0x00) - Disable GPIO Pins Input
+  cmd(0xB5); data(0x00);
+  
+  // Set_Function_Selection(0x01) - Enable Internal VDD Regulator
+  cmd(0xAB); data(0x01);
+  
+  // Set_Display_Enhancement_A(0xA0,0xFD) - Enable External VSL
+  cmd(0xB4); data(0xA0); data(0xFD);
+  
+  // Set_Contrast_Current(0x9F) - Set Segment Output Current
+  cmd(0xC1); data(0x9F);
+  
+  // Set_Master_Current(0x0F) - Set Scale Factor of Segment Output Current Control
+  cmd(0xC7); data(0x0F);
+  
+  // Set_Gray_Scale_Table() - Set Pulse Width for Gray Scale Table
+  // LoopA uses custom gray scale table (not linear)
+  cmd(0xB8);
+  // 15 gray scale values (GS1-GS15)
+  data(0x02); data(0x03); data(0x04); data(0x05);
+  data(0x06); data(0x07); data(0x08); data(0x09);
+  data(0x0A); data(0x0B); data(0x0C); data(0x0D);
+  data(0x0E); data(0x0F); data(0x10);
+  
+  // Alternative: Set_Linear_Gray_Scale_Table() - set default linear gray scale table
+  // cmd(0xB9);
+  
+  // Set_Phase_Length(0xE2) - Set Phase 1 as 5 Clocks & Phase 2 as 14 Clocks
+  cmd(0xB1); data(0xE2);
+  
+  // Set_Display_Enhancement_B(0x20) - Enhance Driving Scheme Capability (0x00/0x20)
+  cmd(0xD1); data(0x82); data(0x20);
+  
+  // Set_Precharge_Voltage(0x1F) - Set Pre-Charge Voltage Level as 0.60*VCC
+  cmd(0xBB); data(0x1F);
+  
+  // Set_Precharge_Period(0x08) - Set Second Pre-Charge Period
+  cmd(0xB6); data(0x08);
+  
+  // Set_VCOMH(0x07) - Set Common Pins Deselect Voltage Level
+  cmd(0xBE); data(0x07);
+  
+  // Set_Display_Mode(0x02) - Normal Display
+  cmd(0xA6);
+  
+  // Clear display
+  for (uint8_t j = 0; j < 64; j++) {
+    cmd(0x15); data(0x1c);
+    cmd(0x75); data(j);
+    cmd(0x5c);
+    for (uint8_t i = 0; i < 64; i++) {
+      data(0); data(0);
+    }
+  }
+  
+  // Set_Display_On() - Display ON
+  cmd(0xAF);
+  
+  // Clear framebuffer
+  memset(fb, 0x00, sizeof(fb));
+}
+
 void oled_flush(void) {
   // Transfer the local framebuffer to OLED GDDRAM (SSD1322 VRAM)
   // EXACT MIOS32 sequence: 1 byte address + 128 bytes data per row
