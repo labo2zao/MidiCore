@@ -109,14 +109,15 @@ void ui_page_midi_monitor_render(uint32_t now_ms) {
   
   ui_gfx_clear(0);
   
-  // Header
+  // Header with 8x8 font for better readability
+  ui_gfx_set_font(UI_FONT_8X8);
   char header[64];
-  snprintf(header, sizeof(header), "MIDI MONITOR  %s  Events:%u", 
+  snprintf(header, sizeof(header), "MIDI %s Events:%u", 
            paused ? "[PAUSED]" : "[LIVE]", event_count);
   ui_gfx_text(0, 0, header, 15);
-  ui_gfx_rect(0, 9, 256, 1, 4);
+  ui_gfx_hline(0, 11, 256, 8);
   
-  // Display event list
+  // Display event list with better spacing (9px per line instead of 8px)
   uint8_t display_count = (event_count < MONITOR_BUFFER_SIZE) ? event_count : MONITOR_BUFFER_SIZE;
   uint8_t start_idx = (event_count > MONITOR_BUFFER_SIZE) ? 
                       (event_count - MONITOR_BUFFER_SIZE) : 0;
@@ -140,12 +141,14 @@ void ui_page_midi_monitor_render(uint32_t now_ms) {
              ev->len > 2 ? ev->data[2] : 0,
              decoded);
     
-    ui_gfx_text(0, 14 + i * 8, line, 10);
+    // Use 8x8 font but reduce brightness for data rows
+    ui_gfx_text(0, 14 + i * 9, line, 12);
   }
   
-  // Footer
-  ui_gfx_rect(0, 62, 256, 1, 4);
-  ui_gfx_text(0, 54, "B1 PAUSE  B2 CLEAR  B3 FILT  B4 SAVE", 8);
+  // Footer with smaller 5x7 font
+  ui_gfx_hline(0, 54, 256, 6);
+  ui_gfx_set_font(UI_FONT_5X7);
+  ui_gfx_text(0, 56, "B1:PAUSE B2:CLEAR B3:FILT B4:SAVE", 10);
 }
 
 /**

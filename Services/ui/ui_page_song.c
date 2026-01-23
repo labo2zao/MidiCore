@@ -33,34 +33,35 @@ void ui_page_song_render(uint32_t now_ms) {
   
   ui_gfx_clear(0);
   
-  // Header with current scene
+  // Header with 8x8 font
+  ui_gfx_set_font(UI_FONT_8X8);
   uint8_t current_scene = looper_get_current_scene();
   char header[64];
-  snprintf(header, sizeof(header), "SONG MODE  BPM:%3u  Scene:%c", 
+  snprintf(header, sizeof(header), "SONG BPM:%3u Scene:%c", 
            tp.bpm, 'A' + current_scene);
   ui_gfx_text(0, 0, header, 15);
-  ui_gfx_rect(0, 9, 256, 1, 4);
+  ui_gfx_hline(0, 11, 256, 8);
   
-  // Scene labels (A, B, C, D, E, F, G, H)
+  // Scene labels (A, B, C, D, E, F, G, H) - larger spacing
   for (uint8_t s = 0; s < NUM_SCENES; s++) {
     char label[4];
     snprintf(label, sizeof(label), "%c", 'A' + s);
-    uint8_t gray = (s == selected_scene) ? 15 : 8;
-    ui_gfx_text(30 + s * 28, 14, label, gray);
+    uint8_t gray = (s == selected_scene) ? 15 : 10;
+    ui_gfx_text(32 + s * 28, 15, label, gray);
   }
   
-  // Draw grid: 4 tracks × 8 scenes
+  // Draw grid: 4 tracks × 8 scenes with larger cells (8x8 instead of 6x6)
   for (uint8_t t = 0; t < LOOPER_TRACKS; t++) {
     // Track label
     char track_label[8];
     snprintf(track_label, sizeof(track_label), "T%u", t + 1);
-    uint8_t gray_label = (t == selected_track) ? 15 : 10;
-    ui_gfx_text(0, 24 + t * 10, track_label, gray_label);
+    uint8_t gray_label = (t == selected_track) ? 15 : 12;
+    ui_gfx_text(0, 27 + t * 11, track_label, gray_label);
     
     // Scene cells for this track
     for (uint8_t s = 0; s < NUM_SCENES; s++) {
-      int x = 24 + s * 28;
-      int y = 24 + t * 10;
+      int x = 26 + s * 28;
+      int y = 27 + t * 11;
       
       // Get clip info from looper
       looper_scene_clip_t clip = looper_get_scene_clip(s, t);
@@ -70,23 +71,24 @@ void ui_page_song_render(uint32_t now_ms) {
       uint8_t is_current = (s == current_scene) ? 1 : 0;
       
       if (has_clip) {
-        // Filled box for clips
-        uint8_t brightness = is_current ? 15 : (is_selected ? 12 : 10);
-        ui_gfx_rect(x, y, 6, 6, brightness);
+        // Filled box for clips - larger and more visible
+        uint8_t brightness = is_current ? 15 : (is_selected ? 13 : 11);
+        ui_gfx_fill_rect(x, y, 8, 8, brightness);
       } else {
-        // Empty box outline
-        uint8_t brightness = is_current ? 12 : (is_selected ? 10 : 6);
-        ui_gfx_rect(x, y, 6, 1, brightness);
-        ui_gfx_rect(x, y + 5, 6, 1, brightness);
-        ui_gfx_rect(x, y, 1, 6, brightness);
-        ui_gfx_rect(x + 5, y, 1, 6, brightness);
+        // Empty box outline - thicker borders
+        uint8_t brightness = is_current ? 12 : (is_selected ? 10 : 7);
+        ui_gfx_hline(x, y, 8, brightness);
+        ui_gfx_hline(x, y + 7, 8, brightness);
+        ui_gfx_vline(x, y, 8, brightness);
+        ui_gfx_vline(x + 7, y, 8, brightness);
       }
     }
   }
   
-  // Footer
-  ui_gfx_rect(0, 62, 256, 1, 4);
-  ui_gfx_text(0, 54, "B1 TRIG  B2 SAVE  B3 EDIT  B4 LOAD  ENC nav", 8);
+  // Footer with smaller font
+  ui_gfx_hline(0, 54, 256, 6);
+  ui_gfx_set_font(UI_FONT_5X7);
+  ui_gfx_text(0, 56, "B1:TRIG B2:SAVE B3:EDIT B4:LOAD ENC:nav", 10);
 }
 
 /**

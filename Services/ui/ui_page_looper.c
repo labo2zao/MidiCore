@@ -32,10 +32,13 @@ void ui_page_looper_render(uint32_t now_ms) {
 
   ui_gfx_clear(0);
 
-  snprintf(line, sizeof(line), "LOOPER  BPM:%3u  TS:%u/%u", tp.bpm, tp.ts_num, tp.ts_den);
+  // Use 8x8 font for header - more readable
+  ui_gfx_set_font(UI_FONT_8X8);
+  snprintf(line, sizeof(line), "LOOPER BPM:%3u TS:%u/%u", tp.bpm, tp.ts_num, tp.ts_den);
   ui_gfx_text(0, 0, line, 15);
-  ui_gfx_rect(0, 9, 256, 1, 4);
+  ui_gfx_hline(0, 11, 256, 8);
 
+  // Track info with better spacing (14px per track instead of 12px)
   for (uint8_t t=0; t<LOOPER_TRACKS; t++) {
     looper_state_t st = looper_get_state(t);
     uint16_t beats = looper_get_loop_beats(t);
@@ -45,11 +48,13 @@ void ui_page_looper_render(uint32_t now_ms) {
     snprintf(line, sizeof(line), "%cT%u %-4s L:%u Q:%s M:%u",
              (t==sel_track)?'>':' ', (unsigned)(t+1), st_name(st),
              (unsigned)beats, q_name(q), (unsigned)mute);
-    ui_gfx_text(0, 12 + (int)t*12, line, (t==sel_track)?15:10);
+    ui_gfx_text(0, 14 + (int)t*13, line, (t==sel_track)?15:12);
   }
 
-  ui_gfx_rect(0, 62, 256, 1, 4);
-  ui_gfx_text(0, 54, "B1 REC  B2 PLAY  B3 STOP  B4 MUTE  ENC sel", 8);
+  // Footer with button hints - use smaller 5x7 font
+  ui_gfx_hline(0, 54, 256, 6);
+  ui_gfx_set_font(UI_FONT_5X7);
+  ui_gfx_text(0, 56, "B1:REC B2:PLAY B3:STOP B4:MUTE ENC:sel", 10);
 }
 
 void ui_page_looper_on_button(uint8_t id, uint8_t pressed) {
