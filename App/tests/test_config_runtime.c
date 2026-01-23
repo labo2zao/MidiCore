@@ -10,6 +10,7 @@
 #include "ff.h"
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 // =============================================================================
 // PRIVATE STATE
@@ -24,7 +25,7 @@ static test_exec_config_t g_exec_config = {
 };
 
 static test_selection_t g_selection = {
-  .test_enabled = {0},           // All disabled initially
+  .test_enabled = {0},           // Initialized in test_config_init()
   .run_count = 1                 // Run once
 };
 
@@ -91,29 +92,57 @@ int test_config_load(const char* filename)
     
     // Parse configuration
     if (strcmp(key, "timeout_ms") == 0) {
-      g_exec_config.timeout_ms = (uint32_t)atoi(val);
+      char* endptr;
+      long val_long = strtol(val, &endptr, 10);
+      if (endptr != val && val_long >= 0) {
+        g_exec_config.timeout_ms = (uint32_t)val_long;
+      }
     } else if (strcmp(key, "enable_benchmarking") == 0) {
-      g_exec_config.enable_benchmarking = (uint8_t)atoi(val);
+      char* endptr;
+      long val_long = strtol(val, &endptr, 10);
+      if (endptr != val) {
+        g_exec_config.enable_benchmarking = (uint8_t)(val_long ? 1 : 0);
+      }
     } else if (strcmp(key, "enable_logging") == 0) {
-      g_exec_config.enable_logging = (uint8_t)atoi(val);
+      char* endptr;
+      long val_long = strtol(val, &endptr, 10);
+      if (endptr != val) {
+        g_exec_config.enable_logging = (uint8_t)(val_long ? 1 : 0);
+      }
     } else if (strcmp(key, "abort_on_failure") == 0) {
-      g_exec_config.abort_on_failure = (uint8_t)atoi(val);
+      char* endptr;
+      long val_long = strtol(val, &endptr, 10);
+      if (endptr != val) {
+        g_exec_config.abort_on_failure = (uint8_t)(val_long ? 1 : 0);
+      }
     } else if (strcmp(key, "verbose_output") == 0) {
-      g_exec_config.verbose_output = (uint8_t)atoi(val);
+      char* endptr;
+      long val_long = strtol(val, &endptr, 10);
+      if (endptr != val) {
+        g_exec_config.verbose_output = (uint8_t)(val_long ? 1 : 0);
+      }
     } else if (strcmp(key, "run_count") == 0) {
-      g_selection.run_count = (uint8_t)atoi(val);
+      char* endptr;
+      long val_long = strtol(val, &endptr, 10);
+      if (endptr != val && val_long > 0 && val_long <= 255) {
+        g_selection.run_count = (uint8_t)val_long;
+      }
     }
     // Test-specific enables
     else if (strncmp(key, "enable_", 7) == 0) {
       // Parse test name and enable/disable
       char* test_name = key + 7;
-      uint8_t enabled = (uint8_t)atoi(val);
-      
-      // Map test names to IDs
-      if (strcmp(test_name, "oled") == 0) {
-        g_selection.test_enabled[MODULE_TEST_OLED_SSD1322_ID] = enabled;
-      } else if (strcmp(test_name, "patch_sd") == 0) {
-        g_selection.test_enabled[MODULE_TEST_PATCH_SD_ID] = enabled;
+      char* endptr;
+      long val_long = strtol(val, &endptr, 10);
+      if (endptr != val) {
+        uint8_t enabled = (uint8_t)(val_long ? 1 : 0);
+        
+        // Map test names to IDs
+        if (strcmp(test_name, "oled") == 0) {
+          g_selection.test_enabled[MODULE_TEST_OLED_SSD1322_ID] = enabled;
+        } else if (strcmp(test_name, "patch_sd") == 0) {
+          g_selection.test_enabled[MODULE_TEST_PATCH_SD_ID] = enabled;
+        }
       }
     }
   }
@@ -220,11 +249,17 @@ void test_perf_report(module_test_t test_id)
   dbg_print("==============================================\r\n");
   
   if (test_id == MODULE_TEST_ALL_ID) {
-    // Report all tests
-    for (int i = 0; i <= MODULE_TEST_ALL_ID; i++) {
-      if (g_perf_metrics[i].duration_ms > 0) {
-        const char* name = module_tests_get_name((module_test_t)i);
-        dbg_printf("%-20s : %lu ms\r\n", name, g_perf_metrics[i].duration_ms);
+    // Report all tests - use explicit test IDs
+    module_test_t test_ids[] = {
+      MODULE_TEST_OLED_SSD1322_ID,
+      MODULE_TEST_PATCH_SD_ID
+    };
+    
+    for (int i = 0; i < sizeof(test_ids) / sizeof(test_ids[0]); i++) {
+      module_test_t tid = test_ids[i];
+      if (g_perf_metrics[tid].duration_ms > 0) {
+        const char* name = module_tests_get_name(tid);
+        dbg_printf("%-20s : %lu ms\r\n", name, g_perf_metrics[tid].duration_ms);
       }
     }
   } else if (test_id < MODULE_TEST_ALL_ID) {
@@ -254,14 +289,21 @@ int test_perf_save(const char* filename)
   
   f_printf(&fp, "Test,Duration_ms,Start_ms,End_ms\n");
   
-  for (int i = 0; i <= MODULE_TEST_ALL_ID; i++) {
-    if (g_perf_metrics[i].duration_ms > 0) {
-      const char* name = module_tests_get_name((module_test_t)i);
+  // Export explicit test IDs to avoid enum casting issues
+  module_test_t test_ids[] = {
+    MODULE_TEST_OLED_SSD1322_ID,
+    MODULE_TEST_PATCH_SD_ID
+  };
+  
+  for (int i = 0; i < sizeof(test_ids) / sizeof(test_ids[0]); i++) {
+    module_test_t tid = test_ids[i];
+    if (g_perf_metrics[tid].duration_ms > 0) {
+      const char* name = module_tests_get_name(tid);
       f_printf(&fp, "%s,%lu,%lu,%lu\n",
                name,
-               g_perf_metrics[i].duration_ms,
-               g_perf_metrics[i].start_time_ms,
-               g_perf_metrics[i].end_time_ms);
+               g_perf_metrics[tid].duration_ms,
+               g_perf_metrics[tid].start_time_ms,
+               g_perf_metrics[tid].end_time_ms);
     }
   }
   
@@ -429,10 +471,15 @@ int test_run_configured(const test_exec_config_t* config,
   
   int test_count = 0;
   
-  // Iterate through tests
-  for (module_test_t tid = MODULE_TEST_OLED_SSD1322_ID; 
-       tid < MODULE_TEST_ALL_ID; 
-       tid = (module_test_t)(tid + 1)) {
+  // Explicit list of finite tests to avoid enum casting
+  module_test_t finite_tests[] = {
+    MODULE_TEST_OLED_SSD1322_ID,
+    MODULE_TEST_PATCH_SD_ID
+  };
+  
+  // Iterate through finite tests
+  for (int i = 0; i < sizeof(finite_tests) / sizeof(finite_tests[0]); i++) {
+    module_test_t tid = finite_tests[i];
     
     // Check if test is enabled
     if (!sel->test_enabled[tid]) continue;
