@@ -1502,11 +1502,6 @@ int module_test_patch_sd_run(void)
   dbg_print("TEST 5: MIDI Export - Single Track\r\n");
   dbg_print("--------------------------------------\r\n");
   
-  // Include looper header
-  extern void looper_init(void);
-  extern int looper_export_track_midi(uint8_t track, const char* filename);
-  extern void looper_clear(uint8_t track);
-  
   // Initialize looper
   looper_init();
   dbg_print("Looper initialized\r\n");
@@ -1535,8 +1530,6 @@ int module_test_patch_sd_run(void)
   dbg_print("TEST 6: MIDI Export - All Tracks\r\n");
   dbg_print("--------------------------------------\r\n");
   
-  extern int looper_export_midi(const char* filename);
-  
   const char* all_tracks_file = "0:/test_all_tracks.mid";
   result = looper_export_midi(all_tracks_file);
   if (result == 0) {
@@ -1556,8 +1549,6 @@ int module_test_patch_sd_run(void)
   // ========================================
   dbg_print("TEST 7: MIDI Export - Scene Export\r\n");
   dbg_print("--------------------------------------\r\n");
-  
-  extern int looper_export_scene_midi(uint8_t scene, const char* filename);
   
   const char* scene_file = "0:/test_scene_A.mid";
   result = looper_export_scene_midi(0, scene_file);
@@ -1579,10 +1570,6 @@ int module_test_patch_sd_run(void)
   // ========================================
   dbg_print("TEST 8: Scene Chaining Configuration\r\n");
   dbg_print("--------------------------------------\r\n");
-  
-  extern void looper_set_scene_chain(uint8_t scene, uint8_t next_scene, uint8_t enabled);
-  extern uint8_t looper_get_scene_chain(uint8_t scene);
-  extern uint8_t looper_is_scene_chain_enabled(uint8_t scene);
   
   // Configure scene chains: A->B->C->A
   looper_set_scene_chain(0, 1, 1); // Scene A -> B
@@ -1618,11 +1605,6 @@ int module_test_patch_sd_run(void)
   // ========================================
   dbg_print("TEST 9: Quick-Save System\r\n");
   dbg_print("--------------------------------------\r\n");
-  
-  extern int looper_quick_save(uint8_t slot, const char* name);
-  extern int looper_quick_load(uint8_t slot);
-  extern uint8_t looper_quick_save_is_used(uint8_t slot);
-  extern const char* looper_quick_save_get_name(uint8_t slot);
   
   // Save to slot 0
   dbg_print("Saving to quick-save slot 0...\r\n");

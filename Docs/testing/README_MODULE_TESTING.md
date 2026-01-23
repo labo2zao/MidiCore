@@ -29,7 +29,7 @@ MidiCore now provides a unified module testing framework that allows testing ind
 | Router | `MODULE_TEST_ROUTER` | Tests MIDI router and message forwarding |
 | Looper | `MODULE_TEST_LOOPER` | Tests MIDI looper recording/playback |
 | UI | `MODULE_TEST_UI` | Tests OLED display and user interface |
-| Patch/SD | `MODULE_TEST_PATCH_SD` | Tests SD card mounting and patch loading |
+| Patch/SD | `MODULE_TEST_PATCH_SD` | **Tests SD card config, MIDI export, scene chaining persistence** |
 | Pressure | `MODULE_TEST_PRESSURE` | Tests I2C pressure sensor (XGZP6847) |
 | USB Host MIDI | `MODULE_TEST_USB_HOST_MIDI` | Tests USB Host MIDI device communication |
 
@@ -199,12 +199,18 @@ make CFLAGS+="-DMODULE_TEST_UI=1"
 # Compile with Patch/SD test
 make CFLAGS+="-DMODULE_TEST_PATCH_SD=1"
 
-# Insert SD card with patches and monitor UART output
+# Insert SD card with config.ngc and monitor UART output
 ```
 
 **Expected Output:**
 - SD card mount status reported
-- Patch list/load feedback printed to UART
+- Config load/save tests executed
+- MIDI export tests performed
+- Scene chaining persistence verified
+- Quick-save system validated
+- Test summary with pass/fail counts
+
+**See also:** [MODULE_TEST_PATCH_SD.md](MODULE_TEST_PATCH_SD.md) for comprehensive documentation
 
 ### Example 8: Test Pressure Sensor
 
