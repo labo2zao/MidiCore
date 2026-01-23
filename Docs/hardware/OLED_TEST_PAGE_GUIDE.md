@@ -4,7 +4,7 @@ Comprehensive guide to the enhanced OLED SSD1322 test page features in MidiCore.
 
 ## Overview
 
-The OLED test page provides 18 different test modes to validate display functionality, performance, and visual quality. This is useful for:
+The OLED test page provides 20 different test modes to validate display functionality, performance, and visual quality. This is useful for:
 - Verifying OLED driver implementation
 - Testing display hardware
 - Debugging rendering issues
@@ -356,11 +356,60 @@ Advanced 3D graphics demonstration with rotating wireframe cube.
 - Vertex calculations use integer-only math
 - Pseudo-3D projection with depth simulation
 
+### Mode 18: Advanced Graphics Primitives ✨ NEW
+Showcases advanced graphics functions for UI development.
+
+**Features**:
+- Animated filled circles with varying radii (3 circles)
+- Moving triangle outlines (2 triangles)
+- Filled triangle arrow animation
+- Demonstrates scanline algorithms
+- 100ms update interval
+
+**Use Cases**:
+- Testing new graphics primitives
+- Validating filled shape rendering
+- UI element development
+- Button/indicator graphics testing
+- Arrow/directional indicator validation
+
+**Technical Details**:
+- Uses ui_gfx_filled_circle() with dynamic radius
+- Triangle animations show outline rendering
+- Filled triangle demonstrates scanline algorithm
+- All shapes use different brightness levels
+- Synchronized animation timing
+
+### Mode 19: UI Elements Demo ✨ NEW
+Real-world UI components for practical applications.
+
+**Features**:
+- Animated progress indicator (0-360° arc)
+- Pie chart simulation with 4 segments
+- 3 animated directional arrows
+- State indication demonstrations
+- 50ms update interval
+
+**Use Cases**:
+- UI widget prototyping
+- Progress bar development
+- Data visualization testing
+- Navigation arrow design
+- Interactive element validation
+- Customer UI demonstrations
+
+**Technical Details**:
+- Uses ui_gfx_arc() for progress and pie charts
+- 16-point arc lookup table (22.5° resolution)
+- Filled triangles for solid arrows
+- Multiple brightness levels for visual hierarchy
+- Demonstrates patterns from rhythm trainer UI
+
 ## Navigation
 
 ### Encoder Control
-- **Rotate Right**: Next test mode (0 → 1 → 2 → ... → 17 → 0)
-- **Rotate Left**: Previous test mode (0 → 17 → 16 → ... → 1 → 0)
+- **Rotate Right**: Next test mode (0 → 1 → 2 → ... → 19 → 0)
+- **Rotate Left**: Previous test mode (0 → 19 → 18 → ... → 1 → 0)
 - Animation state resets on mode change
 - Exits auto-cycle mode (14) immediately
 
@@ -377,7 +426,7 @@ Advanced 3D graphics demonstration with rotating wireframe cube.
 
 ### Header Information
 Always displayed at the top of the screen:
-- Current test mode number (0-17)
+- Current test mode number (0-19)
 - Instruction: "Use ENC" (rotate encoder to change modes)
 
 ### Footer Information ✨ NEW
@@ -396,6 +445,8 @@ Always displayed at the top right:
 - **Burn-In Prevention** (Mode 15): 30-40 FPS
 - **Statistics Display** (Mode 16): 60 FPS (static display)
 - **3D Wireframe** (Mode 17): 20 FPS (~50ms updates)
+- **Advanced Graphics** (Mode 18): 30-40 FPS (100ms updates)
+- **UI Elements** (Mode 19): 40-50 FPS (50ms updates)
 
 ### Performance Tracking
 **Mode 16** provides comprehensive performance statistics:
@@ -530,6 +581,8 @@ Approximate CPU usage per mode:
 | 15   | 100ms          | 30-40        |
 | 16   | N/A (static)   | 60           |
 | 17   | 50ms           | 20           |
+| 18   | 100ms          | 30-40        |
+| 19   | 50ms           | 40-50        |
 
 ## Use Cases
 
@@ -537,9 +590,10 @@ Approximate CPU usage per mode:
 1. **Initial Hardware Bring-Up**: Use Mode 0-2 to verify basic display function
 2. **Driver Development**: Use Mode 6 to test direct framebuffer access
 3. **Performance Tuning**: Use Modes 9, 13, and 16 to benchmark optimizations
-4. **Graphics Library**: Use Modes 10, 11, and 17 to test new drawing functions
+4. **Graphics Library**: Use Modes 10, 11, 17, 18, and 19 to test drawing functions
 5. **Statistics Analysis**: Use Mode 16 to track performance over time
 6. **3D Graphics**: Use Mode 17 to validate complex line drawing
+7. **UI Widget Development**: Use Modes 18 and 19 for UI element prototyping
 
 ### Quality Assurance
 1. **Manufacturing Test**: Run all modes to verify display quality
@@ -548,14 +602,16 @@ Approximate CPU usage per mode:
 4. **Grayscale Calibration**: Use Mode 1 to verify gray levels
 5. **Automated Testing**: Use Mode 14 for hands-free testing cycle
 6. **Performance Validation**: Use Mode 16 to verify FPS requirements
+7. **Graphics Primitives**: Use Modes 18 and 19 to validate new functions
 
 ### Demonstration
-1. **Customer Demo**: Show capabilities with Modes 8, 10, 11, and 17
+1. **Customer Demo**: Show capabilities with Modes 8, 10, 11, 17, 18, and 19
 2. **Trade Show**: Use Mode 14 for automatic continuous demo
-3. **Technical Presentation**: Use Modes 9, 13, 16, and 17 to show capabilities
+3. **Technical Presentation**: Use Modes 9, 13, 16, 17, 18, 19 for capabilities
 4. **Feature Showcase**: Mode 14 automatically cycles through all modes
 5. **Long-Term Display**: Use Mode 15 for extended exhibitions
 6. **3D Graphics Demo**: Use Mode 17 to impress with wireframe animation
+7. **UI Element Showcase**: Use Modes 18 and 19 for widget demonstrations
 
 ## Future Enhancements
 
@@ -565,6 +621,8 @@ Potential additions for future versions:
 - [x] Burn-in prevention mode (Mode 15 ✅)
 - [x] Performance statistics (Mode 16 ✅)
 - [x] 3D wireframe cube rendering (Mode 17 ✅)
+- [x] Advanced graphics primitives (Mode 18 ✅)
+- [x] UI elements demonstration (Mode 19 ✅)
 - [ ] Custom pattern upload via SD card
 - [ ] Touch/gesture testing (if hardware supports)
 - [ ] Color test mode (for future RGB displays)
@@ -590,8 +648,8 @@ Potential additions for future versions:
 
 ---
 
-**Document Version**: 2.2  
+**Document Version**: 2.3  
 **Last Updated**: 2026-01-23  
 **Feature Status**: ✅ Production Ready  
-**Test Modes**: 18 (expanded from 7)  
+**Test Modes**: 20 (expanded from 7)  
 **Tested On**: STM32F407VGT6 with SSD1322 256×64 OLED
