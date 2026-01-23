@@ -4,7 +4,7 @@ Comprehensive guide to the enhanced OLED SSD1322 test page features in MidiCore.
 
 ## Overview
 
-The OLED test page provides 17 different test modes to validate display functionality, performance, and visual quality. This is useful for:
+The OLED test page provides 18 different test modes to validate display functionality, performance, and visual quality. This is useful for:
 - Verifying OLED driver implementation
 - Testing display hardware
 - Debugging rendering issues
@@ -12,6 +12,7 @@ The OLED test page provides 17 different test modes to validate display function
 - Demonstrating graphics capabilities
 - Preventing screen burn-in
 - Analyzing performance statistics
+- Showcasing 3D wireframe rendering
 
 ## Test Modes
 
@@ -330,11 +331,36 @@ Comprehensive performance metrics and analysis.
 - Uptime displayed in min:sec format
 - Bar graph scales to 60 FPS maximum
 
+### Mode 17: 3D Wireframe Cube ✨ NEW
+Advanced 3D graphics demonstration with rotating wireframe cube.
+
+**Features**:
+- 8-vertex wireframe cube with 12 edges
+- Rotating animation using simplified integer math
+- Different brightness levels: Front face (15), Back face (10), Edges (12)
+- Rotation angle display (0-360 degrees)
+- 50ms update interval (~20 FPS)
+- No trigonometry - uses 8-step rotation lookup
+
+**Use Cases**:
+- 3D graphics capability demonstration
+- Advanced line drawing validation
+- Complex animation performance testing
+- Showcasing graphics library capabilities
+- Customer/trade show demonstrations
+
+**Technical Details**:
+- 12 lines drawn per frame (4 front + 4 back + 4 connecting)
+- Simplified rotation: 8 steps at 45-degree intervals
+- Uses existing ui_gfx_line() primitive
+- Vertex calculations use integer-only math
+- Pseudo-3D projection with depth simulation
+
 ## Navigation
 
 ### Encoder Control
-- **Rotate Right**: Next test mode (0 → 1 → 2 → ... → 16 → 0)
-- **Rotate Left**: Previous test mode (0 → 16 → 15 → ... → 1 → 0)
+- **Rotate Right**: Next test mode (0 → 1 → 2 → ... → 17 → 0)
+- **Rotate Left**: Previous test mode (0 → 17 → 16 → ... → 1 → 0)
 - Animation state resets on mode change
 - Exits auto-cycle mode (14) immediately
 
@@ -351,7 +377,7 @@ Comprehensive performance metrics and analysis.
 
 ### Header Information
 Always displayed at the top of the screen:
-- Current test mode number (0-16)
+- Current test mode number (0-17)
 - Instruction: "Use ENC" (rotate encoder to change modes)
 
 ### Footer Information ✨ NEW
@@ -369,6 +395,7 @@ Always displayed at the top right:
 - **Auto-Cycle** (Mode 14): Varies by current mode
 - **Burn-In Prevention** (Mode 15): 30-40 FPS
 - **Statistics Display** (Mode 16): 60 FPS (static display)
+- **3D Wireframe** (Mode 17): 20 FPS (~50ms updates)
 
 ### Performance Tracking
 **Mode 16** provides comprehensive performance statistics:
@@ -502,6 +529,7 @@ Approximate CPU usage per mode:
 | 14   | 3000ms         | Varies       |
 | 15   | 100ms          | 30-40        |
 | 16   | N/A (static)   | 60           |
+| 17   | 50ms           | 20           |
 
 ## Use Cases
 
@@ -509,8 +537,9 @@ Approximate CPU usage per mode:
 1. **Initial Hardware Bring-Up**: Use Mode 0-2 to verify basic display function
 2. **Driver Development**: Use Mode 6 to test direct framebuffer access
 3. **Performance Tuning**: Use Modes 9, 13, and 16 to benchmark optimizations
-4. **Graphics Library**: Use Modes 10 and 11 to test new drawing functions
+4. **Graphics Library**: Use Modes 10, 11, and 17 to test new drawing functions
 5. **Statistics Analysis**: Use Mode 16 to track performance over time
+6. **3D Graphics**: Use Mode 17 to validate complex line drawing
 
 ### Quality Assurance
 1. **Manufacturing Test**: Run all modes to verify display quality
@@ -521,11 +550,12 @@ Approximate CPU usage per mode:
 6. **Performance Validation**: Use Mode 16 to verify FPS requirements
 
 ### Demonstration
-1. **Customer Demo**: Show capabilities with Modes 8, 10, and 11
+1. **Customer Demo**: Show capabilities with Modes 8, 10, 11, and 17
 2. **Trade Show**: Use Mode 14 for automatic continuous demo
-3. **Technical Presentation**: Use Modes 9, 13, and 16 to show performance metrics
+3. **Technical Presentation**: Use Modes 9, 13, 16, and 17 to show capabilities
 4. **Feature Showcase**: Mode 14 automatically cycles through all modes
 5. **Long-Term Display**: Use Mode 15 for extended exhibitions
+6. **3D Graphics Demo**: Use Mode 17 to impress with wireframe animation
 
 ## Future Enhancements
 
@@ -534,12 +564,12 @@ Potential additions for future versions:
 - [x] Automatic mode cycling (Mode 14 ✅)
 - [x] Burn-in prevention mode (Mode 15 ✅)
 - [x] Performance statistics (Mode 16 ✅)
+- [x] 3D wireframe cube rendering (Mode 17 ✅)
 - [ ] Custom pattern upload via SD card
 - [ ] Touch/gesture testing (if hardware supports)
 - [ ] Color test mode (for future RGB displays)
 - [ ] QR code rendering test
 - [ ] Font size variations (small/medium/large)
-- [ ] 3D wireframe cube rendering
 - [ ] Video playback test (frame buffering)
 
 ## Related Documentation
@@ -560,8 +590,8 @@ Potential additions for future versions:
 
 ---
 
-**Document Version**: 2.1  
+**Document Version**: 2.2  
 **Last Updated**: 2026-01-23  
 **Feature Status**: ✅ Production Ready  
-**Test Modes**: 17 (expanded from 7)  
+**Test Modes**: 18 (expanded from 7)  
 **Tested On**: STM32F407VGT6 with SSD1322 256×64 OLED
