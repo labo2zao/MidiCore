@@ -4,7 +4,7 @@ Comprehensive guide to the enhanced OLED SSD1322 test page features in MidiCore.
 
 ## Overview
 
-The OLED test page provides 20 different test modes to validate display functionality, performance, and visual quality. This is useful for:
+The OLED test page provides 28 different test modes to validate display functionality, performance, and visual quality. This is useful for:
 - Verifying OLED driver implementation
 - Testing display hardware
 - Debugging rendering issues
@@ -405,11 +405,172 @@ Real-world UI components for practical applications.
 - Multiple brightness levels for visual hierarchy
 - Demonstrates patterns from rhythm trainer UI
 
+### Mode 20: HW Test - MIOS32 Pattern 🔧 NEW
+Hardware driver test calling `oled_test_mios32_pattern()`.
+
+**Features**:
+- MIOS32-compatible test pattern
+- Gradient display + white region
+- Full-screen hardware test
+- Direct framebuffer manipulation
+
+**Use Cases**:
+- Validate basic display initialization
+- Verify MIOS32 compatibility
+- Test hardware SPI communication
+- Baseline functionality check
+
+**Technical Details**:
+- Bypasses UI rendering for raw hardware test
+- Calls driver function directly
+- Tests SSD1322 command sequence
+
+### Mode 21: HW Test - Checkerboard 🔧 NEW
+Hardware driver test calling `oled_test_checkerboard()`.
+
+**Features**:
+- Alternating black/white checkerboard
+- Pixel-level uniformity testing
+- Full-screen pattern
+- Individual pixel verification
+
+**Use Cases**:
+- Test pixel uniformity across display
+- Identify dead/stuck pixels
+- Verify pixel addressing
+- Check display alignment
+
+**Technical Details**:
+- Direct pixel-level rendering
+- Tests all display regions equally
+- Validates framebuffer addressing
+
+### Mode 22: HW Test - Horizontal Gradient 🔧 NEW
+Hardware driver test calling `oled_test_h_gradient()`.
+
+**Features**:
+- Smooth left-to-right gradient
+- Black (left) to white (right)
+- All 16 grayscale levels
+- Horizontal sweep test
+
+**Use Cases**:
+- Verify horizontal grayscale transitions
+- Test column driver uniformity
+- Check horizontal timing
+- Validate SPI data transmission
+
+**Technical Details**:
+- Tests horizontal display scanning
+- Validates column addressing
+- Progressive brightness increase
+
+### Mode 23: HW Test - Vertical Gradient 🔧 NEW
+Hardware driver test calling `oled_test_v_gradient()`.
+
+**Features**:
+- Smooth top-to-bottom gradient
+- Black (top) to white (bottom)
+- All 16 grayscale levels
+- Vertical sweep test
+
+**Use Cases**:
+- Verify vertical grayscale transitions
+- Test row driver uniformity
+- Check vertical timing
+- Validate display refresh
+
+**Technical Details**:
+- Tests vertical display scanning
+- Validates row addressing
+- Progressive brightness increase
+
+### Mode 24: HW Test - Rectangles 🔧 NEW
+Hardware driver test calling `oled_test_rectangles()`.
+
+**Features**:
+- Concentric rectangle patterns
+- Multiple nested rectangles
+- Geometric rendering test
+- Border accuracy validation
+
+**Use Cases**:
+- Test geometric shape rendering
+- Verify corner pixel accuracy
+- Check line drawing precision
+- Validate rectangle algorithms
+
+**Technical Details**:
+- Tests horizontal/vertical line drawing
+- Validates corner pixel placement
+- Progressive rectangle sizing
+
+### Mode 25: HW Test - Stripes 🔧 NEW
+Hardware driver test calling `oled_test_stripes()`.
+
+**Features**:
+- Diagonal stripe patterns
+- Alternating brightness levels
+- Angular line test
+- Pattern generation validation
+
+**Use Cases**:
+- Test diagonal line rendering
+- Verify pattern algorithms
+- Check angular accuracy
+- Validate complex patterns
+
+**Technical Details**:
+- Diagonal rendering test
+- Pattern generation algorithm
+- Repeating stripe patterns
+
+### Mode 26: HW Test - Voxel Landscape 🔧 NEW
+Hardware driver test calling `oled_test_voxel_landscape()`.
+
+**Features**:
+- Simple 3D voxel terrain visualization
+- Pseudo-3D landscape rendering
+- Complex algorithm test
+- Visual appeal demonstration
+
+**Use Cases**:
+- Showcase advanced rendering
+- Test complex algorithms
+- Verify computational performance
+- Demonstrate graphics capabilities
+
+**Technical Details**:
+- Voxel-based terrain generation
+- 3D-to-2D projection
+- Height-based brightness
+
+### Mode 27: HW Test - Gray Levels 🔧 NEW
+Hardware driver test calling `oled_test_gray_levels()`.
+
+**Features**:
+- All 16 grayscale levels as vertical bars
+- Clear level separation
+- Full grayscale range display
+- Side-by-side level comparison
+
+**Use Cases**:
+- Validate complete grayscale range
+- Verify all 16 levels (0-15)
+- Check level transitions
+- Compare adjacent brightness values
+- Final hardware validation
+
+**Technical Details**:
+- Tests complete SSD1322 grayscale capability
+- 16 vertical bars (one per level)
+- Direct level-to-pixel mapping
+
 ## Navigation
 
 ### Encoder Control
-- **Rotate Right**: Next test mode (0 → 1 → 2 → ... → 19 → 0)
-- **Rotate Left**: Previous test mode (0 → 19 → 18 → ... → 1 → 0)
+- **Rotate Right**: Next test mode (0 → 1 → 2 → ... → 27 → 0)
+- **Rotate Left**: Previous test mode (0 → 27 → 26 → ... → 1 → 0)
 - Animation state resets on mode change
 - Exits auto-cycle mode (14) immediately
 
@@ -426,7 +587,7 @@ Real-world UI components for practical applications.
 
 ### Header Information
 Always displayed at the top of the screen:
-- Current test mode number (0-19)
+- Current test mode number (0-27)
 - Instruction: "Use ENC" (rotate encoder to change modes)
 
 ### Footer Information ✨ NEW
@@ -447,6 +608,7 @@ Always displayed at the top right:
 - **3D Wireframe** (Mode 17): 20 FPS (~50ms updates)
 - **Advanced Graphics** (Mode 18): 30-40 FPS (100ms updates)
 - **UI Elements** (Mode 19): 40-50 FPS (50ms updates)
+- **Hardware Tests** (Modes 20-27): 60 FPS (static patterns) 🔧 NEW
 
 ### Performance Tracking
 **Mode 16** provides comprehensive performance statistics:
