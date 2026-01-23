@@ -221,7 +221,7 @@ void oled_init_progressive(uint8_t max_step) {
 
   // Step 15: Full init with RAM clear
   // CRITICAL: Exit test mode (0xA5) before writing to RAM!
-  cmd(0xA4);  // Normal display mode (exit all pixels ON mode)
+  cmd(0xA4 | 0x02);  // Normal display mode (0xA6 - matches MIOS32 exactly)
   
   // Clear display RAM - MATCH MIOS32 EXACTLY (only 1 data byte per address command!)
   // CRITICAL: MIOS32 sends ONLY ONE data byte for 0x15/0x75, NOT two!
@@ -237,7 +237,8 @@ void oled_init_progressive(uint8_t max_step) {
     }
   }
 
-  cmd(0xAF);  // Display ON
+  // CRITICAL: MIOS32 sends Display ON AFTER clearing RAM!
+  cmd(0xAE | 1);  // Display ON (0xAF - matches MIOS32 exactly)
 
   delay_us(100000);  // wait 100 ms
 
