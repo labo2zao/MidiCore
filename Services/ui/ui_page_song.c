@@ -74,6 +74,13 @@ void ui_page_song_render(uint32_t now_ms) {
         // Filled box for clips - larger and more visible
         uint8_t brightness = is_current ? 15 : (is_selected ? 13 : 11);
         ui_gfx_fill_rect(x, y, 8, 8, brightness);
+        
+        // LoopA-style: Add small indicator showing clip has content
+        // Draw a small dot in the center for visual confirmation
+        ui_gfx_pixel(x + 3, y + 3, 15);
+        ui_gfx_pixel(x + 4, y + 3, 15);
+        ui_gfx_pixel(x + 3, y + 4, 15);
+        ui_gfx_pixel(x + 4, y + 4, 15);
       } else {
         // Empty box outline - thicker borders
         uint8_t brightness = is_current ? 12 : (is_selected ? 10 : 7);

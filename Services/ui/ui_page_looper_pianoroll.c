@@ -175,15 +175,18 @@ static void draw_header(void) {
 }
 
 static void draw_grid(uint32_t base, uint32_t span) {
-  // coarse vertical lines
+  // LoopA-style: Subtle vertical grid lines at quarter divisions
   for (int i=0;i<4;i++) {
     int x = i * 64;
-    ui_gfx_rect(x, 10, 1, 54, 1);
+    ui_gfx_vline(x, 10, 54, 2);
   }
-  // horizontal octaves
-  for (int y=16; y<60; y+=12) ui_gfx_rect(0, y, 256, 1, 1);
+  
+  // LoopA-style: Horizontal octave lines (more prominent)
+  for (int y=16; y<60; y+=12) {
+    ui_gfx_hline(0, y, 256, 3);
+  }
 
-  // quant grid (if enabled)
+  // Quantization grid (if enabled) - more subtle than before
   looper_quant_t q = looper_get_quant(g_track);
   uint32_t step = quant_step_ticks(q);
   if (!step) return;
@@ -194,13 +197,18 @@ static void draw_grid(uint32_t base, uint32_t span) {
   for (uint32_t i=0; i<=nlines; i++) {
     uint32_t t = (base + i*step) % L;
     uint32_t x = tick_to_x(t, base, span);
-    if (x != 0xFFFFFFFFu) ui_gfx_rect((int)x, 10, 1, 54, 2);
+    if (x != 0xFFFFFFFFu) ui_gfx_vline((int)x, 10, 54, 3);
   }
 }
 
 static void draw_cursor(uint32_t base, uint32_t span) {
   uint32_t x = tick_to_x(g_cursor, base, span);
-  if (x != 0xFFFFFFFFu) ui_gfx_rect((int)x, 10, 1, 54, 6);
+  // LoopA-style: Thicker, brighter cursor for better visibility
+  if (x != 0xFFFFFFFFu) {
+    ui_gfx_vline((int)x, 10, 54, 12);
+    if (x > 0) ui_gfx_vline((int)x-1, 10, 54, 6);
+    if (x < 255) ui_gfx_vline((int)x+1, 10, 54, 6);
+  }
 }
 
 static void draw_notes(uint32_t base, uint32_t span) {
@@ -217,8 +225,25 @@ static void draw_notes(uint32_t base, uint32_t span) {
     int y = note_to_y(n->note);
     int w = (int)ex - (int)sx;
     if (w < 2) w = 2;
-    uint8_t g = (i==g_sel) ? 15 : 8;
-    ui_gfx_rect((int)sx, y, w, 3, g);
+    
+    // LoopA-style: Use velocity for brightness (more visual feedback)
+    // Selected notes get max brightness, others scale with velocity
+    uint8_t g;
+    if (i == g_sel) {
+      g = 15; // Selected note is always brightest
+    } else {
+      // Map velocity (0-127) to grayscale (6-13) for better contrast
+      g = 6 + ((uint32_t)n->vel * 7) / 127;
+    }
+    
+    // LoopA-style: Taller note bars (4px instead of 3px)
+    ui_gfx_fill_rect((int)sx, y, w, 4, g);
+    
+    // Draw note border for better definition (selected notes only)
+    if (i == g_sel) {
+      ui_gfx_hline((int)sx, y, w, 15);
+      ui_gfx_hline((int)sx, y+3, w, 15);
+    }
   }
 }
 
