@@ -1567,9 +1567,10 @@ void module_test_looper_run(void)
   }
   
   // Test step size configuration
+  // Note: Step size is global (not per-track) as per looper API design
   looper_set_step_size(48);  // 8th note
   uint32_t step_size = looper_get_step_size();
-  dbg_printf("  ✓ Step size configured: %d ticks (8th note)\r\n", (int)step_size);
+  dbg_printf("  ✓ Step size configured (global): %d ticks (8th note)\r\n", (int)step_size);
   
   // Test direct cursor positioning (step write)
   dbg_print("  Testing direct cursor positioning (step write)...\r\n");
@@ -1593,6 +1594,11 @@ void module_test_looper_run(void)
   // Phase 9: Track Randomization
   dbg_print("[Phase 9] Testing Track Randomization...\r\n");
   
+  // Define randomization test parameters
+  const uint8_t test_vel_range = 20;    // Velocity randomization range
+  const uint8_t test_timing_range = 6;  // Timing randomization in ticks
+  const uint8_t test_skip_prob = 0;     // Note skip probability (0%)
+  
   // Export original events for comparison
   looper_event_view_t orig_events[32];
   uint32_t orig_count = looper_export_events(test_track, orig_events, 32);
@@ -1605,14 +1611,14 @@ void module_test_looper_run(void)
   }
   
   // Set randomization parameters
-  looper_set_randomize_params(test_track, 20, 6, 0);  // vel_range=20, timing=6, skip=0%
+  looper_set_randomize_params(test_track, test_vel_range, test_timing_range, test_skip_prob);
   uint8_t rand_vel, rand_timing, rand_skip;
   looper_get_randomize_params(test_track, &rand_vel, &rand_timing, &rand_skip);
   dbg_printf("  ✓ Randomization params set: vel=%d, timing=%d, skip=%d%%\r\n",
              rand_vel, rand_timing, rand_skip);
   
   // Apply randomization
-  looper_randomize_track(test_track, 20, 6, 0);
+  looper_randomize_track(test_track, test_vel_range, test_timing_range, test_skip_prob);
   dbg_print("  ✓ Randomization applied to track\r\n");
   
   // Export randomized events
