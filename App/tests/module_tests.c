@@ -1551,9 +1551,13 @@ void module_test_looper_run(void)
   for (uint8_t i = 0; i < LOOPER_TRACKS; i++) {
     looper_state_t state = looper_get_state(i);
     const char* state_names[] = {"STOP", "REC", "PLAY", "OVERDUB"};
-    uint32_t events_in_track = looper_get_loop_len_ticks(i) > 0 ? 1 : 0;
+    
+    // Check for actual events by trying to export one
+    looper_event_view_t tmp_event;
+    uint32_t event_count = looper_export_events(i, &tmp_event, 1);
+    
     dbg_printf("  Track %d: %s (events: %s)\r\n", 
-               i, state_names[state], events_in_track ? "Yes" : "Empty");
+               i, state_names[state], event_count > 0 ? "Yes" : "Empty");
   }
   
   dbg_print("\r\n");
@@ -1562,6 +1566,8 @@ void module_test_looper_run(void)
   
   // Continuous operation - monitor looper state
   uint32_t counter = 0;
+  const char* state_names[] = {"STOP", "REC", "PLAY", "OVERDUB"};
+  
   for (;;) {
     osDelay(5000);  // Status update every 5 seconds
     counter++;
@@ -1579,9 +1585,13 @@ void module_test_looper_run(void)
         uint8_t solo = looper_is_track_soloed(i);
         uint8_t audible = looper_is_track_audible(i);
         
-        const char* state_names[] = {"STOP", "REC", "PLAY", "OVDB"};
-        dbg_printf("  T%d: %s len=%d %s%s%s\r\n", 
-                   i, state_names[state], (int)len,
+        // Check for actual events by trying to export one
+        looper_event_view_t tmp_event;
+        uint32_t event_count = looper_export_events(i, &tmp_event, 1);
+        uint8_t has_events = (event_count > 0) ? 1 : 0;
+        
+        dbg_printf("  T%d: %s len=%d events=%d %s%s%s\r\n", 
+                   i, state_names[state], (int)len, has_events,
                    muted ? "[MUTE]" : "",
                    solo ? "[SOLO]" : "",
                    !audible ? "[SILENT]" : "");
