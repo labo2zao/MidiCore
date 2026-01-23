@@ -1354,6 +1354,20 @@ void module_test_ui_run(void)
     dbg_print("  Status: FAIL (page mismatch)\r\n\r\n");
   }
   
+  // Test T1.8: Automation Page
+  dbg_print("T1.8 Automation System Page:\r\n");
+  oled_clear();
+  ui_set_page(UI_PAGE_AUTOMATION);
+  for (uint8_t i = 0; i < 150; i++) { ui_tick_20ms(); osDelay(20); }
+  dbg_print("  - Scene chaining configuration\r\n");
+  dbg_print("  - Auto-trigger settings\r\n");
+  dbg_print("  - Workflow presets (RECORD/PERFORM/PRACTICE/JAM)\r\n");
+  if (ui_get_page() == UI_PAGE_AUTOMATION) {
+    dbg_print("  Status: PASS\r\n\r\n");
+  } else {
+    dbg_print("  Status: FAIL (page mismatch)\r\n\r\n");
+  }
+  
   // Additional pages (Timeline, Pianoroll, Humanizer if enabled, OLED Test)
   dbg_print("Additional UI Pages:\r\n");
   
@@ -1724,14 +1738,21 @@ void module_test_ui_run(void)
   dbg_print(" OK\r\n");
   
   // Step 7: Check Rhythm Trainer
-  dbg_print("  [7/8] Open Rhythm Trainer for practice...");
+  dbg_print("  [7/9] Open Rhythm Trainer for practice...");
   oled_clear();
   ui_set_page(UI_PAGE_RHYTHM);
   for (uint8_t i = 0; i < 50; i++) { ui_tick_20ms(); osDelay(20); }
   dbg_print(" OK\r\n");
   
-  // Step 8: Return to main page
-  dbg_print("  [8/8] Return to main Looper view...");
+  // Step 8: Configure Automation
+  dbg_print("  [8/9] Configure automation settings...");
+  oled_clear();
+  ui_set_page(UI_PAGE_AUTOMATION);
+  for (uint8_t i = 0; i < 50; i++) { ui_tick_20ms(); osDelay(20); }
+  dbg_print(" OK\r\n");
+  
+  // Step 9: Return to main page
+  dbg_print("  [9/9] Return to main Looper view...");
   oled_clear();
   ui_set_page(UI_PAGE_LOOPER);
   for (uint8_t i = 0; i < 50; i++) { ui_tick_20ms(); osDelay(20); }
@@ -1888,7 +1909,7 @@ void module_test_ui_run(void)
   dbg_print("============================================================\r\n");
   dbg_print("✓ Phase 1: Initialization - OK\r\n");
   dbg_print("✓ Phase 2: UI Page Rendering Validation - OK\r\n");
-  dbg_print("  - T1.1-T1.7: All 7 core UI pages: PASS\r\n");
+  dbg_print("  - T1.1-T1.8: All 8 core UI pages: PASS\r\n");
   dbg_print("  - Additional pages: PASS\r\n");
   dbg_print("✓ Phase 3: Button Navigation - OK (");
   dbg_print_uint(nav_cycles);

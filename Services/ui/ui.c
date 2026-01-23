@@ -11,6 +11,7 @@
 #include "Services/ui/ui_page_config.h"
 #include "Services/ui/ui_page_livefx.h"
 #include "Services/ui/ui_page_rhythm.h"
+#include "Services/ui/ui_page_automation.h"
 #include "Services/ui/ui_page_oled_test.h"
 #if MODULE_ENABLE_LFO && MODULE_ENABLE_HUMANIZER
 #include "Services/ui/ui_page_humanizer.h"
@@ -68,7 +69,7 @@ void ui_set_chord_mode(uint8_t en) { g_chord_mode = en ? 1 : 0; ui_state_mark_di
 
 void ui_on_button(uint8_t id, uint8_t pressed) {
   if (pressed && id == 5) {
-    // cycle pages: OVERVIEW -> TIMELINE -> PIANOROLL -> SONG -> MIDI_MONITOR -> SYSEX -> CONFIG -> LIVEFX -> RHYTHM -> [HUMANIZER] -> OLED_TEST -> OVERVIEW
+    // cycle pages: OVERVIEW -> TIMELINE -> PIANOROLL -> SONG -> MIDI_MONITOR -> SYSEX -> CONFIG -> LIVEFX -> RHYTHM -> AUTOMATION -> [HUMANIZER] -> OLED_TEST -> OVERVIEW
     if (g_page == UI_PAGE_LOOPER) g_page = UI_PAGE_LOOPER_TL;
     else if (g_page == UI_PAGE_LOOPER_TL) g_page = UI_PAGE_LOOPER_PR;
     else if (g_page == UI_PAGE_LOOPER_PR) g_page = UI_PAGE_SONG;
@@ -77,7 +78,17 @@ void ui_on_button(uint8_t id, uint8_t pressed) {
     else if (g_page == UI_PAGE_SYSEX) g_page = UI_PAGE_CONFIG;
     else if (g_page == UI_PAGE_CONFIG) g_page = UI_PAGE_LIVEFX;
     else if (g_page == UI_PAGE_LIVEFX) g_page = UI_PAGE_RHYTHM;
+    else if (g_page == UI_PAGE_RHYTHM) g_page = UI_PAGE_AUTOMATION;
 #if MODULE_ENABLE_LFO && MODULE_ENABLE_HUMANIZER
+    else if (g_page == UI_PAGE_AUTOMATION) g_page = UI_PAGE_HUMANIZER;
+    else if (g_page == UI_PAGE_HUMANIZER) g_page = UI_PAGE_OLED_TEST;
+#else
+    else if (g_page == UI_PAGE_AUTOMATION) g_page = UI_PAGE_OLED_TEST;
+#endif
+    else g_page = UI_PAGE_LOOPER;
+    ui_state_mark_dirty();
+    return;
+  }
     else if (g_page == UI_PAGE_RHYTHM) g_page = UI_PAGE_HUMANIZER;
     else if (g_page == UI_PAGE_HUMANIZER) g_page = UI_PAGE_OLED_TEST;
 #else
@@ -101,6 +112,7 @@ const char* page = (g_page == UI_PAGE_LOOPER) ? "LOOP" :
                    (g_page == UI_PAGE_CONFIG) ? "CONF" :
                    (g_page == UI_PAGE_LIVEFX) ? "LFXC" :
                    (g_page == UI_PAGE_RHYTHM) ? "RHYT" :
+                   (g_page == UI_PAGE_AUTOMATION) ? "AUTO" :
 #if MODULE_ENABLE_LFO && MODULE_ENABLE_HUMANIZER
                    (g_page == UI_PAGE_HUMANIZER) ? "HUMN" :
 #endif
@@ -120,6 +132,7 @@ ui_gfx_text(0, 2, line1, 15);
     case UI_PAGE_CONFIG: ui_page_config_on_button(id, pressed); break;
     case UI_PAGE_LIVEFX: ui_page_livefx_on_button(id, pressed); break;
     case UI_PAGE_RHYTHM: ui_page_rhythm_button(id); break;
+    case UI_PAGE_AUTOMATION: ui_page_automation_on_button(id, pressed); break;
 #if MODULE_ENABLE_LFO && MODULE_ENABLE_HUMANIZER
     case UI_PAGE_HUMANIZER: ui_page_humanizer_on_button(id, pressed); break;
 #endif
@@ -160,6 +173,7 @@ ui_gfx_text(0, 2, line1, 15);
     case UI_PAGE_CONFIG: ui_page_config_on_encoder(delta); break;
     case UI_PAGE_LIVEFX: ui_page_livefx_on_encoder(delta); break;
     case UI_PAGE_RHYTHM: ui_page_rhythm_encoder(delta); break;
+    case UI_PAGE_AUTOMATION: ui_page_automation_on_encoder(delta); break;
 #if MODULE_ENABLE_LFO && MODULE_ENABLE_HUMANIZER
     case UI_PAGE_HUMANIZER: ui_page_humanizer_on_encoder(delta); break;
 #endif
@@ -204,6 +218,7 @@ ui_gfx_text(0, 2, line1, 15);
     case UI_PAGE_CONFIG: ui_page_config_render(g_ms); break;
     case UI_PAGE_LIVEFX: ui_page_livefx_render(g_ms); break;
     case UI_PAGE_RHYTHM: ui_page_rhythm_update(0); break;
+    case UI_PAGE_AUTOMATION: ui_page_automation_render(g_ms); break;
 #if MODULE_ENABLE_LFO && MODULE_ENABLE_HUMANIZER
     case UI_PAGE_HUMANIZER: ui_page_humanizer_render(g_ms); break;
 #endif
