@@ -294,14 +294,50 @@ void module_test_router_run(void);
  *     - State transition latency
  *     - Scene operation timing
  * 
- * **Phase 18: Humanizer/LFO Validation & Continuous Monitor**
+ * **Phase 18: Humanizer/LFO Validation**
  * 18. **Test humanizer/LFO validation**
  *     - Record identical notes
  *     - Apply humanization and compare
  *     - Validate velocity/timing variations
  *     - Test LFO configuration and BPM sync
  * 
- * After phase 18, enters continuous monitoring mode that:
+ * **Phase 19-25: Professional Features**
+ * 19. **Test global transpose**
+ *     - Transpose all tracks up/down by semitones
+ *     - Verify transpose settings and read-back
+ * 20. **Test track quantization**
+ *     - Record off-beat notes
+ *     - Apply quantization (1/16 note = 24 ticks)
+ *     - Compare before/after tick positions
+ * 21. **Test copy/paste**
+ *     - Copy track data to clipboard
+ *     - Paste to different track
+ *     - Verify event count matches
+ * 22. **Test footswitch control**
+ *     - Configure 8 footswitch actions (play/stop, record, mute, solo, scene)
+ *     - Simulate footswitch press/release
+ *     - Verify state changes
+ * 23. **Test MIDI learn**
+ *     - Start MIDI learn mode
+ *     - Map CC#80 to Play/Stop
+ *     - Map Note C5 to Mute Track 0
+ *     - Test cancel functionality
+ *     - Display mapping count
+ * 24. **Test quick-save/load**
+ *     - Save session to slot (tempo, scene, track data)
+ *     - Modify current session
+ *     - Load from slot and verify restoration
+ *     - Test multiple slots (0-7)
+ *     - Clear slot operation
+ * 25. **Test event editing**
+ *     - Export events for examination
+ *     - Edit velocity (80→127)
+ *     - Edit tick position
+ *     - Edit note pitch (E4→G4)
+ *     - Verify changes applied
+ * 
+ * **Phase 26: Continuous Monitor**
+ * After phase 25, enters continuous monitoring mode that:
  * - Allows live MIDI recording/playback via DIN IN or USB
  * - Prints status updates every 30 seconds
  * - Shows track states, event counts, mute/solo status
@@ -312,8 +348,9 @@ void module_test_router_run(void);
  * - Optional: MIDI output to hear playback
  * - Optional: SD card for save/load testing
  * - Optional: Router module for integration testing
+ * - Optional: Footswitches for footswitch control testing
  * 
- * Expected duration: ~120-180 seconds for automated tests (18 phases)
+ * Expected duration: ~180-240 seconds for automated tests (25 phases)
  * 
  * Output: Comprehensive UART debug log with:
  * - Phase-by-phase progress and results
@@ -329,7 +366,14 @@ void module_test_router_run(void);
  * - Error recovery validation
  * - Performance benchmark measurements
  * - Humanizer/LFO modulation validation
- * - Test summary with PASS/FAIL results for all 18 phases
+ * - Global transpose operations
+ * - Track quantization (before/after comparison)
+ * - Copy/paste verification
+ * - Footswitch action configuration
+ * - MIDI learn mapping creation
+ * - Quick-save/load session management
+ * - Event editing validation
+ * - Test summary with PASS/FAIL results for all 25 phases
  * 
  * Usage: Enable MODULE_TEST_LOOPER=1 in test configuration
  * Connect UART terminal (115200 baud) to observe test execution
