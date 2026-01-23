@@ -1241,7 +1241,7 @@ void module_test_midi_din_run(void)
                   
                 case 28:  // Scale Type
                   livefx_get_force_scale(0, &scale_type, &scale_root, &scale_en);
-                  scale_type = val % 15;  // Limit to available scales (SCALE_COUNT = 15)
+                  scale_type = val % SCALE_COUNT;  // Limit to available scales
                   livefx_set_force_scale(0, scale_type, scale_root, scale_en);
                   // Feature 3: Display scale name
                   dbg_printf("[LEARN] Scale Type: %s (index %u)\r\n", 
@@ -1374,13 +1374,21 @@ void module_test_midi_din_run(void)
                 // Feature 6: Note Range Limiting
                 case 53:  // Set Minimum Note
                   note_min = val;
-                  if (note_min > note_max) note_max = note_min;
+                  if (note_min > note_max) {
+                    dbg_printf("[WARNING] Note min (%u) > max (%u), adjusting max\r\n", 
+                               note_min, note_max);
+                    note_max = note_min;
+                  }
                   dbg_printf("[LEARN] Note Range Min: %u\r\n", note_min);
                   break;
                   
                 case 54:  // Set Maximum Note
                   note_max = val;
-                  if (note_max < note_min) note_min = note_max;
+                  if (note_max < note_min) {
+                    dbg_printf("[WARNING] Note max (%u) < min (%u), adjusting min\r\n", 
+                               note_max, note_min);
+                    note_min = note_max;
+                  }
                   dbg_printf("[LEARN] Note Range Max: %u\r\n", note_max);
                   break;
               }
@@ -1425,7 +1433,7 @@ void module_test_midi_din_run(void)
               // Feature 5: Apply velocity curve before LiveFX
               if (is_note && msg_type == 0x90 && velocity_curve != VEL_CURVE_LINEAR) {
                 uint8_t vel = msg.b2;
-                if (vel > 0) {
+                if (vel > 0) {  // Only process actual note-on (velocity > 0)
                   float normalized = vel / 127.0f;
                   float curved;
                   
@@ -1438,7 +1446,9 @@ void module_test_midi_din_run(void)
                   }
                   
                   msg.b2 = (uint8_t)(curved * 127.0f);
-                  if (msg.b2 == 0) msg.b2 = 1;  // Ensure not zero
+                  // Ensure velocity stays in valid range 1-127 for note-on
+                  if (msg.b2 == 0) msg.b2 = 1;
+                  if (msg.b2 > 127) msg.b2 = 127;
                 }
               }
               
