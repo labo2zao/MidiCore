@@ -21,6 +21,10 @@ void ui_gfx_fill_rect(int x, int y, int w, int h, uint8_t gray);
 void ui_gfx_hline(int x, int y, int w, uint8_t gray);
 void ui_gfx_vline(int x, int y, int h, uint8_t gray);
 
+// New drawing functions for enhanced OLED tests
+void ui_gfx_circle(int cx, int cy, int radius, uint8_t gray);
+void ui_gfx_line(int x0, int y0, int x1, int y1, uint8_t gray);
+
 #ifdef __cplusplus
 }
 #endif

@@ -87,3 +87,62 @@ void ui_gfx_vline(int x, int y, int h, uint8_t gray) {
     ui_gfx_pixel(x, y + yy, gray);
   }
 }
+
+// Bresenham's line algorithm
+void ui_gfx_line(int x0, int y0, int x1, int y1, uint8_t gray) {
+  int dx = x1 - x0;
+  int dy = y1 - y0;
+  
+  // Handle negative deltas
+  int sx = (dx > 0) ? 1 : -1;
+  int sy = (dy > 0) ? 1 : -1;
+  dx = (dx > 0) ? dx : -dx;
+  dy = (dy > 0) ? dy : -dy;
+  
+  int err = dx - dy;
+  
+  while (1) {
+    ui_gfx_pixel(x0, y0, gray);
+    
+    if (x0 == x1 && y0 == y1) break;
+    
+    int e2 = 2 * err;
+    if (e2 > -dy) {
+      err -= dy;
+      x0 += sx;
+    }
+    if (e2 < dx) {
+      err += dx;
+      y0 += sy;
+    }
+  }
+}
+
+// Midpoint circle algorithm
+void ui_gfx_circle(int cx, int cy, int radius, uint8_t gray) {
+  int x = radius;
+  int y = 0;
+  int err = 0;
+  
+  while (x >= y) {
+    // Draw 8 octants
+    ui_gfx_pixel(cx + x, cy + y, gray);
+    ui_gfx_pixel(cx + y, cy + x, gray);
+    ui_gfx_pixel(cx - y, cy + x, gray);
+    ui_gfx_pixel(cx - x, cy + y, gray);
+    ui_gfx_pixel(cx - x, cy - y, gray);
+    ui_gfx_pixel(cx - y, cy - x, gray);
+    ui_gfx_pixel(cx + y, cy - x, gray);
+    ui_gfx_pixel(cx + x, cy - y, gray);
+    
+    if (err <= 0) {
+      y++;
+      err += 2 * y + 1;
+    }
+    
+    if (err > 0) {
+      x--;
+      err -= 2 * x + 1;
+    }
+  }
+}

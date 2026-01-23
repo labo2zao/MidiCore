@@ -3,13 +3,30 @@
 #include "Hal/oled_ssd1322/oled_ssd1322.h"
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
-static uint8_t test_mode = 0; // 0=patterns, 1=grayscale, 2=pixels, 3=text, 4=animations
+static uint8_t test_mode = 0; // 0=patterns, 1=grayscale, 2=pixels, 3=text, 4=animations, 5=hardware info, 6=framebuffer, 7=scrolling text, 8=bouncing ball, 9=performance, 10=circles
 static uint32_t last_update = 0;
 static uint8_t anim_frame = 0;
+static int scroll_offset = 0;
+static int ball_x = 128;
+static int ball_y = 32;
+static int ball_dx = 2;
+static int ball_dy = 1;
+static uint32_t fps_counter = 0;
+static uint32_t fps_last_time = 0;
+static uint32_t fps_value = 0;
 
 void ui_page_oled_test_render(uint32_t ms) {
   uint8_t* fb = oled_framebuffer();
+  
+  // FPS calculation
+  fps_counter++;
+  if (ms - fps_last_time >= 1000) {
+    fps_value = fps_counter;
+    fps_counter = 0;
+    fps_last_time = ms;
+  }
   
   // Clear screen
   ui_gfx_rect(0, 12, OLED_W, OLED_H - 12, 0);
@@ -123,15 +140,127 @@ void ui_page_oled_test_render(uint32_t ms) {
       break;
     }
     
+    case 7: { // Scrolling text test
+      ui_gfx_text(0, 26, "Scrolling Text", 15);
+      
+      if (ms - last_update > 50) {
+        scroll_offset += 2;
+        if (scroll_offset > 300) scroll_offset = -OLED_W;
+        last_update = ms;
+      }
+      
+      const char* scroll_text = "MidiCore OLED SSD1322 Driver Test - Smooth Scrolling";
+      ui_gfx_text(scroll_offset, 40, scroll_text, 12);
+      
+      // Show speed
+      char speed_info[32];
+      snprintf(speed_info, sizeof(speed_info), "Speed: 2px/50ms");
+      ui_gfx_text(0, 55, speed_info, 8);
+      break;
+    }
+    
+    case 8: { // Bouncing ball test
+      ui_gfx_text(0, 26, "Bouncing Ball", 15);
+      
+      if (ms - last_update > 30) {
+        // Update ball position
+        ball_x += ball_dx;
+        ball_y += ball_dy;
+        
+        // Bounce off walls
+        if (ball_x <= 0 || ball_x >= OLED_W - 6) ball_dx = -ball_dx;
+        if (ball_y <= 38 || ball_y >= OLED_H - 6) ball_dy = -ball_dy;
+        
+        last_update = ms;
+      }
+      
+      // Draw ball (6x6 square with gradient)
+      for (int by = 0; by < 6; by++) {
+        for (int bx = 0; bx < 6; bx++) {
+          int dist_from_center = (bx - 3) * (bx - 3) + (by - 3) * (by - 3);
+          uint8_t brightness = (uint8_t)(15 - (dist_from_center / 2));
+          if (brightness > 15) brightness = 15;
+          ui_gfx_pixel(ball_x + bx, ball_y + by, brightness);
+        }
+      }
+      
+      // Show position
+      char pos_info[32];
+      snprintf(pos_info, sizeof(pos_info), "X:%d Y:%d", ball_x, ball_y);
+      ui_gfx_text(OLED_W - 70, 38, pos_info, 8);
+      break;
+    }
+    
+    case 9: { // Performance test with FPS
+      ui_gfx_text(0, 26, "Performance Test", 15);
+      
+      // Animate multiple elements
+      if (ms - last_update > 20) {
+        anim_frame++;
+        last_update = ms;
+      }
+      
+      // Draw multiple moving elements
+      for (int i = 0; i < 5; i++) {
+        int x = ((anim_frame * (i + 1)) % OLED_W);
+        int y = 40 + i * 4;
+        ui_gfx_rect(x, y, 10, 3, 10 + i);
+      }
+      
+      // Show FPS
+      char fps_info[32];
+      snprintf(fps_info, sizeof(fps_info), "FPS: %lu", fps_value);
+      ui_gfx_text(0, 38, fps_info, 15);
+      
+      // Show frame counter
+      char frame_info[32];
+      snprintf(frame_info, sizeof(frame_info), "Frame: %d", anim_frame);
+      ui_gfx_text(OLED_W - 80, 38, frame_info, 10);
+      break;
+    }
+    
+    case 10: { // Circle/geometry test
+      ui_gfx_text(0, 26, "Circles & Lines", 15);
+      
+      if (ms - last_update > 100) {
+        anim_frame++;
+        last_update = ms;
+      }
+      
+      // Draw expanding circles using the new circle function
+      int center_x = OLED_W / 2;
+      int center_y = 48;
+      
+      for (int r = 0; r < 3; r++) {
+        int radius = 5 + ((anim_frame + r * 7) % 15);
+        uint8_t brightness = (uint8_t)(13 - r * 3);
+        ui_gfx_circle(center_x, center_y, radius, brightness);
+      }
+      
+      // Draw diagonal lines using line function
+      int offset = (anim_frame * 2) % 60;
+      ui_gfx_line(0, 38 + offset % 20, OLED_W - 1, 38 + (offset + 10) % 20, 10);
+      ui_gfx_line(0, 50 + offset % 14, OLED_W - 1, 50 + (offset + 7) % 14, 8);
+      
+      // Draw a rotating line from center
+      int angle_offset = (anim_frame * 5) % 360;
+      int line_len = 20;
+      int line_x = center_x + (line_len * ((angle_offset / 90) - 1));
+      int line_y = center_y + (line_len * (((angle_offset + 90) / 90) - 2)) / 2;
+      ui_gfx_line(center_x, center_y, line_x, line_y, 15);
+      
+      break;
+    }
+    
     default:
       test_mode = 0;
       break;
   }
   
-  // Always show current milliseconds
-  char ms_info[32];
-  snprintf(ms_info, sizeof(ms_info), "MS: %lu", ms);
-  ui_gfx_text(OLED_W - 80, 2, ms_info, 10);
+  // Always show current milliseconds and FPS
+  char ms_info[64];
+  snprintf(ms_info, sizeof(ms_info), "MS:%lu FPS:%lu", ms, fps_value);
+  ui_gfx_text(OLED_W - 110, 2, ms_info, 10);
 }
 
 void ui_page_oled_test_on_button(uint8_t id, uint8_t pressed) {
@@ -142,11 +271,19 @@ void ui_page_oled_test_on_button(uint8_t id, uint8_t pressed) {
     if (test_mode > 0) {
       test_mode--;
     } else {
-      test_mode = 6;
+      test_mode = 10; // Updated max test mode
     }
+    // Reset animation state
+    anim_frame = 0;
+    scroll_offset = 0;
+    ball_x = 128; ball_y = 32;
   } else if (id == 1) {
     // Button 1: Next test
-    test_mode = (test_mode + 1) % 7;
+    test_mode = (test_mode + 1) % 11; // Updated max test mode
+    // Reset animation state
+    anim_frame = 0;
+    scroll_offset = 0;
+    ball_x = 128; ball_y = 32;
   } else if (id == 2) {
     // Button 2: Clear screen test
     oled_clear();
@@ -157,17 +294,30 @@ void ui_page_oled_test_on_button(uint8_t id, uint8_t pressed) {
   } else if (id == 4) {
     // Button 4: Fill screen black
     oled_clear();
+  } else if (id == 5) {
+    // Button 5: Reset FPS counter
+    fps_counter = 0;
+    fps_last_time = 0;
+    fps_value = 0;
   }
 }
 
 void ui_page_oled_test_on_encoder(int8_t delta) {
   if (delta > 0) {
-    test_mode = (test_mode + 1) % 7;
+    test_mode = (test_mode + 1) % 11; // Updated max test mode
+    // Reset animation state
+    anim_frame = 0;
+    scroll_offset = 0;
+    ball_x = 128; ball_y = 32;
   } else if (delta < 0) {
     if (test_mode > 0) {
       test_mode--;
     } else {
-      test_mode = 6;
+      test_mode = 10; // Updated max test mode
     }
+    // Reset animation state
+    anim_frame = 0;
+    scroll_offset = 0;
+    ball_x = 128; ball_y = 32;
   }
 }
