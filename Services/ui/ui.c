@@ -37,6 +37,7 @@ static chord_bank_t g_chord_bank;
 
 // Button state tracking for combined key navigation (LoopA-style)
 static uint8_t g_button_state[10] = {0}; // Track pressed state for buttons 0-9
+static uint8_t g_combo_active = 0; // Visual feedback: 1 when B5 held for combinations
 
 static char g_bank_label[24] = "Bank";
 static char g_patch_label[24] = "Patch";
@@ -75,6 +76,9 @@ void ui_on_button(uint8_t id, uint8_t pressed) {
   if (id < 10) {
     g_button_state[id] = pressed ? 1 : 0;
   }
+  
+  // Update combo active flag for visual feedback
+  g_combo_active = g_button_state[5];
   
   // Combined key navigation (LoopA-inspired)
   // Only trigger on button press (not release) and when another button is held
@@ -175,8 +179,12 @@ const char* page = (g_page == UI_PAGE_LOOPER) ? "LOOP" :
 #endif
                    (g_page == UI_PAGE_OLED_TEST) ? "TEST" :
                    "UI";
-// Bank | Patch | Page
-snprintf(line1, sizeof(line1), "%s:%s  %s", g_bank_label, g_patch_label, page);
+// Bank | Patch | Page (with combo indicator)
+if (g_combo_active) {
+  snprintf(line1, sizeof(line1), "%s:%s  %s [B5]", g_bank_label, g_patch_label, page);
+} else {
+  snprintf(line1, sizeof(line1), "%s:%s  %s", g_bank_label, g_patch_label, page);
+}
 ui_gfx_text(0, 2, line1, 15);
 
   switch (g_page) {

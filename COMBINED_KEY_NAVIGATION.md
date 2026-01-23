@@ -2,10 +2,10 @@
 
 ## Overview
 
-MidiCore now implements LoopA-inspired combined key navigation, allowing quick access to any UI page using button combinations. This provides efficient workflow similar to LoopA and Midibox SEQ V4.
+MidiCore now implements LoopA-inspired combined key navigation with visual feedback, allowing quick access to any UI page using button combinations. This provides efficient workflow similar to LoopA and Midibox SEQ V4.
 
 **Implementation Date**: 2026-01-23  
-**Status**: ✅ Production Ready
+**Status**: ✅ Production Ready with Visual Feedback
 
 ---
 
@@ -26,6 +26,14 @@ Hold **Button 5** and press another button to jump directly to a page:
 | **B5 + B8** | Automation | Scene chaining and workflows |
 | **B5 + B9** | Humanizer | Humanization and LFO (if enabled) |
 | **B5 alone** | Next Page | Cycle through all pages |
+
+### Visual Feedback
+
+When Button 5 is held down, the header displays **[B5]** to indicate combo mode is active:
+- Normal: `Bank:Patch  PAGE`
+- Combo Active: `Bank:Patch  PAGE [B5]`
+
+This provides instant visual confirmation that combination shortcuts are available.
 
 ### Page Cycle Order (B5 alone)
 
