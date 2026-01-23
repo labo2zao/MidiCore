@@ -25,12 +25,13 @@ void ui_page_livefx_render(uint32_t now_ms) {
   
   ui_gfx_clear(0);
   
-  // Header
+  // Header with 8x8 font
+  ui_gfx_set_font(UI_FONT_8X8);
   char header[64];
-  snprintf(header, sizeof(header), "LIVEFX  Track %u  %s", 
+  snprintf(header, sizeof(header), "LIVEFX T%u %s", 
            selected_track + 1, edit_mode ? "[EDIT]" : "[VIEW]");
   ui_gfx_text(0, 0, header, 15);
-  ui_gfx_rect(0, 9, 256, 1, 4);
+  ui_gfx_hline(0, 11, 256, 8);
   
   // Get current configuration
   const livefx_config_t* cfg = livefx_get_config(selected_track);
@@ -39,15 +40,15 @@ void ui_page_livefx_render(uint32_t now_ms) {
   // Status
   char status[64];
   snprintf(status, sizeof(status), "Status: %s", cfg->enabled ? "ENABLED" : "BYPASSED");
-  ui_gfx_text(0, 14, status, cfg->enabled ? 12 : 8);
+  ui_gfx_text(0, 15, status, cfg->enabled ? 13 : 10);
   
-  // Parameters
+  // Parameters with better spacing
   int y = 26;
   
   // Transpose
   char transpose_line[64];
   snprintf(transpose_line, sizeof(transpose_line), "Transpose:  %+d semitones", cfg->transpose);
-  uint8_t gray_transpose = (selected_param == 0) ? 15 : 10;
+  uint8_t gray_transpose = (selected_param == 0) ? 15 : 11;
   if (selected_param == 0 && edit_mode) {
     ui_gfx_text(0, y, ">", 15);
   }
@@ -58,7 +59,7 @@ void ui_page_livefx_render(uint32_t now_ms) {
   char velocity_line[64];
   uint16_t vel_percent = (cfg->vel_scale * 100) / 128;
   snprintf(velocity_line, sizeof(velocity_line), "Velocity:   %u%%", vel_percent);
-  uint8_t gray_velocity = (selected_param == 1) ? 15 : 10;
+  uint8_t gray_velocity = (selected_param == 1) ? 15 : 11;
   if (selected_param == 1 && edit_mode) {
     ui_gfx_text(0, y, ">", 15);
   }
@@ -74,7 +75,7 @@ void ui_page_livefx_render(uint32_t now_ms) {
   } else {
     snprintf(scale_line, sizeof(scale_line), "Scale:      [OFF]");
   }
-  uint8_t gray_scale = (selected_param == 2) ? 15 : 10;
+  uint8_t gray_scale = (selected_param == 2) ? 15 : 11;
   if (selected_param == 2 && edit_mode) {
     ui_gfx_text(0, y, ">", 15);
   }
@@ -85,9 +86,10 @@ void ui_page_livefx_render(uint32_t now_ms) {
     ui_gfx_rect(0, 26 + selected_param * 10, 256, 10, 2);
   }
   
-  // Footer
-  ui_gfx_rect(0, 62, 256, 1, 4);
-  ui_gfx_text(0, 54, "B1 EN/DIS  B2 RESET  B3 EDIT  B4 TRACK  ENC", 8);
+  // Footer with smaller font
+  ui_gfx_hline(0, 54, 256, 6);
+  ui_gfx_set_font(UI_FONT_5X7);
+  ui_gfx_text(0, 56, "B1:EN/DIS B2:RESET B3:EDIT B4:TRACK ENC:adj", 10);
 }
 
 /**
