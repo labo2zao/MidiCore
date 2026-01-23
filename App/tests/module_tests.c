@@ -1817,32 +1817,49 @@ void module_test_footswitch_run(void)
   dbg_print("\r\n");
   osDelay(100); // Give time for UART transmission
   
-#if MODULE_ENABLE_SRIO && defined(SRIO_ENABLE) && MODULE_ENABLE_LOOPER
+#if MODULE_ENABLE_LOOPER
   dbg_print_test_header("Footswitch Mapping Validation Test");
   
   dbg_print("This test validates the complete footswitch system:\r\n");
-  dbg_print("  Button Press (SRIO DIN) → Footswitch Mapping → Looper Action\r\n");
+  dbg_print("  GPIO Button Press → Footswitch Mapping → Looper Action\r\n");
   dbg_print("\r\n");
   
-  // Initialize SRIO
-  dbg_print("Initializing SRIO...");
-  srio_config_t scfg = {
-    .hspi = SRIO_SPI_HANDLE,
-    .din_pl_port = SRIO_DIN_PL_PORT,
-    .din_pl_pin = SRIO_DIN_PL_PIN,
-    .dout_rclk_port = SRIO_DOUT_RCLK_PORT,
-    .dout_rclk_pin = SRIO_DOUT_RCLK_PIN,
-    .dout_oe_port = NULL,
-    .dout_oe_pin = 0,
-    .dout_oe_active_low = 1,
-    .din_bytes = SRIO_DIN_BYTES,
-    .dout_bytes = SRIO_DOUT_BYTES,
-  };
-  srio_init(&scfg);
-  dbg_print(" OK\r\n");
+  // Define GPIO pins for 8 footswitches
+  // Using J10B connector pins (PE2, PE4, PE5, PE6) and J10A pins (PB8-PB12, PB14, PB15)
+  // These are mapped to footswitch inputs FS0-FS7
+  typedef struct {
+    GPIO_TypeDef* port;
+    uint16_t pin;
+  } footswitch_gpio_t;
   
-  // Allow time for /PL pin to stabilize at idle HIGH before first read
-  osDelay(10);
+  const footswitch_gpio_t fs_gpio[8] = {
+    {GPIOE, GPIO_PIN_2},  // FS0: J10B_D3 (PE2)
+    {GPIOE, GPIO_PIN_4},  // FS1: J10B_D4 (PE4)
+    {GPIOE, GPIO_PIN_5},  // FS2: J10B_D5 (PE5)
+    {GPIOE, GPIO_PIN_6},  // FS3: J10B_D6 (PE6)
+    {GPIOB, GPIO_PIN_8},  // FS4: J10A_D0 (PB8)
+    {GPIOB, GPIO_PIN_9},  // FS5: J10A_D1 (PB9)
+    {GPIOB, GPIO_PIN_10}, // FS6: J10A_D2 (PB10)
+    {GPIOB, GPIO_PIN_11}  // FS7: J10A_D3 (PB11)
+  };
+  
+  dbg_print("Configuring GPIO pins for footswitches...");
+  
+  // Configure GPIO pins as inputs with pull-ups
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  
+  // Configure PE2, PE4, PE5, PE6
+  GPIO_InitStruct.Pin = GPIO_PIN_2 | GPIO_PIN_4 | GPIO_PIN_5 | GPIO_PIN_6;
+  HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
+  
+  // Configure PB8, PB9, PB10, PB11
+  GPIO_InitStruct.Pin = GPIO_PIN_8 | GPIO_PIN_9 | GPIO_PIN_10 | GPIO_PIN_11;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+  
+  dbg_print(" OK\r\n");
   
   // Initialize looper
   dbg_print("Initializing Looper...");
@@ -1851,8 +1868,15 @@ void module_test_footswitch_run(void)
   
   dbg_print_separator();
   dbg_print("Hardware Configuration:\r\n");
-  dbg_printf("  SRIO DIN bytes: %d\r\n", SRIO_DIN_BYTES);
-  dbg_printf("  Total footswitches: 8 (buttons 0-7)\r\n");
+  dbg_print("  GPIO-based footswitch inputs (8 pins)\r\n");
+  dbg_print("  FS0: PE2 (J10B_D3)\r\n");
+  dbg_print("  FS1: PE4 (J10B_D4)\r\n");
+  dbg_print("  FS2: PE5 (J10B_D5)\r\n");
+  dbg_print("  FS3: PE6 (J10B_D6)\r\n");
+  dbg_print("  FS4: PB8 (J10A_D0)\r\n");
+  dbg_print("  FS5: PB9 (J10A_D1)\r\n");
+  dbg_print("  FS6: PB10 (J10A_D2)\r\n");
+  dbg_print("  FS7: PB11 (J10A_D3)\r\n");
   dbg_print("\r\n");
   
   // Configure footswitch mappings to test all major actions
@@ -1921,17 +1945,18 @@ void module_test_footswitch_run(void)
   dbg_print("\r\n");
   
   dbg_print("Test Instructions:\r\n");
-  dbg_print("  1. Press footswitch 0-7 (connected to SRIO DIN buttons 0-7)\r\n");
+  dbg_print("  1. Press footswitch 0-7 (connected to GPIO pins)\r\n");
   dbg_print("  2. Observe action triggered and looper state changes\r\n");
   dbg_print("  3. Verify each footswitch triggers correct action\r\n");
-  dbg_print("  4. Check button press/release detection\r\n");
+  dbg_print("  4. Check button press/release detection with debouncing\r\n");
   dbg_print("\r\n");
   
   dbg_print("Expected Hardware:\r\n");
-  dbg_print("  - 8 footswitches connected to SRIO DIN inputs (buttons 0-7)\r\n");
+  dbg_print("  - 8 footswitches connected to GPIO pins (FS0-FS7)\r\n");
   dbg_print("  - Footswitches should be momentary SPST-NO (normally open)\r\n");
-  dbg_print("  - Pull-up resistors (10kΩ) on all inputs\r\n");
+  dbg_print("  - Internal pull-up resistors enabled (10kΩ equivalent)\r\n");
   dbg_print("  - Buttons should read HIGH when not pressed, LOW when pressed\r\n");
+  dbg_print("  - Active low logic (pressed = LOW, released = HIGH)\r\n");
   dbg_print("\r\n");
   
   dbg_print_separator();
@@ -1940,112 +1965,110 @@ void module_test_footswitch_run(void)
   dbg_print_separator();
   dbg_print("\r\n");
   
-  uint8_t din[SRIO_DIN_BYTES];
-  uint8_t last_button_state[8] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+  uint8_t last_button_state[8] = {1, 1, 1, 1, 1, 1, 1, 1}; // All released (HIGH)
   uint32_t scan_counter = 0;
   uint32_t last_activity_ms = osKernelGetTickCount();
   uint32_t last_status_ms = osKernelGetTickCount();
   
-  // Initial read
-  srio_read_din(din);
+  // Debounce state
+  uint8_t debounce_counter[8] = {0};
+  const uint8_t DEBOUNCE_THRESHOLD = 3; // Require 3 consistent reads (30ms)
   
   for (;;) {
-    // Read button states
-    int result = srio_read_din(din);
-    if (result != 0) {
-      dbg_printf("ERROR: SRIO read failed with code %d\r\n", result);
-      osDelay(1000);
-      continue;
-    }
-    
     scan_counter++;
-    
-    // Check first 8 buttons (footswitches 0-7) in first byte
-    // Note: We only use the first 8 buttons for footswitches
     bool activity = false;
-    uint8_t current_state = srio_din_get(0); // First byte contains buttons 0-7
     
+    // Read all 8 footswitch GPIOs
     for (uint8_t fs = 0; fs < 8; fs++) {
-      bool pressed_now = (current_state & (1 << fs)) == 0; // Active low
-      bool was_pressed = (last_button_state[0] & (1 << fs)) == 0;
+      // Read GPIO pin (active low: 0 = pressed, 1 = released)
+      GPIO_PinState pin_state = HAL_GPIO_ReadPin(fs_gpio[fs].port, fs_gpio[fs].pin);
+      bool pressed_now = (pin_state == GPIO_PIN_RESET); // Active low
+      bool was_pressed = (last_button_state[fs] == 0);
       
+      // Debouncing: require consistent state for DEBOUNCE_THRESHOLD reads
       if (pressed_now != was_pressed) {
-        activity = true;
-        last_activity_ms = osKernelGetTickCount();
-        
-        // Get footswitch mapping
-        uint8_t param = 0;
-        footswitch_action_t action = looper_get_footswitch_action(fs, &param);
-        
-        const char* action_name = "UNKNOWN";
-        switch (action) {
-          case FS_ACTION_NONE: action_name = "None"; break;
-          case FS_ACTION_PLAY_STOP: action_name = "Play/Stop"; break;
-          case FS_ACTION_RECORD: action_name = "Record"; break;
-          case FS_ACTION_OVERDUB: action_name = "Overdub"; break;
-          case FS_ACTION_UNDO: action_name = "Undo"; break;
-          case FS_ACTION_REDO: action_name = "Redo"; break;
-          case FS_ACTION_TAP_TEMPO: action_name = "Tap Tempo"; break;
-          case FS_ACTION_SELECT_TRACK: action_name = "Select Track"; break;
-          case FS_ACTION_TRIGGER_SCENE: action_name = "Trigger Scene"; break;
-          case FS_ACTION_MUTE_TRACK: action_name = "Mute Track"; break;
-          case FS_ACTION_SOLO_TRACK: action_name = "Solo Track"; break;
-          case FS_ACTION_CLEAR_TRACK: action_name = "Clear Track"; break;
-          case FS_ACTION_QUANTIZE_TRACK: action_name = "Quantize Track"; break;
-        }
-        
-        if (pressed_now) {
-          // Button pressed - trigger action
-          dbg_printf("[Scan #%lu] FS%d PRESSED → %s", scan_counter, fs, action_name);
-          if (param != 0 || action == FS_ACTION_TRIGGER_SCENE) {
-            dbg_printf(" (param=%d)", param);
+        debounce_counter[fs]++;
+        if (debounce_counter[fs] >= DEBOUNCE_THRESHOLD) {
+          // State confirmed, process the change
+          debounce_counter[fs] = 0;
+          last_button_state[fs] = pressed_now ? 0 : 1;
+          activity = true;
+          last_activity_ms = osKernelGetTickCount();
+          
+          // Get footswitch mapping
+          uint8_t param = 0;
+          footswitch_action_t action = looper_get_footswitch_action(fs, &param);
+          
+          const char* action_name = "UNKNOWN";
+          switch (action) {
+            case FS_ACTION_NONE: action_name = "None"; break;
+            case FS_ACTION_PLAY_STOP: action_name = "Play/Stop"; break;
+            case FS_ACTION_RECORD: action_name = "Record"; break;
+            case FS_ACTION_OVERDUB: action_name = "Overdub"; break;
+            case FS_ACTION_UNDO: action_name = "Undo"; break;
+            case FS_ACTION_REDO: action_name = "Redo"; break;
+            case FS_ACTION_TAP_TEMPO: action_name = "Tap Tempo"; break;
+            case FS_ACTION_SELECT_TRACK: action_name = "Select Track"; break;
+            case FS_ACTION_TRIGGER_SCENE: action_name = "Trigger Scene"; break;
+            case FS_ACTION_MUTE_TRACK: action_name = "Mute Track"; break;
+            case FS_ACTION_SOLO_TRACK: action_name = "Solo Track"; break;
+            case FS_ACTION_CLEAR_TRACK: action_name = "Clear Track"; break;
+            case FS_ACTION_QUANTIZE_TRACK: action_name = "Quantize Track"; break;
           }
-          dbg_print("\r\n");
           
-          // Call looper footswitch press handler
-          looper_footswitch_press(fs);
-          
-          // Display looper state for relevant tracks
-          if (action == FS_ACTION_PLAY_STOP || action == FS_ACTION_RECORD || 
-              action == FS_ACTION_OVERDUB || action == FS_ACTION_CLEAR_TRACK) {
-            uint8_t track = param;
-            if (track < 4) { // LOOPER_TRACKS = 4
-              looper_state_t state = looper_get_state(track);
-              const char* state_name = "UNKNOWN";
-              switch (state) {
-                case LOOPER_STATE_STOP: state_name = "STOP"; break;
-                case LOOPER_STATE_PLAY: state_name = "PLAY"; break;
-                case LOOPER_STATE_REC: state_name = "RECORD"; break;
-                case LOOPER_STATE_OVERDUB: state_name = "OVERDUB"; break;
-              }
-              dbg_printf("  → Track %d state: %s\r\n", track, state_name);
+          if (pressed_now) {
+            // Button pressed - trigger action
+            dbg_printf("[Scan #%lu] FS%d PRESSED → %s", scan_counter, fs, action_name);
+            if (param != 0 || action == FS_ACTION_TRIGGER_SCENE) {
+              dbg_printf(" (param=%d)", param);
             }
+            dbg_print("\r\n");
+            
+            // Call looper footswitch press handler
+            looper_footswitch_press(fs);
+            
+            // Display looper state for relevant tracks
+            if (action == FS_ACTION_PLAY_STOP || action == FS_ACTION_RECORD || 
+                action == FS_ACTION_OVERDUB || action == FS_ACTION_CLEAR_TRACK) {
+              uint8_t track = param;
+              if (track < 4) { // LOOPER_TRACKS = 4
+                looper_state_t state = looper_get_state(track);
+                const char* state_name = "UNKNOWN";
+                switch (state) {
+                  case LOOPER_STATE_STOP: state_name = "STOP"; break;
+                  case LOOPER_STATE_PLAY: state_name = "PLAY"; break;
+                  case LOOPER_STATE_REC: state_name = "RECORD"; break;
+                  case LOOPER_STATE_OVERDUB: state_name = "OVERDUB"; break;
+                }
+                dbg_printf("  → Track %d state: %s\r\n", track, state_name);
+              }
+            }
+            
+          } else {
+            // Button released
+            dbg_printf("[Scan #%lu] FS%d RELEASED\r\n", scan_counter, fs);
+            
+            // Call looper footswitch release handler
+            looper_footswitch_release(fs);
           }
-          
-        } else {
-          // Button released
-          dbg_printf("[Scan #%lu] FS%d RELEASED\r\n", scan_counter, fs);
-          
-          // Call looper footswitch release handler
-          looper_footswitch_release(fs);
         }
+      } else {
+        // State is stable, reset debounce counter
+        debounce_counter[fs] = 0;
       }
     }
-    
-    // Update last button state
-    last_button_state[0] = current_state;
     
     // Print idle status every 10 seconds if no activity
     uint32_t now_ms = osKernelGetTickCount();
     if (now_ms - last_activity_ms >= 10000 && now_ms - last_status_ms >= 10000) {
       dbg_printf("Waiting for footswitch press... (scan count: %lu)\r\n", scan_counter);
-      dbg_print("Current DIN state (byte 0): 0x");
-      dbg_print_hex8(current_state);
-      dbg_print(" (buttons 0-7)\r\n");
-      dbg_print("Expected: 0xFF = all buttons released (with pull-ups)\r\n");
-      if (current_state != 0xFF) {
-        dbg_print("WARNING: Some buttons may be pressed or inputs are stuck!\r\n");
+      dbg_print("Current GPIO states: ");
+      for (uint8_t fs = 0; fs < 8; fs++) {
+        GPIO_PinState pin_state = HAL_GPIO_ReadPin(fs_gpio[fs].port, fs_gpio[fs].pin);
+        dbg_printf("FS%d=%d ", fs, pin_state);
       }
+      dbg_print("\r\n");
+      dbg_print("Expected: All 1 (HIGH) when buttons released with pull-ups\r\n");
       dbg_print("\r\n");
       last_status_ms = now_ms;
     }
@@ -2056,9 +2079,6 @@ void module_test_footswitch_run(void)
 #else
   dbg_print_test_header("Footswitch Test");
   dbg_print("ERROR: Required modules not enabled!\r\n");
-  #if !MODULE_ENABLE_SRIO || !defined(SRIO_ENABLE)
-  dbg_print("  - SRIO module not enabled (MODULE_ENABLE_SRIO and SRIO_ENABLE)\r\n");
-  #endif
   #if !MODULE_ENABLE_LOOPER
   dbg_print("  - Looper module not enabled (MODULE_ENABLE_LOOPER)\r\n");
   #endif

@@ -32,7 +32,7 @@ MidiCore now provides a unified module testing framework that allows testing ind
 | Patch/SD | `MODULE_TEST_PATCH_SD` | Tests SD card mounting and patch loading |
 | Pressure | `MODULE_TEST_PRESSURE` | Tests I2C pressure sensor (XGZP6847) |
 | USB Host MIDI | `MODULE_TEST_USB_HOST_MIDI` | Tests USB Host MIDI device communication |
-| Footswitch | `MODULE_TEST_FOOTSWITCH` | Tests 8 footswitch mapping and looper action validation |
+| Footswitch | `MODULE_TEST_FOOTSWITCH` | Tests 8 GPIO-based footswitch mapping and looper action validation |
 
 **Note:** The table above shows **preprocessor defines** you use in your build configuration. The internal enum values (in code) have an `_ID` suffix (e.g., `MODULE_TEST_AINSER64_ID`) to avoid naming conflicts.
 
@@ -233,27 +233,36 @@ make CFLAGS+="-DMODULE_TEST_USB_HOST_MIDI=1"
 - USB device enumeration messages
 - Incoming MIDI events printed to UART
 
-### Example 10: Test Footswitch Mapping
+### Example 10: Test Footswitch Mapping (GPIO-based)
 
 ```bash
 # Compile with Footswitch test
 make CFLAGS+="-DMODULE_TEST_FOOTSWITCH=1"
 
-# Connect 8 footswitches to SRIO DIN inputs (buttons 0-7)
+# Connect 8 footswitches to GPIO pins (not SRIO)
 # Connect UART to monitor footswitch actions
 ```
 
 **Expected Output:**
+- GPIO pin configuration and status
 - Footswitch mapping configuration table
 - Button press/release events for each footswitch
 - Action execution messages (Play/Stop, Record, Overdub, etc.)
 - Looper state changes (STOP → PLAY → RECORD → OVERDUB)
-- Real-time monitoring of all 8 footswitches
+- Real-time monitoring of all 8 footswitches with debouncing
 
 **Hardware Requirements:**
 - 8 momentary footswitches (SPST-NO, normally open)
-- Connected to SRIO DIN inputs (buttons 0-7 on first byte)
-- Pull-up resistors (10kΩ) on all inputs
+- Connected to specific GPIO pins:
+  - FS0: PE2 (J10B_D3)
+  - FS1: PE4 (J10B_D4)
+  - FS2: PE5 (J10B_D5)
+  - FS3: PE6 (J10B_D6)
+  - FS4: PB8 (J10A_D0)
+  - FS5: PB9 (J10A_D1)
+  - FS6: PB10 (J10A_D2)
+  - FS7: PB11 (J10A_D3)
+- Internal pull-up resistors enabled automatically
 - UART connection for debug output (115200 baud)
 
 **Test Features:**
@@ -265,6 +274,8 @@ make CFLAGS+="-DMODULE_TEST_FOOTSWITCH=1"
 - FS5: Tap Tempo
 - FS6: Trigger Scene A (0)
 - FS7: Clear Track 0
+
+**Note:** This test uses GPIO pins directly, NOT SRIO, to avoid conflicts with controller button inputs that use the main SRIO bus.
 
 ## Production Mode (Default)
 
@@ -298,7 +309,7 @@ Some tests require specific modules to be enabled in `Config/module_config.h`:
 | `MODULE_TEST_UI` | `MODULE_ENABLE_UI`, `MODULE_ENABLE_OLED` |
 | `MODULE_TEST_PATCH_SD` | `MODULE_ENABLE_PATCH` |
 | `MODULE_TEST_PRESSURE` | `MODULE_ENABLE_PRESSURE` |
-| `MODULE_TEST_FOOTSWITCH` | `MODULE_ENABLE_SRIO`, `MODULE_ENABLE_LOOPER` |
+| `MODULE_TEST_FOOTSWITCH` | `MODULE_ENABLE_LOOPER` (GPIO-based, no SRIO required) |
 
 If required modules are not enabled, the test will idle in an infinite loop.
 

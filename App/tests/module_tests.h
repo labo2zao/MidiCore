@@ -510,20 +510,28 @@ int module_test_oled_ssd1322_run(void);
  * Comprehensive test of the footswitch mapping system (8 footswitches).
  * 
  * Tests:
- * - Footswitch input detection via SRIO DIN
+ * - Footswitch input detection via GPIO pins (not SRIO)
  * - Mapping configuration for all 13 action types
  * - Action execution (Play/Stop, Record, Overdub, Undo, Redo, etc.)
  * - Looper integration
- * - Button press/release detection
+ * - Button press/release detection with debouncing
  * - Real-time status display
  * 
  * Hardware requirements:
- * - 8 footswitches connected to SRIO DIN inputs (buttons 0-7)
- * - SRIO hardware (74HC165 shift registers)
+ * - 8 footswitches connected to GPIO pins (FS0-FS7):
+ *   - FS0: PE2 (J10B_D3)
+ *   - FS1: PE4 (J10B_D4)
+ *   - FS2: PE5 (J10B_D5)
+ *   - FS3: PE6 (J10B_D6)
+ *   - FS4: PB8 (J10A_D0)
+ *   - FS5: PB9 (J10A_D1)
+ *   - FS6: PB10 (J10A_D2)
+ *   - FS7: PB11 (J10A_D3)
+ * - Internal pull-up resistors enabled
  * - UART connection for debug output (115200 baud)
  * 
  * Test sequence:
- * 1. Initialize SRIO for button input
+ * 1. Configure GPIO pins as inputs with pull-ups
  * 2. Initialize looper module
  * 3. Configure 8 footswitch mappings to test all actions:
  *    - FS0: Play/Stop (Track 0)
@@ -534,11 +542,12 @@ int module_test_oled_ssd1322_run(void);
  *    - FS5: Tap Tempo
  *    - FS6: Trigger Scene (Scene A/0)
  *    - FS7: Clear (Track 0)
- * 4. Monitor button presses continuously
+ * 4. Monitor button presses continuously with debouncing
  * 5. Display action triggered for each footswitch press
  * 6. Display looper state changes
  * 
  * UART output format:
+ * - GPIO pin configuration
  * - Footswitch mapping table
  * - Button press/release events
  * - Action triggered for each footswitch
@@ -546,10 +555,13 @@ int module_test_oled_ssd1322_run(void);
  * 
  * Usage:
  * - Enable MODULE_TEST_FOOTSWITCH=1 in test configuration
- * - Connect 8 footswitches to SRIO DIN inputs (buttons 0-7)
+ * - Connect 8 footswitches to specified GPIO pins
  * - Connect UART to serial terminal (115200 baud)
  * - Press footswitches and observe action execution
  * - Verify each footswitch triggers correct action
+ * 
+ * Note: This test uses GPIO pins directly, NOT SRIO, to avoid
+ * conflicts with controller button inputs that use the main SRIO bus.
  * 
  * @note This function runs forever
  */
