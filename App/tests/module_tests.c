@@ -1000,10 +1000,11 @@ void module_test_midi_din_run(void)
   dbg_printf("  Velocity Scale: %d%% (%d/128)\r\n", 
              (livefx_get_velocity_scale(0) * 100) / 128,
              livefx_get_velocity_scale(0));
-  uint8_t scale_type, scale_root, scale_en;
-  livefx_get_force_scale(0, &scale_type, &scale_root, &scale_en);
+  // Note: scale variables will be declared at function scope below
+  uint8_t init_scale_type, init_scale_root, init_scale_en;
+  livefx_get_force_scale(0, &init_scale_type, &init_scale_root, &init_scale_en);
   dbg_printf("  Force-to-Scale: %s (Type:%d Root:%d)\r\n",
-             scale_en ? "ON" : "OFF", scale_type, scale_root);
+             init_scale_en ? "ON" : "OFF", init_scale_type, init_scale_root);
   dbg_print("\r\n");
 #endif
 
@@ -1021,6 +1022,14 @@ void module_test_midi_din_run(void)
   uint32_t last_idle_ms = last_poll_ms;
   uint32_t last_status_ms = last_poll_ms;
 
+#if MODULE_ENABLE_LIVEFX
+  // LiveFX state variables (function scope for access across blocks)
+  uint8_t scale_type = 0, scale_root = 0, scale_en = 0;
+  
+  // Velocity scale adjustment constant
+  #define VELOCITY_SCALE_10_PERCENT 13  // (128 * 10%) / 100% = 12.8 ≈ 13
+#endif
+
   for (;;) {
     midi_din_tick();
 
@@ -1030,6 +1039,7 @@ void module_test_midi_din_run(void)
 #if MODULE_ENABLE_LIVEFX
     if (now_ms - last_status_ms >= 10000) {
       last_status_ms = now_ms;
+      livefx_get_force_scale(0, &scale_type, &scale_root, &scale_en);
       dbg_print("\r\n--- LiveFX Status ---\r\n");
       dbg_printf("Enabled: %s | Transpose: %+d | Velocity: %d%% | Scale: %s\r\n",
                  livefx_get_enabled(0) ? "YES" : "NO",
@@ -1122,7 +1132,7 @@ void module_test_midi_din_run(void)
                 case 24:  // Velocity Scale Down
                   {
                     uint8_t scale = livefx_get_velocity_scale(0);
-                    if (scale > 13) scale -= 13;  // 10% = 12.8 ≈ 13
+                    if (scale > VELOCITY_SCALE_10_PERCENT) scale -= VELOCITY_SCALE_10_PERCENT;
                     else scale = 0;
                     livefx_set_velocity_scale(0, scale);
                     dbg_printf("[LEARN] Velocity Scale: %d%%\r\n", (scale * 100) / 128);
@@ -1132,7 +1142,7 @@ void module_test_midi_din_run(void)
                 case 25:  // Velocity Scale Up
                   {
                     uint8_t scale = livefx_get_velocity_scale(0);
-                    if (scale < 243) scale += 13;  // 10% = 12.8 ≈ 13
+                    if (scale < (255 - VELOCITY_SCALE_10_PERCENT)) scale += VELOCITY_SCALE_10_PERCENT;
                     else scale = 255;
                     livefx_set_velocity_scale(0, scale);
                     dbg_printf("[LEARN] Velocity Scale: %d%%\r\n", (scale * 100) / 128);
