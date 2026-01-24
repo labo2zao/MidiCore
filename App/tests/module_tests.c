@@ -1666,7 +1666,7 @@ void module_test_midi_din_run(void)
             if (livefx_get_enabled(0) && channel_match) {
               // Convert to router message format
               router_msg_t msg;
-              msg.type = ROUTER_MSG_SHORT;
+              msg.type = ROUTER_MSG_3B;
               msg.b0 = status;
               msg.b1 = data1;
               msg.b2 = data2;
@@ -3369,7 +3369,7 @@ void module_test_looper_run(void)
   dbg_printf("  ✓ FS3: Action=%d (Solo), Param=%d (track)\r\n", fs3_action, fs3_param);
   
   // FS4: Trigger scene 0
-  looper_set_footswitch_action(4, FS_ACTION_SCENE_TRIGGER, 0);
+  looper_set_footswitch_action(4, FS_ACTION_TRIGGER_SCENE, 0);
   uint8_t fs4_param;
   footswitch_action_t fs4_action = looper_get_footswitch_action(4, &fs4_param);
   dbg_printf("  ✓ FS4: Action=%d (Scene), Param=%d (scene)\r\n", fs4_action, fs4_param);
@@ -3467,8 +3467,8 @@ void module_test_looper_run(void)
   
   // Save to slot 0
   dbg_print("  Saving session to quick-save slot 0...\r\n");
-  int save_result = looper_quick_save(0, "Test Session");
-  if (save_result == 0) {
+  int quick_save_result = looper_quick_save(0, "Test Session");
+  if (quick_save_result == 0) {
     dbg_print("  ✓ Session saved successfully\r\n");
     
     // Check slot status
@@ -3528,7 +3528,7 @@ void module_test_looper_run(void)
     dbg_print("  ✓ Cleared slot 1\r\n");
     
   } else {
-    dbg_printf("  ✗ Save failed (error: %d)\r\n", save_result);
+    dbg_printf("  ✗ Save failed (error: %d)\r\n", quick_save_result);
     dbg_print("  → Quick-save may require additional setup\r\n");
   }
   
