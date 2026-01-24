@@ -398,7 +398,28 @@ void looper_on_router_msg(uint8_t in_node, const router_msg_t* msg) {
   if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
   for (uint8_t tr=0; tr<LOOPER_TRACKS; tr++) {
     looper_track_t* t = &g_tr[tr];
-    if (t->st != LOOPER_STATE_REC && t->st != LOOPER_STATE_OVERDUB) continue;
+    
+    // Check if track is in a recording state
+    uint8_t is_recording = (t->st == LOOPER_STATE_REC || t->st == LOOPER_STATE_OVERDUB);
+    uint8_t is_cc_only_mode = (t->st == LOOPER_STATE_OVERDUB_CC_ONLY);
+    
+    if (!is_recording && !is_cc_only_mode) continue;
+    
+    // In CC-only mode, only record CC messages to automation layer
+    if (is_cc_only_mode) {
+      if ((status & 0xF0) == 0xB0 && g_automation[tr].recording) {
+        uint8_t channel = status & 0x0F;
+        uint32_t tick = t->play_tick;
+        uint32_t step = quant_step_ticks(t->quant);
+        tick = quantize_tick(tick, step);
+        if (t->loop_len_ticks) tick %= t->loop_len_ticks;
+        
+        looper_automation_record_cc_internal(tr, msg->b1, msg->b2, channel);
+      }
+      continue;  // Skip recording to main event buffer
+    }
+    
+    // Normal recording mode (REC/OVERDUB) - record all events
     if (t->count >= LOOPER_MAX_EVENTS) continue;
 
     uint32_t tick = (t->st == LOOPER_STATE_REC) ? t->write_tick : t->play_tick;
@@ -499,10 +520,11 @@ void looper_tick_1ms(void) {
       if (t->write_tick > 0x7FFFFFFFu) t->write_tick = 0x7FFFFFFFu;
     }
 
-    if (t->st == LOOPER_STATE_PLAY || t->st == LOOPER_STATE_OVERDUB) {
+    if (t->st == LOOPER_STATE_PLAY || t->st == LOOPER_STATE_OVERDUB || t->st == LOOPER_STATE_OVERDUB_CC_ONLY) {
       if (t->loop_len_ticks == 0) continue;
 
       for (uint32_t k=0; k<adv; k++) {
+        // In CC-only mode, still play back existing MIDI events
         emit_due_events(t, tr);
         
         // Process automation playback

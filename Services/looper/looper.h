@@ -64,11 +64,23 @@ extern "C" {
  * - Invalid parameters return default/error values
  */
 
+/**
+ * @brief Looper states for each track
+ * 
+ * - LOOPER_STATE_STOP: Track stopped, no playback
+ * - LOOPER_STATE_REC: Initial recording of notes and CC
+ * - LOOPER_STATE_PLAY: Playback only
+ * - LOOPER_STATE_OVERDUB: Add more notes/CC to existing loop
+ * - LOOPER_STATE_OVERDUB_CC_ONLY: Re-record CC automation only while notes keep looping
+ *   (enables re-recording CC automation layer without affecting MIDI notes)
+ */
+
 typedef enum {
   LOOPER_STATE_STOP = 0,
   LOOPER_STATE_REC,
   LOOPER_STATE_PLAY,
-  LOOPER_STATE_OVERDUB
+  LOOPER_STATE_OVERDUB,
+  LOOPER_STATE_OVERDUB_CC_ONLY  // Re-record only CC automation while notes keep looping
 } looper_state_t;
 
 typedef enum {
