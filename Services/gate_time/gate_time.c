@@ -5,6 +5,7 @@
 
 #include "Services/gate_time/gate_time.h"
 #include <string.h>
+#include <stdint.h>
 
 #define DEFAULT_PERCENT 100
 #define MIN_PERCENT 10
@@ -251,11 +252,19 @@ uint8_t gate_time_process_note_on(uint8_t track, uint8_t note, uint8_t velocity,
     // Calculate gate time (use default 500ms for now, can be updated via note off)
     uint32_t gate_length = gate_time_calculate_length(track, 500);
     
-    // Store note
+    // Store note with overflow protection
+    uint32_t note_off_time;
+    if (time_ms > (UINT32_MAX - gate_length)) {
+        // Would overflow, use max value
+        note_off_time = UINT32_MAX;
+    } else {
+        note_off_time = time_ms + gate_length;
+    }
+    
     cfg->notes[slot].note = note;
     cfg->notes[slot].channel = channel;
     cfg->notes[slot].note_on_time_ms = time_ms;
-    cfg->notes[slot].note_off_time_ms = time_ms + gate_length;
+    cfg->notes[slot].note_off_time_ms = note_off_time;
     cfg->notes[slot].active = 1;
     cfg->note_count++;
     cfg->total_notes_processed++;

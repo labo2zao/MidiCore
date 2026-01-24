@@ -52,8 +52,14 @@ static envelope_cc_callback_t g_cc_callback = NULL;
  */
 static uint8_t calculate_envelope_value(uint8_t track, uint32_t time_ms) {
     envelope_cc_config_t* cfg = &g_envelope_config[track];
+    
+    // Check for time wraparound or uninitialized stage_start_time
+    if (time_ms < cfg->stage_start_time) {
+        return cfg->min_value;
+    }
+    
     uint32_t elapsed = time_ms - cfg->stage_start_time;
-    uint16_t value = 0;
+    uint32_t value = 0;
     
     switch (cfg->stage) {
         case ENVELOPE_STAGE_IDLE:
@@ -69,9 +75,9 @@ static uint8_t calculate_envelope_value(uint8_t track, uint32_t time_ms) {
                 cfg->stage = ENVELOPE_STAGE_DECAY;
                 cfg->stage_start_time = time_ms;
             } else {
-                // Linear attack from min to max
-                value = cfg->min_value + 
-                        ((cfg->max_value - cfg->min_value) * elapsed) / cfg->attack_ms;
+                // Linear attack from min to max (use 32-bit to prevent overflow)
+                uint32_t range = cfg->max_value - cfg->min_value;
+                value = cfg->min_value + (range * elapsed) / cfg->attack_ms;
             }
             break;
             
@@ -84,12 +90,12 @@ static uint8_t calculate_envelope_value(uint8_t track, uint32_t time_ms) {
                 cfg->stage = ENVELOPE_STAGE_SUSTAIN;
                 cfg->stage_start_time = time_ms;
             } else {
-                // Linear decay from max to sustain
+                // Linear decay from max to sustain (use 32-bit to prevent overflow)
                 // Handle case where sustain > max
                 if (cfg->sustain_level > cfg->max_value) {
                     value = cfg->sustain_level;
                 } else {
-                    uint16_t range = cfg->max_value - cfg->sustain_level;
+                    uint32_t range = cfg->max_value - cfg->sustain_level;
                     value = cfg->max_value - (range * elapsed) / cfg->decay_ms;
                 }
             }
@@ -109,13 +115,13 @@ static uint8_t calculate_envelope_value(uint8_t track, uint32_t time_ms) {
                 cfg->stage = ENVELOPE_STAGE_IDLE;
                 cfg->stage_start_time = time_ms;
             } else {
-                // Linear release from sustain to min
-                uint16_t start_value = cfg->sustain_level;
+                // Linear release from sustain to min (use 32-bit to prevent overflow)
+                uint32_t start_value = cfg->sustain_level;
                 // Handle case where min > sustain
                 if (cfg->min_value > start_value) {
                     value = cfg->min_value;
                 } else {
-                    uint16_t range = start_value - cfg->min_value;
+                    uint32_t range = start_value - cfg->min_value;
                     value = start_value - (range * elapsed) / cfg->release_ms;
                 }
             }
