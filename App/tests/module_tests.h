@@ -211,8 +211,190 @@ void module_test_router_run(void);
 
 /**
  * @brief Test Looper module
- * Tests recording, playback, overdub, quantization
- * @note This function runs forever
+ * 
+ * Comprehensive automated test of the MIDI Looper module covering all features:
+ * 
+ * **Core Features (Phases 1-7):**
+ * - Multi-track recording and playback (4 tracks)
+ * - Recording, playback, and overdub modes
+ * - Quantization modes (OFF, 1/16, 1/8, 1/4 notes)
+ * - Mute/Solo track controls
+ * - Scene management (8 scenes with track snapshots)
+ * - Transport controls (tempo, time signature, tap tempo)
+ * - Advanced features (LFO, humanizer, undo/redo)
+ * 
+ * **Extended Features (Phases 8-11):**
+ * - Step mode with cursor control (step read/write)
+ * - Track randomization (velocity/timing variations)
+ * - Multi-track simultaneous playback
+ * - Save/Load tracks to SD card
+ * 
+ * **Advanced Testing (Phases 12-17):**
+ * - Scene chaining and automation
+ * - Router integration (multi-source MIDI)
+ * - Stress testing (rapid input, buffer limits)
+ * - Error recovery and edge cases
+ * - Performance benchmarks
+ * - Humanizer/LFO modulation validation
+ * 
+ * Test sequence (27 phases total, ~190-250s runtime):
+ * 
+ * **Phase 1-7: Core Features**
+ * 1. Initialize looper and configure transport (120 BPM, 4/4 time)
+ * 2. Test basic recording with MIDI note sequence (C4, E4, G4)
+ * 3. Test playback and event export
+ * 4. Test overdub mode (add C5 to existing loop)
+ * 5. Test quantization modes and verification
+ * 6. Test mute/solo controls and audibility checks
+ * 7. Test scene save/load and scene switching
+ * 
+ * **Phase 8-11: Extended Features**
+ * 8. Test advanced features (tempo tap, humanizer, LFO, undo/redo)
+ * 9. **Test step mode - manual cursor control (step read/write)**
+ *    - Enable/disable step mode
+ *    - Step forward event-by-event (step read)
+ *    - Step forward by fixed ticks
+ *    - Step backward navigation
+ *    - Direct cursor positioning (step write)
+ *    - Step size configuration
+ * 10. **Test track randomization**
+ *     - Configure randomization parameters
+ *     - Apply velocity and timing randomization
+ *     - Verify event modifications
+ * 11. **Test multi-track simultaneous operation**
+ *     - Record different patterns on tracks 1-3
+ *     - Test multi-track mute/solo
+ *     - Validate all tracks playing together
+ * 
+ * **Phase 12-17: Advanced Testing**
+ * 12. **Test save/load to SD card**
+ *     - Save track to file
+ *     - Clear and reload track
+ *     - Verify event restoration
+ * 13. **Test scene chaining**
+ *     - Configure scene chain (0→1→2→0)
+ *     - Test automatic scene transitions
+ *     - Verify chain configuration and enable/disable
+ * 14. **Test router integration**
+ *     - MIDI recording from DIN IN, USB Device, USB Host
+ *     - Verify multi-source event routing
+ *     - Validate event attribution
+ * 15. **Test stress conditions**
+ *     - Rapid MIDI note sequence (50ms intervals)
+ *     - Near-buffer capacity (100+ events)
+ *     - Extended recording time (16 beats, 8 seconds)
+ * 16. **Test error recovery**
+ *     - Invalid track indices
+ *     - Rapid state transitions
+ *     - Operations on empty tracks
+ *     - Extreme parameter values
+ *     - Concurrent track operations
+ * 17. **Test performance benchmarks**
+ *     - Event recording speed (ms per event)
+ *     - Event export performance
+ *     - State transition latency
+ *     - Scene operation timing
+ * 
+ * **Phase 18: Humanizer/LFO Validation**
+ * 18. **Test humanizer/LFO validation**
+ *     - Record identical notes
+ *     - Apply humanization and compare
+ *     - Validate velocity/timing variations
+ *     - Test LFO configuration and BPM sync
+ * 
+ * **Phase 19-25: Professional Features**
+ * 19. **Test global transpose**
+ *     - Transpose all tracks up/down by semitones
+ *     - Verify transpose settings and read-back
+ * 20. **Test track quantization**
+ *     - Record off-beat notes
+ *     - Apply quantization (1/16 note = 24 ticks)
+ *     - Compare before/after tick positions
+ * 21. **Test copy/paste**
+ *     - Copy track data to clipboard
+ *     - Paste to different track
+ *     - Verify event count matches
+ * 22. **Test footswitch control**
+ *     - Configure 5 footswitch actions (play/stop, record, mute, solo, scene)
+ *     - Simulate footswitch press/release
+ *     - Verify state changes
+ * 23. **Test MIDI learn**
+ *     - Start MIDI learn mode
+ *     - Map CC#80 to Play/Stop
+ *     - Map Note C5 to Mute Track 0
+ *     - Test cancel functionality
+ *     - Display mapping count
+ * 24. **Test quick-save/load**
+ *     - Save session to slot (tempo, scene, track data)
+ *     - Modify current session
+ *     - Load from slot and verify restoration
+ *     - Test 4 slots (0-3)
+ *     - Clear slot operation
+ * 25. **Test event editing**
+ *     - Export events for examination
+ *     - Edit velocity (80→127)
+ *     - Edit tick position
+ *     - Edit note pitch (E4→G4)
+ *     - Verify changes applied
+ * 
+ * **Phase 27: CC Automation Layer**
+ * 27. **Test CC Automation Layer (Production API)**
+ *     - Start/stop automation recording
+ *     - Record CC messages (CC10/Pan, CC1/Mod Wheel, CC7/Volume)
+ *     - Export automation events (tick, CC number, value, channel)
+ *     - Manual event addition
+ *     - Enable/disable automation playback
+ *     - Synchronized CC playback with loop (2 seconds demonstration)
+ *     - Clear automation functionality
+ * 
+ * **Phase 28: Continuous Monitor**
+ * After phase 27, enters continuous monitoring mode that:
+ * - Allows live MIDI recording/playback via DIN IN or USB
+ * - Prints status updates every 30 seconds
+ * - Shows track states, event counts, mute/solo status
+ * 
+ * Hardware requirements:
+ * - UART connection for debug output (115200 baud)
+ * - Optional: MIDI DIN or USB input for live testing
+ * - Optional: MIDI output to hear playback
+ * - Optional: SD card for save/load testing
+ * - Optional: Router module for integration testing
+ * - Optional: Footswitches for footswitch control testing
+ * 
+ * Expected duration: ~190-250 seconds for automated tests (27 phases)
+ * 
+ * Output: Comprehensive UART debug log with:
+ * - Phase-by-phase progress and results
+ * - MIDI event details (note values, velocities, timing)
+ * - Track state information (recording/playback/overdub)
+ * - Scene management and chaining operations
+ * - Step mode cursor positions and navigation
+ * - Randomization effects (before/after comparison)
+ * - Multi-track status and interactions
+ * - Save/load results and verification
+ * - Router integration (multi-source events)
+ * - Stress test results (capacity, timing)
+ * - Error recovery validation
+ * - Performance benchmark measurements
+ * - Humanizer/LFO modulation validation
+ * - Global transpose operations
+ * - Track quantization (before/after comparison)
+ * - Copy/paste verification
+ * - Footswitch action configuration
+ * - MIDI learn mapping creation
+ * - Quick-save/load session management
+ * - Event editing validation
+ * - **CC Automation Layer (production API)**
+ * - **CC recording/playback synchronized with loop**
+ * - **Manual CC event addition and export**
+ * - Test summary with PASS/FAIL results for all 27 phases
+ * 
+ * Usage: Enable MODULE_TEST_LOOPER=1 in test configuration
+ * Connect UART terminal (115200 baud) to observe test execution
+ * Optionally connect MIDI input/output for live interaction
+ * Optionally connect SD card for save/load testing
+ * 
+ * @note This function runs forever after completing automated tests
  */
 void module_test_looper_run(void);
 

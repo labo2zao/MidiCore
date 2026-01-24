@@ -95,6 +95,17 @@ typedef struct {
 
 static quick_save_slot_t g_quick_save_slots[NUM_QUICK_SAVE_SLOTS];
 
+// CC Automation Layer
+typedef struct {
+  uint8_t recording;
+  uint8_t playback_enabled;
+  uint32_t event_count;
+  uint32_t playback_idx;  // Current playback position in events array
+  looper_automation_event_t events[LOOPER_AUTOMATION_MAX_EVENTS];
+} looper_automation_t;
+
+static looper_automation_t g_automation[LOOPER_TRACKS];
+
 static uint32_t g_ticks_per_ms_q16 = 0;
 static uint32_t g_acc_q16 = 0;
 
@@ -394,6 +405,12 @@ void looper_on_router_msg(uint8_t in_node, const router_msg_t* msg) {
     e->b0 = msg->b0;
     e->b1 = msg->b1;
     e->b2 = msg->b2;
+    
+    // Check if this is a CC message and automation recording is active
+    if ((status & 0xF0) == 0xB0 && g_automation[tr].recording) {
+      uint8_t channel = status & 0x0F;
+      looper_automation_record_cc_internal(tr, msg->b1, msg->b2, channel);
+    }
   }
   if (g_mutex) osMutexRelease(g_mutex);
 }
@@ -479,6 +496,10 @@ void looper_tick_1ms(void) {
 
       for (uint32_t k=0; k<adv; k++) {
         emit_due_events(t, tr);
+        
+        // Process automation playback
+        looper_automation_process_playback(tr);
+        
         t->play_tick++;
         if (t->play_tick >= t->loop_len_ticks) {
           send_all_note_off(t);
@@ -3258,6 +3279,205 @@ void looper_reset_lfo_phase(uint8_t track) {
   if (track >= LOOPER_TRACKS) return;
   lfo_reset_phase(track);
 }
+
+// ---- CC Automation Layer Implementation ----
+
+/**
+ * @brief Start recording CC automation for a track
+ */
+void looper_automation_start_record(uint8_t track) {
+  if (track >= LOOPER_TRACKS) return;
+  
+  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  g_automation[track].recording = 1;
+  if (g_mutex) osMutexRelease(g_mutex);
+}
+
+/**
+ * @brief Stop recording CC automation for a track
+ */
+void looper_automation_stop_record(uint8_t track) {
+  if (track >= LOOPER_TRACKS) return;
+  
+  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  g_automation[track].recording = 0;
+  if (g_mutex) osMutexRelease(g_mutex);
+}
+
+/**
+ * @brief Check if automation recording is active
+ */
+uint8_t looper_automation_is_recording(uint8_t track) {
+  if (track >= LOOPER_TRACKS) return 0;
+  return g_automation[track].recording;
+}
+
+/**
+ * @brief Enable/disable automation playback for a track
+ */
+void looper_automation_enable_playback(uint8_t track, uint8_t enable) {
+  if (track >= LOOPER_TRACKS) return;
+  
+  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  g_automation[track].playback_enabled = enable ? 1 : 0;
+  if (enable) {
+    // Reset playback position to start from beginning
+    g_automation[track].playback_idx = 0;
+  }
+  if (g_mutex) osMutexRelease(g_mutex);
+}
+
+/**
+ * @brief Check if automation playback is enabled
+ */
+uint8_t looper_automation_is_playback_enabled(uint8_t track) {
+  if (track >= LOOPER_TRACKS) return 0;
+  return g_automation[track].playback_enabled;
+}
+
+/**
+ * @brief Clear all automation events for a track
+ */
+void looper_automation_clear(uint8_t track) {
+  if (track >= LOOPER_TRACKS) return;
+  
+  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  g_automation[track].event_count = 0;
+  g_automation[track].recording = 0;
+  g_automation[track].playback_idx = 0;
+  memset(g_automation[track].events, 0, sizeof(g_automation[track].events));
+  if (g_mutex) osMutexRelease(g_mutex);
+}
+
+/**
+ * @brief Get number of automation events for a track
+ */
+uint32_t looper_automation_get_event_count(uint8_t track) {
+  if (track >= LOOPER_TRACKS) return 0;
+  return g_automation[track].event_count;
+}
+
+/**
+ * @brief Export automation events for inspection/editing
+ */
+uint32_t looper_automation_export_events(uint8_t track, 
+                                          looper_automation_event_t* out, 
+                                          uint32_t max) {
+  if (track >= LOOPER_TRACKS || !out || max == 0) return 0;
+  
+  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  
+  uint32_t count = g_automation[track].event_count;
+  if (count > max) count = max;
+  
+  memcpy(out, g_automation[track].events, count * sizeof(looper_automation_event_t));
+  
+  if (g_mutex) osMutexRelease(g_mutex);
+  
+  return count;
+}
+
+/**
+ * @brief Manually add a CC automation event
+ */
+int looper_automation_add_event(uint8_t track, uint32_t tick, 
+                                 uint8_t cc_num, uint8_t cc_value, 
+                                 uint8_t channel) {
+  if (track >= LOOPER_TRACKS) return -1;
+  if (cc_num > 127 || cc_value > 127 || channel > 15) return -1;
+  
+  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  
+  if (g_automation[track].event_count >= LOOPER_AUTOMATION_MAX_EVENTS) {
+    if (g_mutex) osMutexRelease(g_mutex);
+    return -1;  // Buffer full
+  }
+  
+  // Add event
+  uint32_t idx = g_automation[track].event_count;
+  g_automation[track].events[idx].tick = tick;
+  g_automation[track].events[idx].cc_num = cc_num;
+  g_automation[track].events[idx].cc_value = cc_value;
+  g_automation[track].events[idx].channel = channel;
+  g_automation[track].event_count++;
+  
+  // Sort events by tick (simple insertion sort for now)
+  for (uint32_t i = idx; i > 0; i--) {
+    if (g_automation[track].events[i].tick < g_automation[track].events[i-1].tick) {
+      looper_automation_event_t temp = g_automation[track].events[i];
+      g_automation[track].events[i] = g_automation[track].events[i-1];
+      g_automation[track].events[i-1] = temp;
+    } else {
+      break;
+    }
+  }
+  
+  if (g_mutex) osMutexRelease(g_mutex);
+  
+  return 0;
+}
+
+/**
+ * @brief Internal: Record CC automation event (called from looper_on_router_msg)
+ * This function should be called when a CC message is received during automation recording
+ */
+static void looper_automation_record_cc_internal(uint8_t track, uint8_t cc_num, 
+                                                  uint8_t cc_value, uint8_t channel) {
+  if (track >= LOOPER_TRACKS) return;
+  if (!g_automation[track].recording) return;
+  if (g_automation[track].event_count >= LOOPER_AUTOMATION_MAX_EVENTS) return;
+  
+  // Get current tick position
+  uint32_t current_tick = g_tr[track].write_tick;
+  
+  // Add the CC event
+  looper_automation_add_event(track, current_tick, cc_num, cc_value, channel);
+}
+
+/**
+ * @brief Internal: Process automation playback (called from looper_tick_1ms)
+ * This function sends CC events that should be played at the current tick
+ */
+static void looper_automation_process_playback(uint8_t track) {
+  if (track >= LOOPER_TRACKS) return;
+  if (!g_automation[track].playback_enabled) return;
+  if (g_automation[track].event_count == 0) return;
+  if (g_tr[track].st != LOOPER_STATE_PLAY && g_tr[track].st != LOOPER_STATE_OVERDUB) return;
+  
+  uint32_t current_tick = g_tr[track].play_tick;
+  
+  // Handle loop wraparound - reset playback index to beginning
+  if (g_automation[track].playback_idx > 0 && current_tick == 0) {
+    g_automation[track].playback_idx = 0;
+  }
+  
+  // Process events at current tick (efficient: only check events starting from playback_idx)
+  while (g_automation[track].playback_idx < g_automation[track].event_count) {
+    looper_automation_event_t* evt = &g_automation[track].events[g_automation[track].playback_idx];
+    
+    // If this event is in the future, stop processing
+    if (evt->tick > current_tick) {
+      break;
+    }
+    
+    // Event is at or before current tick - send it if exactly at current tick
+    if (evt->tick == current_tick) {
+      // Send CC message
+      router_msg_t msg;
+      msg.type = ROUTER_MSG_3B;
+      msg.b0 = 0xB0 | (evt->channel & 0x0F);  // CC status + channel
+      msg.b1 = evt->cc_num;
+      msg.b2 = evt->cc_value;
+      
+      // Send via delay queue (same as other looper events)
+      midi_delayq_send(ROUTER_NODE_LOOPER, &msg, 0);
+    }
+    
+    // Move to next event
+    g_automation[track].playback_idx++;
+  }
+}
+
 
 
 
