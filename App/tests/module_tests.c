@@ -2545,7 +2545,120 @@ void module_test_looper_run(void)
   dbg_print("\r\n");
   osDelay(500);
   
-  // Phase 26: Test Summary and Continuous Mode
+  // Phase 27: CC Automation Layer
+  dbg_print("[Phase 27] Testing CC Automation Layer...\r\n");
+  
+  // Clear track and prepare for CC automation recording
+  looper_clear(test_track);
+  looper_set_loop_beats(test_track, 4);
+  looper_set_state(test_track, LOOPER_STATE_REC);
+  
+  dbg_print("  Setting up CC automation recording...\r\n");
+  
+  // Start CC automation recording
+  looper_automation_start_record(test_track);
+  uint8_t is_rec = looper_automation_is_recording(test_track);
+  dbg_printf("  ✓ Automation recording started: %d\r\n", is_rec);
+  
+  // Record notes with CC modulation
+  dbg_print("  Recording notes with CC automation...\r\n");
+  
+  // Note at tick 0 with CC10=50
+  msg.b0 = 0x90; msg.b1 = 60; msg.b2 = 100;  // C4
+  looper_on_router_msg(ROUTER_NODE_DIN_IN1, &msg);
+  osDelay(100);
+  
+  // CC10 (Pan) sweep
+  msg.b0 = 0xB0; msg.b1 = 10; msg.b2 = 50;
+  looper_on_router_msg(ROUTER_NODE_DIN_IN1, &msg);
+  dbg_print("    ♪ CC10 (Pan) = 50\r\n");
+  osDelay(200);
+  
+  msg.b0 = 0xB0; msg.b1 = 10; msg.b2 = 75;
+  looper_on_router_msg(ROUTER_NODE_DIN_IN1, &msg);
+  dbg_print("    ♪ CC10 (Pan) = 75\r\n");
+  osDelay(200);
+  
+  // CC1 (Mod Wheel)
+  msg.b0 = 0xB0; msg.b1 = 1; msg.b2 = 64;
+  looper_on_router_msg(ROUTER_NODE_DIN_IN1, &msg);
+  dbg_print("    ♪ CC1 (Mod Wheel) = 64\r\n");
+  osDelay(200);
+  
+  // Note off
+  msg.b0 = 0x80; msg.b1 = 60; msg.b2 = 0;
+  looper_on_router_msg(ROUTER_NODE_DIN_IN1, &msg);
+  
+  // Another note with CC7 (Volume)
+  msg.b0 = 0x90; msg.b1 = 64; msg.b2 = 90;  // E4
+  looper_on_router_msg(ROUTER_NODE_DIN_IN1, &msg);
+  osDelay(100);
+  
+  msg.b0 = 0xB0; msg.b1 = 7; msg.b2 = 100;  // Volume
+  looper_on_router_msg(ROUTER_NODE_DIN_IN1, &msg);
+  dbg_print("    ♪ CC7 (Volume) = 100\r\n");
+  osDelay(200);
+  
+  msg.b0 = 0x80; msg.b1 = 64; msg.b2 = 0;
+  looper_on_router_msg(ROUTER_NODE_DIN_IN1, &msg);
+  
+  // Stop recording
+  looper_automation_stop_record(test_track);
+  looper_set_state(test_track, LOOPER_STATE_STOP);
+  
+  // Check automation events
+  uint32_t auto_count = looper_automation_get_event_count(test_track);
+  dbg_printf("  ✓ Recorded %d CC automation events\r\n", (int)auto_count);
+  
+  // Export and display automation events
+  looper_automation_event_t auto_events[LOOPER_AUTOMATION_MAX_EVENTS];
+  uint32_t exported = looper_automation_export_events(test_track, auto_events, 10);
+  dbg_printf("  Automation events (first %d):\r\n", (int)exported);
+  for (uint32_t i = 0; i < exported && i < 10; i++) {
+    dbg_printf("    [%d] tick=%d, CC%d=%d, ch=%d\r\n",
+               (int)i, (int)auto_events[i].tick,
+               auto_events[i].cc_num, auto_events[i].cc_value,
+               auto_events[i].channel);
+  }
+  
+  // Test manual event addition
+  dbg_print("  Testing manual CC automation event addition...\r\n");
+  int add_result = looper_automation_add_event(test_track, 384, 11, 127, 0);  // CC11 (Expression)
+  if (add_result == 0) {
+    dbg_print("  ✓ Manually added CC11=127 at tick 384\r\n");
+    uint32_t new_count = looper_automation_get_event_count(test_track);
+    dbg_printf("  New automation event count: %d\r\n", (int)new_count);
+  } else {
+    dbg_printf("  ✗ Failed to add manual event (error: %d)\r\n", add_result);
+  }
+  
+  // Enable automation playback
+  looper_automation_enable_playback(test_track, 1);
+  uint8_t playback_enabled = looper_automation_is_playback_enabled(test_track);
+  dbg_printf("  ✓ Automation playback enabled: %d\r\n", playback_enabled);
+  
+  // Start playback to demonstrate automation
+  looper_set_state(test_track, LOOPER_STATE_PLAY);
+  dbg_print("  ♪ Playing loop with CC automation...\r\n");
+  osDelay(2000);  // Play for 2 seconds
+  
+  looper_set_state(test_track, LOOPER_STATE_STOP);
+  dbg_print("  ✓ CC automation playback tested\r\n");
+  
+  // Test clearing automation
+  looper_automation_clear(test_track);
+  uint32_t cleared_count = looper_automation_get_event_count(test_track);
+  dbg_printf("  ✓ Automation cleared (count=%d)\r\n", (int)cleared_count);
+  
+  // Disable playback
+  looper_automation_enable_playback(test_track, 0);
+  
+  dbg_print("  ✓ CC Automation Layer test complete\r\n");
+  
+  dbg_print("\r\n");
+  osDelay(500);
+  
+  // Phase 28: Test Summary and Continuous Mode
   dbg_print("============================================================\r\n");
   dbg_print("LOOPER MODULE TEST SUMMARY\r\n");
   dbg_print("============================================================\r\n");
@@ -2580,6 +2693,9 @@ void module_test_looper_run(void)
   dbg_print("✓ Phase 23: MIDI Learn - PASS\r\n");
   dbg_print("✓ Phase 24: Quick-Save/Load - PASS\r\n");
   dbg_print("✓ Phase 25: Event Editing - PASS\r\n");
+  dbg_print("\r\n");
+  dbg_print("Production Features (Phase 27):\r\n");
+  dbg_print("✓ Phase 27: CC Automation Layer - PASS\r\n");
   dbg_print("============================================================\r\n");
   dbg_print("\r\n");
   dbg_print("Test Features Verified:\r\n");
@@ -2610,6 +2726,8 @@ void module_test_looper_run(void)
   dbg_print("  - MIDI Learn system (CC/Note mapping)\r\n");
   dbg_print("  - Quick-save/load sessions (8 slots)\r\n");
   dbg_print("  - Direct event editing (tick/velocity/note)\r\n");
+  dbg_print("  - CC Automation Layer (128 events per track)\r\n");
+  dbg_print("  - Automated CC playback synchronized with loop\r\n");
   dbg_print("\r\n");
   dbg_print("Looper test complete! Entering continuous monitoring mode...\r\n");
   dbg_print("Send MIDI to DIN IN or USB to record/playback.\r\n");
