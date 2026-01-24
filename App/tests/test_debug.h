@@ -239,6 +239,12 @@ void gdb_ptin_SPI_Pinout(const char* label,
                          GPIO_TypeDef* rc1_port, uint16_t rc1_pin,
                          GPIO_TypeDef* rc2_port, uint16_t rc2_pin);
 
+/**
+ * @brief Update OLED mirror display (if enabled)
+ * Call periodically to refresh OLED with mirrored debug output
+ */
+void dbg_mirror_update(void);
+
 #ifdef __cplusplus
 }
 #endif

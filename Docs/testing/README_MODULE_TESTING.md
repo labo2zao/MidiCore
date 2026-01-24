@@ -25,8 +25,8 @@ MidiCore now provides a unified module testing framework that allows testing ind
 |-----------|--------|-------------|
 | AINSER64 | `MODULE_TEST_AINSER64` | Tests 64-channel analog input (MCP3208 + mux) |
 | SRIO | `MODULE_TEST_SRIO` | Tests shift register DIN/DOUT (74HC165/595) |
-| MIDI DIN | `MODULE_TEST_MIDI_DIN` | Tests MIDI DIN input/output via UART |
-| Router | `MODULE_TEST_ROUTER` | Comprehensive MIDI routing matrix test (8 phases) |
+| MIDI DIN | `MODULE_TEST_MIDI_DIN` | Tests MIDI DIN I/O with LiveFX transform and MIDI learn |
+| Router | `MODULE_TEST_ROUTER` | Tests MIDI router and message forwarding |
 | Looper | `MODULE_TEST_LOOPER` | Tests MIDI looper recording/playback |
 | UI | `MODULE_TEST_UI` | Comprehensive automated UI page navigation & OLED test (all 29 modes) |
 | Patch/SD | `MODULE_TEST_PATCH_SD` | Tests SD card mounting and patch loading |
@@ -165,21 +165,47 @@ make CFLAGS+="-DMODULE_TEST_ROUTER=1"
 - Route labels and modification
 - Real-time route changes
 
-### Example 4: Test MIDI DIN
+### Example 4: Test MIDI DIN with LiveFX and MIDI Learn
 
 ```bash
-# Compile with MIDI DIN test
+# Compile with MIDI DIN test (includes LiveFX and MIDI learn)
 make CFLAGS+="-DMODULE_TEST_MIDI_DIN"
 
 # Optional: choose DIN UART port (0-3) if needed
 make CFLAGS+="-DMODULE_TEST_MIDI_DIN -DTEST_MIDI_DIN_UART_PORT=2"
 
-# Send MIDI notes into the DIN input and monitor the debug output
+# The test includes:
+# - MIDI I/O: Receives from DIN IN1, sends to DIN OUT1
+# - LiveFX Transform: Real-time transpose, velocity scaling, force-to-scale
+# - MIDI Learn: Map CC messages to LiveFX parameters
 ```
 
 **Expected Output:**
 - Incoming MIDI DIN events logged over the debug UART
-- MIDI echo/through behavior if enabled by the test
+- MIDI messages transformed by LiveFX (when enabled)
+- Real-time parameter control via CC messages (MIDI learn)
+
+**MIDI Learn Commands (Channel 1):**
+- CC 20: Enable/Disable LiveFX (value > 64 = enabled)
+- CC 21: Transpose down (-1 semitone)
+- CC 22: Transpose up (+1 semitone)
+- CC 23: Transpose reset (0)
+- CC 24: Velocity scale down (-10%)
+- CC 25: Velocity scale up (+10%)
+- CC 26: Velocity scale reset (100%)
+- CC 27: Force-to-scale toggle (value > 64 = on)
+- CC 28: Scale type (0-11)
+- CC 29: Scale root (0=C, 1=C#, ..., 11=B)
+
+**Test Workflow:**
+1. Connect MIDI controller to DIN IN1
+2. Connect DIN OUT1 to synth or DAW
+3. Send CC 20 (value 127) to enable LiveFX
+4. Send CC 22 multiple times to transpose notes up
+5. Play notes on controller - they will be transposed
+6. Send CC 27 (value 127) to enable force-to-scale
+7. Play notes - they will snap to the selected scale
+8. Monitor UART debug output for detailed status
 
 ### Example 5: Test Looper
 
@@ -303,7 +329,7 @@ Some tests require specific modules to be enabled in `Config/module_config.h`:
 |------|------------------|
 | `MODULE_TEST_AINSER64` | `MODULE_ENABLE_AINSER64`, `MODULE_ENABLE_SPI_BUS` |
 | `MODULE_TEST_SRIO` | `MODULE_ENABLE_SRIO`, `MODULE_ENABLE_SPI_BUS` |
-| `MODULE_TEST_MIDI_DIN` | `MODULE_ENABLE_MIDI_DIN` |
+| `MODULE_TEST_MIDI_DIN` | `MODULE_ENABLE_MIDI_DIN`, `MODULE_ENABLE_ROUTER`, `MODULE_ENABLE_LIVEFX` |
 | `MODULE_TEST_ROUTER` | `MODULE_ENABLE_ROUTER` |
 | `MODULE_TEST_LOOPER` | `MODULE_ENABLE_LOOPER` |
 | `MODULE_TEST_UI` | `MODULE_ENABLE_UI`, `MODULE_ENABLE_OLED` |

@@ -4,6 +4,7 @@
  */
 
 #include "App/tests/test_debug.h"
+#include "App/tests/test_oled_mirror.h"
 #include "main.h"
 #include <string.h>
 #include <stdio.h>
@@ -64,6 +65,11 @@ void dbg_print(const char* str)
   size_t len = strlen(str);
   if (len > 0) {
     HAL_UART_Transmit(huart, (const uint8_t*)str, len, 1000);
+    
+    // Mirror to OLED if enabled
+    if (oled_mirror_is_enabled()) {
+      oled_mirror_print(str);
+    }
   }
 }
 
@@ -375,4 +381,15 @@ void gdb_ptin_SPI_Pinout(const char* label,
   dbg_print_gpio_pin("SPI MOSI", mosi_port, mosi_pin, hspi);
   dbg_print_gpio_pin("SPI RC1", rc1_port, rc1_pin, hspi);
   dbg_print_gpio_pin("SPI RC2", rc2_port, rc2_pin, hspi);
+}
+
+// =============================================================================
+// OLED MIRROR SUPPORT
+// =============================================================================
+
+void dbg_mirror_update(void)
+{
+  if (oled_mirror_is_enabled()) {
+    oled_mirror_update();
+  }
 }

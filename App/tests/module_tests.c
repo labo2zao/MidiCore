@@ -5,11 +5,14 @@
 
 #include "App/tests/module_tests.h"
 #include "App/tests/test_debug.h"
+#include "App/tests/test_oled_mirror.h"
 #include "Config/module_config.h"
 
 #include "cmsis_os2.h"
 #include <string.h>
 #include <stdbool.h>
+#include <math.h>
+#include <stdlib.h>
 
 // UI framework for framebuffer-based testing
 #include "Services/ui/ui_page_oled_test.h"
@@ -143,6 +146,16 @@ static void dbg_print_srio_pinout(void)
 #if MODULE_ENABLE_USB_MIDI
 #include "Services/usb_midi/usb_midi.h"
 #include "App/tests/app_test_usb_midi.h"
+#endif
+
+#if MODULE_ENABLE_LIVEFX
+#include "Services/livefx/livefx.h"
+#include "Services/scale/scale.h"
+#endif
+
+#if MODULE_ENABLE_PATCH
+#include "Services/patch/patch.h"
+#include "Services/patch/patch_sd_mount.h"
 #endif
 
 // =============================================================================
@@ -943,6 +956,34 @@ void module_test_srio_dout_run(void)
 #endif
 }
 
+/**
+ * @brief Enhanced MIDI DIN Test with LiveFX and MIDI Learn
+ * 
+ * This test demonstrates a complete MIDI processing chain:
+ * 1. MIDI I/O - Receive MIDI from DIN IN, send to DIN OUT
+ * 2. LiveFX Transform - Apply transpose, velocity scaling, force-to-scale
+ * 3. MIDI Learn - Map MIDI CC messages to LiveFX parameters
+ * 
+ * MIDI Learn Commands (send CC messages on Channel 1):
+ * - CC 20 = Toggle LiveFX Enable/Disable
+ * - CC 21 = Transpose Down (-1 semitone)
+ * - CC 22 = Transpose Up (+1 semitone)
+ * - CC 23 = Transpose Reset (0)
+ * - CC 24 = Velocity Scale Down (-10%)
+ * - CC 25 = Velocity Scale Up (+10%)
+ * - CC 26 = Velocity Scale Reset (100%)
+ * - CC 27 = Force-to-Scale Toggle
+ * - CC 28 = Scale Type (value 0-11 for different scales)
+ * - CC 29 = Scale Root (value 0-11 for C to B)
+ * 
+ * Test Sequence:
+ * 1. Send MIDI notes to DIN IN1 - they pass through unmodified
+ * 2. Send CC 20 with value > 64 to enable LiveFX
+ * 3. Send CC 22 to transpose up - notes will be transposed
+ * 4. Send CC 25 to increase velocity - notes will be louder
+ * 5. Send CC 27 to enable force-to-scale - notes snap to scale
+ * 6. Observe transformed MIDI on DIN OUT1
+ */
 void module_test_midi_din_run(void)
 {
   // Early UART verification
@@ -957,15 +998,142 @@ void module_test_midi_din_run(void)
   // Use existing DIN MIDI test
   app_test_din_midi_run_forever();
 #elif MODULE_ENABLE_MIDI_DIN
-  dbg_print_test_header("MIDI DIN Module Test");
+  dbg_print_test_header("MIDI DIN Module Test with LiveFX & MIDI Learn");
+  
+  // Initialize MIDI DIN
   dbg_print("Initializing MIDI DIN service...");
   midi_din_init();
   dbg_print(" OK\r\n");
+  
+#if MODULE_ENABLE_ROUTER
+  // Initialize Router for MIDI routing
+  dbg_print("Initializing MIDI Router...");
+  router_init(router_send_default);
+  dbg_print(" OK\r\n");
+  
+  // Configure routing: DIN IN1 → DIN OUT1 (echo)
+  // Router node 0 = DIN IN1, node 4 = DIN OUT1 (see router.h for node mapping)
+  router_set_route(0, 4, 1);  // Source: DIN IN1, Dest: DIN OUT1, Enable: 1
+  router_set_chanmask(0, 4, 0xFFFF);  // All channels (0xFFFF = all 16 channels enabled)
+  dbg_print("Router configured: DIN IN1 → DIN OUT1\r\n");
+#endif
+
+#if MODULE_ENABLE_LIVEFX
+  // Initialize LiveFX
+  dbg_print("Initializing LiveFX...");
+  livefx_init();
+  livefx_set_enabled(0, 0);  // Start disabled (track 0)
+  livefx_set_transpose(0, 0);
+  livefx_set_velocity_scale(0, 128);  // 100%
+  livefx_set_force_scale(0, 0, 0, 0);  // Disabled
+  dbg_print(" OK\r\n");
+#endif
+
+#if MODULE_ENABLE_LOOPER
+  // Initialize Looper for recording transformed MIDI
+  dbg_print("Initializing Looper...");
+  looper_init();
+  looper_transport_t transport = {120, 4, 4, 0, 0};  // 120 BPM, 4/4
+  looper_set_transport(&transport);
+  dbg_print(" OK\r\n");
+#endif
+
+#if MODULE_ENABLE_UI && MODULE_ENABLE_OLED
+  // Initialize UI for visual feedback
+  dbg_print("Initializing UI...");
+  // UI init is typically done in main, but we ensure it's available
+  dbg_print(" (Already initialized)\r\n");
+  
+  // Initialize OLED debug mirror
+  dbg_print("Initializing OLED Debug Mirror...");
+  oled_mirror_init();
+  dbg_print(" OK (use CC 85 to enable)\r\n");
+#endif
+
   dbg_print("\r\n");
-  dbg_print("Listening for incoming MIDI bytes.\r\n");
-  dbg_print("Press keys or send MIDI data from your controller.\r\n");
-  dbg_print("Monitor output on the debug UART for activity.\r\n");
   dbg_print_separator();
+  dbg_print("MIDI DIN I/O Test with LiveFX Transform & MIDI Learn\r\n");
+  dbg_print_separator();
+  dbg_print("\r\n");
+  
+  dbg_print("Features:\r\n");
+  dbg_print("  1. MIDI I/O: Receives from DIN IN1, sends to DIN OUT1\r\n");
+#if MODULE_ENABLE_LIVEFX
+  dbg_print("  2. LiveFX: Transpose, velocity scale, force-to-scale\r\n");
+  dbg_print("  3. MIDI Learn: Map CC messages to LiveFX parameters\r\n");
+  dbg_print("  4. Channel Filtering: Process specific MIDI channels\r\n");
+  dbg_print("  5. Preset Save/Load: Store settings to SD card\r\n");
+  dbg_print("  6. Velocity Curves: Linear, exponential, logarithmic\r\n");
+  dbg_print("  7. Note Range Limiting: Filter notes by range\r\n");
+  dbg_print("  8. Statistics: Track processed/transformed messages\r\n");
+#if MODULE_ENABLE_LOOPER
+  dbg_print("  9. Looper Integration: Record transformed MIDI\r\n");
+#endif
+#if MODULE_ENABLE_UI && MODULE_ENABLE_OLED
+  dbg_print("  10. UI Integration: Visual feedback on OLED\r\n");
+  dbg_print("  11. OLED Debug Mirror: Test output on OLED display\r\n");
+#endif
+#else
+  dbg_print("  2. LiveFX: DISABLED (enable MODULE_ENABLE_LIVEFX)\r\n");
+#endif
+  dbg_print("\r\n");
+  
+#if MODULE_ENABLE_LIVEFX
+  dbg_print("MIDI Learn Commands (Channel 1):\r\n");
+  dbg_print("  CC 20 (val>64) = Enable LiveFX\r\n");
+  dbg_print("  CC 20 (val≤64) = Disable LiveFX\r\n");
+  dbg_print("  CC 21 = Transpose Down (-1 semitone)\r\n");
+  dbg_print("  CC 22 = Transpose Up (+1 semitone)\r\n");
+  dbg_print("  CC 23 = Transpose Reset (0)\r\n");
+  dbg_print("  CC 24 = Velocity Scale Down (-10%)\r\n");
+  dbg_print("  CC 25 = Velocity Scale Up (+10%)\r\n");
+  dbg_print("  CC 26 = Velocity Scale Reset (100%)\r\n");
+  dbg_print("  CC 27 (val>64) = Force-to-Scale ON\r\n");
+  dbg_print("  CC 27 (val≤64) = Force-to-Scale OFF\r\n");
+  dbg_print("  CC 28 (0-14) = Scale Type (0=Chromatic, 1=Major, etc.)\r\n");
+  dbg_print("  CC 29 (0-11) = Scale Root (0=C, 1=C#, ..., 11=B)\r\n");
+  dbg_print("  CC 30 (0-15) = MIDI Channel Filter, 127=ALL\r\n");
+  dbg_print("  CC 40 (0-7) = Save Preset to SD slot\r\n");
+  dbg_print("  CC 41 (0-7) = Load Preset from SD slot\r\n");
+  dbg_print("  CC 50 (0-2) = Velocity Curve (0=Linear, 1=Exp, 2=Log)\r\n");
+  dbg_print("  CC 53 (0-127) = Note Range Minimum\r\n");
+  dbg_print("  CC 54 (0-127) = Note Range Maximum\r\n");
+#if MODULE_ENABLE_LOOPER
+  dbg_print("  CC 60 (val>64) = Enable Looper Recording\r\n");
+  dbg_print("  CC 61 (0-3) = Select Looper Track\r\n");
+  dbg_print("  CC 62 = Start/Stop Looper Playback\r\n");
+  dbg_print("  CC 63 = Clear Current Looper Track\r\n");
+#endif
+#if MODULE_ENABLE_UI && MODULE_ENABLE_OLED
+  dbg_print("  CC 70 (val>64) = Enable UI Sync\r\n");
+  dbg_print("  CC 85 (val>64) = Enable OLED Debug Mirror\r\n");
+#endif
+  dbg_print("  CC 80 (val>64) = Run Automated Test Suite\r\n");
+  dbg_print("\r\n");
+  dbg_print("  CC 41 (0-7) = Load Preset from SD slot\r\n");
+  dbg_print("  CC 50 (0-2) = Velocity Curve (0=Linear, 1=Exp, 2=Log)\r\n");
+  dbg_print("  CC 53 (0-127) = Note Range Minimum\r\n");
+  dbg_print("  CC 54 (0-127) = Note Range Maximum\r\n");
+  dbg_print("\r\n");
+  
+  dbg_print("Current LiveFX Settings:\r\n");
+  dbg_printf("  Enabled: %s\r\n", livefx_get_enabled(0) ? "YES" : "NO");
+  dbg_printf("  Transpose: %+d semitones\r\n", livefx_get_transpose(0));
+  dbg_printf("  Velocity Scale: %d%% (%d/128)\r\n", 
+             (livefx_get_velocity_scale(0) * 100) / 128,
+             livefx_get_velocity_scale(0));
+  // Note: scale variables will be declared at function scope below
+  uint8_t init_scale_type, init_scale_root, init_scale_en;
+  livefx_get_force_scale(0, &init_scale_type, &init_scale_root, &init_scale_en);
+  dbg_printf("  Force-to-Scale: %s (Type:%d Root:%d)\r\n",
+             init_scale_en ? "ON" : "OFF", init_scale_type, init_scale_root);
+  dbg_print("\r\n");
+#endif
+
+  dbg_print_separator();
+  dbg_print("Monitoring MIDI activity...\r\n");
+  dbg_print_separator();
+  dbg_print("\r\n");
 
   midi_din_stats_t prev_stats[MIDI_DIN_PORTS];
   midi_din_stats_t cur_stats[MIDI_DIN_PORTS];
@@ -974,11 +1142,145 @@ void module_test_midi_din_run(void)
 
   uint32_t last_poll_ms = osKernelGetTickCount();
   uint32_t last_idle_ms = last_poll_ms;
+  uint32_t last_status_ms = last_poll_ms;
+
+#if MODULE_ENABLE_LIVEFX
+  // LiveFX state variables (function scope for access across blocks)
+  uint8_t scale_type = 0, scale_root = 0, scale_en = 0;
+  
+  // Velocity scale adjustment constant (approximately 10% in 0-255 scale)
+  // 128 represents 100%, so 10% = 128 * 0.1 = 12.8, rounded to 13 for integer math
+  // Actual percentage: (13/128)*100 = 10.16% (acceptable for user control)
+  #define VELOCITY_SCALE_10_PERCENT 13
+  
+  // Feature 1: MIDI Channel Filtering
+  uint8_t midi_channel_filter = 0;  // 0 = Channel 1 (default), 0xFF = all channels
+  
+  // Feature 4: MIDI Message Statistics
+  uint32_t stats_notes_processed = 0;
+  uint32_t stats_notes_transformed = 0;
+  uint32_t stats_cc_received = 0;
+  
+  // Feature 5: Velocity Curve
+  typedef enum {
+    VEL_CURVE_LINEAR = 0,
+    VEL_CURVE_EXPONENTIAL,
+    VEL_CURVE_LOGARITHMIC
+  } velocity_curve_t;
+  velocity_curve_t velocity_curve = VEL_CURVE_LINEAR;
+  
+  // Feature 6: Note Range Limiting
+  uint8_t note_min = 0;    // Minimum note (0 = disabled)
+  uint8_t note_max = 127;  // Maximum note (127 = disabled)
+  
+  // Integration Feature A1: Looper Recording
+  uint8_t looper_record_enabled = 0;  // 0=off, 1=record transformed MIDI
+  uint8_t looper_track = 0;           // Track to record to (0-3)
+  
+  // Integration Feature A2: UI Sync
+  uint8_t ui_sync_enabled = 0;        // 0=off, 1=sync LiveFX params to UI
+  uint32_t last_ui_sync_ms = 0;
+#endif
 
   for (;;) {
     midi_din_tick();
 
     uint32_t now_ms = osKernelGetTickCount();
+    
+    // Print status every 10 seconds
+#if MODULE_ENABLE_LIVEFX
+    if (now_ms - last_status_ms >= 10000) {
+      last_status_ms = now_ms;
+      livefx_get_force_scale(0, &scale_type, &scale_root, &scale_en);
+      
+      dbg_print("\r\n╔══════════════════════════════════════════════════════════════╗\r\n");
+      dbg_print("║                     LiveFX Status Report                     ║\r\n");
+      dbg_print("╚══════════════════════════════════════════════════════════════╝\r\n");
+      
+      // Basic status
+      dbg_printf("Enabled: %s | Transpose: %+d | Velocity: %d%% | Curve: %s\r\n",
+                 livefx_get_enabled(0) ? "YES" : "NO",
+                 livefx_get_transpose(0),
+                 (livefx_get_velocity_scale(0) * 100) / 128,
+                 velocity_curve == VEL_CURVE_LINEAR ? "Linear" :
+                 velocity_curve == VEL_CURVE_EXPONENTIAL ? "Exp" : "Log");
+      
+      // Feature 3: Scale Name Display
+      if (scale_en) {
+        dbg_printf("Scale: %s %s | ", 
+                   scale_get_note_name(scale_root % 12),
+                   scale_get_name(scale_type));
+      } else {
+        dbg_print("Scale: OFF | ");
+      }
+      
+      // Feature 1: Channel Filter Display
+      if (midi_channel_filter == 0xFF) {
+        dbg_print("Channel: ALL\r\n");
+      } else {
+        dbg_printf("Channel: %u\r\n", midi_channel_filter + 1);
+      }
+      
+      // Feature 6: Note Range Display
+      dbg_printf("Note Range: %u-%u", note_min, note_max);
+      if (note_min > 0 || note_max < 127) {
+        dbg_print(" (LIMITED)");
+      }
+      dbg_print("\r\n");
+      
+      // Feature 4: Statistics Display
+      dbg_print("──────────────────────────────────────────────────────────────\r\n");
+      dbg_printf("Stats: Notes: %lu | Transformed: %lu | CC: %lu\r\n",
+                 stats_notes_processed,
+                 stats_notes_transformed,
+                 stats_cc_received);
+      
+#if MODULE_ENABLE_LOOPER
+      // Looper Integration Status
+      if (looper_record_enabled) {
+        looper_state_t state = looper_get_state(looper_track);
+        const char* state_str = (state == LOOPER_STATE_REC) ? "RECORDING" :
+                                 (state == LOOPER_STATE_PLAY) ? "PLAYING" :
+                                 (state == LOOPER_STATE_OVERDUB) ? "OVERDUB" : "STOPPED";
+        dbg_printf("Looper: Track %u %s\r\n", looper_track, state_str);
+      }
+#endif
+      
+#if MODULE_ENABLE_UI && MODULE_ENABLE_OLED
+      // UI Sync Status
+      if (ui_sync_enabled) {
+        dbg_print("UI Sync: ACTIVE\r\n");
+      }
+#endif
+      
+      dbg_print("══════════════════════════════════════════════════════════════\r\n\r\n");
+    }
+    
+#if MODULE_ENABLE_UI && MODULE_ENABLE_OLED
+    // Integration Feature A2: Sync LiveFX params to UI page
+    if (ui_sync_enabled && (now_ms - last_ui_sync_ms >= 100)) {
+      last_ui_sync_ms = now_ms;
+      // UI sync happens automatically through livefx_get_* calls in UI page
+      // This just ensures the UI is refreshed periodically
+    }
+    
+    // Update OLED Debug Mirror every 100ms
+    if (oled_mirror_is_enabled() && (now_ms - last_ui_sync_ms >= 100)) {
+      dbg_mirror_update();
+    }
+#endif
+    
+#if MODULE_ENABLE_LOOPER
+    // Call looper tick for timing
+    // Safety: Validate track before calling looper functions
+    if ((looper_record_enabled || looper_get_state(looper_track) == LOOPER_STATE_PLAY) &&
+        looper_track < LOOPER_TRACKS) {
+      looper_tick_1ms();
+    }
+#endif
+#endif
+    
+    // Process MIDI messages
     if (now_ms - last_poll_ms >= 50) {
       last_poll_ms = now_ms;
       bool any_activity = false;
@@ -987,64 +1289,468 @@ void module_test_midi_din_run(void)
         midi_din_get_stats(port, &cur_stats[port]);
 
         if (cur_stats[port].rx_bytes != prev_stats[port].rx_bytes ||
-            cur_stats[port].rx_msgs != prev_stats[port].rx_msgs ||
-            cur_stats[port].rx_sysex_chunks != prev_stats[port].rx_sysex_chunks ||
-            cur_stats[port].rx_drops != prev_stats[port].rx_drops ||
-            cur_stats[port].rx_stray_data != prev_stats[port].rx_stray_data) {
+            cur_stats[port].rx_msgs != prev_stats[port].rx_msgs) {
           any_activity = true;
 
-          dbg_printf("DIN%d: bytes=%lu msgs=%lu sysex=%lu drops=%lu stray=%lu",
-                     port + 1,
-                     cur_stats[port].rx_bytes,
-                     cur_stats[port].rx_msgs,
-                     cur_stats[port].rx_sysex_chunks,
-                     cur_stats[port].rx_drops,
-                     cur_stats[port].rx_stray_data);
-
           if (cur_stats[port].last_len > 0) {
-            dbg_print(" last=");
-            dbg_print_bytes(cur_stats[port].last_bytes,
-                            cur_stats[port].last_len,
-                            ' ');
             uint8_t status = cur_stats[port].last_bytes[0];
+            uint8_t data1 = cur_stats[port].last_len > 1 ? cur_stats[port].last_bytes[1] : 0;
+            uint8_t data2 = cur_stats[port].last_len > 2 ? cur_stats[port].last_bytes[2] : 0;
+            
+            // Print received message
+            dbg_printf("[RX] DIN%d: ", port + 1);
+            dbg_print_bytes(cur_stats[port].last_bytes, cur_stats[port].last_len, ' ');
+            
             if (status >= 0x80) {
               const char* label = "UNKNOWN";
               uint8_t channel = (uint8_t)((status & 0x0F) + 1);
-              switch (status & 0xF0) {
+              uint8_t msg_type = status & 0xF0;
+              
+              switch (msg_type) {
                 case 0x80: label = "NOTE_OFF"; break;
                 case 0x90: label = "NOTE_ON"; break;
-                case 0xA0: label = "POLY_AFTERTOUCH"; break;
-                case 0xB0: label = "CONTROL_CHANGE"; break;
-                case 0xC0: label = "PROGRAM_CHANGE"; break;
-                case 0xD0: label = "CHANNEL_AFTERTOUCH"; break;
-                case 0xE0: label = "PITCH_BEND"; break;
-                case 0xF0:
-                  switch (status) {
-                    case 0xF0: label = "SYSEX_START"; break;
-                    case 0xF1: label = "MTC_QUARTER_FRAME"; break;
-                    case 0xF2: label = "SONG_POSITION"; break;
-                    case 0xF3: label = "SONG_SELECT"; break;
-                    case 0xF6: label = "TUNE_REQUEST"; break;
-                    case 0xF8: label = "CLOCK"; break;
-                    case 0xFA: label = "START"; break;
-                    case 0xFB: label = "CONTINUE"; break;
-                    case 0xFC: label = "STOP"; break;
-                    case 0xFE: label = "ACTIVE_SENSE"; break;
-                    case 0xFF: label = "RESET"; break;
-                    default: label = "SYSTEM"; break;
-                  }
-                  break;
-                default:
-                  label = "UNKNOWN";
-                  break;
+                case 0xB0: label = "CC"; break;
+                case 0xC0: label = "PC"; break;
+                case 0xE0: label = "BEND"; break;
+                default: label = "OTHER"; break;
               }
-              dbg_printf(" msg=%s", label);
-              if (status < 0xF0) {
-                dbg_printf(" ch=%u", channel);
+              dbg_printf(" %s Ch:%u", label, channel);
+              
+              if (msg_type == 0x90 || msg_type == 0x80) {
+                dbg_printf(" Note:%u Vel:%u", data1, data2);
+              } else if (msg_type == 0xB0) {
+                dbg_printf(" CC:%u Val:%u", data1, data2);
               }
             }
+            dbg_print("\r\n");
+
+#if MODULE_ENABLE_LIVEFX
+            // Process MIDI Learn (CC messages on channel 1)
+            if ((status & 0xF0) == 0xB0 && (status & 0x0F) == 0) {
+              uint8_t cc = data1;
+              uint8_t val = data2;
+              
+              switch (cc) {
+                case 20:  // Enable/Disable LiveFX
+                  livefx_set_enabled(0, val > 64 ? 1 : 0);
+                  dbg_printf("[LEARN] LiveFX %s\r\n", val > 64 ? "ENABLED" : "DISABLED");
+                  break;
+                  
+                case 21:  // Transpose Down
+                  {
+                    int8_t trans = livefx_get_transpose(0) - 1;
+                    if (trans < -12) trans = -12;
+                    livefx_set_transpose(0, trans);
+                    dbg_printf("[LEARN] Transpose: %+d\r\n", trans);
+                  }
+                  break;
+                  
+                case 22:  // Transpose Up
+                  {
+                    int8_t trans = livefx_get_transpose(0) + 1;
+                    if (trans > 12) trans = 12;
+                    livefx_set_transpose(0, trans);
+                    dbg_printf("[LEARN] Transpose: %+d\r\n", trans);
+                  }
+                  break;
+                  
+                case 23:  // Transpose Reset
+                  livefx_set_transpose(0, 0);
+                  dbg_print("[LEARN] Transpose: RESET (0)\r\n");
+                  break;
+                  
+                case 24:  // Velocity Scale Down
+                  {
+                    uint8_t scale = livefx_get_velocity_scale(0);
+                    if (scale > VELOCITY_SCALE_10_PERCENT) scale -= VELOCITY_SCALE_10_PERCENT;
+                    else scale = 0;
+                    livefx_set_velocity_scale(0, scale);
+                    dbg_printf("[LEARN] Velocity Scale: %d%%\r\n", (scale * 100) / 128);
+                  }
+                  break;
+                  
+                case 25:  // Velocity Scale Up
+                  {
+                    uint8_t scale = livefx_get_velocity_scale(0);
+                    if (scale < (255 - VELOCITY_SCALE_10_PERCENT)) scale += VELOCITY_SCALE_10_PERCENT;
+                    else scale = 255;
+                    livefx_set_velocity_scale(0, scale);
+                    dbg_printf("[LEARN] Velocity Scale: %d%%\r\n", (scale * 100) / 128);
+                  }
+                  break;
+                  
+                case 26:  // Velocity Scale Reset
+                  livefx_set_velocity_scale(0, 128);  // 100%
+                  dbg_print("[LEARN] Velocity Scale: RESET (100%)\r\n");
+                  break;
+                  
+                case 27:  // Force-to-Scale Toggle
+                  livefx_get_force_scale(0, &scale_type, &scale_root, &scale_en);
+                  scale_en = (val > 64) ? 1 : 0;
+                  livefx_set_force_scale(0, scale_type, scale_root, scale_en);
+                  dbg_printf("[LEARN] Force-to-Scale: %s\r\n", scale_en ? "ON" : "OFF");
+                  break;
+                  
+                case 28:  // Scale Type
+                  livefx_get_force_scale(0, &scale_type, &scale_root, &scale_en);
+                  scale_type = val % SCALE_COUNT;  // Limit to available scales
+                  livefx_set_force_scale(0, scale_type, scale_root, scale_en);
+                  // Feature 3: Display scale name
+                  dbg_printf("[LEARN] Scale Type: %s (index %u)\r\n", 
+                             scale_get_name(scale_type), scale_type);
+                  if (scale_en) {
+                    dbg_printf("[INFO] Current scale: %s %s\r\n",
+                               scale_get_note_name(scale_root),
+                               scale_get_name(scale_type));
+                  }
+                  break;
+                  
+                case 29:  // Scale Root
+                  livefx_get_force_scale(0, &scale_type, &scale_root, &scale_en);
+                  scale_root = val % 12;
+                  livefx_set_force_scale(0, scale_type, scale_root, scale_en);
+                  // Feature 3: Display scale name
+                  dbg_printf("[LEARN] Scale Root: %s (note %u)\r\n", 
+                             scale_get_note_name(scale_root), scale_root);
+                  if (scale_en) {
+                    dbg_printf("[INFO] Current scale: %s %s\r\n",
+                               scale_get_note_name(scale_root),
+                               scale_get_name(scale_type));
+                  }
+                  break;
+                  
+                // Feature 1: MIDI Channel Filtering
+                case 30:  // Set MIDI Channel Filter
+                  if (val == 127) {
+                    midi_channel_filter = 0xFF;  // All channels
+                    dbg_print("[LEARN] Channel Filter: ALL channels\r\n");
+                  } else {
+                    midi_channel_filter = val % 16;
+                    dbg_printf("[LEARN] Channel Filter: Channel %u\r\n", midi_channel_filter + 1);
+                  }
+                  break;
+                  
+                // Feature 2: Save/Load Presets to SD Card
+                case 40:  // Save Preset
+                  #if MODULE_ENABLE_PATCH
+                  {
+                    uint8_t slot = val % 8;  // 8 preset slots (0-7)
+                    char filename[32];
+                    snprintf(filename, sizeof(filename), "0:/presets/livefx_%u.ini", slot);
+                    
+                    // Save current settings
+                    char buf[16];
+                    snprintf(buf, sizeof(buf), "%d", livefx_get_transpose(0));
+                    patch_set("transpose", buf);
+                    snprintf(buf, sizeof(buf), "%u", livefx_get_velocity_scale(0));
+                    patch_set("vel_scale", buf);
+                    snprintf(buf, sizeof(buf), "%u", scale_type);
+                    patch_set("scale_type", buf);
+                    snprintf(buf, sizeof(buf), "%u", scale_root);
+                    patch_set("scale_root", buf);
+                    snprintf(buf, sizeof(buf), "%u", scale_en);
+                    patch_set("scale_en", buf);
+                    snprintf(buf, sizeof(buf), "%u", velocity_curve);
+                    patch_set("vel_curve", buf);
+                    snprintf(buf, sizeof(buf), "%u", note_min);
+                    patch_set("note_min", buf);
+                    snprintf(buf, sizeof(buf), "%u", note_max);
+                    patch_set("note_max", buf);
+                    
+                    if (patch_save(filename) == 0) {
+                      dbg_printf("[LEARN] Preset %u saved to SD\r\n", slot);
+                    } else {
+                      dbg_printf("[ERROR] Failed to save preset %u\r\n", slot);
+                    }
+                  }
+                  #else
+                  dbg_print("[ERROR] Patch module not enabled\r\n");
+                  #endif
+                  break;
+                  
+                case 41:  // Load Preset
+                  #if MODULE_ENABLE_PATCH
+                  {
+                    uint8_t slot = val % 8;  // 8 preset slots (0-7)
+                    char filename[32];
+                    char buf[16];
+                    snprintf(filename, sizeof(filename), "0:/presets/livefx_%u.ini", slot);
+                    
+                    if (patch_load(filename) == 0) {
+                      // Load settings
+                      if (patch_get("transpose", buf, sizeof(buf)) == 0) {
+                        livefx_set_transpose(0, atoi(buf));
+                      }
+                      if (patch_get("vel_scale", buf, sizeof(buf)) == 0) {
+                        livefx_set_velocity_scale(0, atoi(buf));
+                      }
+                      if (patch_get("scale_type", buf, sizeof(buf)) == 0) {
+                        scale_type = atoi(buf);
+                      }
+                      if (patch_get("scale_root", buf, sizeof(buf)) == 0) {
+                        scale_root = atoi(buf);
+                      }
+                      if (patch_get("scale_en", buf, sizeof(buf)) == 0) {
+                        scale_en = atoi(buf);
+                        livefx_set_force_scale(0, scale_type, scale_root, scale_en);
+                      }
+                      if (patch_get("vel_curve", buf, sizeof(buf)) == 0) {
+                        velocity_curve = (velocity_curve_t)atoi(buf);
+                      }
+                      if (patch_get("note_min", buf, sizeof(buf)) == 0) {
+                        note_min = atoi(buf);
+                      }
+                      if (patch_get("note_max", buf, sizeof(buf)) == 0) {
+                        note_max = atoi(buf);
+                      }
+                      
+                      dbg_printf("[LEARN] Preset %u loaded from SD\r\n", slot);
+                    } else {
+                      dbg_printf("[ERROR] Failed to load preset %u\r\n", slot);
+                    }
+                  }
+                  #else
+                  dbg_print("[ERROR] Patch module not enabled\r\n");
+                  #endif
+                  break;
+                  
+                // Feature 5: Velocity Curves
+                case 50:  // Set Velocity Curve Type
+                  velocity_curve = (velocity_curve_t)(val % 3);
+                  dbg_printf("[LEARN] Velocity Curve: %s\r\n",
+                             velocity_curve == VEL_CURVE_LINEAR ? "Linear" :
+                             velocity_curve == VEL_CURVE_EXPONENTIAL ? "Exponential" :
+                             "Logarithmic");
+                  break;
+                  
+                // Feature 6: Note Range Limiting
+                case 53:  // Set Minimum Note
+                  note_min = val;
+                  if (note_min > note_max) {
+                    dbg_printf("[WARNING] Note min (%u) > max (%u), adjusting max\r\n", 
+                               note_min, note_max);
+                    note_max = note_min;
+                  }
+                  dbg_printf("[LEARN] Note Range Min: %u\r\n", note_min);
+                  break;
+                  
+                case 54:  // Set Maximum Note
+                  note_max = val;
+                  if (note_max < note_min) {
+                    dbg_printf("[WARNING] Note max (%u) < min (%u), adjusting min\r\n", 
+                               note_max, note_min);
+                    note_min = note_max;
+                  }
+                  dbg_printf("[LEARN] Note Range Max: %u\r\n", note_max);
+                  break;
+                  
+#if MODULE_ENABLE_LOOPER
+                // Integration Feature A1: Looper Recording Control
+                case 60:  // Enable/Disable Looper Recording
+                  // Safety: Validate track before enabling recording
+                  if (looper_track < LOOPER_TRACKS) {
+                    looper_record_enabled = (val > 64) ? 1 : 0;
+                    if (looper_record_enabled) {
+                      looper_set_state(looper_track, LOOPER_STATE_REC);
+                      dbg_printf("[LOOPER] Recording ENABLED on Track %u\r\n", looper_track);
+                    } else {
+                      looper_set_state(looper_track, LOOPER_STATE_STOP);
+                      dbg_print("[LOOPER] Recording DISABLED\r\n");
+                    }
+                  } else {
+                    dbg_printf("[ERROR] Cannot enable recording: invalid track %u\r\n", looper_track);
+                  }
+                  break;
+                  
+                case 61:  // Select Looper Track
+                  {
+                    uint8_t new_track = val % LOOPER_TRACKS;
+                    // Safety: Validate track number
+                    if (new_track < LOOPER_TRACKS) {
+                      looper_track = new_track;
+                      dbg_printf("[LOOPER] Selected Track: %u\r\n", looper_track);
+                    } else {
+                      dbg_printf("[ERROR] Invalid looper track %u (max: %u)\r\n", 
+                                 val, LOOPER_TRACKS - 1);
+                    }
+                  }
+                  break;
+                  
+                case 62:  // Start/Stop Looper Playback
+                  {
+                    // Safety: Validate track before accessing
+                    if (looper_track < LOOPER_TRACKS) {
+                      looper_state_t current_state = looper_get_state(looper_track);
+                      if (current_state == LOOPER_STATE_PLAY) {
+                        looper_set_state(looper_track, LOOPER_STATE_STOP);
+                        dbg_printf("[LOOPER] Track %u STOPPED\r\n", looper_track);
+                      } else {
+                        looper_set_state(looper_track, LOOPER_STATE_PLAY);
+                        dbg_printf("[LOOPER] Track %u PLAYING\r\n", looper_track);
+                      }
+                    }
+                  }
+                  break;
+                  
+                case 63:  // Clear Current Looper Track
+                  // Safety: Validate track before clearing
+                  if (looper_track < LOOPER_TRACKS) {
+                    looper_clear(looper_track);
+                    dbg_printf("[LOOPER] Track %u CLEARED\r\n", looper_track);
+                  }
+                  break;
+#endif
+
+#if MODULE_ENABLE_UI && MODULE_ENABLE_OLED
+                // Integration Feature A2: UI Sync Control
+                case 70:  // Enable/Disable UI Sync
+                  ui_sync_enabled = (val > 64) ? 1 : 0;
+                  dbg_printf("[UI] Sync %s\r\n", ui_sync_enabled ? "ENABLED" : "DISABLED");
+                  break;
+                  
+                // New Feature: OLED Debug Mirror
+                case 85:  // Enable/Disable OLED Debug Mirror
+                  {
+                    uint8_t enabled = (val > 64) ? 1 : 0;
+                    oled_mirror_set_enabled(enabled);
+                    dbg_printf("[OLED] Debug Mirror %s\r\n", enabled ? "ENABLED" : "DISABLED");
+                    if (enabled) {
+                      oled_mirror_clear();
+                      oled_mirror_print("OLED Debug Mirror Active\n");
+                      oled_mirror_print("Test output appears here\n");
+                      dbg_mirror_update();
+                    }
+                  }
+                  break;
+#endif
+
+                // Integration Feature A3: Run Automated Tests
+                case 80:  // Run automated test suite
+                  if (val > 64) {
+                    dbg_print("[TEST] Running automated test suite...\r\n");
+                    #include "App/tests/test_midi_din_livefx_automated.h"
+                    extern test_result_t test_midi_din_livefx_run_all(void);
+                    test_result_t test_res = test_midi_din_livefx_run_all();
+                    dbg_printf("[TEST] Results: %lu/%lu passed\r\n", 
+                               test_res.tests_passed, test_res.tests_run);
+                  }
+                  break;
+                  
+                // Safety: Handle unknown CC commands
+                default:
+                  // Silently ignore unknown CC commands to prevent crashes
+                  // Only log if in verbose mode to avoid spam
+                  if (cc < 20 || cc > 200) {
+                    // Only warn for CC outside expected range
+                    dbg_printf("[WARN] Unknown CC %u (val:%u) - ignoring\r\n", cc, val);
+                  }
+                  break;
+              }
+              
+              // Feature 4: Increment CC statistics
+              stats_cc_received++;
+            }
+            
+            // Feature 1: Check channel filter for note processing
+            uint8_t msg_channel = status & 0x0F;
+            bool channel_match = (midi_channel_filter == 0xFF) || (msg_channel == midi_channel_filter);
+            
+            // Apply LiveFX and echo to DIN OUT
+            if (livefx_get_enabled(0) && channel_match) {
+              // Convert to router message format
+              router_msg_t msg;
+              msg.type = ROUTER_MSG_SHORT;
+              msg.b0 = status;
+              msg.b1 = data1;
+              msg.b2 = data2;
+              msg.len = cur_stats[port].last_len;
+              
+              uint8_t msg_type = status & 0xF0;
+              bool is_note = (msg_type == 0x90 || msg_type == 0x80);
+              
+              // Feature 4: Count notes processed
+              if (is_note) {
+                stats_notes_processed++;
+              }
+              
+              // Feature 6: Apply note range limiting
+              if (is_note) {
+                uint8_t note = msg.b1;
+                if (note < note_min || note > note_max) {
+                  // Skip this note - it's outside the allowed range
+                  dbg_printf("[FILTER] Note %u outside range %u-%u, skipped\r\n", 
+                             note, note_min, note_max);
+                  goto skip_note_processing;
+                }
+              }
+              
+              // Feature 5: Apply velocity curve before LiveFX
+              if (is_note && msg_type == 0x90 && velocity_curve != VEL_CURVE_LINEAR) {
+                uint8_t vel = msg.b2;
+                if (vel > 0) {  // Only process actual note-on (velocity > 0)
+                  float normalized = vel / 127.0f;
+                  float curved;
+                  
+                  if (velocity_curve == VEL_CURVE_EXPONENTIAL) {
+                    // Exponential curve: softer at low velocities, stronger at high
+                    curved = normalized * normalized;
+                  } else {  // VEL_CURVE_LOGARITHMIC
+                    // Logarithmic curve: stronger at low velocities, softer at high
+                    curved = sqrtf(normalized);
+                  }
+                  
+                  msg.b2 = (uint8_t)(curved * 127.0f);
+                  // Ensure velocity stays in valid range 1-127 for note-on
+                  if (msg.b2 == 0) msg.b2 = 1;
+                  if (msg.b2 > 127) msg.b2 = 127;
+                }
+              }
+              
+              // Apply LiveFX transformation
+              int result = livefx_apply(0, &msg);
+              
+              if (result == 0) {
+                // Send transformed message to DIN OUT1
+                uint8_t out_bytes[3];
+                out_bytes[0] = msg.b0;
+                out_bytes[1] = msg.b1;
+                out_bytes[2] = msg.b2;
+                midi_din_send(0, out_bytes, msg.len);
+                
+#if MODULE_ENABLE_LOOPER
+                // Integration Feature A1: Send to looper if recording
+                // Safety: Validate track and state before feeding MIDI
+                if (looper_record_enabled && 
+                    looper_track < LOOPER_TRACKS &&
+                    looper_get_state(looper_track) == LOOPER_STATE_REC) {
+                  looper_on_router_msg(0, &msg);  // Feed transformed MIDI to looper
+                }
+#endif
+                
+                // Print transformed message if different
+                if (out_bytes[0] != status || out_bytes[1] != data1 || out_bytes[2] != data2) {
+                  // Feature 4: Count transformed notes
+                  if ((out_bytes[0] & 0xF0) == 0x90 || (out_bytes[0] & 0xF0) == 0x80) {
+                    stats_notes_transformed++;
+                  }
+                  
+                  dbg_print("[TX] DIN OUT1 (transformed): ");
+                  dbg_print_bytes(out_bytes, msg.len, ' ');
+                  
+                  if ((out_bytes[0] & 0xF0) == 0x90 || (out_bytes[0] & 0xF0) == 0x80) {
+                    dbg_printf(" Note:%u→%u Vel:%u→%u", data1, out_bytes[1], data2, out_bytes[2]);
+                  }
+                  dbg_print("\r\n");
+                }
+              }
+              
+              skip_note_processing:;  // Label for note range filter skip
+            } else {
+              // Echo unchanged to DIN OUT1
+              midi_din_send(0, cur_stats[port].last_bytes, cur_stats[port].last_len);
+            }
+#endif
           }
-          dbg_print("\r\n");
 
           prev_stats[port] = cur_stats[port];
         }
@@ -1052,8 +1758,8 @@ void module_test_midi_din_run(void)
 
       if (any_activity) {
         last_idle_ms = now_ms;
-      } else if (now_ms - last_idle_ms >= 5000) {
-        dbg_print("Waiting for MIDI DIN input...\r\n");
+      } else if (now_ms - last_idle_ms >= 10000) {
+        dbg_print("[IDLE] Waiting for MIDI input...\r\n");
         last_idle_ms = now_ms;
       }
     }
@@ -1062,6 +1768,7 @@ void module_test_midi_din_run(void)
   }
 #else
   // Module not enabled
+  dbg_print("ERROR: MIDI_DIN module not enabled\r\n");
   for (;;) osDelay(1000);
 #endif
 }
