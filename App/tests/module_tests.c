@@ -1614,7 +1614,7 @@ void module_test_lfo_run(void)
     lfo_waveform_t read_wf = lfo_get_waveform(0);
     
     dbg_printf("  [%d] %s: ", wf, waveform_names[wf]);
-    if (read_wf == wf) {
+    if (read_wf == (lfo_waveform_t)wf) {
       dbg_print("✓ Set correctly\r\n");
     } else {
       dbg_printf("✗ FAILED (got %d)\r\n", read_wf);
@@ -1635,7 +1635,7 @@ void module_test_lfo_run(void)
   uint16_t test_rates[] = {1, 10, 50, 100, 500, 1000};  // 0.01Hz to 10Hz
   const char* rate_labels[] = {"0.01Hz", "0.10Hz", "0.50Hz", "1.00Hz", "5.00Hz", "10.00Hz"};
   
-  for (uint8_t i = 0; i < 6; i++) {
+  for (uint8_t i = 0; i < sizeof(test_rates)/sizeof(test_rates[0]); i++) {
     lfo_set_rate(0, test_rates[i]);
     uint16_t read_rate = lfo_get_rate(0);
     
@@ -1660,7 +1660,7 @@ void module_test_lfo_run(void)
   
   uint8_t test_depths[] = {0, 25, 50, 75, 100};
   
-  for (uint8_t i = 0; i < 5; i++) {
+  for (uint8_t i = 0; i < sizeof(test_depths)/sizeof(test_depths[0]); i++) {
     lfo_set_depth(0, test_depths[i]);
     uint8_t read_depth = lfo_get_depth(0);
     
@@ -1703,7 +1703,7 @@ void module_test_lfo_run(void)
   // Test BPM divisors
   dbg_print("\r\n  Testing BPM divisors...\r\n");
   uint8_t test_divisors[] = {1, 2, 4, 8, 16, 32};
-  for (uint8_t i = 0; i < 6; i++) {
+  for (uint8_t i = 0; i < sizeof(test_divisors)/sizeof(test_divisors[0]); i++) {
     lfo_set_bpm_divisor(0, test_divisors[i]);
     uint8_t read_div = lfo_get_bpm_divisor(0);
     dbg_printf("    Divisor %u: %s\r\n", test_divisors[i], 
@@ -1728,7 +1728,7 @@ void module_test_lfo_run(void)
     lfo_target_t read_tgt = lfo_get_target(0);
     
     dbg_printf("  Target %s: ", target_names[tgt]);
-    if (read_tgt == tgt) {
+    if (read_tgt == (lfo_target_t)tgt) {
       dbg_print("✓ Set correctly\r\n");
     } else {
       dbg_printf("✗ FAILED (got %d)\r\n", read_tgt);
