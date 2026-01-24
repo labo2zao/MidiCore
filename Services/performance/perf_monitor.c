@@ -8,6 +8,7 @@
 #include "ff.h"
 #include <string.h>
 #include <stdio.h>
+#include <inttypes.h>
 
 // =============================================================================
 // PRIVATE STATE
@@ -36,7 +37,7 @@ perf_metric_id_t perf_monitor_register(const char* name)
   }
   
   if (g_metric_count >= PERF_MONITOR_MAX_METRICS) {
-    return (perf_metric_id_t)-1;
+    return PERF_MONITOR_MAX_METRICS;  // Return invalid ID (out of range)
   }
   
   // Check if already registered
@@ -96,7 +97,7 @@ uint32_t perf_monitor_end(perf_metric_id_t id)
 void perf_monitor_record(const char* name, uint32_t duration_ms)
 {
   perf_metric_id_t id = perf_monitor_register(name);
-  if (id < 0) return;
+  if (id >= PERF_MONITOR_MAX_METRICS) return;  // Invalid ID
   
   g_metrics[id].duration_ms = duration_ms;
   g_metrics[id].call_count++;
@@ -145,8 +146,8 @@ uint32_t perf_monitor_get_average(perf_metric_id_t id)
 
 void perf_monitor_report_uart(void)
 {
-  // Note: This uses printf which should be redirected to UART
-  // In production, replace with actual UART output function
+  // Note: Uses printf which should be redirected to UART in your system
+  // For production, consider using a UART abstraction or function pointer
   
   printf("\r\n");
   printf("==============================================\r\n");
@@ -158,7 +159,7 @@ void perf_monitor_report_uart(void)
   for (uint8_t i = 0; i < g_metric_count; i++) {
     if (g_metrics[i].call_count > 0) {
       uint32_t avg = perf_monitor_get_average(i);
-      printf("%-24s %6lu  %7lu  %7lu  %7lu\r\n",
+      printf("%-24s %6" PRIu32 "  %7" PRIu32 "  %7" PRIu32 "  %7" PRIu32 "\r\n",
              g_metrics[i].name ? g_metrics[i].name : "Unknown",
              g_metrics[i].call_count,
              avg,

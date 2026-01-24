@@ -8,6 +8,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <inttypes.h>
 
 // =============================================================================
 // PRIVATE STATE
@@ -56,23 +57,14 @@ int runtime_config_load(const char* filename)
   }
   
   char line[256];
-  const char* current_section = NULL;
   
   while (f_gets(line, sizeof(line), &fp)) {
     // Remove newline
     line[strcspn(line, "\r\n")] = 0;
     
-    // Skip comments and empty lines
-    if (line[0] == '#' || line[0] == ';' || line[0] == 0) continue;
-    
-    // Check for section header [section]
-    if (line[0] == '[') {
-      char* end = strchr(line, ']');
-      if (end) {
-        *end = 0;
-        // Store section name (simplified - would need dynamic allocation for production)
-        current_section = NULL;  // For now, ignore sections
-      }
+    // Skip comments, empty lines, and section headers
+    // Note: Section support not yet implemented - all entries are global
+    if (line[0] == '#' || line[0] == ';' || line[0] == 0 || line[0] == '[') {
       continue;
     }
     
@@ -213,7 +205,7 @@ int runtime_config_set_string(const char* key, const char* value)
 int runtime_config_set_int(const char* key, int32_t value)
 {
   char buf[32];
-  snprintf(buf, sizeof(buf), "%ld", (long)value);
+  snprintf(buf, sizeof(buf), "%" PRId32, value);
   return runtime_config_set_string(key, buf);
 }
 
@@ -280,7 +272,7 @@ void runtime_config_print(void)
   printf("==============================================\r\n");
   printf("       RUNTIME CONFIGURATION\r\n");
   printf("==============================================\r\n");
-  printf("Total entries: %lu\r\n\r\n", g_config_count);
+  printf("Total entries: %" PRIu32 "\r\n\r\n", g_config_count);
   
   for (uint32_t i = 0; i < g_config_count; i++) {
     printf("%-32s = %s\r\n", g_config[i].key, g_config[i].value);
