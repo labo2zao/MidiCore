@@ -28,6 +28,24 @@ extern "C" {
 #endif
 #endif
 
+// Clipboard feature configuration (only available in test mode)
+// Allows independent control of track vs scene clipboard features
+// - LOOPER_ENABLE_TRACK_CLIPBOARD: Track copy/paste (~4KB)
+// - LOOPER_ENABLE_SCENE_CLIPBOARD: Scene copy/paste (~16KB)
+// If MODULE_TEST_LOOPER is not defined, clipboards are always disabled
+#ifdef MODULE_TEST_LOOPER
+  #ifndef LOOPER_ENABLE_TRACK_CLIPBOARD
+    #define LOOPER_ENABLE_TRACK_CLIPBOARD 1  // Default: enabled in test mode
+  #endif
+  #ifndef LOOPER_ENABLE_SCENE_CLIPBOARD
+    #define LOOPER_ENABLE_SCENE_CLIPBOARD 1  // Default: enabled in test mode
+  #endif
+#else
+  // Production mode: clipboards always disabled
+  #define LOOPER_ENABLE_TRACK_CLIPBOARD 0
+  #define LOOPER_ENABLE_SCENE_CLIPBOARD 0
+#endif
+
 // Quick-Save Compression (optional, reduces storage by ~40-60%)
 // Enable to compress session files (adds ~10-100ms to save/load times)
 // Requires ZLIB library support in build system

@@ -2044,11 +2044,13 @@ uint8_t looper_is_external_clock_active(void) {
 // Copy/Paste Scenes and Tracks (TEST MODE ONLY)
 // =========================================================================
 
-#ifdef MODULE_TEST_LOOPER
-// Clipboard structures - only compiled when running tests
-// These large buffers (~20KB) were added in PR#52 and caused RAM overflow
-// In production, copy/paste is not needed, so we save memory by excluding them
-// In CCMRAM to avoid RAM overflow even in test mode
+// =========================================================================
+// Copy/Paste Scenes and Tracks (TEST MODE ONLY)
+// =========================================================================
+
+#if LOOPER_ENABLE_TRACK_CLIPBOARD
+// Track clipboard - only compiled when enabled (~4KB)
+// Allows copying and pasting individual track data during testing
 static struct {
   uint8_t valid;  // 1 if clipboard has data
   uint32_t count;
@@ -2057,7 +2059,12 @@ static struct {
   looper_quant_t quant;
   looper_evt_t events[LOOPER_MAX_EVENTS];
 } track_clipboard __attribute__((section(".ccmram"))) = {0};
+#endif // LOOPER_ENABLE_TRACK_CLIPBOARD
 
+#if LOOPER_ENABLE_SCENE_CLIPBOARD
+// Scene clipboard - only compiled when enabled (~16KB)
+// Allows copying and pasting entire scenes (4 tracks) during testing
+// Can be disabled with LOOPER_ENABLE_SCENE_CLIPBOARD=0 to save 16KB
 static struct {
   uint8_t valid;  // 1 if clipboard has data
   struct {
@@ -2068,7 +2075,9 @@ static struct {
     looper_evt_t events[LOOPER_MAX_EVENTS];
   } tracks[LOOPER_TRACKS];
 } scene_clipboard __attribute__((section(".ccmram"))) = {0};
+#endif // LOOPER_ENABLE_SCENE_CLIPBOARD
 
+#if LOOPER_ENABLE_TRACK_CLIPBOARD
 /**
  * @brief Copy track data to clipboard
  */
@@ -2121,6 +2130,29 @@ int looper_paste_track(uint8_t track) {
 }
 
 /**
+ * @brief Check if track clipboard has data
+ */
+uint8_t looper_has_track_clipboard(void) {
+  return track_clipboard.valid;
+}
+
+/**
+ * @brief Clear track clipboard
+ */
+void looper_clear_track_clipboard(void) {
+  track_clipboard.valid = 0;
+  track_clipboard.count = 0;
+}
+#else
+// Stub implementations when track clipboard is disabled
+int looper_copy_track(uint8_t track) { (void)track; return -1; }
+int looper_paste_track(uint8_t track) { (void)track; return -1; }
+uint8_t looper_has_track_clipboard(void) { return 0; }
+void looper_clear_track_clipboard(void) {}
+#endif // LOOPER_ENABLE_TRACK_CLIPBOARD
+
+#if LOOPER_ENABLE_SCENE_CLIPBOARD
+/**
  * @brief Copy entire scene to clipboard
  */
 int looper_copy_scene(uint8_t scene) {
@@ -2133,7 +2165,7 @@ int looper_copy_scene(uint8_t scene) {
   for (uint8_t track = 0; track < LOOPER_TRACKS; track++) {
     looper_scene_clip_t clip = looper_get_scene_clip(scene, track);
     
-    if (clip.has_clip) {
+    if (clip.has_data) {
       // Load scene data temporarily to copy it
       // This is a simplified approach - in production you'd access scene storage directly
       scene_clipboard.tracks[track].has_data = 1;
@@ -2174,25 +2206,10 @@ int looper_paste_scene(uint8_t scene) {
 }
 
 /**
- * @brief Check if track clipboard has data
- */
-uint8_t looper_has_track_clipboard(void) {
-  return track_clipboard.valid;
-}
-
-/**
  * @brief Check if scene clipboard has data
  */
 uint8_t looper_has_scene_clipboard(void) {
   return scene_clipboard.valid;
-}
-
-/**
- * @brief Clear track clipboard
- */
-void looper_clear_track_clipboard(void) {
-  track_clipboard.valid = 0;
-  track_clipboard.count = 0;
 }
 
 /**
@@ -2204,20 +2221,13 @@ void looper_clear_scene_clipboard(void) {
     scene_clipboard.tracks[i].has_data = 0;
   }
 }
-
-#else // !MODULE_TEST_LOOPER
-
-// Stub implementations when tests are disabled (save ~20KB RAM)
-int looper_copy_track(uint8_t track) { (void)track; return -1; }
-int looper_paste_track(uint8_t track) { (void)track; return -1; }
+#else
+// Stub implementations when scene clipboard is disabled (saves ~16KB)
 int looper_copy_scene(uint8_t scene) { (void)scene; return -1; }
 int looper_paste_scene(uint8_t scene) { (void)scene; return -1; }
-uint8_t looper_has_track_clipboard(void) { return 0; }
 uint8_t looper_has_scene_clipboard(void) { return 0; }
-void looper_clear_track_clipboard(void) {}
 void looper_clear_scene_clipboard(void) {}
-
-#endif // MODULE_TEST_LOOPER
+#endif // LOOPER_ENABLE_SCENE_CLIPBOARD
 
 // ============================================================================
 // Global Transpose Functions
