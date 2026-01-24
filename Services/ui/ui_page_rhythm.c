@@ -219,64 +219,62 @@ static void draw_parameters(uint8_t x, uint8_t y) {
  * @brief Update rhythm trainer UI page
  */
 void ui_page_rhythm_update(uint8_t force_redraw) {
-  if (force_redraw) {
-    ui_gfx_clear(0);
-  }
+  // Always clear screen to prevent text overlay/garbage
+  ui_gfx_clear(0);
   
-  // Header
-  ui_gfx_text(0, 0, "RHYTHM TRAINER", GFX_FONT_NORMAL);
+  // Header with 8x8 font
+  ui_gfx_set_font(UI_FONT_8X8);
+  ui_gfx_text(0, 0, "RHYTHM TRAINER", 15);
   
   uint8_t enabled = rhythm_trainer_get_enabled();
-  ui_gfx_text(150, 0, enabled ? "[ON]" : "[OFF]", GFX_FONT_SMALL);
+  ui_gfx_text(150, 0, enabled ? "[ON]" : "[OFF]", 12);
   
-  // Draw page indicator
-  ui_gfx_text(240, 0, "RHYT", GFX_FONT_SMALL);
+  ui_gfx_hline(0, 11, 256, 8);
   
   // Main content area
   if (enabled) {
     // Top: Measure bar with subdivisions and threshold zones (LoopA style)
-    draw_measure_bar(10, 12, 236, 10);
+    // Make it taller (14px instead of 10px) for better visibility
+    draw_measure_bar(10, 15, 236, 14);
     
     // Middle: Current timing feedback and stats
     rhythm_eval_t last_eval = rhythm_trainer_get_last_eval();
     int32_t last_error = rhythm_trainer_get_last_error();
     
-    // Left: Evaluation display
+    // Left: Evaluation display with larger font
     const char* eval_label = rhythm_trainer_eval_name(last_eval);
-    ui_gfx_text(10, 28, eval_label, GFX_FONT_LARGE);
+    ui_gfx_text(10, 33, eval_label, 15);
     
     // Show timing error in ms
-    char buf[16];
+    char buf[32];
     float error_ms = (float)last_error * 1000.0f / (96.0f * 2.0f);  // Approximate @ 120bpm
     snprintf(buf, sizeof(buf), "%+.1fms", error_ms);
-    ui_gfx_text(10, 40, buf, GFX_FONT_SMALL);
+    ui_gfx_text(10, 44, buf, 12);
     
     // Right: Statistics (compact)
     rhythm_stats_t stats;
     rhythm_trainer_get_stats(&stats);
     
     snprintf(buf, sizeof(buf), "Accuracy: %d%%", stats.accuracy_percent);
-    ui_gfx_text(120, 28, buf, GFX_FONT_SMALL);
+    ui_gfx_text(130, 33, buf, 13);
     
     snprintf(buf, sizeof(buf), "P:%lu G:%lu", stats.perfect_count, stats.good_count);
-    ui_gfx_text(120, 36, buf, GFX_FONT_SMALL);
+    ui_gfx_text(130, 42, buf, 11);
     
     snprintf(buf, sizeof(buf), "E:%lu L:%lu O:%lu", stats.early_count, stats.late_count, stats.off_count);
-    ui_gfx_text(120, 44, buf, GFX_FONT_SMALL);
+    ui_gfx_text(130, 51, buf, 11);
   } else {
-    ui_gfx_text(10, 25, "Trainer disabled", GFX_FONT_NORMAL);
-    ui_gfx_text(10, 38, "Press BTN3 to enable", GFX_FONT_SMALL);
+    ui_gfx_text(10, 25, "Trainer disabled", 12);
+    ui_gfx_text(10, 38, "Press BTN3 to enable", 10);
   }
   
-  // Bottom: Parameters (always visible)
-  ui_gfx_hline(0, 50, 256, 8);
-  draw_parameters(5, 52);
-  
-  // Footer: Button labels
-  ui_gfx_text(0, 56, s_edit_mode ? "VIEW" : "EDIT", GFX_FONT_SMALL);
-  ui_gfx_text(40, 56, "RESET", GFX_FONT_SMALL);
-  ui_gfx_text(80, 56, enabled ? "OFF" : "ON", GFX_FONT_SMALL);
-  ui_gfx_text(220, 56, "PAGE", GFX_FONT_SMALL);
+  // Footer with smaller font
+  ui_gfx_hline(0, 54, 256, 6);
+  ui_gfx_set_font(UI_FONT_5X7);
+  ui_gfx_text(0, 56, s_edit_mode ? "VIEW" : "EDIT", 10);
+  ui_gfx_text(40, 56, "RESET", 10);
+  ui_gfx_text(80, 56, enabled ? "OFF" : "ON", 10);
+  ui_gfx_text(220, 56, "PAGE", 10);
 }
 
 /**

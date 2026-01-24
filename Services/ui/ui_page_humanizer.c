@@ -42,15 +42,16 @@ void ui_page_humanizer_render(uint32_t now_ms) {
   
   ui_gfx_clear(0);
   
-  // Header
+  // Header with 8x8 font
+  ui_gfx_set_font(UI_FONT_8X8);
   char header[64];
   const char* mode_name = view_mode ? "LFO" : "HUMANIZER";
-  snprintf(header, sizeof(header), "%s  Track %u  %s", 
+  snprintf(header, sizeof(header), "%s T%u %s", 
            mode_name, selected_track + 1, edit_mode ? "[EDIT]" : "[VIEW]");
   ui_gfx_text(0, 0, header, 15);
-  ui_gfx_rect(0, 9, 256, 1, 4);
+  ui_gfx_hline(0, 11, 256, 8);
   
-  int y = 14;
+  int y = 15;
   
   if (view_mode == 0) {
     // HUMANIZER VIEW
@@ -61,14 +62,14 @@ void ui_page_humanizer_render(uint32_t now_ms) {
     // Status
     char status[64];
     snprintf(status, sizeof(status), "Status: %s", humanizer_enabled ? "ENABLED" : "BYPASSED");
-    ui_gfx_text(0, y, status, humanizer_enabled ? 12 : 8);
+    ui_gfx_text(0, y, status, humanizer_enabled ? 13 : 10);
     y += 12;
     
     // Velocity humanization
     uint8_t vel_amount = looper_get_humanizer_velocity(selected_track);
     char vel_line[64];
     snprintf(vel_line, sizeof(vel_line), "Velocity:   %u/32", vel_amount);
-    uint8_t gray_vel = (selected_param == 0) ? 15 : 10;
+    uint8_t gray_vel = (selected_param == 0) ? 15 : 11;
     if (selected_param == 0 && edit_mode) {
       ui_gfx_text(0, y, ">", 15);
     }
@@ -79,7 +80,7 @@ void ui_page_humanizer_render(uint32_t now_ms) {
     uint8_t timing_amount = looper_get_humanizer_timing(selected_track);
     char timing_line[64];
     snprintf(timing_line, sizeof(timing_line), "Timing:     %u/6 ticks", timing_amount);
-    uint8_t gray_timing = (selected_param == 1) ? 15 : 10;
+    uint8_t gray_timing = (selected_param == 1) ? 15 : 11;
     if (selected_param == 1 && edit_mode) {
       ui_gfx_text(0, y, ">", 15);
     }
@@ -90,7 +91,7 @@ void ui_page_humanizer_render(uint32_t now_ms) {
     uint8_t intensity = looper_get_humanizer_intensity(selected_track);
     char intensity_line[64];
     snprintf(intensity_line, sizeof(intensity_line), "Intensity:  %u%%", intensity);
-    uint8_t gray_intensity = (selected_param == 2) ? 15 : 10;
+    uint8_t gray_intensity = (selected_param == 2) ? 15 : 11;
     if (selected_param == 2 && edit_mode) {
       ui_gfx_text(0, y, ">", 15);
     }
@@ -167,12 +168,13 @@ void ui_page_humanizer_render(uint32_t now_ms) {
     }
   }
   
-  // Footer
-  ui_gfx_rect(0, 62, 256, 1, 4);
+  // Footer with smaller font
+  ui_gfx_hline(0, 54, 256, 6);
+  ui_gfx_set_font(UI_FONT_5X7);
   const char* footer = view_mode ? 
-    "B1 EN/DIS  B2 SYNC  B3 EDIT  B4 HUM  ENC" :
-    "B1 EN/DIS  B2 RESET  B3 EDIT  B4 LFO  ENC";
-  ui_gfx_text(0, 54, footer, 8);
+    "B1:EN/DIS B2:SYNC B3:EDIT B4:HUM ENC:adj" :
+    "B1:EN/DIS B2:RESET B3:EDIT B4:LFO ENC:adj";
+  ui_gfx_text(0, 56, footer, 10);
 }
 
 /**

@@ -126,8 +126,24 @@ static void draw_events(uint32_t base, uint32_t span) {
     uint32_t x = tick_to_x(snap[i].tick, base, span);
     if (x == 0xFFFFFFFFu) continue;
     int y = note_to_y(snap[i].b1);
-    uint8_t g = (i == g_sel_idx) ? 15 : 9;
-    ui_gfx_rect((int)x, y, 2, 2, g);
+    
+    // LoopA-style: Show velocity through brightness
+    uint8_t vel = snap[i].b2;
+    uint8_t g;
+    if (i == g_sel_idx) {
+      g = 15; // Selected event is brightest
+    } else {
+      // Map velocity to brightness (6-12 range)
+      g = 6 + ((uint32_t)vel * 6) / 127;
+    }
+    
+    // LoopA-style: Larger event markers (3x3 instead of 2x2)
+    ui_gfx_fill_rect((int)x-1, y-1, 3, 3, g);
+    
+    // Add border to selected events
+    if (i == g_sel_idx) {
+      ui_gfx_rect((int)x-1, y-1, 3, 3, 15);
+    }
   }
 }
 
@@ -143,11 +159,13 @@ static void draw_header(void) {
                           (state == LOOPER_STATE_OVERDUB) ? "OVDUB" : 
                           g_in_edit ? "EDIT" : "NAV";
   
-  snprintf(line, sizeof(line), "TL T%u BPM:%u Z:%u Loop:%ub %s",
+  // Use 8×8 font for header
+  ui_gfx_set_font(UI_FONT_8X8);
+  snprintf(line, sizeof(line), "TIME T%u BPM:%u Z:%u L:%ub %s",
            (unsigned)(g_track+1), (unsigned)tp.bpm, (unsigned)g_zoom,
            (unsigned)loop_bars, state_str);
   ui_gfx_text(0, 0, line, 15);
-  ui_gfx_rect(0, 9, 256, 1, 4);
+  ui_gfx_hline(0, 11, 256, 8);
 }
 
 static void apply_zoom(void) {
@@ -156,10 +174,11 @@ static void apply_zoom(void) {
 }
 
 static void draw_footer(void) {
+  ui_gfx_set_font(UI_FONT_5X7);
   if (!g_in_edit) {
-    ui_gfx_text(0, 56, "ENC:scroll B1:trk B2:zoom B3:sel B4:edit", 8);
+    ui_gfx_text(0, 56, "ENC:scroll B1:trk B2:zoom B3:sel B4:edit", 10);
   } else {
-    ui_gfx_text(0, 56, "ENC:chg B3:field B4:apply B2:cancel", 8);
+    ui_gfx_text(0, 56, "ENC:chg B3:field B4:apply B2:cancel", 10);
   }
 }
 

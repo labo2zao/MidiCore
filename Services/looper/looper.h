@@ -1060,6 +1060,110 @@ void looper_midi_learn_clear(void);
  */
 uint8_t looper_midi_learn_get_count(void);
 
+// ---- CC Automation Layer ----
+
+/**
+ * @brief CC automation event storage
+ * 
+ * Each track can store up to 128 CC automation events that play back
+ * synchronized with the main loop. CC messages are recorded with tick
+ * timing and replayed automatically during loop playback.
+ */
+#define LOOPER_AUTOMATION_MAX_EVENTS 128
+
+typedef struct {
+  uint32_t tick;      // Tick position within loop
+  uint8_t  cc_num;    // CC number (0-127)
+  uint8_t  cc_value;  // CC value (0-127)
+  uint8_t  channel;   // MIDI channel (0-15)
+} looper_automation_event_t;
+
+/**
+ * @brief Start recording CC automation for a track
+ * @param track Track index (0-3)
+ * 
+ * Enables CC automation recording mode. All incoming CC messages
+ * will be stored with tick timing until recording is stopped.
+ * Recording automatically stops when max events is reached.
+ */
+void looper_automation_start_record(uint8_t track);
+
+/**
+ * @brief Stop recording CC automation for a track
+ * @param track Track index (0-3)
+ */
+void looper_automation_stop_record(uint8_t track);
+
+/**
+ * @brief Check if automation recording is active
+ * @param track Track index (0-3)
+ * @return 1 if recording, 0 otherwise
+ */
+uint8_t looper_automation_is_recording(uint8_t track);
+
+/**
+ * @brief Enable/disable automation playback for a track
+ * @param track Track index (0-3)
+ * @param enable 1 to enable playback, 0 to disable
+ * 
+ * When enabled, recorded CC automation events will be sent
+ * automatically during loop playback, synchronized with the cursor position.
+ */
+void looper_automation_enable_playback(uint8_t track, uint8_t enable);
+
+/**
+ * @brief Check if automation playback is enabled
+ * @param track Track index (0-3)
+ * @return 1 if playback enabled, 0 otherwise
+ */
+uint8_t looper_automation_is_playback_enabled(uint8_t track);
+
+/**
+ * @brief Clear all automation events for a track
+ * @param track Track index (0-3)
+ * 
+ * Removes all recorded CC automation events. Does not affect
+ * the main note/MIDI event loop.
+ */
+void looper_automation_clear(uint8_t track);
+
+/**
+ * @brief Get number of automation events for a track
+ * @param track Track index (0-3)
+ * @return Number of recorded CC automation events (0-128)
+ */
+uint32_t looper_automation_get_event_count(uint8_t track);
+
+/**
+ * @brief Export automation events for inspection/editing
+ * @param track Track index (0-3)
+ * @param out Output buffer for automation events
+ * @param max Maximum number of events to copy
+ * @return Number of events copied
+ * 
+ * Copies automation events to the provided buffer for inspection or editing.
+ * Events are returned in chronological order (sorted by tick).
+ */
+uint32_t looper_automation_export_events(uint8_t track, 
+                                          looper_automation_event_t* out, 
+                                          uint32_t max);
+
+/**
+ * @brief Manually add a CC automation event
+ * @param track Track index (0-3)
+ * @param tick Tick position within loop
+ * @param cc_num CC number (0-127)
+ * @param cc_value CC value (0-127)
+ * @param channel MIDI channel (0-15)
+ * @return 0 on success, -1 on error (buffer full, invalid parameters)
+ * 
+ * Allows programmatic creation of automation events without recording.
+ * Useful for algorithmic composition or preset automation patterns.
+ */
+int looper_automation_add_event(uint8_t track, uint32_t tick, 
+                                  uint8_t cc_num, uint8_t cc_value, 
+                                  uint8_t channel);
+
 // ---- Quick-Save System ----
 
 /**

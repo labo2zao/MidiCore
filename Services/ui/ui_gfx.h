@@ -5,12 +5,17 @@
 extern "C" {
 #endif
 
+// Font selection constants
+#define UI_FONT_5X7  0  // Original small font (5x7, 6px spacing)
+#define UI_FONT_8X8  1  // New larger font (8x8, 9px spacing)
+
 // Font/brightness constants for compatibility
 #define GFX_FONT_NORMAL 15
 #define GFX_FONT_SMALL  12
 #define GFX_FONT_LARGE  15
 
 void ui_gfx_set_fb(uint8_t* fb, uint16_t w, uint16_t h);
+void ui_gfx_set_font(uint8_t font_id);  // Set current font (UI_FONT_5X7 or UI_FONT_8X8)
 void ui_gfx_clear(uint8_t gray);
 void ui_gfx_pixel(int x, int y, uint8_t gray);
 void ui_gfx_rect(int x, int y, int w, int h, uint8_t gray);

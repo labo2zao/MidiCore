@@ -47,6 +47,7 @@ typedef enum {
   MODULE_TEST_UI_PAGE_HUMANIZER_ID, // Test Humanizer/LFO UI page
   MODULE_TEST_PATCH_SD_ID,      // Test patch loading from SD
   MODULE_TEST_PRESSURE_ID,      // Test pressure sensor I2C
+  MODULE_TEST_BREATH_ID,        // Test breath controller (pressure sensor + expression/MIDI CC output)
   MODULE_TEST_USB_HOST_MIDI_ID, // Test USB Host MIDI
   MODULE_TEST_USB_DEVICE_MIDI_ID, // Test USB Device MIDI (receive from DAW, print to UART, send test data)
   MODULE_TEST_OLED_SSD1322_ID,  // Test OLED SSD1322 driver (GPIO, SPI, display patterns)
@@ -177,42 +178,290 @@ void module_test_srio_run(void);
 void module_test_srio_dout_run(void);
 
 /**
- * @brief Test MIDI DIN module
- * Echoes MIDI input to output, shows status
+ * @brief Test MIDI DIN module with LiveFX transform and MIDI learn
+ * 
+ * Comprehensive test of MIDI DIN I/O with real-time processing:
+ * - MIDI I/O: Receives from DIN IN, sends to DIN OUT
+ * - LiveFX Transform: Transpose, velocity scaling, force-to-scale
+ * - MIDI Learn: Map CC messages to LiveFX parameters
+ * 
+ * Features tested:
+ * - MIDI DIN input/output communication
+ * - Real-time MIDI message transformation
+ * - Live parameter control via CC messages
+ * - Transpose (-12 to +12 semitones)
+ * - Velocity scaling (0-200%)
+ * - Musical scale quantization (force-to-scale)
+ * 
+ * MIDI Learn Commands (Channel 1):
+ * - CC 20: Enable/Disable LiveFX (value > 64 = enabled)
+ * - CC 21: Transpose down (-1 semitone)
+ * - CC 22: Transpose up (+1 semitone)
+ * - CC 23: Transpose reset (0)
+ * - CC 24: Velocity scale down (-10%)
+ * - CC 25: Velocity scale up (+10%)
+ * - CC 26: Velocity scale reset (100%)
+ * - CC 27: Force-to-scale toggle (value > 64 = on)
+ * - CC 28: Scale type (0-11)
+ * - CC 29: Scale root (0=C, 1=C#, ..., 11=B)
+ * 
+ * Test workflow:
+ * 1. Connect MIDI controller to DIN IN1
+ * 2. Connect DIN OUT1 to synth/DAW
+ * 3. Send CC 20 (value 127) to enable LiveFX
+ * 4. Send CC 22 to transpose notes up
+ * 5. Play notes - they will be transposed and sent to OUT
+ * 6. Send CC 27 (value 127) to enable force-to-scale
+ * 7. Play notes - they will snap to selected scale
+ * 8. Monitor UART debug output for status
+ * 
+ * Hardware requirements:
+ * - MIDI DIN IN/OUT hardware (UART-based)
+ * - MIDI controller or test device
+ * - UART debug connection (115200 baud)
+ * 
+ * Enable with: MODULE_TEST_MIDI_DIN=1
+ * Requires: MODULE_ENABLE_MIDI_DIN=1, MODULE_ENABLE_LIVEFX=1, MODULE_ENABLE_ROUTER=1
+ * 
  * @note This function runs forever
  */
 void module_test_midi_din_run(void);
 
 /**
- * @brief Test MIDI Router module
+ * @brief Test MIDI Router module - Comprehensive
  * 
- * Comprehensive test of the MIDI routing matrix (16x16 nodes).
+ * Comprehensive validation of the MIDI routing matrix (16x16 nodes).
  * 
- * Tests:
- * - Route configuration (enable/disable)
- * - Channel filtering with chanmask
- * - Message routing between nodes (DIN, USB, Looper, etc.)
- * - Label assignment
- * - Multiple simultaneous routes
- * - Different MIDI message types (Note, CC, Sysex)
+ * Test Phases:
+ * 1. Router initialization - matrix setup, node mapping display
+ * 2. Basic routing - single source to single destination configuration
+ * 3. Channel filtering - per-channel route control (16 MIDI channels)
+ * 4. Message types - Note On/Off, CC, PC, Pressure, Pitch Bend routing
+ * 5. Multi-destination routing - one source to multiple outputs
+ * 6. Route modification - dynamic enable/disable functionality
+ * 7. Channel validation - mask filtering with multiple channels
+ * 8. Routing table - complete active route display with labels
+ * 
+ * Features tested:
+ * - Route enable/disable per connection
+ * - Channel filtering (16-bit chanmask) for each route
+ * - All MIDI message types: Note, CC, PC, Pressure, Pitch Bend
+ * - Multi-destination routing (1→N outputs)
+ * - Route labels (16-character names)
+ * - Dynamic route modification at runtime
+ * - Continuous monitoring with periodic statistics
  * 
  * Hardware tested:
  * - DIN IN1-4 → DIN OUT1-4 routing
- * - USB Device IN/OUT → DIN routing
- * - Looper → Output routing with channel filtering
+ * - USB Device (4 ports) ↔ DIN routing
+ * - USB Host IN/OUT → DIN routing
+ * - Internal nodes (Looper, Keys) → Output routing
+ * - Channel-specific filtering per route
  * 
- * The test configures example routes and sends test messages to verify
- * the routing matrix operates correctly. Monitor UART output to see
- * routing table and test message flow.
+ * The test configures multiple example routes, sends test messages through
+ * each route type, validates channel filtering, and displays the complete
+ * routing table. After automated tests, it enters continuous monitoring mode
+ * with periodic status updates.
  * 
- * @note This function runs forever
+ * Monitor UART output (115200 baud) to see:
+ * - Detailed test phase descriptions
+ * - Test message routing verification
+ * - Complete routing table with channel masks
+ * - Test summary with ✓ indicators
+ * - Continuous monitoring status
+ * 
+ * Duration: ~5 seconds for automated tests, then continuous monitoring
+ * 
+ * @note This function runs forever in monitoring mode after tests complete
  */
 void module_test_router_run(void);
 
 /**
  * @brief Test Looper module
- * Tests recording, playback, overdub, quantization
- * @note This function runs forever
+ * 
+ * Comprehensive automated test of the MIDI Looper module covering all features:
+ * 
+ * **Core Features (Phases 1-7):**
+ * - Multi-track recording and playback (4 tracks)
+ * - Recording, playback, and overdub modes
+ * - Quantization modes (OFF, 1/16, 1/8, 1/4 notes)
+ * - Mute/Solo track controls
+ * - Scene management (8 scenes with track snapshots)
+ * - Transport controls (tempo, time signature, tap tempo)
+ * - Advanced features (LFO, humanizer, undo/redo)
+ * 
+ * **Extended Features (Phases 8-11):**
+ * - Step mode with cursor control (step read/write)
+ * - Track randomization (velocity/timing variations)
+ * - Multi-track simultaneous playback
+ * - Save/Load tracks to SD card
+ * 
+ * **Advanced Testing (Phases 12-17):**
+ * - Scene chaining and automation
+ * - Router integration (multi-source MIDI)
+ * - Stress testing (rapid input, buffer limits)
+ * - Error recovery and edge cases
+ * - Performance benchmarks
+ * - Humanizer/LFO modulation validation
+ * 
+ * Test sequence (27 phases total, ~190-250s runtime):
+ * 
+ * **Phase 1-7: Core Features**
+ * 1. Initialize looper and configure transport (120 BPM, 4/4 time)
+ * 2. Test basic recording with MIDI note sequence (C4, E4, G4)
+ * 3. Test playback and event export
+ * 4. Test overdub mode (add C5 to existing loop)
+ * 5. Test quantization modes and verification
+ * 6. Test mute/solo controls and audibility checks
+ * 7. Test scene save/load and scene switching
+ * 
+ * **Phase 8-11: Extended Features**
+ * 8. Test advanced features (tempo tap, humanizer, LFO, undo/redo)
+ * 9. **Test step mode - manual cursor control (step read/write)**
+ *    - Enable/disable step mode
+ *    - Step forward event-by-event (step read)
+ *    - Step forward by fixed ticks
+ *    - Step backward navigation
+ *    - Direct cursor positioning (step write)
+ *    - Step size configuration
+ * 10. **Test track randomization**
+ *     - Configure randomization parameters
+ *     - Apply velocity and timing randomization
+ *     - Verify event modifications
+ * 11. **Test multi-track simultaneous operation**
+ *     - Record different patterns on tracks 1-3
+ *     - Test multi-track mute/solo
+ *     - Validate all tracks playing together
+ * 
+ * **Phase 12-17: Advanced Testing**
+ * 12. **Test save/load to SD card**
+ *     - Save track to file
+ *     - Clear and reload track
+ *     - Verify event restoration
+ * 13. **Test scene chaining**
+ *     - Configure scene chain (0→1→2→0)
+ *     - Test automatic scene transitions
+ *     - Verify chain configuration and enable/disable
+ * 14. **Test router integration**
+ *     - MIDI recording from DIN IN, USB Device, USB Host
+ *     - Verify multi-source event routing
+ *     - Validate event attribution
+ * 15. **Test stress conditions**
+ *     - Rapid MIDI note sequence (50ms intervals)
+ *     - Near-buffer capacity (100+ events)
+ *     - Extended recording time (16 beats, 8 seconds)
+ * 16. **Test error recovery**
+ *     - Invalid track indices
+ *     - Rapid state transitions
+ *     - Operations on empty tracks
+ *     - Extreme parameter values
+ *     - Concurrent track operations
+ * 17. **Test performance benchmarks**
+ *     - Event recording speed (ms per event)
+ *     - Event export performance
+ *     - State transition latency
+ *     - Scene operation timing
+ * 
+ * **Phase 18: Humanizer/LFO Validation**
+ * 18. **Test humanizer/LFO validation**
+ *     - Record identical notes
+ *     - Apply humanization and compare
+ *     - Validate velocity/timing variations
+ *     - Test LFO configuration and BPM sync
+ * 
+ * **Phase 19-25: Professional Features**
+ * 19. **Test global transpose**
+ *     - Transpose all tracks up/down by semitones
+ *     - Verify transpose settings and read-back
+ * 20. **Test track quantization**
+ *     - Record off-beat notes
+ *     - Apply quantization (1/16 note = 24 ticks)
+ *     - Compare before/after tick positions
+ * 21. **Test copy/paste**
+ *     - Copy track data to clipboard
+ *     - Paste to different track
+ *     - Verify event count matches
+ * 22. **Test footswitch control**
+ *     - Configure 5 footswitch actions (play/stop, record, mute, solo, scene)
+ *     - Simulate footswitch press/release
+ *     - Verify state changes
+ * 23. **Test MIDI learn**
+ *     - Start MIDI learn mode
+ *     - Map CC#80 to Play/Stop
+ *     - Map Note C5 to Mute Track 0
+ *     - Test cancel functionality
+ *     - Display mapping count
+ * 24. **Test quick-save/load**
+ *     - Save session to slot (tempo, scene, track data)
+ *     - Modify current session
+ *     - Load from slot and verify restoration
+ *     - Test 4 slots (0-3)
+ *     - Clear slot operation
+ * 25. **Test event editing**
+ *     - Export events for examination
+ *     - Edit velocity (80→127)
+ *     - Edit tick position
+ *     - Edit note pitch (E4→G4)
+ *     - Verify changes applied
+ * 
+ * **Phase 27: CC Automation Layer**
+ * 27. **Test CC Automation Layer (Production API)**
+ *     - Start/stop automation recording
+ *     - Record CC messages (CC10/Pan, CC1/Mod Wheel, CC7/Volume)
+ *     - Export automation events (tick, CC number, value, channel)
+ *     - Manual event addition
+ *     - Enable/disable automation playback
+ *     - Synchronized CC playback with loop (2 seconds demonstration)
+ *     - Clear automation functionality
+ * 
+ * **Phase 28: Continuous Monitor**
+ * After phase 27, enters continuous monitoring mode that:
+ * - Allows live MIDI recording/playback via DIN IN or USB
+ * - Prints status updates every 30 seconds
+ * - Shows track states, event counts, mute/solo status
+ * 
+ * Hardware requirements:
+ * - UART connection for debug output (115200 baud)
+ * - Optional: MIDI DIN or USB input for live testing
+ * - Optional: MIDI output to hear playback
+ * - Optional: SD card for save/load testing
+ * - Optional: Router module for integration testing
+ * - Optional: Footswitches for footswitch control testing
+ * 
+ * Expected duration: ~190-250 seconds for automated tests (27 phases)
+ * 
+ * Output: Comprehensive UART debug log with:
+ * - Phase-by-phase progress and results
+ * - MIDI event details (note values, velocities, timing)
+ * - Track state information (recording/playback/overdub)
+ * - Scene management and chaining operations
+ * - Step mode cursor positions and navigation
+ * - Randomization effects (before/after comparison)
+ * - Multi-track status and interactions
+ * - Save/load results and verification
+ * - Router integration (multi-source events)
+ * - Stress test results (capacity, timing)
+ * - Error recovery validation
+ * - Performance benchmark measurements
+ * - Humanizer/LFO modulation validation
+ * - Global transpose operations
+ * - Track quantization (before/after comparison)
+ * - Copy/paste verification
+ * - Footswitch action configuration
+ * - MIDI learn mapping creation
+ * - Quick-save/load session management
+ * - Event editing validation
+ * - **CC Automation Layer (production API)**
+ * - **CC recording/playback synchronized with loop**
+ * - **Manual CC event addition and export**
+ * - Test summary with PASS/FAIL results for all 27 phases
+ * 
+ * Usage: Enable MODULE_TEST_LOOPER=1 in test configuration
+ * Connect UART terminal (115200 baud) to observe test execution
+ * Optionally connect MIDI input/output for live interaction
+ * Optionally connect SD card for save/load testing
+ * 
+ * @note This function runs forever after completing automated tests
  */
 void module_test_looper_run(void);
 
@@ -252,34 +501,55 @@ void module_test_lfo_run(void);
 void module_test_humanizer_run(void);
 
 /**
- * @brief Test UI/OLED module
+ * @brief Test UI/OLED module with comprehensive automated navigation
  * 
- * Tests the complete UI system including OLED display, page navigation,
- * button/encoder input handling, and status line updates.
+ * Comprehensive automated test of the complete UI system including OLED display,
+ * page navigation, button/encoder input handling, status line updates, and all
+ * OLED test modes (including SSD1322 enhancements).
  * 
  * Features tested:
  * - OLED SSD1322 display initialization and rendering
- * - UI page cycling (Looper, Timeline, Pianoroll, Router, Patch)
- * - Button input simulation and handling
- * - Rotary encoder input simulation
- * - Status line updates
- * - Graphics rendering
+ * - All UI pages: Looper, Timeline, Pianoroll, Song, MIDI Monitor, SysEx,
+ *   Config, LiveFX, Rhythm, Humanizer (if enabled), OLED Test
+ * - Direct page navigation via ui_set_page()
+ * - Button-based navigation (Button 5 cycles through all pages)
+ * - Rotary encoder navigation on OLED test page
+ * - All 29 OLED test modes (0-28) including:
+ *   - Pattern/Grayscale tests (0-6)
+ *   - Animations (7-10, 15-19)
+ *   - Advanced graphics (11-14, 17-19)
+ *   - Hardware driver tests (20-27)
+ *   - Vortex tunnel demo (28)
+ * - Encoder stress test (rapid forward/backward, large jumps)
+ * - Status line updates with various message lengths
+ * - Graphics rendering validation
  * 
  * Hardware requirements:
- * - OLED Display: SSD1322 256x64 (grayscale)
- * - Control Input: Buttons + rotary encoder (via SRIO or GPIO)
+ * - OLED Display: SSD1322 256x64 (grayscale, Software SPI)
+ * - Control Input: Buttons + rotary encoder (via SRIO DIN or GPIO)
  * 
- * Test sequence:
+ * Test sequence (6 phases):
  * 1. Initialize OLED and UI subsystem
- * 2. Cycle through all available UI pages (auto-demo)
- * 3. Simulate button presses
- * 4. Simulate encoder rotation
- * 5. Update status messages
- * 6. Enter manual testing mode for visual verification
+ * 2. Test direct page navigation through all UI pages (3s per page)
+ * 3. Test button-based navigation (Button 5, full cycle)
+ * 4. Test all 29 OLED test modes with encoder navigation
+ * 5. Encoder stress test (rapid changes, large jumps)
+ * 6. Status line validation with various messages
+ * 7. Enter manual testing mode for visual verification
+ * 
+ * Expected duration: ~2-3 minutes for automated tests
+ * 
+ * Output: Comprehensive UART debug log with test results including:
+ * - Phase-by-phase progress
+ * - Pass/fail status for each test
+ * - Detailed mode descriptions for OLED tests
+ * - Final summary with all test results
  * 
  * Usage: Enable MODULE_TEST_UI=1 in test configuration
- * Connect OLED display and observe automatic page cycling,
- * then test with actual buttons/encoders.
+ * Connect OLED display and UART terminal (115200 baud)
+ * Observe automated test execution, then test with actual buttons/encoders
+ * 
+ * @note This function runs forever after completing automated tests
  */
 void module_test_ui_run(void);
 
@@ -392,6 +662,73 @@ int module_test_patch_sd_run(void);
  * @note This function runs forever
  */
 void module_test_pressure_run(void);
+
+/**
+ * @brief Test Breath Controller module (pressure sensor + expression/MIDI output)
+ * 
+ * Comprehensive test of the complete breath controller signal chain:
+ * - Pressure sensor I2C communication (XGZP6847D or generic 16-bit sensors)
+ * - Raw sensor value reading (24-bit or 16-bit ADC)
+ * - Pressure conversion to Pascal (Pa) units
+ * - Expression module pressure-to-CC mapping
+ * - MIDI CC output generation (typically CC#2 for breath controller)
+ * - Real-time value monitoring via UART debug output
+ * 
+ * Hardware tested:
+ * - I2C pressure sensor (XGZP6847D 24-bit or generic 16-bit I2C ADC)
+ * - Pressure module: sensor reading and calibration
+ * - Expression module: curve application (linear/expo/S-curve), deadband, hysteresis
+ * - MIDI Router: CC message routing to USB/DIN outputs
+ * - Bidirectional support: Push (inhale) and Pull (exhale) for accordion/bellows
+ * 
+ * Test output (UART debug):
+ * - Sensor type and I2C configuration
+ * - Raw sensor values (0-16777215 for 24-bit, 0-65535 for 16-bit)
+ * - Pressure in Pascal (Pa) - signed relative to atmospheric zero
+ * - 12-bit mapped value (0-4095)
+ * - MIDI CC number and value (0-127)
+ * - Update rate and timing statistics
+ * 
+ * Configuration sources:
+ * - SD card: pressure.ngc (sensor config), expression.ngc (CC mapping)
+ * - Defaults: If SD files missing, uses hardcoded defaults
+ * 
+ * Typical breath controller mapping:
+ * - CC#2 (Breath Controller) for wind instruments
+ * - CC#11 (Expression) for general use
+ * - Bidirectional: CC#11 (push/inhale), CC#2 (pull/exhale) for accordion
+ * 
+ * Hardware connections:
+ * - I2C sensor: SCL/SDA (typically I2C1 or I2C2)
+ * - Pull-up resistors: 4.7kΩ on SCL/SDA
+ * - Power: 3.3V to sensor VCC, GND
+ * 
+ * Troubleshooting output:
+ * - I2C communication errors (NACK, timeout)
+ * - Sensor not detected
+ * - Incorrect I2C address
+ * - Missing configuration files
+ * - Invalid pressure readings
+ * 
+ * Performance characteristics:
+ * - Latency: <5ms from breath to MIDI CC output
+ * - Resolution: 12-bit (4096 levels) mapped to 7-bit MIDI (0-127)
+ * - Update rate: Configurable 5-50ms (default 20ms)
+ * - Smoothing: EMA filter to reduce jitter
+ * 
+ * Use cases:
+ * - Wind controller setup and calibration
+ * - Accordion bellows pressure mapping
+ * - Breath-controlled synthesizers
+ * - Expression pedal alternative
+ * - Hardware validation and troubleshooting
+ * 
+ * @note This function runs forever (continuous monitoring loop)
+ * @note Requires MODULE_ENABLE_PRESSURE and expression module enabled
+ * @note Connect UART terminal at 115200 baud to view debug output
+ * @note Blow/suck on breath sensor to see values change
+ */
+void module_test_breath_run(void);
 
 /**
  * @brief Test USB Host MIDI module
