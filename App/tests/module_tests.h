@@ -236,7 +236,7 @@ void module_test_router_run(void);
  * - Performance benchmarks
  * - Humanizer/LFO modulation validation
  * 
- * Test sequence (18 phases total, ~120-180s runtime):
+ * Test sequence (27 phases total, ~190-250s runtime):
  * 
  * **Phase 1-7: Core Features**
  * 1. Initialize looper and configure transport (120 BPM, 4/4 time)
@@ -336,8 +336,18 @@ void module_test_router_run(void);
  *     - Edit note pitch (E4→G4)
  *     - Verify changes applied
  * 
- * **Phase 26: Continuous Monitor**
- * After phase 25, enters continuous monitoring mode that:
+ * **Phase 27: CC Automation Layer**
+ * 27. **Test CC Automation Layer (Production API)**
+ *     - Start/stop automation recording
+ *     - Record CC messages (CC10/Pan, CC1/Mod Wheel, CC7/Volume)
+ *     - Export automation events (tick, CC number, value, channel)
+ *     - Manual event addition
+ *     - Enable/disable automation playback
+ *     - Synchronized CC playback with loop (2 seconds demonstration)
+ *     - Clear automation functionality
+ * 
+ * **Phase 28: Continuous Monitor**
+ * After phase 27, enters continuous monitoring mode that:
  * - Allows live MIDI recording/playback via DIN IN or USB
  * - Prints status updates every 30 seconds
  * - Shows track states, event counts, mute/solo status
@@ -350,7 +360,7 @@ void module_test_router_run(void);
  * - Optional: Router module for integration testing
  * - Optional: Footswitches for footswitch control testing
  * 
- * Expected duration: ~180-240 seconds for automated tests (25 phases)
+ * Expected duration: ~190-250 seconds for automated tests (27 phases)
  * 
  * Output: Comprehensive UART debug log with:
  * - Phase-by-phase progress and results
@@ -373,7 +383,10 @@ void module_test_router_run(void);
  * - MIDI learn mapping creation
  * - Quick-save/load session management
  * - Event editing validation
- * - Test summary with PASS/FAIL results for all 25 phases
+ * - **CC Automation Layer (production API)**
+ * - **CC recording/playback synchronized with loop**
+ * - **Manual CC event addition and export**
+ * - Test summary with PASS/FAIL results for all 27 phases
  * 
  * Usage: Enable MODULE_TEST_LOOPER=1 in test configuration
  * Connect UART terminal (115200 baud) to observe test execution
