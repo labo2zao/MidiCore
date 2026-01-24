@@ -49,7 +49,7 @@ void ui_midi_monitor_capture(uint8_t port, const uint8_t* data, uint8_t len, uin
 }
 
 /**
- * @brief Decode MIDI message to human-readable string
+ * @brief Decode MIDI message to human-readable string (compact, LoopA-style)
  */
 static void decode_midi_message(const uint8_t* data, uint8_t len, char* out, size_t out_size) {
   if (len == 0) {
@@ -59,33 +59,33 @@ static void decode_midi_message(const uint8_t* data, uint8_t len, char* out, siz
   
   uint8_t status = data[0];
   uint8_t type = status & 0xF0;
-  uint8_t channel = status & 0x0F;
+  uint8_t channel = (status & 0x0F) + 1;
   
   switch (type) {
     case 0x80:  // Note Off
       if (len >= 3) {
-        snprintf(out, out_size, "NoteOff Ch%u N:%u V:%u", channel + 1, data[1], data[2]);
+        snprintf(out, out_size, "Off C%u N%u V%u", channel, data[1], data[2]);
       }
       break;
     case 0x90:  // Note On
       if (len >= 3) {
-        snprintf(out, out_size, "NoteOn Ch%u N:%u V:%u", channel + 1, data[1], data[2]);
+        snprintf(out, out_size, "On  C%u N%u V%u", channel, data[1], data[2]);
       }
       break;
     case 0xB0:  // Control Change
       if (len >= 3) {
-        snprintf(out, out_size, "CC Ch%u #%u=%u", channel + 1, data[1], data[2]);
+        snprintf(out, out_size, "CC  C%u #%u=%u", channel, data[1], data[2]);
       }
       break;
     case 0xC0:  // Program Change
       if (len >= 2) {
-        snprintf(out, out_size, "PC Ch%u Prg:%u", channel + 1, data[1]);
+        snprintf(out, out_size, "PC  C%u P%u", channel, data[1]);
       }
       break;
     case 0xE0:  // Pitch Bend
       if (len >= 3) {
         int bend = ((int)data[2] << 7) | data[1];
-        snprintf(out, out_size, "Bend Ch%u Val:%d", channel + 1, bend - 8192);
+        snprintf(out, out_size, "PB  C%u %+d", channel, bend - 8192);
       }
       break;
     case 0xF0:  // System message
@@ -109,14 +109,15 @@ void ui_page_midi_monitor_render(uint32_t now_ms) {
   
   ui_gfx_clear(0);
   
-  // Header
+  // Header with 8x8 font for better readability
+  ui_gfx_set_font(UI_FONT_8X8);
   char header[64];
-  snprintf(header, sizeof(header), "MIDI MONITOR  %s  Events:%u", 
+  snprintf(header, sizeof(header), "MIDI %s Events:%u", 
            paused ? "[PAUSED]" : "[LIVE]", event_count);
   ui_gfx_text(0, 0, header, 15);
-  ui_gfx_rect(0, 9, 256, 1, 4);
+  ui_gfx_hline(0, 11, 256, 8);
   
-  // Display event list
+  // Display event list with better spacing (9px per line instead of 8px)
   uint8_t display_count = (event_count < MONITOR_BUFFER_SIZE) ? event_count : MONITOR_BUFFER_SIZE;
   uint8_t start_idx = (event_count > MONITOR_BUFFER_SIZE) ? 
                       (event_count - MONITOR_BUFFER_SIZE) : 0;
@@ -129,23 +130,24 @@ void ui_page_midi_monitor_render(uint32_t now_ms) {
     char decoded[32];
     decode_midi_message(ev->data, ev->len, decoded, sizeof(decoded));
     
-    // Format: [time] Port Data - Decoded
+    // LoopA-style: More compact format - time + decoded message
     uint32_t sec = ev->timestamp_ms / 1000;
     uint32_t ms = ev->timestamp_ms % 1000;
     
-    snprintf(line, sizeof(line), "%02u.%03u P%u %02X %02X %02X %s",
-             sec % 100, ms, ev->port,
-             ev->data[0], 
-             ev->len > 1 ? ev->data[1] : 0,
-             ev->len > 2 ? ev->data[2] : 0,
-             decoded);
+    // Show time, port, and decoded message (more readable, less hex clutter)
+    snprintf(line, sizeof(line), "%02u.%03u P%u %s",
+             sec % 100, ms, ev->port, decoded);
     
-    ui_gfx_text(0, 14 + i * 8, line, 10);
+    // Use 8x8 font with varying brightness (recent = brighter)
+    uint8_t brightness = 12 - (display_count - i - 1);
+    if (brightness < 8) brightness = 8;
+    ui_gfx_text(0, 14 + i * 9, line, brightness);
   }
   
-  // Footer
-  ui_gfx_rect(0, 62, 256, 1, 4);
-  ui_gfx_text(0, 54, "B1 PAUSE  B2 CLEAR  B3 FILT  B4 SAVE", 8);
+  // Footer with smaller 5x7 font
+  ui_gfx_hline(0, 54, 256, 6);
+  ui_gfx_set_font(UI_FONT_5X7);
+  ui_gfx_text(0, 56, "B1:PAUSE B2:CLEAR B3:FILT B4:SAVE", 10);
 }
 
 /**

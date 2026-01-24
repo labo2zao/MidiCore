@@ -25,12 +25,13 @@ MidiCore now provides a unified module testing framework that allows testing ind
 |-----------|--------|-------------|
 | AINSER64 | `MODULE_TEST_AINSER64` | Tests 64-channel analog input (MCP3208 + mux) |
 | SRIO | `MODULE_TEST_SRIO` | Tests shift register DIN/DOUT (74HC165/595) |
-| MIDI DIN | `MODULE_TEST_MIDI_DIN` | Tests MIDI DIN input/output via UART |
+| MIDI DIN | `MODULE_TEST_MIDI_DIN` | Tests MIDI DIN I/O with LiveFX transform and MIDI learn |
 | Router | `MODULE_TEST_ROUTER` | Tests MIDI router and message forwarding |
 | Looper | `MODULE_TEST_LOOPER` | Tests MIDI looper recording/playback |
 | UI | `MODULE_TEST_UI` | Tests OLED display and user interface |
 | Patch/SD | `MODULE_TEST_PATCH_SD` | **Tests SD card config, MIDI export, scene chaining persistence** |
 | Pressure | `MODULE_TEST_PRESSURE` | Tests I2C pressure sensor (XGZP6847) |
+| Breath | `MODULE_TEST_BREATH` | Tests breath controller (pressure sensor + MIDI CC) - [Guide](BREATH_CONTROLLER_TEST_GUIDE.md) |
 | USB Host MIDI | `MODULE_TEST_USB_HOST_MIDI` | Tests USB Host MIDI device communication |
 | **All Tests** | `MODULE_TEST_ALL` | **Runs all finite tests sequentially (OLED + PATCH_SD)** |
 
@@ -134,34 +135,78 @@ make CFLAGS+="-DMODULE_TEST_SRIO"
 - If DIN reads stay fixed (e.g., always `0xFF`), verify `/PL` polarity; set `SRIO_DIN_PL_ACTIVE_LOW=0` if RC2 is inverted on your board.
 - If the chain is unstable, reduce SRIO SPI speed with `SRIO_SPI_PRESCALER` (default: 128).
 
-### Example 3: Test MIDI Router
+### Example 3: Test MIDI Router (Comprehensive)
 
 ```bash
 # Compile with Router test
 make CFLAGS+="-DMODULE_TEST_ROUTER=1"
 
-# Send MIDI to device and monitor output
+# Monitor UART output to see test phases
 ```
 
 **Expected Output:**
-- MIDI messages routed according to configuration
-- Can test different routing rules
+- Phase 1: Router initialization with node mapping
+- Phase 2: Basic routing configuration (3 routes)
+- Phase 3: Channel filtering tests
+- Phase 4: All message types tested (Note, CC, PC, Pressure, Pitch Bend)
+- Phase 5: Multi-destination routing (1→3 outputs)
+- Phase 6: Dynamic route enable/disable
+- Phase 7: Channel mask validation (16 channels)
+- Phase 8: Complete routing table display
+- Test summary with ✓ indicators
+- Continuous monitoring mode with periodic status
 
-### Example 4: Test MIDI DIN
+**Test Duration:** ~5 seconds automated tests + continuous monitoring
+
+**Features Validated:**
+- 16x16 routing matrix functionality
+- Per-route channel filtering (16-bit chanmask)
+- All MIDI message types routing
+- Multi-destination routing
+- Route labels and modification
+- Real-time route changes
+
+### Example 4: Test MIDI DIN with LiveFX and MIDI Learn
 
 ```bash
-# Compile with MIDI DIN test
+# Compile with MIDI DIN test (includes LiveFX and MIDI learn)
 make CFLAGS+="-DMODULE_TEST_MIDI_DIN"
 
 # Optional: choose DIN UART port (0-3) if needed
 make CFLAGS+="-DMODULE_TEST_MIDI_DIN -DTEST_MIDI_DIN_UART_PORT=2"
 
-# Send MIDI notes into the DIN input and monitor the debug output
+# The test includes:
+# - MIDI I/O: Receives from DIN IN1, sends to DIN OUT1
+# - LiveFX Transform: Real-time transpose, velocity scaling, force-to-scale
+# - MIDI Learn: Map CC messages to LiveFX parameters
 ```
 
 **Expected Output:**
 - Incoming MIDI DIN events logged over the debug UART
-- MIDI echo/through behavior if enabled by the test
+- MIDI messages transformed by LiveFX (when enabled)
+- Real-time parameter control via CC messages (MIDI learn)
+
+**MIDI Learn Commands (Channel 1):**
+- CC 20: Enable/Disable LiveFX (value > 64 = enabled)
+- CC 21: Transpose down (-1 semitone)
+- CC 22: Transpose up (+1 semitone)
+- CC 23: Transpose reset (0)
+- CC 24: Velocity scale down (-10%)
+- CC 25: Velocity scale up (+10%)
+- CC 26: Velocity scale reset (100%)
+- CC 27: Force-to-scale toggle (value > 64 = on)
+- CC 28: Scale type (0-11)
+- CC 29: Scale root (0=C, 1=C#, ..., 11=B)
+
+**Test Workflow:**
+1. Connect MIDI controller to DIN IN1
+2. Connect DIN OUT1 to synth or DAW
+3. Send CC 20 (value 127) to enable LiveFX
+4. Send CC 22 multiple times to transpose notes up
+5. Play notes on controller - they will be transposed
+6. Send CC 27 (value 127) to enable force-to-scale
+7. Play notes - they will snap to the selected scale
+8. Monitor UART debug output for detailed status
 
 ### Example 5: Test Looper
 
@@ -181,18 +226,44 @@ make CFLAGS+="-DMODULE_TEST_LOOPER=1"
 - Looper cycles through REC → PLAY → STOP states
 - MIDI events recorded and played back
 
-### Example 6: Test UI (OLED)
+### Example 6: Test UI (OLED) with Automated Navigation
 
 ```bash
 # Compile with UI test
 make CFLAGS+="-DMODULE_TEST_UI=1"
 
-# Observe the OLED for status updates
+# Connect UART terminal at 115200 baud to view test progress
+# Observe the OLED for automated page navigation and test mode rendering
 ```
 
 **Expected Output:**
-- OLED initializes and renders test UI screens
-- Buttons/encoders update the UI if connected
+- Comprehensive UART log showing 6 test phases:
+  - Phase 1: OLED and UI initialization
+  - Phase 2: Direct page navigation through all UI pages (3s each)
+  - Phase 3: Button-based navigation test (Button 5 cycles)
+  - Phase 4: All 29 OLED test modes rendered and validated
+  - Phase 5: Encoder stress test (rapid changes, large jumps)
+  - Phase 6: Status line validation
+- OLED display shows:
+  - Each UI page rendered in sequence
+  - All 29 OLED test modes including:
+    - Pattern/Grayscale tests (0-6)
+    - Animations (7-10, 15-19)
+    - Advanced graphics (11-14, 17-19)
+    - Hardware driver tests (20-27)
+    - Vortex tunnel demo (28)
+- Test completes in ~2-3 minutes, then enters manual mode
+- Buttons/encoders can be used for manual testing after automated tests
+
+**OLED Test Modes Validated:**
+The test automatically validates all SSD1322 enhancements:
+- Mode 0-6: Basic display tests (patterns, grayscale, text)
+- Mode 7-10: Animation tests (scrolling, ball, performance, circles)
+- Mode 11-14: Advanced features (bitmap, patterns, stress, auto-cycle)
+- Mode 15-16: Utility tests (burn-in prevention, performance stats)
+- Mode 17-19: 3D & UI elements (wireframe cube, advanced graphics, UI widgets)
+- Mode 20-27: Hardware driver tests (8 hardware test patterns)
+- Mode 28: Vortex tunnel demo
 
 ### Example 7: Test Patch/SD
 
@@ -250,35 +321,6 @@ make CFLAGS+="-DMODULE_TEST_ALL"
 
 **Expected Output:**
 ```
-==============================================
-   MODULE_TEST_ALL - Comprehensive Suite
-==============================================
-
-Running: MODULE_TEST_OLED_SSD1322
-[PASS] MODULE_TEST_OLED_SSD1322 completed
-
-Running: MODULE_TEST_PATCH_SD  
-[PASS] MODULE_TEST_PATCH_SD completed
-
-==============================================
-       MODULE_TEST_ALL - FINAL SUMMARY
-==============================================
-
-Individual Test Results:
-  OLED_SSD1322    : [PASS]
-  PATCH_SD        : [PASS]
-
-Test Statistics:
-Tests Passed:  2
-Tests Failed:  0
-Total Run:     2
-
-RESULT: ALL TESTS PASSED!
-```
-
-**Note:** Only finite tests included (OLED_SSD1322, PATCH_SD). Tests that run forever must be run individually.
-
-**See also:** [MODULE_TEST_ALL.md](MODULE_TEST_ALL.md) for comprehensive documentation
 
 ## Production Mode (Default)
 
@@ -306,12 +348,13 @@ Some tests require specific modules to be enabled in `Config/module_config.h`:
 |------|------------------|
 | `MODULE_TEST_AINSER64` | `MODULE_ENABLE_AINSER64`, `MODULE_ENABLE_SPI_BUS` |
 | `MODULE_TEST_SRIO` | `MODULE_ENABLE_SRIO`, `MODULE_ENABLE_SPI_BUS` |
-| `MODULE_TEST_MIDI_DIN` | `MODULE_ENABLE_MIDI_DIN` |
+| `MODULE_TEST_MIDI_DIN` | `MODULE_ENABLE_MIDI_DIN`, `MODULE_ENABLE_ROUTER`, `MODULE_ENABLE_LIVEFX` |
 | `MODULE_TEST_ROUTER` | `MODULE_ENABLE_ROUTER` |
 | `MODULE_TEST_LOOPER` | `MODULE_ENABLE_LOOPER` |
 | `MODULE_TEST_UI` | `MODULE_ENABLE_UI`, `MODULE_ENABLE_OLED` |
 | `MODULE_TEST_PATCH_SD` | `MODULE_ENABLE_PATCH` |
 | `MODULE_TEST_PRESSURE` | `MODULE_ENABLE_PRESSURE` |
+| `MODULE_TEST_FOOTSWITCH` | `MODULE_ENABLE_LOOPER` (GPIO-based, no SRIO required) |
 
 If required modules are not enabled, the test will idle in an infinite loop.
 
