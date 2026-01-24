@@ -3351,7 +3351,7 @@ void module_test_looper_run(void)
   dbg_printf("  ✓ FS0: Action=%d (Play/Stop), Param=%d\r\n", fs0_action, fs0_param);
   
   // FS1: Record toggle track 0
-  looper_set_footswitch_action(1, FS_ACTION_REC, 0);
+  looper_set_footswitch_action(1, FS_ACTION_RECORD, 0);
   uint8_t fs1_param;
   footswitch_action_t fs1_action = looper_get_footswitch_action(1, &fs1_param);
   dbg_printf("  ✓ FS1: Action=%d (Record), Param=%d (track)\r\n", fs1_action, fs1_param);
