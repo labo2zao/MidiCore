@@ -100,7 +100,7 @@ typedef struct {
   uint8_t recording;
   uint8_t playback_enabled;
   uint32_t event_count;
-  uint32_t last_playback_tick;  // Track last processed tick to avoid duplicates
+  uint32_t playback_idx;  // Current playback position in events array
   looper_automation_event_t events[LOOPER_AUTOMATION_MAX_EVENTS];
 } looper_automation_t;
 
@@ -3321,8 +3321,8 @@ void looper_automation_enable_playback(uint8_t track, uint8_t enable) {
   if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
   g_automation[track].playback_enabled = enable ? 1 : 0;
   if (enable) {
-    // Reset playback position to avoid sending stale events
-    g_automation[track].last_playback_tick = 0;
+    // Reset playback position to start from beginning
+    g_automation[track].playback_idx = 0;
   }
   if (g_mutex) osMutexRelease(g_mutex);
 }
@@ -3344,7 +3344,7 @@ void looper_automation_clear(uint8_t track) {
   if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
   g_automation[track].event_count = 0;
   g_automation[track].recording = 0;
-  g_automation[track].last_playback_tick = 0;
+  g_automation[track].playback_idx = 0;
   memset(g_automation[track].events, 0, sizeof(g_automation[track].events));
   if (g_mutex) osMutexRelease(g_mutex);
 }
@@ -3445,34 +3445,37 @@ static void looper_automation_process_playback(uint8_t track) {
   if (g_tr[track].st != LOOPER_STATE_PLAY && g_tr[track].st != LOOPER_STATE_OVERDUB) return;
   
   uint32_t current_tick = g_tr[track].play_tick;
-  uint32_t last_tick = g_automation[track].last_playback_tick;
   
-  // Handle loop wraparound
-  if (current_tick < last_tick) {
-    // Loop wrapped, reset to process events from beginning
-    last_tick = 0;
+  // Handle loop wraparound - reset playback index to beginning
+  if (g_automation[track].playback_idx > 0 && current_tick == 0) {
+    g_automation[track].playback_idx = 0;
   }
   
-  // Send all CC events between last_tick and current_tick
-  for (uint32_t i = 0; i < g_automation[track].event_count; i++) {
-    looper_automation_event_t* evt = &g_automation[track].events[i];
+  // Process events at current tick (efficient: only check events starting from playback_idx)
+  while (g_automation[track].playback_idx < g_automation[track].event_count) {
+    looper_automation_event_t* evt = &g_automation[track].events[g_automation[track].playback_idx];
     
-    // Check if event should be sent
-    if (evt->tick > last_tick && evt->tick <= current_tick) {
-      // Send CC message via router
+    // If this event is in the future, stop processing
+    if (evt->tick > current_tick) {
+      break;
+    }
+    
+    // Event is at or before current tick - send it if exactly at current tick
+    if (evt->tick == current_tick) {
+      // Send CC message
       router_msg_t msg;
       msg.type = ROUTER_MSG_3B;
       msg.b0 = 0xB0 | (evt->channel & 0x0F);  // CC status + channel
       msg.b1 = evt->cc_num;
       msg.b2 = evt->cc_value;
       
-      // Send to router output (would need router_send function)
-      // For now, we'll just track that it would be sent
-      // In production, this would call: router_process(ROUTER_NODE_LOOPER, &msg);
+      // Send via delay queue (same as other looper events)
+      midi_delayq_send(ROUTER_NODE_LOOPER, &msg, 0);
     }
+    
+    // Move to next event
+    g_automation[track].playback_idx++;
   }
-  
-  g_automation[track].last_playback_tick = current_tick;
 }
 
 
