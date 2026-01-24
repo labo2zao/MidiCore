@@ -140,7 +140,7 @@ void bootloader_protocol_send_info(uint8_t version_major, uint8_t version_minor,
 }
 
 bool bootloader_protocol_process(const uint8_t* data, uint32_t len) {
-  // Minimum valid message: F0 00 00 7E 4E <cmd> <checksum> F7 = 8 bytes
+  // Minimum valid message: F0 00 00 7E 40 <cmd> <checksum> F7 = 8 bytes
   if (data == NULL || len < 8) {
     return false;
   }
@@ -150,11 +150,11 @@ bool bootloader_protocol_process(const uint8_t* data, uint32_t len) {
     return false;
   }
   
-  // Verify manufacturer ID and device ID
+  // Verify manufacturer ID and device ID (accept both 0x40 and 0x4E for compatibility)
   if (data[1] != SYSEX_MANUFACTURER_ID_1 ||
       data[2] != SYSEX_MANUFACTURER_ID_2 ||
       data[3] != SYSEX_MANUFACTURER_ID_3 ||
-      data[4] != SYSEX_DEVICE_ID) {
+      (data[4] != SYSEX_DEVICE_ID && data[4] != SYSEX_DEVICE_ID_LEGACY)) {
     return false; // Not for us
   }
   

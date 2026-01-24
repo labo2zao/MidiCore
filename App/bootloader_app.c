@@ -26,17 +26,17 @@
  * @return true if this is a bootloader message
  */
 bool bootloader_app_is_bootloader_sysex(const uint8_t* data, uint32_t len) {
-  // Minimum bootloader message: F0 00 00 7E 4E <cmd> <checksum> F7 = 8 bytes
+  // Minimum bootloader message: F0 00 00 7E 40 <cmd> <checksum> F7 = 8 bytes
   if (data == NULL || len < 8) {
     return false;
   }
   
-  // Check for bootloader SysEx header: F0 00 00 7E 4E
+  // Check for bootloader SysEx header: F0 00 00 7E 40 (or legacy 0x4E)
   if (data[0] == 0xF0 &&
       data[1] == 0x00 &&
       data[2] == 0x00 &&
       data[3] == 0x7E &&
-      data[4] == 0x4E) {
+      (data[4] == 0x40 || data[4] == 0x4E)) {  // Accept both MIOS32 standard and legacy
     return true;
   }
   

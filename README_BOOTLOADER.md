@@ -2,15 +2,19 @@
 
 ## Overview
 
-The MidiCore bootloader enables fast firmware updates via USB MIDI using the MIOS32-compatible SysEx protocol. This provides a user-friendly way to update the firmware without opening the device or using JTAG/SWD programmers.
+The MidiCore bootloader enables fast firmware updates via USB MIDI using the **MIOS32-compatible SysEx protocol**. This provides a user-friendly way to update the firmware without opening the device or using JTAG/SWD programmers.
+
+**MIOS Studio Compatible**: The bootloader now uses Device ID `0x40` (standard MIOS32) making it compatible with MIOS Studio for firmware uploads.
 
 ## Features
 
 - **Fast USB MIDI Transfer**: 50-100x faster than traditional DIN MIDI (~ 1 MB in 30-60 seconds)
+- **MIOS Studio Compatible**: Uses standard MIOS32 Device ID (0x40) and protocol
 - **MIOS32-Compatible Protocol**: Uses standard SysEx messages for wide tool compatibility
 - **Safe Updates**: CRC verification and flash verification ensure data integrity
 - **Flexible Entry**: Multiple ways to enter bootloader mode
 - **Fallback Protection**: Stays in bootloader if no valid application detected
+- **Backward Compatible**: Also accepts legacy Device ID (0x4E)
 
 ## Memory Layout
 
@@ -50,7 +54,7 @@ Hold a designated button during power-on or reset (requires hardware-specific im
 All bootloader SysEx messages follow this structure:
 
 ```
-F0 00 00 7E 4E <command> <data...> <checksum> F7
+F0 00 00 7E 40 <command> <data...> <checksum> F7
 │  └──┬───┘ │  └────┬────┘ └───┬───┘ └───┬──┘ │
 │   MfgID  Dev     Cmd       Data      CS   End
 │          ID
@@ -58,7 +62,8 @@ Start
 ```
 
 - **Manufacturer ID**: `00 00 7E` (Universal Non-Realtime, MIDIbox)
-- **Device ID**: `4E` ('N' for MIDIbox/MIOS32)
+- **Device ID**: `40` (Standard MIOS32 - MIOS Studio compatible)
+  - Legacy Device ID `4E` also accepted for backward compatibility
 - **Checksum**: 7-bit two's complement checksum of data from command onwards
 
 ### Commands
@@ -67,44 +72,44 @@ Start
 
 **Request:**
 ```
-F0 00 00 7E 4E 01 <checksum> F7
+F0 00 00 7E 40 01 <checksum> F7
 ```
 
 **Response:**
 ```
-F0 00 00 7E 4E 0F 01 <ver_major> <ver_minor> <ver_patch> <flash_size:5> <app_addr:5> <checksum> F7
+F0 00 00 7E 40 0F 01 <ver_major> <ver_minor> <ver_patch> <flash_size:5> <app_addr:5> <checksum> F7
 ```
 
 Example:
 ```python
 # Query bootloader version and configuration
-send_sysex([0xF0, 0x00, 0x00, 0x7E, 0x4E, 0x01, checksum, 0xF7])
+send_sysex([0xF0, 0x00, 0x00, 0x7E, 0x40, 0x01, checksum, 0xF7])
 ```
 
 #### 2. Erase Application (0x04)
 
 **Request:**
 ```
-F0 00 00 7E 4E 04 <checksum> F7
+F0 00 00 7E 40 04 <checksum> F7
 ```
 
 **Response:**
 ```
-F0 00 00 7E 4E 0F 04 <address:5> <checksum> F7  # Success
-F0 00 00 7E 4E 0E 04 <error_code> <checksum> F7  # Error
+F0 00 00 7E 40 0F 04 <address:5> <checksum> F7  # Success
+F0 00 00 7E 40 0E 04 <error_code> <checksum> F7  # Error
 ```
 
 Example:
 ```python
 # Erase application flash before uploading new firmware
-send_sysex([0xF0, 0x00, 0x00, 0x7E, 0x4E, 0x04, checksum, 0xF7])
+send_sysex([0xF0, 0x00, 0x00, 0x7E, 0x40, 0x04, checksum, 0xF7])
 ```
 
 #### 3. Write Block (0x02)
 
 **Request:**
 ```
-F0 00 00 7E 4E 02 <address:5> <length:2> <data...> <checksum> F7
+F0 00 00 7E 40 02 <address:5> <length:2> <data...> <checksum> F7
 ```
 
 - **Address**: 32-bit offset from application start (0x08008000), encoded in 5 bytes of 7-bit data
@@ -113,8 +118,8 @@ F0 00 00 7E 4E 02 <address:5> <length:2> <data...> <checksum> F7
 
 **Response:**
 ```
-F0 00 00 7E 4E 0F 02 <address:5> <checksum> F7  # Success
-F0 00 00 7E 4E 0E 02 <error_code> <checksum> F7  # Error
+F0 00 00 7E 40 0F 02 <address:5> <checksum> F7  # Success
+F0 00 00 7E 40 0E 02 <error_code> <checksum> F7  # Error
 ```
 
 Example:
@@ -123,25 +128,25 @@ Example:
 address_bytes = encode_u32(0x00000000)  # [0x00, 0x00, 0x00, 0x00, 0x00]
 length_bytes = [(64 >> 7) & 0x7F, 64 & 0x7F]  # [0x00, 0x40]
 data = [0x00, 0x01, 0x02, ...]  # 64 bytes of firmware
-send_sysex([0xF0, 0x00, 0x00, 0x7E, 0x4E, 0x02] + address_bytes + length_bytes + data + [checksum, 0xF7])
+send_sysex([0xF0, 0x00, 0x00, 0x7E, 0x40, 0x02] + address_bytes + length_bytes + data + [checksum, 0xF7])
 ```
 
 #### 4. Jump to Application (0x05)
 
 **Request:**
 ```
-F0 00 00 7E 4E 05 <checksum> F7
+F0 00 00 7E 40 05 <checksum> F7
 ```
 
 **Response:**
 ```
-F0 00 00 7E 4E 0F 05 <address:5> <checksum> F7  # Success (then jumps)
+F0 00 00 7E 40 0F 05 <address:5> <checksum> F7  # Success (then jumps)
 ```
 
 Example:
 ```python
 # After successful firmware upload, jump to new application
-send_sysex([0xF0, 0x00, 0x00, 0x7E, 0x4E, 0x05, checksum, 0xF7])
+send_sysex([0xF0, 0x00, 0x00, 0x7E, 0x40, 0x05, checksum, 0xF7])
 ```
 
 ### Error Codes
@@ -202,32 +207,84 @@ Calculate the checksum over all bytes from the command byte up to (but not inclu
 
 ### 3. Query Bootloader Info (Optional)
 ```
-Send: F0 00 00 7E 4E 01 <CS> F7
-Recv: F0 00 00 7E 4E 0F 01 <version> <flash_size> <app_addr> <CS> F7
+Send: F0 00 00 7E 40 01 <CS> F7
+Recv: F0 00 00 7E 40 0F 01 <version> <flash_size> <app_addr> <CS> F7
 ```
 
 ### 4. Erase Application Flash
 ```
-Send: F0 00 00 7E 4E 04 <CS> F7
-Recv: F0 00 00 7E 4E 0F 04 <addr> <CS> F7
+Send: F0 00 00 7E 40 04 <CS> F7
+Recv: F0 00 00 7E 40 0F 04 <addr> <CS> F7
 ```
 
 ### 5. Upload Firmware Blocks
 For each block of firmware (typically 64-128 bytes):
 ```
-Send: F0 00 00 7E 4E 02 <addr:5> <len:2> <data...> <CS> F7
-Recv: F0 00 00 7E 4E 0F 02 <addr:5> <CS> F7
+Send: F0 00 00 7E 40 02 <addr:5> <len:2> <data...> <CS> F7
+Recv: F0 00 00 7E 40 0F 02 <addr:5> <CS> F7
 ```
 
 Repeat until entire firmware is uploaded.
 
 ### 6. Jump to Application
 ```
-Send: F0 00 00 7E 4E 05 <CS> F7
-Recv: F0 00 00 7E 4E 0F 05 <addr:5> <CS> F7
+Send: F0 00 00 7E 40 05 <CS> F7
+Recv: F0 00 00 7E 40 0F 05 <addr:5> <CS> F7
 ```
 
 Device will restart and run the new application.
+
+## Using MIOS Studio
+
+The bootloader is now compatible with **MIOS Studio** for firmware uploads. MIOS Studio is the standard tool for uploading firmware to MIOS32-based devices.
+
+### Prerequisites
+1. Download and install [MIOS Studio](http://www.ucapps.de/mios_studio.html)
+2. Ensure your MidiCore device is in bootloader mode
+3. Connect via USB MIDI
+
+### Upload Process with MIOS Studio
+
+**Note**: MIOS Studio expects Intel HEX (.hex) format files. To use your .bin firmware:
+
+1. **Convert .bin to .hex format** (if needed):
+   ```bash
+   # Using objcopy (if you have the .elf file)
+   arm-none-eabi-objcopy -O ihex firmware.elf firmware.hex
+   
+   # Or use srec_cat (from srecord package)
+   srec_cat firmware.bin -binary -offset 0x08008000 -o firmware.hex -intel
+   ```
+
+2. **Launch MIOS Studio** and select your device's MIDI port
+
+3. **Enter Bootloader Mode** on your device:
+   - Power on while holding bootloader button, OR
+   - Send bootloader entry command from running application, OR
+   - Device auto-enters if no valid application exists
+
+4. **Upload Firmware**:
+   - In MIOS Studio, go to the "Upload" tab
+   - Select your `firmware.hex` file
+   - Click "Upload" button
+   - Wait for completion (~30-60 seconds for 1MB)
+
+5. **Verify**: After upload completes, the device will automatically start the new application
+
+### Important Notes for MIOS Studio
+
+- **Device ID**: The bootloader uses Device ID `0x40` (MIOS32 standard)
+- **Protocol**: Fully compatible with MIOS32 bootloader protocol
+- **Format**: MIOS Studio handles .hex files; convert .bin files as shown above
+- **Speed**: USB MIDI provides fast transfer (50-100x faster than DIN MIDI)
+- **Compatibility**: Works with both MIOS Studio v2 and later versions
+
+### Troubleshooting MIOS Studio
+
+- **Device not detected**: Ensure bootloader mode is active and MIDI ports are correct
+- **Upload fails**: Try erasing the application first using the Python tool or MIOS Studio console
+- **Wrong format**: Ensure you're using .hex format, not .bin
+- **Address errors**: When converting .bin to .hex, use offset `0x08008000` (application start address)
 
 ## Example Python Script
 
@@ -258,7 +315,7 @@ def checksum(data):
 
 def send_bootloader_sysex(midi_out, command, data=[]):
     """Send bootloader SysEx message"""
-    msg = [0xF0, 0x00, 0x00, 0x7E, 0x4E, command] + data
+    msg = [0xF0, 0x00, 0x00, 0x7E, 0x40, command] + data
     msg.append(checksum(msg[5:]))  # Checksum from command onwards
     msg.append(0xF7)
     midi_out.send_message(msg)
@@ -358,7 +415,7 @@ void handle_sysex_message(const uint8_t* data, uint32_t len) {
     // Check if it's a bootloader command
     if (len >= 6 && 
         data[1] == 0x00 && data[2] == 0x00 && 
-        data[3] == 0x7E && data[4] == 0x4E) {
+        data[3] == 0x7E && data[4] == 0x40) {
         // Bootloader SysEx detected
         bootloader_request_entry();
     }

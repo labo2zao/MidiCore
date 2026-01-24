@@ -2,8 +2,8 @@
  * @file bootloader_protocol.h
  * @brief MIOS32-compatible SysEx protocol for firmware updates
  * 
- * Protocol Structure:
- * F0 00 00 7E 4E <device_id> <command> <data...> <checksum> F7
+ * Protocol Structure (MIOS Studio Compatible):
+ * F0 00 00 7E 40 <command> <data...> <checksum> F7
  * 
  * Commands:
  * - 0x01: Query (get bootloader info)
@@ -15,6 +15,9 @@
  * Responses:
  * - 0x0F: Acknowledge
  * - 0x0E: Error
+ * 
+ * Note: Device ID 0x40 is standard MIOS32 for MIOS Studio compatibility.
+ * Legacy ID 0x4E is also accepted for backward compatibility.
  */
 
 #pragma once
@@ -30,7 +33,8 @@ extern "C" {
 #define SYSEX_MANUFACTURER_ID_1     0x00
 #define SYSEX_MANUFACTURER_ID_2     0x00
 #define SYSEX_MANUFACTURER_ID_3     0x7E
-#define SYSEX_DEVICE_ID             0x4E  // 'N' for MIDIbox/MIOS32
+#define SYSEX_DEVICE_ID             0x40  // Standard MIOS32 Device ID for MIOS Studio compatibility
+#define SYSEX_DEVICE_ID_LEGACY      0x4E  // Legacy 'N' for backward compatibility
 
 /** @brief Bootloader SysEx Commands */
 #define SYSEX_CMD_QUERY             0x01

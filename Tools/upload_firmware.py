@@ -2,6 +2,8 @@
 """
 MidiCore Bootloader Firmware Upload Utility
 
+MIOS Studio Compatible - Uses Device ID 0x40 (standard MIOS32)
+
 Requirements: pip install python-rtmidi
 Usage: python3 upload_firmware.py firmware.bin [--port PORT_INDEX]
 """
@@ -16,7 +18,8 @@ except ImportError:
     print("Error: python-rtmidi required. Install: pip install python-rtmidi")
     sys.exit(1)
 
-# Bootloader protocol constants
+# Bootloader protocol constants (MIOS32 compatible)
+DEVICE_ID = 0x40  # Standard MIOS32 Device ID for MIOS Studio compatibility
 CMD_QUERY = 0x01
 CMD_WRITE_BLOCK = 0x02
 CMD_ERASE_APP = 0x04
@@ -37,10 +40,10 @@ def checksum(data):
     return (-(sum(data))) & 0x7F
 
 def build_message(command, data=None):
-    """Build SysEx message"""
+    """Build SysEx message (MIOS Studio compatible)"""
     if data is None:
         data = []
-    msg = [0xF0, 0x00, 0x00, 0x7E, 0x4E, command] + data
+    msg = [0xF0, 0x00, 0x00, 0x7E, DEVICE_ID, command] + data
     msg.append(checksum([command] + data))
     msg.append(0xF7)
     return msg
