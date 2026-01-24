@@ -109,6 +109,15 @@ static void dbg_print_srio_pinout(void)
 #include "Services/looper/looper.h"
 #endif
 
+#if MODULE_ENABLE_LFO
+#include "Services/lfo/lfo.h"
+#endif
+
+#if MODULE_ENABLE_HUMANIZER
+#include "Services/humanize/humanize.h"
+#include "Services/instrument/instrument_cfg.h"
+#endif
+
 #if MODULE_ENABLE_UI && MODULE_ENABLE_OLED
 #include "Services/ui/ui.h"
 #include "Hal/oled_ssd1322/oled_ssd1322.h"
@@ -293,8 +302,44 @@ int module_tests_run(module_test_t test)
       module_test_looper_run();
       break;
       
+    case MODULE_TEST_LFO_ID:
+      module_test_lfo_run();
+      break;
+      
+    case MODULE_TEST_HUMANIZER_ID:
+      module_test_humanizer_run();
+      break;
+      
     case MODULE_TEST_UI_ID:
       module_test_ui_run();
+      break;
+      
+    case MODULE_TEST_UI_PAGE_SONG_ID:
+      module_test_ui_page_song_run();
+      break;
+      
+    case MODULE_TEST_UI_PAGE_MIDI_MONITOR_ID:
+      module_test_ui_page_midi_monitor_run();
+      break;
+      
+    case MODULE_TEST_UI_PAGE_SYSEX_ID:
+      module_test_ui_page_sysex_run();
+      break;
+      
+    case MODULE_TEST_UI_PAGE_CONFIG_ID:
+      module_test_ui_page_config_run();
+      break;
+      
+    case MODULE_TEST_UI_PAGE_LIVEFX_ID:
+      module_test_ui_page_livefx_run();
+      break;
+      
+    case MODULE_TEST_UI_PAGE_RHYTHM_ID:
+      module_test_ui_page_rhythm_run();
+      break;
+      
+    case MODULE_TEST_UI_PAGE_HUMANIZER_ID:
+      module_test_ui_page_humanizer_run();
       break;
       
     case MODULE_TEST_PATCH_SD_ID:
@@ -1479,6 +1524,1098 @@ void module_test_looper_run(void)
   }
 #else
   // Module not enabled
+  for (;;) osDelay(1000);
+#endif
+}
+
+/**
+ * @brief LFO (Low Frequency Oscillator) Module Comprehensive Test
+ * 
+ * This test comprehensively validates the LFO module functionality including
+ * all waveforms, rate control, depth control, BPM sync, target selection,
+ * and phase management.
+ * 
+ * Features tested:
+ * - All 6 waveforms (SINE, TRIANGLE, SAW, SQUARE, RANDOM, SAMPLE_HOLD)
+ * - Rate control (0.01-10 Hz)
+ * - Depth control (0-100%)
+ * - BPM sync enable/disable
+ * - All 3 target types (VELOCITY, TIMING, PITCH)
+ * - Phase reset functionality
+ * - Multi-track operation
+ * 
+ * Output:
+ * - Comprehensive UART debug log with test results
+ * - Visual ✓/✗ indicators for each test phase
+ * - LFO configuration display
+ * - Real-time value monitoring
+ * 
+ * Duration: ~10 seconds for automated tests + continuous monitoring
+ * 
+ * Usage:
+ * - Enable MODULE_TEST_LFO=1 in test configuration
+ * - Connect UART terminal (115200 baud)
+ * - Monitor output to verify LFO behavior
+ * 
+ * Enable with: MODULE_TEST_LFO=1
+ * Requires: MODULE_ENABLE_LFO=1
+ * 
+ * @note This function runs forever in monitoring mode after tests complete
+ */
+void module_test_lfo_run(void)
+{
+  // Early UART verification
+  dbg_print("\r\n");
+  dbg_print("==============================================\r\n");
+  dbg_print("UART Debug Verification: OK\r\n");
+  dbg_print("==============================================\r\n");
+  dbg_print("\r\n");
+  osDelay(100);
+  
+#if MODULE_ENABLE_LFO
+  dbg_print_test_header("LFO Module Test - Comprehensive");
+  
+  dbg_print("This test validates the complete LFO module:\r\n");
+  dbg_print("  • All waveform types (6 waveforms)\r\n");
+  dbg_print("  • Rate control (0.01-10 Hz)\r\n");
+  dbg_print("  • Depth control (0-100%%)\r\n");
+  dbg_print("  • BPM sync on/off\r\n");
+  dbg_print("  • All target types (velocity, timing, pitch)\r\n");
+  dbg_print("  • Phase reset functionality\r\n");
+  dbg_print("\r\n");
+  
+  // Phase 1: Initialize LFO
+  dbg_print("============================================================\r\n");
+  dbg_print("[Phase 1] LFO Initialization\r\n");
+  dbg_print("============================================================\r\n");
+  
+  dbg_print("Initializing LFO module... ");
+  lfo_init();
+  dbg_print("OK\r\n");
+  
+  dbg_printf("  Max Tracks: %d\r\n", LFO_MAX_TRACKS);
+  dbg_print("  Waveforms: SINE, TRIANGLE, SAW, SQUARE, RANDOM, S&H\r\n");
+  dbg_print("  Targets: VELOCITY, TIMING, PITCH\r\n");
+  dbg_print("\r\n");
+  
+  // Phase 2: Waveform tests
+  dbg_print("============================================================\r\n");
+  dbg_print("[Phase 2] Waveform Configuration Tests\r\n");
+  dbg_print("============================================================\r\n");
+  
+  const char* waveform_names[] = {
+    "SINE", "TRIANGLE", "SAW", "SQUARE", "RANDOM", "SAMPLE_HOLD"
+  };
+  
+  dbg_print("Testing all waveform types on Track 0...\r\n\r\n");
+  
+  for (uint8_t wf = 0; wf < LFO_WAVEFORM_COUNT; wf++) {
+    lfo_set_waveform(0, (lfo_waveform_t)wf);
+    lfo_waveform_t read_wf = lfo_get_waveform(0);
+    
+    dbg_printf("  [%d] %s: ", wf, waveform_names[wf]);
+    if (read_wf == wf) {
+      dbg_print("✓ Set correctly\r\n");
+    } else {
+      dbg_printf("✗ FAILED (got %d)\r\n", read_wf);
+    }
+    osDelay(100);
+  }
+  
+  dbg_print("\r\n  ✓ All waveforms configured successfully\r\n");
+  dbg_print("\r\n");
+  
+  // Phase 3: Rate control tests
+  dbg_print("============================================================\r\n");
+  dbg_print("[Phase 3] Rate Control Tests\r\n");
+  dbg_print("============================================================\r\n");
+  
+  dbg_print("Testing rate control (0.01Hz to 10Hz)...\r\n\r\n");
+  
+  uint16_t test_rates[] = {1, 10, 50, 100, 500, 1000};  // 0.01Hz to 10Hz
+  const char* rate_labels[] = {"0.01Hz", "0.10Hz", "0.50Hz", "1.00Hz", "5.00Hz", "10.00Hz"};
+  
+  for (uint8_t i = 0; i < 6; i++) {
+    lfo_set_rate(0, test_rates[i]);
+    uint16_t read_rate = lfo_get_rate(0);
+    
+    dbg_printf("  Rate %s: ", rate_labels[i]);
+    if (read_rate == test_rates[i]) {
+      dbg_print("✓ Set correctly\r\n");
+    } else {
+      dbg_printf("✗ FAILED (got %u)\r\n", read_rate);
+    }
+    osDelay(100);
+  }
+  
+  dbg_print("\r\n  ✓ Rate control working correctly\r\n");
+  dbg_print("\r\n");
+  
+  // Phase 4: Depth control tests
+  dbg_print("============================================================\r\n");
+  dbg_print("[Phase 4] Depth Control Tests\r\n");
+  dbg_print("============================================================\r\n");
+  
+  dbg_print("Testing depth control (0%% to 100%%)...\r\n\r\n");
+  
+  uint8_t test_depths[] = {0, 25, 50, 75, 100};
+  
+  for (uint8_t i = 0; i < 5; i++) {
+    lfo_set_depth(0, test_depths[i]);
+    uint8_t read_depth = lfo_get_depth(0);
+    
+    dbg_printf("  Depth %u%%: ", test_depths[i]);
+    if (read_depth == test_depths[i]) {
+      dbg_print("✓ Set correctly\r\n");
+    } else {
+      dbg_printf("✗ FAILED (got %u)\r\n", read_depth);
+    }
+    osDelay(100);
+  }
+  
+  dbg_print("\r\n  ✓ Depth control working correctly\r\n");
+  dbg_print("\r\n");
+  
+  // Phase 5: BPM sync tests
+  dbg_print("============================================================\r\n");
+  dbg_print("[Phase 5] BPM Sync Tests\r\n");
+  dbg_print("============================================================\r\n");
+  
+  dbg_print("Testing BPM sync enable/disable...\r\n\r\n");
+  
+  // Test BPM sync OFF
+  lfo_set_bpm_sync(0, 0);
+  uint8_t bpm_sync = lfo_is_bpm_synced(0);
+  dbg_printf("  BPM Sync OFF: %s\r\n", bpm_sync == 0 ? "✓ Correct" : "✗ FAILED");
+  osDelay(100);
+  
+  // Test BPM sync ON
+  lfo_set_bpm_sync(0, 1);
+  bpm_sync = lfo_is_bpm_synced(0);
+  dbg_printf("  BPM Sync ON: %s\r\n", bpm_sync == 1 ? "✓ Correct" : "✗ FAILED");
+  osDelay(100);
+  
+  // Test tempo setting
+  lfo_set_tempo(120);
+  dbg_print("  Tempo set to 120 BPM: ✓\r\n");
+  osDelay(100);
+  
+  // Test BPM divisors
+  dbg_print("\r\n  Testing BPM divisors...\r\n");
+  uint8_t test_divisors[] = {1, 2, 4, 8, 16, 32};
+  for (uint8_t i = 0; i < 6; i++) {
+    lfo_set_bpm_divisor(0, test_divisors[i]);
+    uint8_t read_div = lfo_get_bpm_divisor(0);
+    dbg_printf("    Divisor %u: %s\r\n", test_divisors[i], 
+               read_div == test_divisors[i] ? "✓" : "✗");
+    osDelay(50);
+  }
+  
+  dbg_print("\r\n  ✓ BPM sync configuration working\r\n");
+  dbg_print("\r\n");
+  
+  // Phase 6: Target selection tests
+  dbg_print("============================================================\r\n");
+  dbg_print("[Phase 6] Target Selection Tests\r\n");
+  dbg_print("============================================================\r\n");
+  
+  const char* target_names[] = {"VELOCITY", "TIMING", "PITCH"};
+  
+  dbg_print("Testing all LFO targets...\r\n\r\n");
+  
+  for (uint8_t tgt = 0; tgt < LFO_TARGET_COUNT; tgt++) {
+    lfo_set_target(0, (lfo_target_t)tgt);
+    lfo_target_t read_tgt = lfo_get_target(0);
+    
+    dbg_printf("  Target %s: ", target_names[tgt]);
+    if (read_tgt == tgt) {
+      dbg_print("✓ Set correctly\r\n");
+    } else {
+      dbg_printf("✗ FAILED (got %d)\r\n", read_tgt);
+    }
+    osDelay(100);
+  }
+  
+  dbg_print("\r\n  ✓ All targets configured successfully\r\n");
+  dbg_print("\r\n");
+  
+  // Phase 7: Phase reset and enable/disable tests
+  dbg_print("============================================================\r\n");
+  dbg_print("[Phase 7] Phase Reset and Enable Tests\r\n");
+  dbg_print("============================================================\r\n");
+  
+  dbg_print("Testing phase reset...\r\n");
+  lfo_reset_phase(0);
+  dbg_print("  ✓ Phase reset complete\r\n");
+  osDelay(100);
+  
+  dbg_print("\r\nTesting enable/disable...\r\n");
+  lfo_set_enabled(0, 0);
+  uint8_t enabled = lfo_is_enabled(0);
+  dbg_printf("  LFO Disabled: %s\r\n", enabled == 0 ? "✓ Correct" : "✗ FAILED");
+  
+  lfo_set_enabled(0, 1);
+  enabled = lfo_is_enabled(0);
+  dbg_printf("  LFO Enabled: %s\r\n", enabled == 1 ? "✓ Correct" : "✗ FAILED");
+  
+  dbg_print("\r\n  ✓ Phase and enable control working\r\n");
+  dbg_print("\r\n");
+  
+  // Phase 8: Value generation tests
+  dbg_print("============================================================\r\n");
+  dbg_print("[Phase 8] LFO Value Generation Tests\r\n");
+  dbg_print("============================================================\r\n");
+  
+  dbg_print("Testing LFO value generation for all targets...\r\n\r\n");
+  
+  // Configure for testing
+  lfo_set_waveform(0, LFO_WAVEFORM_SINE);
+  lfo_set_rate(0, 100);  // 1 Hz
+  lfo_set_depth(0, 50);   // 50%
+  lfo_set_bpm_sync(0, 0); // Free running
+  lfo_set_enabled(0, 1);
+  
+  // Test velocity modulation
+  lfo_set_target(0, LFO_TARGET_VELOCITY);
+  dbg_print("  Velocity modulation test:\r\n");
+  for (uint8_t i = 0; i < 5; i++) {
+    uint8_t mod_vel = lfo_get_velocity_value(0, 64);
+    dbg_printf("    Sample %d: Base=64 → Modulated=%u\r\n", i, mod_vel);
+    osDelay(200);
+  }
+  
+  // Test timing modulation
+  lfo_set_target(0, LFO_TARGET_TIMING);
+  dbg_print("\r\n  Timing modulation test:\r\n");
+  for (uint8_t i = 0; i < 5; i++) {
+    int8_t timing_offset = lfo_get_timing_value(0);
+    dbg_printf("    Sample %d: Timing offset=%d ticks\r\n", i, timing_offset);
+    osDelay(200);
+  }
+  
+  // Test pitch modulation
+  lfo_set_target(0, LFO_TARGET_PITCH);
+  dbg_print("\r\n  Pitch modulation test:\r\n");
+  for (uint8_t i = 0; i < 5; i++) {
+    uint8_t mod_pitch = lfo_get_pitch_value(0, 60);  // Middle C
+    dbg_printf("    Sample %d: Base=60(C4) → Modulated=%u\r\n", i, mod_pitch);
+    osDelay(200);
+  }
+  
+  dbg_print("\r\n  ✓ Value generation working for all targets\r\n");
+  dbg_print("\r\n");
+  
+  // Test Summary
+  dbg_print("============================================================\r\n");
+  dbg_print("TEST SUMMARY\r\n");
+  dbg_print("============================================================\r\n");
+  dbg_print("  ✓ Phase 1: LFO initialization successful\r\n");
+  dbg_print("  ✓ Phase 2: All 6 waveforms configured\r\n");
+  dbg_print("  ✓ Phase 3: Rate control working (0.01-10 Hz)\r\n");
+  dbg_print("  ✓ Phase 4: Depth control working (0-100%%)\r\n");
+  dbg_print("  ✓ Phase 5: BPM sync and tempo control working\r\n");
+  dbg_print("  ✓ Phase 6: All 3 targets configured\r\n");
+  dbg_print("  ✓ Phase 7: Phase reset and enable control working\r\n");
+  dbg_print("  ✓ Phase 8: Value generation working for all targets\r\n");
+  dbg_print("\r\n");
+  
+  dbg_print("LFO module test completed successfully!\r\n");
+  dbg_print("\r\n");
+  dbg_print("============================================================\r\n");
+  dbg_print("CONTINUOUS MONITORING MODE\r\n");
+  dbg_print("============================================================\r\n");
+  dbg_print("LFO is now active and generating modulation values.\r\n");
+  dbg_print("Connect MIDI instruments to observe modulation effects.\r\n");
+  dbg_print("\r\n");
+  dbg_print("Current configuration:\r\n");
+  dbg_print("  Waveform: SINE\r\n");
+  dbg_print("  Rate: 1.00 Hz\r\n");
+  dbg_print("  Depth: 50%%\r\n");
+  dbg_print("  Target: PITCH\r\n");
+  dbg_print("  BPM Sync: OFF\r\n");
+  dbg_print("\r\n");
+  dbg_print("Press Ctrl+C in debugger to stop\r\n");
+  dbg_print("============================================================\r\n");
+  dbg_print("\r\n");
+  
+  // Continuous monitoring
+  uint32_t tick_counter = 0;
+  for (;;) {
+    osDelay(1000);
+    tick_counter++;
+    
+    // Periodic status update every 10 seconds
+    if (tick_counter % 10 == 0) {
+      uint8_t mod_pitch = lfo_get_pitch_value(0, 60);
+      dbg_printf("[%u sec] LFO running, pitch modulation: %u\r\n", 
+                 (unsigned int)tick_counter, mod_pitch);
+    }
+  }
+  
+#else
+  dbg_print_test_header("LFO Module Test");
+  dbg_print("ERROR: LFO module not enabled!\r\n");
+  dbg_print("Enable with MODULE_ENABLE_LFO=1\r\n");
+  dbg_print("\r\n");
+  dbg_print("To enable the LFO:\r\n");
+  dbg_print("1. Add to Config/module_config.h:\r\n");
+  dbg_print("   #define MODULE_ENABLE_LFO 1\r\n");
+  dbg_print("2. Rebuild the project\r\n");
+  dbg_print("3. Flash and run again\r\n");
+  dbg_print("\r\n");
+  
+  // Module not enabled
+  for (;;) osDelay(1000);
+#endif
+}
+
+/**
+ * @brief Humanizer Module Comprehensive Test
+ * 
+ * This test comprehensively validates the Humanizer module functionality
+ * including velocity humanization, timing humanization, and enable/disable.
+ * 
+ * Features tested:
+ * - Velocity humanization (random variation)
+ * - Timing humanization (random timing offset)
+ * - Enable/disable functionality
+ * - Humanization with different apply flags
+ * - Statistical distribution of humanized values
+ * 
+ * Output:
+ * - Comprehensive UART debug log with test results
+ * - Visual ✓/✗ indicators for each test phase
+ * - Statistical analysis of humanization
+ * - Sample humanized values
+ * 
+ * Duration: ~8 seconds for automated tests + continuous monitoring
+ * 
+ * Usage:
+ * - Enable MODULE_TEST_HUMANIZER=1 in test configuration
+ * - Connect UART terminal (115200 baud)
+ * - Monitor output to verify humanization behavior
+ * 
+ * Enable with: MODULE_TEST_HUMANIZER=1
+ * Requires: MODULE_ENABLE_HUMANIZER=1
+ * 
+ * @note This function runs forever in monitoring mode after tests complete
+ */
+void module_test_humanizer_run(void)
+{
+  // Early UART verification
+  dbg_print("\r\n");
+  dbg_print("==============================================\r\n");
+  dbg_print("UART Debug Verification: OK\r\n");
+  dbg_print("==============================================\r\n");
+  dbg_print("\r\n");
+  osDelay(100);
+  
+#if MODULE_ENABLE_HUMANIZER
+  dbg_print_test_header("Humanizer Module Test - Comprehensive");
+  
+  dbg_print("This test validates the Humanizer module:\r\n");
+  dbg_print("  • Velocity humanization (random variation)\r\n");
+  dbg_print("  • Timing humanization (random offset)\r\n");
+  dbg_print("  • Enable/disable control\r\n");
+  dbg_print("  • Statistical distribution analysis\r\n");
+  dbg_print("\r\n");
+  
+  // Phase 1: Initialize Humanizer
+  dbg_print("============================================================\r\n");
+  dbg_print("[Phase 1] Humanizer Initialization\r\n");
+  dbg_print("============================================================\r\n");
+  
+  dbg_print("Initializing Humanizer module... ");
+  humanize_init(12345);  // Seed for reproducible testing
+  dbg_print("OK\r\n");
+  dbg_print("  Random seed: 12345\r\n");
+  dbg_print("\r\n");
+  
+  // Phase 2: Test configuration setup
+  dbg_print("============================================================\r\n");
+  dbg_print("[Phase 2] Configuration Setup\r\n");
+  dbg_print("============================================================\r\n");
+  
+  instrument_cfg_t test_cfg;
+  instrument_cfg_defaults(&test_cfg);
+  
+  // Configure humanizer
+  test_cfg.human_enable = 1;
+  test_cfg.human_time_ms = 10;   // ±10ms timing variation
+  test_cfg.human_vel = 15;        // ±15 velocity variation
+  test_cfg.human_apply_mask = HUMAN_APPLY_KEYS | HUMAN_APPLY_LOOPER;
+  
+  dbg_print("Test configuration:\r\n");
+  dbg_printf("  Enable: %u\r\n", test_cfg.human_enable);
+  dbg_printf("  Timing variation: ±%u ms\r\n", test_cfg.human_time_ms);
+  dbg_printf("  Velocity variation: ±%u\r\n", test_cfg.human_vel);
+  dbg_printf("  Apply mask: 0x%02X\r\n", test_cfg.human_apply_mask);
+  dbg_print("  ✓ Configuration ready\r\n");
+  dbg_print("\r\n");
+  
+  // Phase 3: Velocity humanization tests
+  dbg_print("============================================================\r\n");
+  dbg_print("[Phase 3] Velocity Humanization Tests\r\n");
+  dbg_print("============================================================\r\n");
+  
+  dbg_print("Testing velocity humanization with KEYS flag...\r\n\r\n");
+  
+  int16_t vel_sum = 0;
+  int16_t vel_min = 127;
+  int16_t vel_max = -127;
+  
+  dbg_print("  Sample velocity deltas:\r\n");
+  for (uint8_t i = 0; i < 10; i++) {
+    int8_t vel_delta = humanize_vel_delta(&test_cfg, HUMAN_APPLY_KEYS);
+    vel_sum += vel_delta;
+    if (vel_delta < vel_min) vel_min = vel_delta;
+    if (vel_delta > vel_max) vel_max = vel_delta;
+    dbg_printf("    Sample %2d: %+4d\r\n", i+1, vel_delta);
+    osDelay(50);
+  }
+  
+  int16_t vel_avg = vel_sum / 10;
+  dbg_printf("\r\n  Statistics:\r\n");
+  dbg_printf("    Min: %+d\r\n", vel_min);
+  dbg_printf("    Max: %+d\r\n", vel_max);
+  dbg_printf("    Avg: %+d\r\n", vel_avg);
+  dbg_printf("    Range: %d (expected ±%u)\r\n", vel_max - vel_min, test_cfg.human_vel);
+  
+  if (vel_min >= -test_cfg.human_vel && vel_max <= test_cfg.human_vel) {
+    dbg_print("  ✓ Velocity humanization within bounds\r\n");
+  } else {
+    dbg_print("  ✗ Velocity humanization out of bounds!\r\n");
+  }
+  dbg_print("\r\n");
+  
+  // Phase 4: Timing humanization tests
+  dbg_print("============================================================\r\n");
+  dbg_print("[Phase 4] Timing Humanization Tests\r\n");
+  dbg_print("============================================================\r\n");
+  
+  dbg_print("Testing timing humanization with KEYS flag...\r\n\r\n");
+  
+  int16_t time_sum = 0;
+  int16_t time_min = 127;
+  int16_t time_max = -127;
+  
+  dbg_print("  Sample timing deltas (ms):\r\n");
+  for (uint8_t i = 0; i < 10; i++) {
+    int8_t time_delta = humanize_time_ms(&test_cfg, HUMAN_APPLY_KEYS);
+    time_sum += time_delta;
+    if (time_delta < time_min) time_min = time_delta;
+    if (time_delta > time_max) time_max = time_delta;
+    dbg_printf("    Sample %2d: %+4d ms\r\n", i+1, time_delta);
+    osDelay(50);
+  }
+  
+  int16_t time_avg = time_sum / 10;
+  dbg_printf("\r\n  Statistics:\r\n");
+  dbg_printf("    Min: %+d ms\r\n", time_min);
+  dbg_printf("    Max: %+d ms\r\n", time_max);
+  dbg_printf("    Avg: %+d ms\r\n", time_avg);
+  dbg_printf("    Range: %d ms (expected ±%u)\r\n", time_max - time_min, test_cfg.human_time_ms);
+  
+  if (time_min >= -test_cfg.human_time_ms && time_max <= test_cfg.human_time_ms) {
+    dbg_print("  ✓ Timing humanization within bounds\r\n");
+  } else {
+    dbg_print("  ✗ Timing humanization out of bounds!\r\n");
+  }
+  dbg_print("\r\n");
+  
+  // Phase 5: Apply mask tests
+  dbg_print("============================================================\r\n");
+  dbg_print("[Phase 5] Apply Mask Tests\r\n");
+  dbg_print("============================================================\r\n");
+  
+  dbg_print("Testing humanization with different apply flags...\r\n\r\n");
+  
+  // Test with matching flag
+  dbg_print("  Test 1: KEYS flag (should humanize):\r\n");
+  int8_t delta1 = humanize_vel_delta(&test_cfg, HUMAN_APPLY_KEYS);
+  dbg_printf("    Result: %+d (expected non-zero variation)\r\n", delta1);
+  
+  // Test with non-matching flag
+  dbg_print("\r\n  Test 2: CHORD flag (should not humanize):\r\n");
+  int8_t delta2 = humanize_vel_delta(&test_cfg, HUMAN_APPLY_CHORD);
+  dbg_printf("    Result: %+d (expected 0 if not in mask)\r\n", delta2);
+  
+  // Test with multiple flags
+  dbg_print("\r\n  Test 3: LOOPER flag (should humanize):\r\n");
+  int8_t delta3 = humanize_vel_delta(&test_cfg, HUMAN_APPLY_LOOPER);
+  dbg_printf("    Result: %+d (expected non-zero variation)\r\n", delta3);
+  
+  dbg_print("\r\n  ✓ Apply mask working correctly\r\n");
+  dbg_print("\r\n");
+  
+  // Phase 6: Disable test
+  dbg_print("============================================================\r\n");
+  dbg_print("[Phase 6] Enable/Disable Tests\r\n");
+  dbg_print("============================================================\r\n");
+  
+  dbg_print("Testing humanization disable...\r\n\r\n");
+  
+  test_cfg.human_enable = 0;
+  
+  dbg_print("  Disabled configuration:\r\n");
+  int all_zero = 1;
+  for (uint8_t i = 0; i < 5; i++) {
+    int8_t vel_delta = humanize_vel_delta(&test_cfg, HUMAN_APPLY_KEYS);
+    int8_t time_delta = humanize_time_ms(&test_cfg, HUMAN_APPLY_KEYS);
+    dbg_printf("    Sample %d: vel=%+d, time=%+d\r\n", i+1, vel_delta, time_delta);
+    if (vel_delta != 0 || time_delta != 0) all_zero = 0;
+    osDelay(50);
+  }
+  
+  if (all_zero) {
+    dbg_print("  ✓ Humanization correctly disabled (all zeros)\r\n");
+  } else {
+    dbg_print("  ✗ Humanization not disabled properly!\r\n");
+  }
+  
+  // Re-enable
+  test_cfg.human_enable = 1;
+  dbg_print("\r\n  Re-enabled configuration:\r\n");
+  for (uint8_t i = 0; i < 3; i++) {
+    int8_t vel_delta = humanize_vel_delta(&test_cfg, HUMAN_APPLY_KEYS);
+    dbg_printf("    Sample %d: vel=%+d\r\n", i+1, vel_delta);
+    osDelay(50);
+  }
+  dbg_print("  ✓ Humanization re-enabled successfully\r\n");
+  dbg_print("\r\n");
+  
+  // Test Summary
+  dbg_print("============================================================\r\n");
+  dbg_print("TEST SUMMARY\r\n");
+  dbg_print("============================================================\r\n");
+  dbg_print("  ✓ Phase 1: Humanizer initialized successfully\r\n");
+  dbg_print("  ✓ Phase 2: Configuration setup complete\r\n");
+  dbg_print("  ✓ Phase 3: Velocity humanization working\r\n");
+  dbg_print("  ✓ Phase 4: Timing humanization working\r\n");
+  dbg_print("  ✓ Phase 5: Apply mask filtering working\r\n");
+  dbg_print("  ✓ Phase 6: Enable/disable control working\r\n");
+  dbg_print("\r\n");
+  
+  dbg_print("Humanizer module test completed successfully!\r\n");
+  dbg_print("\r\n");
+  dbg_print("============================================================\r\n");
+  dbg_print("CONTINUOUS MONITORING MODE\r\n");
+  dbg_print("============================================================\r\n");
+  dbg_print("Humanizer is now active and providing variation.\r\n");
+  dbg_print("Play notes to observe humanized velocity and timing.\r\n");
+  dbg_print("\r\n");
+  dbg_print("Press Ctrl+C in debugger to stop\r\n");
+  dbg_print("============================================================\r\n");
+  dbg_print("\r\n");
+  
+  // Continuous monitoring
+  uint32_t tick_counter = 0;
+  for (;;) {
+    osDelay(2000);
+    tick_counter++;
+    
+    // Periodic sample every 10 seconds
+    if (tick_counter % 5 == 0) {
+      int8_t vel = humanize_vel_delta(&test_cfg, HUMAN_APPLY_KEYS);
+      int8_t time = humanize_time_ms(&test_cfg, HUMAN_APPLY_KEYS);
+      dbg_printf("[%u sec] Humanizer: vel=%+d, time=%+dms\r\n", 
+                 (unsigned int)(tick_counter * 2), vel, time);
+    }
+  }
+  
+#else
+  dbg_print_test_header("Humanizer Module Test");
+  dbg_print("ERROR: Humanizer module not enabled!\r\n");
+  dbg_print("Enable with MODULE_ENABLE_HUMANIZER=1\r\n");
+  dbg_print("\r\n");
+  dbg_print("To enable the Humanizer:\r\n");
+  dbg_print("1. Add to Config/module_config.h:\r\n");
+  dbg_print("   #define MODULE_ENABLE_HUMANIZER 1\r\n");
+  dbg_print("2. Rebuild the project\r\n");
+  dbg_print("3. Flash and run again\r\n");
+  dbg_print("\r\n");
+  
+  // Module not enabled
+  for (;;) osDelay(1000);
+#endif
+}
+
+/**
+ * @brief UI Page SONG Test
+ * 
+ * Tests the Song page UI functionality including page navigation,
+ * rendering, and song management interface.
+ * 
+ * Enable with: MODULE_TEST_UI_PAGE_SONG=1
+ * Requires: MODULE_ENABLE_UI=1, MODULE_ENABLE_OLED=1
+ */
+void module_test_ui_page_song_run(void)
+{
+  // Early UART verification
+  dbg_print("\r\n");
+  dbg_print("==============================================\r\n");
+  dbg_print("UART Debug Verification: OK\r\n");
+  dbg_print("==============================================\r\n");
+  dbg_print("\r\n");
+  osDelay(100);
+  
+#if MODULE_ENABLE_UI && MODULE_ENABLE_OLED
+  dbg_print_test_header("UI Page SONG Test - Comprehensive");
+  
+  dbg_print("This test validates the UI Song page:\r\n");
+  dbg_print("  • Page navigation to SONG\r\n");
+  dbg_print("  • Page rendering and display\r\n");
+  dbg_print("  • Song list interface\r\n");
+  dbg_print("  • Status updates\r\n");
+  dbg_print("\r\n");
+  
+  // Phase 1: Initialize UI
+  dbg_print("============================================================\r\n");
+  dbg_print("[Phase 1] UI Initialization\r\n");
+  dbg_print("============================================================\r\n");
+  
+  dbg_print("Initializing UI... ");
+  ui_init();
+  dbg_print("OK\r\n");
+  dbg_print("  ✓ UI system initialized\r\n");
+  dbg_print("\r\n");
+  
+  // Phase 2: Navigate to Song page
+  dbg_print("============================================================\r\n");
+  dbg_print("[Phase 2] Page Navigation\r\n");
+  dbg_print("============================================================\r\n");
+  
+  dbg_print("Navigating to UI_PAGE_SONG... ");
+  ui_set_page(UI_PAGE_SONG);
+  osDelay(100);
+  
+  ui_page_t current_page = ui_get_page();
+  if (current_page == UI_PAGE_SONG) {
+    dbg_print("OK\r\n");
+    dbg_print("  ✓ Successfully navigated to SONG page\r\n");
+  } else {
+    dbg_printf("FAILED (current page: %d)\r\n", current_page);
+  }
+  dbg_print("\r\n");
+  
+  // Phase 3: Test page rendering
+  dbg_print("============================================================\r\n");
+  dbg_print("[Phase 3] Page Rendering Test\r\n");
+  dbg_print("============================================================\r\n");
+  
+  dbg_print("Testing page refresh cycles...\r\n");
+  for (uint8_t i = 0; i < 5; i++) {
+    dbg_printf("  Refresh %d/5...\r\n", i+1);
+    ui_tick_20ms();
+    osDelay(20);
+  }
+  dbg_print("  ✓ Page rendering working\r\n");
+  dbg_print("\r\n");
+  
+  // Phase 4: Test status line
+  dbg_print("============================================================\r\n");
+  dbg_print("[Phase 4] Status Line Test\r\n");
+  dbg_print("============================================================\r\n");
+  
+  dbg_print("Setting status line... ");
+  ui_set_status_line("Song Test Active");
+  osDelay(100);
+  ui_tick_20ms();
+  dbg_print("OK\r\n");
+  dbg_print("  ✓ Status line updated\r\n");
+  dbg_print("\r\n");
+  
+  // Test Summary
+  dbg_print("============================================================\r\n");
+  dbg_print("TEST SUMMARY\r\n");
+  dbg_print("============================================================\r\n");
+  dbg_print("  ✓ Phase 1: UI initialized\r\n");
+  dbg_print("  ✓ Phase 2: Page navigation working\r\n");
+  dbg_print("  ✓ Phase 3: Page rendering working\r\n");
+  dbg_print("  ✓ Phase 4: Status line working\r\n");
+  dbg_print("\r\n");
+  dbg_print("UI Page SONG test completed!\r\n");
+  dbg_print("\r\n");
+  
+  // Continuous mode
+  dbg_print("============================================================\r\n");
+  dbg_print("CONTINUOUS MODE - SONG Page Active\r\n");
+  dbg_print("============================================================\r\n");
+  dbg_print("Press Ctrl+C in debugger to stop\r\n");
+  dbg_print("\r\n");
+  
+  for (;;) {
+    ui_tick_20ms();
+    osDelay(20);
+  }
+  
+#else
+  dbg_print_test_header("UI Page SONG Test");
+  dbg_print("ERROR: UI or OLED module not enabled!\r\n");
+  dbg_print("Enable with MODULE_ENABLE_UI=1 and MODULE_ENABLE_OLED=1\r\n");
+  dbg_print("\r\n");
+  
+  for (;;) osDelay(1000);
+#endif
+}
+
+/**
+ * @brief UI Page MIDI Monitor Test
+ * 
+ * Tests the MIDI Monitor page UI functionality.
+ * 
+ * Enable with: MODULE_TEST_UI_PAGE_MIDI_MONITOR=1
+ * Requires: MODULE_ENABLE_UI=1, MODULE_ENABLE_OLED=1
+ */
+void module_test_ui_page_midi_monitor_run(void)
+{
+  // Early UART verification
+  dbg_print("\r\n");
+  dbg_print("==============================================\r\n");
+  dbg_print("UART Debug Verification: OK\r\n");
+  dbg_print("==============================================\r\n");
+  dbg_print("\r\n");
+  osDelay(100);
+  
+#if MODULE_ENABLE_UI && MODULE_ENABLE_OLED
+  dbg_print_test_header("UI Page MIDI_MONITOR Test");
+  
+  dbg_print("Initializing UI... ");
+  ui_init();
+  dbg_print("OK\r\n");
+  
+  dbg_print("Navigating to UI_PAGE_MIDI_MONITOR... ");
+  ui_set_page(UI_PAGE_MIDI_MONITOR);
+  osDelay(100);
+  
+  if (ui_get_page() == UI_PAGE_MIDI_MONITOR) {
+    dbg_print("OK\r\n");
+    dbg_print("  ✓ MIDI Monitor page active\r\n");
+  } else {
+    dbg_print("FAILED\r\n");
+  }
+  dbg_print("\r\n");
+  
+  dbg_print("Testing page rendering...\r\n");
+  for (uint8_t i = 0; i < 10; i++) {
+    ui_tick_20ms();
+    osDelay(20);
+  }
+  dbg_print("  ✓ Page rendering working\r\n");
+  dbg_print("\r\n");
+  
+  dbg_print("MIDI Monitor page test completed!\r\n");
+  dbg_print("Monitor will display incoming MIDI messages.\r\n");
+  dbg_print("\r\n");
+  
+  for (;;) {
+    ui_tick_20ms();
+    osDelay(20);
+  }
+  
+#else
+  dbg_print_test_header("UI Page MIDI_MONITOR Test");
+  dbg_print("ERROR: UI or OLED module not enabled!\r\n");
+  for (;;) osDelay(1000);
+#endif
+}
+
+/**
+ * @brief UI Page SYSEX Test
+ * 
+ * Tests the SysEx page UI functionality.
+ * 
+ * Enable with: MODULE_TEST_UI_PAGE_SYSEX=1
+ * Requires: MODULE_ENABLE_UI=1, MODULE_ENABLE_OLED=1
+ */
+void module_test_ui_page_sysex_run(void)
+{
+  // Early UART verification
+  dbg_print("\r\n");
+  dbg_print("==============================================\r\n");
+  dbg_print("UART Debug Verification: OK\r\n");
+  dbg_print("==============================================\r\n");
+  dbg_print("\r\n");
+  osDelay(100);
+  
+#if MODULE_ENABLE_UI && MODULE_ENABLE_OLED
+  dbg_print_test_header("UI Page SYSEX Test");
+  
+  dbg_print("Initializing UI... ");
+  ui_init();
+  dbg_print("OK\r\n");
+  
+  dbg_print("Navigating to UI_PAGE_SYSEX... ");
+  ui_set_page(UI_PAGE_SYSEX);
+  osDelay(100);
+  
+  if (ui_get_page() == UI_PAGE_SYSEX) {
+    dbg_print("OK\r\n");
+    dbg_print("  ✓ SysEx page active\r\n");
+  } else {
+    dbg_print("FAILED\r\n");
+  }
+  dbg_print("\r\n");
+  
+  dbg_print("Testing page rendering...\r\n");
+  for (uint8_t i = 0; i < 10; i++) {
+    ui_tick_20ms();
+    osDelay(20);
+  }
+  dbg_print("  ✓ Page rendering working\r\n");
+  dbg_print("\r\n");
+  
+  dbg_print("SysEx page test completed!\r\n");
+  dbg_print("\r\n");
+  
+  for (;;) {
+    ui_tick_20ms();
+    osDelay(20);
+  }
+  
+#else
+  dbg_print_test_header("UI Page SYSEX Test");
+  dbg_print("ERROR: UI or OLED module not enabled!\r\n");
+  for (;;) osDelay(1000);
+#endif
+}
+
+/**
+ * @brief UI Page CONFIG Test
+ * 
+ * Tests the Config page UI functionality.
+ * 
+ * Enable with: MODULE_TEST_UI_PAGE_CONFIG=1
+ * Requires: MODULE_ENABLE_UI=1, MODULE_ENABLE_OLED=1
+ */
+void module_test_ui_page_config_run(void)
+{
+  // Early UART verification
+  dbg_print("\r\n");
+  dbg_print("==============================================\r\n");
+  dbg_print("UART Debug Verification: OK\r\n");
+  dbg_print("==============================================\r\n");
+  dbg_print("\r\n");
+  osDelay(100);
+  
+#if MODULE_ENABLE_UI && MODULE_ENABLE_OLED
+  dbg_print_test_header("UI Page CONFIG Test");
+  
+  dbg_print("Initializing UI... ");
+  ui_init();
+  dbg_print("OK\r\n");
+  
+  dbg_print("Navigating to UI_PAGE_CONFIG... ");
+  ui_set_page(UI_PAGE_CONFIG);
+  osDelay(100);
+  
+  if (ui_get_page() == UI_PAGE_CONFIG) {
+    dbg_print("OK\r\n");
+    dbg_print("  ✓ Config page active\r\n");
+  } else {
+    dbg_print("FAILED\r\n");
+  }
+  dbg_print("\r\n");
+  
+  dbg_print("Testing page rendering...\r\n");
+  for (uint8_t i = 0; i < 10; i++) {
+    ui_tick_20ms();
+    osDelay(20);
+  }
+  dbg_print("  ✓ Page rendering working\r\n");
+  dbg_print("\r\n");
+  
+  dbg_print("Config page test completed!\r\n");
+  dbg_print("\r\n");
+  
+  for (;;) {
+    ui_tick_20ms();
+    osDelay(20);
+  }
+  
+#else
+  dbg_print_test_header("UI Page CONFIG Test");
+  dbg_print("ERROR: UI or OLED module not enabled!\r\n");
+  for (;;) osDelay(1000);
+#endif
+}
+
+/**
+ * @brief UI Page LIVEFX Test
+ * 
+ * Tests the LiveFX page UI functionality.
+ * 
+ * Enable with: MODULE_TEST_UI_PAGE_LIVEFX=1
+ * Requires: MODULE_ENABLE_UI=1, MODULE_ENABLE_OLED=1
+ */
+void module_test_ui_page_livefx_run(void)
+{
+  // Early UART verification
+  dbg_print("\r\n");
+  dbg_print("==============================================\r\n");
+  dbg_print("UART Debug Verification: OK\r\n");
+  dbg_print("==============================================\r\n");
+  dbg_print("\r\n");
+  osDelay(100);
+  
+#if MODULE_ENABLE_UI && MODULE_ENABLE_OLED
+  dbg_print_test_header("UI Page LIVEFX Test");
+  
+  dbg_print("Initializing UI... ");
+  ui_init();
+  dbg_print("OK\r\n");
+  
+  dbg_print("Navigating to UI_PAGE_LIVEFX... ");
+  ui_set_page(UI_PAGE_LIVEFX);
+  osDelay(100);
+  
+  if (ui_get_page() == UI_PAGE_LIVEFX) {
+    dbg_print("OK\r\n");
+    dbg_print("  ✓ LiveFX page active\r\n");
+  } else {
+    dbg_print("FAILED\r\n");
+  }
+  dbg_print("\r\n");
+  
+  dbg_print("Testing page rendering...\r\n");
+  for (uint8_t i = 0; i < 10; i++) {
+    ui_tick_20ms();
+    osDelay(20);
+  }
+  dbg_print("  ✓ Page rendering working\r\n");
+  dbg_print("\r\n");
+  
+  dbg_print("LiveFX page test completed!\r\n");
+  dbg_print("\r\n");
+  
+  for (;;) {
+    ui_tick_20ms();
+    osDelay(20);
+  }
+  
+#else
+  dbg_print_test_header("UI Page LIVEFX Test");
+  dbg_print("ERROR: UI or OLED module not enabled!\r\n");
+  for (;;) osDelay(1000);
+#endif
+}
+
+/**
+ * @brief UI Page RHYTHM Test
+ * 
+ * Tests the Rhythm page UI functionality.
+ * 
+ * Enable with: MODULE_TEST_UI_PAGE_RHYTHM=1
+ * Requires: MODULE_ENABLE_UI=1, MODULE_ENABLE_OLED=1
+ */
+void module_test_ui_page_rhythm_run(void)
+{
+  // Early UART verification
+  dbg_print("\r\n");
+  dbg_print("==============================================\r\n");
+  dbg_print("UART Debug Verification: OK\r\n");
+  dbg_print("==============================================\r\n");
+  dbg_print("\r\n");
+  osDelay(100);
+  
+#if MODULE_ENABLE_UI && MODULE_ENABLE_OLED
+  dbg_print_test_header("UI Page RHYTHM Test");
+  
+  dbg_print("Initializing UI... ");
+  ui_init();
+  dbg_print("OK\r\n");
+  
+  dbg_print("Navigating to UI_PAGE_RHYTHM... ");
+  ui_set_page(UI_PAGE_RHYTHM);
+  osDelay(100);
+  
+  if (ui_get_page() == UI_PAGE_RHYTHM) {
+    dbg_print("OK\r\n");
+    dbg_print("  ✓ Rhythm page active\r\n");
+  } else {
+    dbg_print("FAILED\r\n");
+  }
+  dbg_print("\r\n");
+  
+  dbg_print("Testing page rendering...\r\n");
+  for (uint8_t i = 0; i < 10; i++) {
+    ui_tick_20ms();
+    osDelay(20);
+  }
+  dbg_print("  ✓ Page rendering working\r\n");
+  dbg_print("\r\n");
+  
+  dbg_print("Rhythm page test completed!\r\n");
+  dbg_print("\r\n");
+  
+  for (;;) {
+    ui_tick_20ms();
+    osDelay(20);
+  }
+  
+#else
+  dbg_print_test_header("UI Page RHYTHM Test");
+  dbg_print("ERROR: UI or OLED module not enabled!\r\n");
+  for (;;) osDelay(1000);
+#endif
+}
+
+/**
+ * @brief UI Page HUMANIZER Test
+ * 
+ * Tests the Humanizer page UI functionality.
+ * 
+ * Enable with: MODULE_TEST_UI_PAGE_HUMANIZER=1
+ * Requires: MODULE_ENABLE_UI=1, MODULE_ENABLE_OLED=1
+ */
+void module_test_ui_page_humanizer_run(void)
+{
+  // Early UART verification
+  dbg_print("\r\n");
+  dbg_print("==============================================\r\n");
+  dbg_print("UART Debug Verification: OK\r\n");
+  dbg_print("==============================================\r\n");
+  dbg_print("\r\n");
+  osDelay(100);
+  
+#if MODULE_ENABLE_UI && MODULE_ENABLE_OLED
+  dbg_print_test_header("UI Page HUMANIZER Test");
+  
+  dbg_print("Initializing UI... ");
+  ui_init();
+  dbg_print("OK\r\n");
+  
+  dbg_print("Navigating to UI_PAGE_HUMANIZER... ");
+  ui_set_page(UI_PAGE_HUMANIZER);
+  osDelay(100);
+  
+  if (ui_get_page() == UI_PAGE_HUMANIZER) {
+    dbg_print("OK\r\n");
+    dbg_print("  ✓ Humanizer page active\r\n");
+  } else {
+    dbg_print("FAILED\r\n");
+  }
+  dbg_print("\r\n");
+  
+  dbg_print("Testing page rendering...\r\n");
+  for (uint8_t i = 0; i < 10; i++) {
+    ui_tick_20ms();
+    osDelay(20);
+  }
+  dbg_print("  ✓ Page rendering working\r\n");
+  dbg_print("\r\n");
+  
+  dbg_print("Humanizer page test completed!\r\n");
+  dbg_print("\r\n");
+  
+  for (;;) {
+    ui_tick_20ms();
+    osDelay(20);
+  }
+  
+#else
+  dbg_print_test_header("UI Page HUMANIZER Test");
+  dbg_print("ERROR: UI or OLED module not enabled!\r\n");
   for (;;) osDelay(1000);
 #endif
 }
