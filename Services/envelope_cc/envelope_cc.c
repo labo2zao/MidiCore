@@ -76,8 +76,13 @@ static uint8_t calculate_envelope_value(uint8_t track, uint32_t time_ms) {
                 cfg->stage_start_time = time_ms;
             } else {
                 // Linear attack from min to max (use 32-bit to prevent overflow)
-                uint32_t range = cfg->max_value - cfg->min_value;
-                value = cfg->min_value + (range * elapsed) / cfg->attack_ms;
+                // Validate min <= max to prevent underflow
+                if (cfg->min_value > cfg->max_value) {
+                    value = cfg->max_value;
+                } else {
+                    uint32_t range = cfg->max_value - cfg->min_value;
+                    value = cfg->min_value + (range * elapsed) / cfg->attack_ms;
+                }
             }
             break;
             

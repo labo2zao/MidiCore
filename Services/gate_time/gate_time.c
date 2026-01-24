@@ -13,6 +13,14 @@
 #define DEFAULT_FIXED_MS 500
 #define DEFAULT_FIXED_TICKS 96
 
+// Tick conversion constants (assumes 120 BPM, 96 PPQN)
+#define TICK_CONVERT_BPM 120
+#define TICK_CONVERT_PPQN 96
+#define TICK_CONVERT_MS_PER_QUARTER 500  // 500ms @ 120 BPM
+
+// Default gate time for initial calculation
+#define DEFAULT_GATE_TIME_MS 500
+
 // Mode name strings
 static const char* mode_names[] = {
     "Percent",
@@ -216,10 +224,10 @@ uint32_t gate_time_calculate_length(uint8_t track, uint32_t original_length_ms) 
             break;
             
         case GATE_TIME_MODE_FIXED_TICKS:
-            // Assume 120 BPM, 96 PPQN for tick conversion
-            // 1 quarter = 500ms @ 120 BPM
-            // 1 tick = 500ms / 96 = ~5.2ms
-            new_length_ms = (cfg->value * 500) / 96;
+            // Convert ticks to ms using conversion constants
+            // At TICK_CONVERT_BPM (120 BPM), 1 quarter = TICK_CONVERT_MS_PER_QUARTER (500ms)
+            // 1 tick = MS_PER_QUARTER / PPQN
+            new_length_ms = (cfg->value * TICK_CONVERT_MS_PER_QUARTER) / TICK_CONVERT_PPQN;
             break;
             
         default:
@@ -249,8 +257,8 @@ uint8_t gate_time_process_note_on(uint8_t track, uint8_t note, uint8_t velocity,
     int16_t slot = find_free_slot(track);
     if (slot < 0) return 0;  // Buffer full
     
-    // Calculate gate time (use default 500ms for now, can be updated via note off)
-    uint32_t gate_length = gate_time_calculate_length(track, 500);
+    // Calculate gate time (use default for initial calculation)
+    uint32_t gate_length = gate_time_calculate_length(track, DEFAULT_GATE_TIME_MS);
     
     // Store note with overflow protection
     uint32_t note_off_time;
