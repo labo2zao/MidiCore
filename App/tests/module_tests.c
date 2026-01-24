@@ -202,6 +202,7 @@ static const char* test_names[] = {
   "USB_HOST_MIDI",
   "USB_DEVICE_MIDI",
   "OLED_SSD1322",
+  "FOOTSWITCH",
   "ALL"
 };
 
@@ -280,6 +281,8 @@ module_test_t module_tests_get_compile_time_selection(void)
   return MODULE_TEST_USB_DEVICE_MIDI_ID;
 #elif defined(MODULE_TEST_OLED_SSD1322)
   return MODULE_TEST_OLED_SSD1322_ID;
+#elif defined(MODULE_TEST_FOOTSWITCH)
+  return MODULE_TEST_FOOTSWITCH_ID;
 #elif defined(MODULE_TEST_ALL)
   return MODULE_TEST_ALL_ID;
 #else
@@ -383,6 +386,10 @@ int module_tests_run(module_test_t test)
       
     case MODULE_TEST_OLED_SSD1322_ID:
       return module_test_oled_ssd1322_run();
+      
+    case MODULE_TEST_FOOTSWITCH_ID:
+      module_test_footswitch_run();
+      break;
       
     case MODULE_TEST_ALL_ID:
       // Run all tests sequentially (where possible)
@@ -6437,6 +6444,440 @@ static int module_test_oled_display_patterns(void)
   return 0;
 }
 #endif
+
+// =============================================================================
+// FOOTSWITCH TEST
+// =============================================================================
+
+// Footswitch input method selection
+// Define FOOTSWITCH_USE_SRIO to use a second SRIO instance with bit-bang
+// Leave undefined to use direct GPIO pins (default, simpler)
+#ifndef FOOTSWITCH_USE_SRIO
+  // Default: Use GPIO pins (no external hardware needed)
+  #define FOOTSWITCH_INPUT_METHOD_GPIO 1
+#else
+  // Alternative: Use second SRIO instance with bit-bang
+  #define FOOTSWITCH_INPUT_METHOD_SRIO 1
+#endif
+
+void module_test_footswitch_run(void)
+{
+  // Early UART verification
+  dbg_print("\r\n");
+  dbg_print("==============================================\r\n");
+  dbg_print("UART Debug Verification: OK\r\n");
+  dbg_print("==============================================\r\n");
+  dbg_print("\r\n");
+  osDelay(100); // Give time for UART transmission
+  
+#if MODULE_ENABLE_LOOPER
+  dbg_print_test_header("Footswitch Mapping Validation Test");
+  
+  dbg_print("This test validates the complete footswitch system:\r\n");
+  
+#ifdef FOOTSWITCH_INPUT_METHOD_GPIO
+  dbg_print("  GPIO Button Press → Footswitch Mapping → Looper Action\r\n");
+  dbg_print("  Input Method: Direct GPIO (no SRIO)\r\n");
+#else
+  dbg_print("  SRIO Button Press → Footswitch Mapping → Looper Action\r\n");
+  dbg_print("  Input Method: Second SRIO instance (bit-bang)\r\n");
+#endif
+  dbg_print("\r\n");
+  
+#ifdef FOOTSWITCH_INPUT_METHOD_GPIO
+  // ============================================================
+  // GPIO-BASED IMPLEMENTATION (DEFAULT)
+  // ============================================================
+  
+  // Define GPIO pins for 8 footswitches
+  // Using J10B connector pins (PE2, PE4, PE5, PE6) and J10A pins (PB8-PB11)
+  // These are mapped to footswitch inputs FS0-FS7
+  typedef struct {
+    GPIO_TypeDef* port;
+    uint16_t pin;
+  } footswitch_gpio_t;
+  
+  const footswitch_gpio_t fs_gpio[8] = {
+    {GPIOE, GPIO_PIN_2},  // FS0: J10B_D3 (PE2)
+    {GPIOE, GPIO_PIN_4},  // FS1: J10B_D4 (PE4)
+    {GPIOE, GPIO_PIN_5},  // FS2: J10B_D5 (PE5)
+    {GPIOE, GPIO_PIN_6},  // FS3: J10B_D6 (PE6)
+    {GPIOB, GPIO_PIN_8},  // FS4: J10A_D0 (PB8)
+    {GPIOB, GPIO_PIN_9},  // FS5: J10A_D1 (PB9)
+    {GPIOB, GPIO_PIN_10}, // FS6: J10A_D2 (PB10)
+    {GPIOB, GPIO_PIN_11}  // FS7: J10A_D3 (PB11)
+  };
+  
+  dbg_print("Configuring GPIO pins for footswitches...");
+  
+  // Configure GPIO pins as inputs with pull-ups
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  
+  // Configure PE2, PE4, PE5, PE6
+  GPIO_InitStruct.Pin = GPIO_PIN_2 | GPIO_PIN_4 | GPIO_PIN_5 | GPIO_PIN_6;
+  HAL_GPIO_Init(GPIOE, &GPIO_InitStruct);
+  
+  // Configure PB8, PB9, PB10, PB11
+  GPIO_InitStruct.Pin = GPIO_PIN_8 | GPIO_PIN_9 | GPIO_PIN_10 | GPIO_PIN_11;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+  
+  dbg_print(" OK\r\n");
+  
+#else
+  // ============================================================
+  // SRIO-BASED IMPLEMENTATION (BIT-BANG)
+  // ============================================================
+  
+  // Second SRIO instance for footswitches (independent from main SRIO)
+  // Using bit-bang SPI on different GPIO pins
+  // Hardware: 74HC165 shift register for 8 footswitch inputs
+  
+  // Define GPIO pins for SRIO bit-bang (separate from main SRIO)
+  // Using J10A pins that are not used by GPIO mode
+  #define FS_SRIO_SCK_PORT   GPIOB
+  #define FS_SRIO_SCK_PIN    GPIO_PIN_12  // J10A_D4
+  #define FS_SRIO_MISO_PORT  GPIOB
+  #define FS_SRIO_MISO_PIN   GPIO_PIN_14  // J10A_D6
+  #define FS_SRIO_PL_PORT    GPIOB
+  #define FS_SRIO_PL_PIN     GPIO_PIN_15  // J10A_D7
+  
+  dbg_print("Configuring SRIO bit-bang for footswitches...");
+  
+  // Configure SCK pin as output
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+  GPIO_InitStruct.Pin = FS_SRIO_SCK_PIN;
+  HAL_GPIO_Init(FS_SRIO_SCK_PORT, &GPIO_InitStruct);
+  
+  // Configure MISO pin as input with pull-up
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
+  GPIO_InitStruct.Pin = FS_SRIO_MISO_PIN;
+  HAL_GPIO_Init(FS_SRIO_MISO_PORT, &GPIO_InitStruct);
+  
+  // Configure PL pin as output
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pin = FS_SRIO_PL_PIN;
+  HAL_GPIO_Init(FS_SRIO_PL_PORT, &GPIO_InitStruct);
+  
+  // Set initial states (PL idle HIGH, SCK idle LOW)
+  HAL_GPIO_WritePin(FS_SRIO_PL_PORT, FS_SRIO_PL_PIN, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(FS_SRIO_SCK_PORT, FS_SRIO_SCK_PIN, GPIO_PIN_RESET);
+  
+  dbg_print(" OK\r\n");
+  
+#endif
+  
+  // Initialize looper (common for both methods)
+  dbg_print("Initializing Looper...");
+  looper_init();
+  dbg_print(" OK\r\n");
+  
+  dbg_print_separator();
+  dbg_print("Hardware Configuration:\r\n");
+  
+#ifdef FOOTSWITCH_INPUT_METHOD_GPIO
+  dbg_print("  GPIO-based footswitch inputs (8 pins)\r\n");
+  dbg_print("  FS0: PE2 (J10B_D3)\r\n");
+  dbg_print("  FS1: PE4 (J10B_D4)\r\n");
+  dbg_print("  FS2: PE5 (J10B_D5)\r\n");
+  dbg_print("  FS3: PE6 (J10B_D6)\r\n");
+  dbg_print("  FS4: PB8 (J10A_D0)\r\n");
+  dbg_print("  FS5: PB9 (J10A_D1)\r\n");
+  dbg_print("  FS6: PB10 (J10A_D2)\r\n");
+  dbg_print("  FS7: PB11 (J10A_D3)\r\n");
+#else
+  dbg_print("  SRIO bit-bang footswitch inputs (1x 74HC165)\r\n");
+  dbg_print("  SCK: PB12 (J10A_D4)\r\n");
+  dbg_print("  MISO: PB14 (J10A_D6)\r\n");
+  dbg_print("  /PL: PB15 (J10A_D7)\r\n");
+  dbg_print("  8 footswitches connected to 74HC165 inputs\r\n");
+#endif
+  dbg_print("\r\n");
+  
+  // Configure footswitch mappings to test all major actions
+  dbg_print("Configuring Footswitch Mappings:\r\n");
+  dbg_print_separator();
+  
+  looper_set_footswitch_action(0, FS_ACTION_PLAY_STOP, 0);
+  dbg_print("  FS0 (Button 0): Play/Stop Track 0\r\n");
+  
+  looper_set_footswitch_action(1, FS_ACTION_RECORD, 0);
+  dbg_print("  FS1 (Button 1): Record Track 0\r\n");
+  
+  looper_set_footswitch_action(2, FS_ACTION_OVERDUB, 0);
+  dbg_print("  FS2 (Button 2): Overdub Track 0\r\n");
+  
+  looper_set_footswitch_action(3, FS_ACTION_UNDO, 0);
+  dbg_print("  FS3 (Button 3): Undo Track 0\r\n");
+  
+  looper_set_footswitch_action(4, FS_ACTION_MUTE_TRACK, 1);
+  dbg_print("  FS4 (Button 4): Mute Track 1\r\n");
+  
+  looper_set_footswitch_action(5, FS_ACTION_TAP_TEMPO, 0);
+  dbg_print("  FS5 (Button 5): Tap Tempo\r\n");
+  
+  looper_set_footswitch_action(6, FS_ACTION_TRIGGER_SCENE, 0);
+  dbg_print("  FS6 (Button 6): Trigger Scene A (0)\r\n");
+  
+  looper_set_footswitch_action(7, FS_ACTION_CLEAR_TRACK, 0);
+  dbg_print("  FS7 (Button 7): Clear Track 0\r\n");
+  
+  dbg_print_separator();
+  dbg_print("\r\n");
+  
+  // Verify mappings
+  dbg_print("Verifying Mappings:\r\n");
+  for (uint8_t fs = 0; fs < 8; fs++) {
+    uint8_t param = 0;
+    footswitch_action_t action = looper_get_footswitch_action(fs, &param);
+    
+    const char* action_name = "UNKNOWN";
+    switch (action) {
+      case FS_ACTION_NONE: action_name = "None"; break;
+      case FS_ACTION_PLAY_STOP: action_name = "Play/Stop"; break;
+      case FS_ACTION_RECORD: action_name = "Record"; break;
+      case FS_ACTION_OVERDUB: action_name = "Overdub"; break;
+      case FS_ACTION_UNDO: action_name = "Undo"; break;
+      case FS_ACTION_REDO: action_name = "Redo"; break;
+      case FS_ACTION_TAP_TEMPO: action_name = "Tap Tempo"; break;
+      case FS_ACTION_SELECT_TRACK: action_name = "Select Track"; break;
+      case FS_ACTION_TRIGGER_SCENE: action_name = "Trigger Scene"; break;
+      case FS_ACTION_MUTE_TRACK: action_name = "Mute Track"; break;
+      case FS_ACTION_SOLO_TRACK: action_name = "Solo Track"; break;
+      case FS_ACTION_CLEAR_TRACK: action_name = "Clear Track"; break;
+      case FS_ACTION_QUANTIZE_TRACK: action_name = "Quantize Track"; break;
+    }
+    
+    dbg_printf("  FS%d: %s (param=%d) [", fs, action_name, param);
+    if (action != FS_ACTION_NONE) {
+      dbg_print("PASS]\r\n");
+    } else {
+      dbg_print("FAIL]\r\n");
+    }
+  }
+  
+  dbg_print_separator();
+  dbg_print("\r\n");
+  
+  dbg_print("Test Instructions:\r\n");
+#ifdef FOOTSWITCH_INPUT_METHOD_GPIO
+  dbg_print("  1. Press footswitch 0-7 (connected to GPIO pins)\r\n");
+#else
+  dbg_print("  1. Press footswitch 0-7 (connected to 74HC165 inputs)\r\n");
+#endif
+  dbg_print("  2. Observe action triggered and looper state changes\r\n");
+  dbg_print("  3. Verify each footswitch triggers correct action\r\n");
+  dbg_print("  4. Check button press/release detection with debouncing\r\n");
+  dbg_print("\r\n");
+  
+  dbg_print("Expected Hardware:\r\n");
+#ifdef FOOTSWITCH_INPUT_METHOD_GPIO
+  dbg_print("  - 8 footswitches connected to GPIO pins (FS0-FS7)\r\n");
+  dbg_print("  - Footswitches should be momentary SPST-NO (normally open)\r\n");
+  dbg_print("  - Internal pull-up resistors enabled (10kΩ equivalent)\r\n");
+  dbg_print("  - Buttons should read HIGH when not pressed, LOW when pressed\r\n");
+  dbg_print("  - Active low logic (pressed = LOW, released = HIGH)\r\n");
+#else
+  dbg_print("  - 1x 74HC165 shift register for 8 footswitch inputs\r\n");
+  dbg_print("  - Footswitches should be momentary SPST-NO (normally open)\r\n");
+  dbg_print("  - External pull-up resistors on 74HC165 inputs (10kΩ)\r\n");
+  dbg_print("  - Active low logic (pressed = LOW, released = HIGH)\r\n");
+  dbg_print("  - Bit-bang SPI on PB12 (SCK), PB14 (MISO), PB15 (/PL)\r\n");
+#endif
+  dbg_print("\r\n");
+  
+  dbg_print_separator();
+  dbg_print("Starting continuous monitoring...\r\n");
+  dbg_print("Press any footswitch to see action!\r\n");
+  dbg_print_separator();
+  dbg_print("\r\n");
+  
+  uint8_t last_button_state[8] = {1, 1, 1, 1, 1, 1, 1, 1}; // All released (HIGH)
+  uint32_t scan_counter = 0;
+  uint32_t last_activity_ms = osKernelGetTickCount();
+  uint32_t last_status_ms = osKernelGetTickCount();
+  
+  // Debounce state
+  uint8_t debounce_counter[8] = {0};
+  const uint8_t DEBOUNCE_THRESHOLD = 3; // Require 3 consistent reads (30ms)
+  
+#ifdef FOOTSWITCH_INPUT_METHOD_SRIO
+  // Bit-bang SRIO helper function to read 8 bits
+  auto read_srio_byte = []() -> uint8_t {
+    uint8_t result = 0;
+    
+    // Pulse /PL low to latch parallel inputs
+    HAL_GPIO_WritePin(FS_SRIO_PL_PORT, FS_SRIO_PL_PIN, GPIO_PIN_RESET);
+    for(volatile int i=0; i<10; i++); // Short delay
+    HAL_GPIO_WritePin(FS_SRIO_PL_PORT, FS_SRIO_PL_PIN, GPIO_PIN_SET);
+    for(volatile int i=0; i<10; i++); // Short delay
+    
+    // Clock out 8 bits
+    for (uint8_t bit = 0; bit < 8; bit++) {
+      // Read current bit on MISO
+      GPIO_PinState bit_val = HAL_GPIO_ReadPin(FS_SRIO_MISO_PORT, FS_SRIO_MISO_PIN);
+      if (bit_val == GPIO_PIN_RESET) {
+        result |= (1 << bit); // Active low, invert logic
+      }
+      
+      // Clock pulse (rising edge shifts next bit)
+      HAL_GPIO_WritePin(FS_SRIO_SCK_PORT, FS_SRIO_SCK_PIN, GPIO_PIN_SET);
+      for(volatile int i=0; i<10; i++); // Short delay
+      HAL_GPIO_WritePin(FS_SRIO_SCK_PORT, FS_SRIO_SCK_PIN, GPIO_PIN_RESET);
+      for(volatile int i=0; i<10; i++); // Short delay
+    }
+    
+    return result;
+  };
+#endif
+  
+  for (;;) {
+    scan_counter++;
+    bool activity = false;
+    
+    // Read all 8 footswitch inputs
+    for (uint8_t fs = 0; fs < 8; fs++) {
+      bool pressed_now;
+      
+#ifdef FOOTSWITCH_INPUT_METHOD_GPIO
+      // Read GPIO pin (active low: 0 = pressed, 1 = released)
+      GPIO_PinState pin_state = HAL_GPIO_ReadPin(fs_gpio[fs].port, fs_gpio[fs].pin);
+      pressed_now = (pin_state == GPIO_PIN_RESET); // Active low
+#else
+      // Read from SRIO shift register
+      static uint8_t srio_data = 0xFF; // Cache SRIO read
+      if (fs == 0) {
+        // Read SRIO once per scan
+        srio_data = read_srio_byte();
+      }
+      pressed_now = (srio_data & (1 << fs)) == 0; // Active low
+#endif
+      
+      bool was_pressed = (last_button_state[fs] == 0);
+      
+      // Debouncing: require consistent state for DEBOUNCE_THRESHOLD reads
+      if (pressed_now != was_pressed) {
+        debounce_counter[fs]++;
+        if (debounce_counter[fs] >= DEBOUNCE_THRESHOLD) {
+          // State confirmed, process the change
+          debounce_counter[fs] = 0;
+          last_button_state[fs] = pressed_now ? 0 : 1;
+          activity = true;
+          last_activity_ms = osKernelGetTickCount();
+          
+          // Get footswitch mapping
+          uint8_t param = 0;
+          footswitch_action_t action = looper_get_footswitch_action(fs, &param);
+          
+          const char* action_name = "UNKNOWN";
+          switch (action) {
+            case FS_ACTION_NONE: action_name = "None"; break;
+            case FS_ACTION_PLAY_STOP: action_name = "Play/Stop"; break;
+            case FS_ACTION_RECORD: action_name = "Record"; break;
+            case FS_ACTION_OVERDUB: action_name = "Overdub"; break;
+            case FS_ACTION_UNDO: action_name = "Undo"; break;
+            case FS_ACTION_REDO: action_name = "Redo"; break;
+            case FS_ACTION_TAP_TEMPO: action_name = "Tap Tempo"; break;
+            case FS_ACTION_SELECT_TRACK: action_name = "Select Track"; break;
+            case FS_ACTION_TRIGGER_SCENE: action_name = "Trigger Scene"; break;
+            case FS_ACTION_MUTE_TRACK: action_name = "Mute Track"; break;
+            case FS_ACTION_SOLO_TRACK: action_name = "Solo Track"; break;
+            case FS_ACTION_CLEAR_TRACK: action_name = "Clear Track"; break;
+            case FS_ACTION_QUANTIZE_TRACK: action_name = "Quantize Track"; break;
+          }
+          
+          if (pressed_now) {
+            // Button pressed - trigger action
+            dbg_printf("[Scan #%lu] FS%d PRESSED → %s", scan_counter, fs, action_name);
+            if (param != 0 || action == FS_ACTION_TRIGGER_SCENE) {
+              dbg_printf(" (param=%d)", param);
+            }
+            dbg_print("\r\n");
+            
+            // Call looper footswitch press handler
+            looper_footswitch_press(fs);
+            
+            // Display looper state for relevant tracks
+            if (action == FS_ACTION_PLAY_STOP || action == FS_ACTION_RECORD || 
+                action == FS_ACTION_OVERDUB || action == FS_ACTION_CLEAR_TRACK) {
+              uint8_t track = param;
+              if (track < 4) { // LOOPER_TRACKS = 4
+                looper_state_t state = looper_get_state(track);
+                const char* state_name = "UNKNOWN";
+                switch (state) {
+                  case LOOPER_STATE_STOP: state_name = "STOP"; break;
+                  case LOOPER_STATE_PLAY: state_name = "PLAY"; break;
+                  case LOOPER_STATE_REC: state_name = "RECORD"; break;
+                  case LOOPER_STATE_OVERDUB: state_name = "OVERDUB"; break;
+                }
+                dbg_printf("  → Track %d state: %s\r\n", track, state_name);
+              }
+            }
+            
+          } else {
+            // Button released
+            dbg_printf("[Scan #%lu] FS%d RELEASED\r\n", scan_counter, fs);
+            
+            // Call looper footswitch release handler
+            looper_footswitch_release(fs);
+          }
+        }
+      } else {
+        // State is stable, reset debounce counter
+        debounce_counter[fs] = 0;
+      }
+    }
+    
+    // Print idle status every 10 seconds if no activity
+    uint32_t now_ms = osKernelGetTickCount();
+    if (now_ms - last_activity_ms >= 10000 && now_ms - last_status_ms >= 10000) {
+      dbg_printf("Waiting for footswitch press... (scan count: %lu)\r\n", scan_counter);
+#ifdef FOOTSWITCH_INPUT_METHOD_GPIO
+      dbg_print("Current GPIO states: ");
+      for (uint8_t fs = 0; fs < 8; fs++) {
+        GPIO_PinState pin_state = HAL_GPIO_ReadPin(fs_gpio[fs].port, fs_gpio[fs].pin);
+        dbg_printf("FS%d=%d ", fs, pin_state);
+      }
+      dbg_print("\r\n");
+      dbg_print("Expected: All 1 (HIGH) when buttons released with pull-ups\r\n");
+#else
+      dbg_print("Current SRIO state: 0x");
+      uint8_t srio_state = read_srio_byte();
+      dbg_print_hex8(srio_state);
+      dbg_print("\r\n");
+      dbg_print("Expected: 0xFF when all buttons released with pull-ups\r\n");
+#endif
+      dbg_print("\r\n");
+      last_status_ms = now_ms;
+    }
+    
+    osDelay(10); // 10ms scan rate = 100 Hz
+  }
+  
+#else
+  dbg_print_test_header("Footswitch Test");
+  dbg_print("ERROR: Required modules not enabled!\r\n");
+  #if !MODULE_ENABLE_LOOPER
+  dbg_print("  - Looper module not enabled (MODULE_ENABLE_LOOPER)\r\n");
+  #endif
+  dbg_print("\r\n");
+  dbg_print("Please enable required modules in Config/module_config.h\r\n");
+  for (;;) {
+    osDelay(1000);
+  }
+#endif
+}
+
+// =============================================================================
+// OLED SSD1322 TEST
+// =============================================================================
 
 int module_test_oled_ssd1322_run(void)
 {
