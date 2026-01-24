@@ -11,8 +11,9 @@ extern "C" {
 // Undo/Redo configuration
 // Can be reduced to save memory (e.g., 5 levels = ~120KB, 3 levels = ~72KB)
 // Default: 10 levels (~240KB total for 4 tracks)
+// Reduced to 3 to fit within available RAM (128KB total)
 #ifndef LOOPER_UNDO_STACK_DEPTH
-#define LOOPER_UNDO_STACK_DEPTH 10
+#define LOOPER_UNDO_STACK_DEPTH 3
 #endif
 
 // Quick-Save Compression (optional, reduces storage by ~40-60%)
