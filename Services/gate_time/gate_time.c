@@ -35,22 +35,6 @@ static gate_time_config_t g_gate_time_config[GATE_TIME_MAX_TRACKS];
 static gate_time_note_callback_t g_note_callback = NULL;
 
 /**
- * @brief Find note slot in buffer
- */
-static int16_t find_note_slot(uint8_t track, uint8_t note, uint8_t channel) {
-    gate_time_config_t* cfg = &g_gate_time_config[track];
-    
-    for (uint8_t i = 0; i < GATE_TIME_MAX_NOTES_PER_TRACK; i++) {
-        if (cfg->notes[i].active && 
-            cfg->notes[i].note == note && 
-            cfg->notes[i].channel == channel) {
-            return i;
-        }
-    }
-    return -1;
-}
-
-/**
  * @brief Find free note slot
  */
 static int16_t find_free_slot(uint8_t track) {
@@ -290,14 +274,11 @@ uint8_t gate_time_process_note_on(uint8_t track, uint8_t note, uint8_t velocity,
 void gate_time_process_note_off(uint8_t track, uint8_t note, uint8_t channel) {
     if (track >= GATE_TIME_MAX_TRACKS) return;
     
-    // Find note
-    int16_t slot = find_note_slot(track, note, channel);
-    if (slot < 0) return;
-    
-    // For now, we rely on the tick function to handle note offs
-    // In a more advanced implementation, you could recalculate the gate time
-    // based on the actual note duration here
-    (void)slot;  // Unused for now
+    // Note: In this implementation, note offs are handled by the tick function
+    // based on the calculated gate time. The incoming note off is ignored.
+    // This allows the module to enforce its own gate time regardless of input.
+    (void)note;
+    (void)channel;
 }
 
 /**

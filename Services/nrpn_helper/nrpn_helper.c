@@ -245,8 +245,9 @@ uint8_t nrpn_helper_parse_cc(uint8_t parser_id, uint8_t cc_number,
     // Handle increment/decrement
     else if (cc_number == CC_DATA_INCREMENT || cc_number == CC_DATA_DECREMENT) {
         if (parser->state == NRPN_STATE_LSB_RECEIVED && parser->channel == channel) {
-            // Increment/decrement typically uses the previously set data value
-            // For simplicity, we just mark as complete with current data
+            // Increment/decrement uses previously set data value
+            // Note: Application must track current values to apply inc/dec properly
+            // We report the last known data value and let the application handle it
             parser->state = NRPN_STATE_COMPLETE;
             parser->message_valid = 1;
             
@@ -254,6 +255,7 @@ uint8_t nrpn_helper_parse_cc(uint8_t parser_id, uint8_t cc_number,
                 nrpn_message_t msg;
                 msg.type = parser->type;
                 msg.parameter = ((uint16_t)parser->param_msb << 7) | parser->param_lsb;
+                // Use data MSB/LSB from previous data entry, or 0 if none
                 msg.value = ((uint16_t)parser->data_msb << 7) | parser->data_lsb;
                 msg.channel = parser->channel;
                 g_complete_callback(parser_id, &msg);
