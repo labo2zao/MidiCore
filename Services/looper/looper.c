@@ -104,7 +104,8 @@ typedef struct {
   looper_automation_event_t events[LOOPER_AUTOMATION_MAX_EVENTS];
 } looper_automation_t;
 
-static looper_automation_t g_automation[LOOPER_TRACKS];
+// Place automation in CCMRAM to save regular RAM
+static looper_automation_t g_automation[LOOPER_TRACKS] __attribute__((section(".ccmram")));
 
 static uint32_t g_ticks_per_ms_q16 = 0;
 static uint32_t g_acc_q16 = 0;
@@ -1593,7 +1594,8 @@ typedef struct {
   uint8_t count;          // Number of valid states
 } undo_stack_t;
 
-static undo_stack_t undo_stacks[LOOPER_TRACKS];
+// Place undo stacks in CCMRAM to save regular RAM
+static undo_stack_t undo_stacks[LOOPER_TRACKS] __attribute__((section(".ccmram")));
 
 /**
  * @brief Save current track state to undo history
@@ -2039,10 +2041,14 @@ uint8_t looper_is_external_clock_active(void) {
 }
 
 // =========================================================================
-// Copy/Paste Scenes and Tracks
+// Copy/Paste Scenes and Tracks (TEST MODE ONLY)
 // =========================================================================
 
-// Clipboard structures
+#ifdef MODULE_TEST_LOOPER
+// Clipboard structures - only compiled when running tests
+// These large buffers (~20KB) were added in PR#52 and caused RAM overflow
+// In production, copy/paste is not needed, so we save memory by excluding them
+// In CCMRAM to avoid RAM overflow even in test mode
 static struct {
   uint8_t valid;  // 1 if clipboard has data
   uint32_t count;
@@ -2050,7 +2056,7 @@ static struct {
   uint16_t loop_beats;
   looper_quant_t quant;
   looper_evt_t events[LOOPER_MAX_EVENTS];
-} track_clipboard = {0};
+} track_clipboard __attribute__((section(".ccmram"))) = {0};
 
 static struct {
   uint8_t valid;  // 1 if clipboard has data
@@ -2061,7 +2067,7 @@ static struct {
     uint16_t loop_beats;
     looper_evt_t events[LOOPER_MAX_EVENTS];
   } tracks[LOOPER_TRACKS];
-} scene_clipboard = {0};
+} scene_clipboard __attribute__((section(".ccmram"))) = {0};
 
 /**
  * @brief Copy track data to clipboard
@@ -2198,6 +2204,20 @@ void looper_clear_scene_clipboard(void) {
     scene_clipboard.tracks[i].has_data = 0;
   }
 }
+
+#else // !MODULE_TEST_LOOPER
+
+// Stub implementations when tests are disabled (save ~20KB RAM)
+int looper_copy_track(uint8_t track) { (void)track; return -1; }
+int looper_paste_track(uint8_t track) { (void)track; return -1; }
+int looper_copy_scene(uint8_t scene) { (void)scene; return -1; }
+int looper_paste_scene(uint8_t scene) { (void)scene; return -1; }
+uint8_t looper_has_track_clipboard(void) { return 0; }
+uint8_t looper_has_scene_clipboard(void) { return 0; }
+void looper_clear_track_clipboard(void) {}
+void looper_clear_scene_clipboard(void) {}
+
+#endif // MODULE_TEST_LOOPER
 
 // ============================================================================
 // Global Transpose Functions

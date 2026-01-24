@@ -9,11 +9,23 @@ extern "C" {
 #define LOOPER_TRACKS 4
 
 // Undo/Redo configuration
-// Can be reduced to save memory (e.g., 5 levels = ~120KB, 3 levels = ~72KB)
-// Default: 10 levels (~240KB total for 4 tracks)
-// Reduced to 3 to fit within available RAM (128KB total)
+// Memory usage: ~(DEPTH * 2060 bytes + 3) per track
+// 
+// With CCMRAM optimization (FreeRTOS heap in RAM, OLED FB in RAM):
+// - Production (no tests): Depth 5 = ~41KB for 4 tracks
+// - Test mode: Depth 2 = ~17KB (to fit clipboards ~20KB)
+//
+// CCMRAM allocation with depth=5:
+//   g_tr[4]: 17KB + automation: 4KB + undo: 41KB = 62KB / 64KB ✅
+//
 #ifndef LOOPER_UNDO_STACK_DEPTH
-#define LOOPER_UNDO_STACK_DEPTH 3
+#ifdef MODULE_TEST_LOOPER
+  // Test mode: Reduced to fit clipboards (~20KB) in CCMRAM
+  #define LOOPER_UNDO_STACK_DEPTH 2
+#else
+  // Production mode: Maximum undo levels that fit in CCMRAM
+  #define LOOPER_UNDO_STACK_DEPTH 5
+#endif
 #endif
 
 // Quick-Save Compression (optional, reduces storage by ~40-60%)

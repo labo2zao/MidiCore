@@ -61,13 +61,13 @@ task.h is included from an application file. */
 	heap - probably so it can be placed in a special segment or address. */
 	extern uint8_t ucHeap[ configTOTAL_HEAP_SIZE ];
 #else
-    /* Place the FreeRTOS heap in CCMRAM on STM32F4.
-     * This frees main SRAM for other subsystems.
-     * Note: CCMRAM is not DMA-capable, but the heap is CPU-only.
-     * Alignment kept at 8 bytes for heap_4.
+    /* Place the FreeRTOS heap in regular RAM instead of CCMRAM.
+     * This frees up CCMRAM for looper data structures (undo stacks, clipboards, automation).
+     * Regular RAM is sufficient for the heap as it's CPU-accessible and doesn't need DMA.
+     * Changed from CCMRAM to regular RAM to solve memory overflow issue.
      */
     static uint8_t ucHeap[ configTOTAL_HEAP_SIZE ]
-        __attribute__((section(".ccmram"), aligned(8)));
+        __attribute__((aligned(8)));
 #endif /* configAPPLICATION_ALLOCATED_HEAP */
 
 /* Define the linked list structure.  This is used to link free blocks in order
