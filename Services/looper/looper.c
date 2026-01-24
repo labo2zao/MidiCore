@@ -137,6 +137,13 @@ typedef struct {
 
 static scene_chain_t g_scene_chains[LOOPER_SCENES];
 
+// Forward declarations for automation functions
+// Record CC automation event during looper recording
+static void looper_automation_record_cc_internal(uint8_t track, uint8_t cc_num, 
+                                                  uint8_t cc_value, uint8_t channel);
+// Process automation playback during looper tick
+static void looper_automation_process_playback(uint8_t track);
+
 static void update_rate(void) {
   uint32_t bpm = g_tp.bpm;
   if (bpm < 20) bpm = 20;

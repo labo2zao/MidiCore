@@ -98,7 +98,6 @@ static void refresh_snapshot(void) {
   for (uint32_t i=0; i<ev_n && notes_n<MAX_NOTES; i++) {
     looper_event_view_t* e = &ev[i];
     if (e->len != 3) continue;
-    uint8_t st = e->b0 & 0xF0;
     uint8_t ch = e->b0 & 0x0F;
     uint8_t note = e->b1;
 

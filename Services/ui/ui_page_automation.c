@@ -64,8 +64,19 @@ void ui_page_automation_render(uint32_t now_ms) {
   // Header with 8x8 font
   ui_gfx_set_font(UI_FONT_8X8);
   char header[64];
+  
+  // Check if any track is playing
+  uint8_t is_playing = 0;
+  for (uint8_t t = 0; t < LOOPER_TRACKS; t++) {
+    looper_state_t st = looper_get_state(t);
+    if (st == LOOPER_STATE_PLAY || st == LOOPER_STATE_REC || st == LOOPER_STATE_OVERDUB) {
+      is_playing = 1;
+      break;
+    }
+  }
+  
   snprintf(header, sizeof(header), "AUTO BPM:%3u [%s]", 
-           tp.bpm, tp.playing ? "PLAY" : "STOP");
+           tp.bpm, is_playing ? "PLAY" : "STOP");
   ui_gfx_text(0, 0, header, 15);
   ui_gfx_hline(0, 11, 256, 8);
   

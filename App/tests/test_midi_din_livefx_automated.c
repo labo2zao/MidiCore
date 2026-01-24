@@ -282,7 +282,7 @@ int test_stress_processing(void) {
   
   // Simulate processing many notes
   router_msg_t msg;
-  msg.type = ROUTER_MSG_SHORT;
+  msg.type = ROUTER_MSG_3B;
   msg.b0 = 0x90;  // Note On, Channel 1
   msg.len = 3;
   

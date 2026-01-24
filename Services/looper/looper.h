@@ -128,6 +128,18 @@ uint32_t looper_export_events(uint8_t track, looper_event_view_t* out, uint32_t 
 int looper_edit_event(uint8_t track, uint32_t idx, uint32_t new_tick,
                       uint8_t len, uint8_t b0, uint8_t b1, uint8_t b2);
 
+/**
+ * @brief Add a new event to track
+ * @param track Track index (0-3)
+ * @param tick Tick position for the new event
+ * @param len Event length (2 or 3 bytes)
+ * @param b0 First MIDI byte
+ * @param b1 Second MIDI byte
+ * @param b2 Third MIDI byte
+ * @return 0 on success, negative on error (invalid track, invalid len, buffer full)
+ */
+int looper_add_event(uint8_t track, uint32_t tick, uint8_t len, uint8_t b0, uint8_t b1, uint8_t b2);
+
 // ---- Song Mode / Scene Management ----
 #define LOOPER_SCENES 8
 
