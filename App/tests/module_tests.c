@@ -3434,7 +3434,7 @@ void module_test_looper_run(void)
   dbg_print("  ✓ Note C5 mapped to Mute Track 0 action\r\n");
   
   // Test canceling MIDI learn
-  looper_midi_learn_start(FS_ACTION_REC, 0);
+  looper_midi_learn_start(FS_ACTION_RECORD, 0);
   looper_midi_learn_cancel();
   dbg_print("  ✓ MIDI learn canceled\r\n");
   
