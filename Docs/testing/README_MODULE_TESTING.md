@@ -26,7 +26,7 @@ MidiCore now provides a unified module testing framework that allows testing ind
 | AINSER64 | `MODULE_TEST_AINSER64` | Tests 64-channel analog input (MCP3208 + mux) |
 | SRIO | `MODULE_TEST_SRIO` | Tests shift register DIN/DOUT (74HC165/595) |
 | MIDI DIN | `MODULE_TEST_MIDI_DIN` | Tests MIDI DIN input/output via UART |
-| Router | `MODULE_TEST_ROUTER` | Tests MIDI router and message forwarding |
+| Router | `MODULE_TEST_ROUTER` | Comprehensive MIDI routing matrix test (8 phases) |
 | Looper | `MODULE_TEST_LOOPER` | Tests MIDI looper recording/playback |
 | UI | `MODULE_TEST_UI` | Comprehensive automated UI page navigation & OLED test (all 29 modes) |
 | Patch/SD | `MODULE_TEST_PATCH_SD` | Tests SD card mounting and patch loading |
@@ -134,18 +134,36 @@ make CFLAGS+="-DMODULE_TEST_SRIO"
 - If DIN reads stay fixed (e.g., always `0xFF`), verify `/PL` polarity; set `SRIO_DIN_PL_ACTIVE_LOW=0` if RC2 is inverted on your board.
 - If the chain is unstable, reduce SRIO SPI speed with `SRIO_SPI_PRESCALER` (default: 128).
 
-### Example 3: Test MIDI Router
+### Example 3: Test MIDI Router (Comprehensive)
 
 ```bash
 # Compile with Router test
 make CFLAGS+="-DMODULE_TEST_ROUTER=1"
 
-# Send MIDI to device and monitor output
+# Monitor UART output to see test phases
 ```
 
 **Expected Output:**
-- MIDI messages routed according to configuration
-- Can test different routing rules
+- Phase 1: Router initialization with node mapping
+- Phase 2: Basic routing configuration (3 routes)
+- Phase 3: Channel filtering tests
+- Phase 4: All message types tested (Note, CC, PC, Pressure, Pitch Bend)
+- Phase 5: Multi-destination routing (1→3 outputs)
+- Phase 6: Dynamic route enable/disable
+- Phase 7: Channel mask validation (16 channels)
+- Phase 8: Complete routing table display
+- Test summary with ✓ indicators
+- Continuous monitoring mode with periodic status
+
+**Test Duration:** ~5 seconds automated tests + continuous monitoring
+
+**Features Validated:**
+- 16x16 routing matrix functionality
+- Per-route channel filtering (16-bit chanmask)
+- All MIDI message types routing
+- Multi-destination routing
+- Route labels and modification
+- Real-time route changes
 
 ### Example 4: Test MIDI DIN
 

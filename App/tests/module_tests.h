@@ -184,28 +184,51 @@ void module_test_srio_dout_run(void);
 void module_test_midi_din_run(void);
 
 /**
- * @brief Test MIDI Router module
+ * @brief Test MIDI Router module - Comprehensive
  * 
- * Comprehensive test of the MIDI routing matrix (16x16 nodes).
+ * Comprehensive validation of the MIDI routing matrix (16x16 nodes).
  * 
- * Tests:
- * - Route configuration (enable/disable)
- * - Channel filtering with chanmask
- * - Message routing between nodes (DIN, USB, Looper, etc.)
- * - Label assignment
- * - Multiple simultaneous routes
- * - Different MIDI message types (Note, CC, Sysex)
+ * Test Phases:
+ * 1. Router initialization - matrix setup, node mapping display
+ * 2. Basic routing - single source to single destination configuration
+ * 3. Channel filtering - per-channel route control (16 MIDI channels)
+ * 4. Message types - Note On/Off, CC, PC, Pressure, Pitch Bend routing
+ * 5. Multi-destination routing - one source to multiple outputs
+ * 6. Route modification - dynamic enable/disable functionality
+ * 7. Channel validation - mask filtering with multiple channels
+ * 8. Routing table - complete active route display with labels
+ * 
+ * Features tested:
+ * - Route enable/disable per connection
+ * - Channel filtering (16-bit chanmask) for each route
+ * - All MIDI message types: Note, CC, PC, Pressure, Pitch Bend
+ * - Multi-destination routing (1→N outputs)
+ * - Route labels (16-character names)
+ * - Dynamic route modification at runtime
+ * - Continuous monitoring with periodic statistics
  * 
  * Hardware tested:
  * - DIN IN1-4 → DIN OUT1-4 routing
- * - USB Device IN/OUT → DIN routing
- * - Looper → Output routing with channel filtering
+ * - USB Device (4 ports) ↔ DIN routing
+ * - USB Host IN/OUT → DIN routing
+ * - Internal nodes (Looper, Keys) → Output routing
+ * - Channel-specific filtering per route
  * 
- * The test configures example routes and sends test messages to verify
- * the routing matrix operates correctly. Monitor UART output to see
- * routing table and test message flow.
+ * The test configures multiple example routes, sends test messages through
+ * each route type, validates channel filtering, and displays the complete
+ * routing table. After automated tests, it enters continuous monitoring mode
+ * with periodic status updates.
  * 
- * @note This function runs forever
+ * Monitor UART output (115200 baud) to see:
+ * - Detailed test phase descriptions
+ * - Test message routing verification
+ * - Complete routing table with channel masks
+ * - Test summary with ✓ indicators
+ * - Continuous monitoring status
+ * 
+ * Duration: ~5 seconds for automated tests, then continuous monitoring
+ * 
+ * @note This function runs forever in monitoring mode after tests complete
  */
 void module_test_router_run(void);
 
