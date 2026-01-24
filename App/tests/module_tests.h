@@ -842,93 +842,22 @@ void module_test_usb_device_midi_run(void);
 int module_test_oled_ssd1322_run(void);
 
 /**
- * @brief Test Footswitch module
+ * @brief Run all finite tests sequentially
+ * @return 0 if all tests passed, negative if any failed
  * 
- * Comprehensive test of the footswitch mapping system (8 footswitches).
- * Supports two input methods selected at compile time:
+ * Executes all tests that complete and return (as opposed to tests that
+ * loop forever). Provides comprehensive validation of:
+ * - OLED SSD1322 driver (display patterns and GPIO)
+ * - Patch/SD system (config, MIDI export, scene chains)
  * 
- * **Method 1: Direct GPIO (default)**
- * - No FOOTSWITCH_USE_SRIO define needed
- * - Uses 8 dedicated GPIO pins
- * - No external shift register hardware needed
- * - Simpler, faster, uses internal pull-ups
+ * Tests excluded (run forever):
+ * - GDB_DEBUG, AINSER64, SRIO, SRIO_DOUT, MIDI_DIN, ROUTER, LOOPER,
+ *   LFO, HUMANIZER, UI_*, PRESSURE, USB_HOST_MIDI, USB_DEVICE_MIDI
  * 
- * **Method 2: SRIO bit-bang (alternative)**
- * - Define FOOTSWITCH_USE_SRIO=1
- * - Uses second SRIO instance with bit-bang SPI
- * - Requires 74HC165 shift register hardware
- * - Independent from main SRIO bus
- * 
- * Tests:
- * - Footswitch input detection (GPIO or SRIO)
- * - Mapping configuration for all 13 action types
- * - Action execution (Play/Stop, Record, Overdub, Undo, Redo, etc.)
- * - Looper integration
- * - Button press/release detection with debouncing
- * - Real-time status display
- * 
- * Hardware requirements (GPIO mode - default):
- * - 8 footswitches connected to GPIO pins (FS0-FS7):
- *   - FS0: PE2 (J10B_D3)
- *   - FS1: PE4 (J10B_D4)
- *   - FS2: PE5 (J10B_D5)
- *   - FS3: PE6 (J10B_D6)
- *   - FS4: PB8 (J10A_D0)
- *   - FS5: PB9 (J10A_D1)
- *   - FS6: PB10 (J10A_D2)
- *   - FS7: PB11 (J10A_D3)
- * - Internal pull-up resistors enabled
- * - UART connection for debug output (115200 baud)
- * 
- * Hardware requirements (SRIO mode - alternative):
- * - 1x 74HC165 shift register for 8 footswitch inputs
- * - Bit-bang SPI pins:
- *   - SCK: PB12 (J10A_D4)
- *   - MISO: PB14 (J10A_D6)
- *   - /PL: PB15 (J10A_D7)
- * - External pull-up resistors on 74HC165 inputs (10kΩ)
- * - UART connection for debug output (115200 baud)
- * 
- * Test sequence:
- * 1. Configure input method (GPIO or SRIO bit-bang)
- * 2. Initialize looper module
- * 3. Configure 8 footswitch mappings to test all actions:
- *    - FS0: Play/Stop (Track 0)
- *    - FS1: Record (Track 0)
- *    - FS2: Overdub (Track 0)
- *    - FS3: Undo (Track 0)
- *    - FS4: Mute (Track 1)
- *    - FS5: Tap Tempo
- *    - FS6: Trigger Scene (Scene A/0)
- *    - FS7: Clear (Track 0)
- * 4. Monitor button presses continuously with debouncing
- * 5. Display action triggered for each footswitch press
- * 6. Display looper state changes
- * 
- * UART output format:
- * - Input method (GPIO or SRIO)
- * - Hardware configuration
- * - Footswitch mapping table
- * - Button press/release events
- * - Action triggered for each footswitch
- * - Looper state changes (Play, Record, etc.)
- * 
- * Usage:
- * ```c
- * // GPIO mode (default, simpler):
- * make CFLAGS+="-DMODULE_TEST_FOOTSWITCH"
- * 
- * // SRIO mode (alternative, requires 74HC165):
- * make CFLAGS+="-DMODULE_TEST_FOOTSWITCH -DFOOTSWITCH_USE_SRIO"
- * ```
- * 
- * Note: Both methods avoid conflicts with the main SRIO bus used
- * for controller buttons. Choose GPIO for simplicity or SRIO for
- * consistency with existing hardware design.
- * 
- * @note This function runs forever
+ * Generates aggregated statistics and detailed results for each test.
+ * Ideal for automated testing and system validation.
  */
-void module_test_footswitch_run(void);
+int module_test_all_run(void);
 
 // =============================================================================
 // COMPILE-TIME TEST SELECTION HELPERS

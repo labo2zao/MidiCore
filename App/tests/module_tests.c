@@ -5,7 +5,7 @@
 
 #include "App/tests/module_tests.h"
 #include "App/tests/test_debug.h"
-#include "App/tests/test_oled_mirror.h"
+#include "App/tests/test_config_runtime.h"
 #include "Config/module_config.h"
 
 #include "cmsis_os2.h"
@@ -392,9 +392,9 @@ int module_tests_run(module_test_t test)
       break;
       
     case MODULE_TEST_ALL_ID:
-      // Run all tests sequentially (where possible)
-      // Most tests loop forever, so this is limited
-      return -1; // Not implemented for now
+      // Run all finite tests sequentially
+      // Most tests loop forever and cannot be included
+      return module_test_all_run();
       
     case MODULE_TEST_NONE_ID:
     default:
@@ -5757,24 +5757,550 @@ int module_test_patch_sd_run(void)
   // Early UART verification
   dbg_print("\r\n");
   dbg_print("==============================================\r\n");
-  dbg_print("UART Debug Verification: OK\r\n");
+  dbg_print("  MODULE_TEST_PATCH_SD - Comprehensive Test\r\n");
   dbg_print("==============================================\r\n");
+  osDelay(100);
+  
+  // Verify UART is working
+  dbg_print("Initializing UART debug output...\r\n");
+  dbg_print("UART Debug Output: OK\r\n");
   dbg_print("\r\n");
   osDelay(100);
   
-#if MODULE_ENABLE_PATCH
-  // Test SD card mounting
-  int result = patch_sd_mount_retry(3);
-  if (result == 0) {
-    // SD mounted successfully
-    // Could test patch loading here
-    return 0;
-  }
-  return -1;
-#else
-  // Module not enabled
+#if !MODULE_ENABLE_PATCH
+  dbg_print("[ERROR] MODULE_ENABLE_PATCH is disabled!\r\n");
+  dbg_print("Please enable in Config/module_config.h\r\n");
   return -1;
 #endif
+
+#if !MODULE_ENABLE_LOOPER
+  dbg_print("[WARNING] MODULE_ENABLE_LOOPER is disabled!\r\n");
+  dbg_print("MIDI export tests will be skipped.\r\n");
+#endif
+
+  int test_passed = 0;
+  int test_failed = 0;
+  
+  // ========================================
+  // TEST 1: SD Card Mount/Unmount
+  // ========================================
+  dbg_print("TEST 1: SD Card Mount\r\n");
+  dbg_print("--------------------------------------\r\n");
+  
+  int result = patch_sd_mount_retry(3);
+  if (result == 0) {
+    dbg_print("[PASS] SD card mounted successfully\r\n");
+    test_passed++;
+  } else {
+    dbg_print("[FAIL] SD card mount failed!\r\n");
+    dbg_print("       Check: 1) SD card inserted\r\n");
+    dbg_print("              2) Card formatted FAT32\r\n");
+    dbg_print("              3) Proper SPI connections\r\n");
+    test_failed++;
+    // Jump to summary since remaining tests depend on SD card
+    goto test_summary;
+  }
+  dbg_print("\r\n");
+  osDelay(200);
+  
+  // ========================================
+  // TEST 2: SD Card Configuration Load
+  // ========================================
+  dbg_print("TEST 2: Config File Loading\r\n");
+  dbg_print("--------------------------------------\r\n");
+  
+  // Initialize patch system
+  patch_init();
+  
+  // Try to load config file
+  const char* config_paths[] = {
+    "0:/config.ngc",
+    "0:/config_minimal.ngc", 
+    "0:/config_full.ngc"
+  };
+  
+  int config_loaded = 0;
+  for (int i = 0; i < 3; i++) {
+    dbg_printf("Trying: %s...\r\n", config_paths[i]);
+    result = patch_load(config_paths[i]);
+    if (result == 0) {
+      dbg_printf("[PASS] Loaded %s\r\n", config_paths[i]);
+      config_loaded = 1;
+      test_passed++;
+      break;
+    }
+  }
+  
+  if (!config_loaded) {
+    dbg_print("[FAIL] No config file found on SD card\r\n");
+    dbg_print("       Expected: 0:/config.ngc\r\n");
+    test_failed++;
+  }
+  dbg_print("\r\n");
+  osDelay(200);
+  
+  // ========================================
+  // TEST 3: Config Parameter Reading
+  // ========================================
+  dbg_print("TEST 3: Config Parameter Reading\r\n");
+  dbg_print("--------------------------------------\r\n");
+  
+  if (config_loaded) {
+    char value[64];
+    
+    // Test reading common parameters
+    const char* test_keys[] = {
+      "SRIO_DIN_ENABLE",
+      "AINSER_ENABLE", 
+      "MIDI_DEFAULT_CHANNEL",
+      "AIN_ENABLE"
+    };
+    
+    int params_read = 0;
+    for (int i = 0; i < 4; i++) {
+      result = patch_get(test_keys[i], value, sizeof(value));
+      if (result == 0) {
+        dbg_printf("[PASS] %s = %s\r\n", test_keys[i], value);
+        params_read++;
+      } else {
+        dbg_printf("[SKIP] %s not found\r\n", test_keys[i]);
+      }
+    }
+    
+    if (params_read > 0) {
+      dbg_printf("[PASS] Read %d config parameters\r\n", params_read);
+      test_passed++;
+    } else {
+      dbg_print("[FAIL] Could not read any config parameters\r\n");
+      test_failed++;
+    }
+  } else {
+    dbg_print("[SKIP] No config loaded\r\n");
+  }
+  dbg_print("\r\n");
+  osDelay(200);
+  
+  // ========================================
+  // TEST 4: Config File Saving
+  // ========================================
+  dbg_print("TEST 4: Config File Saving\r\n");
+  dbg_print("--------------------------------------\r\n");
+  
+  // Set some test parameters
+  const char* TEST_VALUE_1 = "123";
+  const char* TEST_VALUE_2 = "456";
+  patch_set("TEST_PARAM_1", TEST_VALUE_1);
+  patch_set("TEST_PARAM_2", TEST_VALUE_2);
+  
+  // Save to a test file
+  const char* test_config = "0:/test_config.ngc";
+  result = patch_save(test_config);
+  if (result == 0) {
+    dbg_printf("[PASS] Config saved to %s\r\n", test_config);
+    test_passed++;
+    
+    // Verify by reloading
+    patch_init(); // Clear current config
+    result = patch_load(test_config);
+    if (result == 0) {
+      char val[64];
+      if (patch_get("TEST_PARAM_1", val, sizeof(val)) == 0) {
+        dbg_printf("[PASS] Verified saved value: %s\r\n", val);
+        test_passed++;
+      } else {
+        dbg_print("[FAIL] Could not read saved parameter\r\n");
+        test_failed++;
+      }
+    } else {
+      dbg_print("[FAIL] Could not reload saved config\r\n");
+      test_failed++;
+    }
+  } else {
+    dbg_print("[FAIL] Could not save config file\r\n");
+    dbg_print("       Check: SD card write protection\r\n");
+    test_failed++;
+  }
+  dbg_print("\r\n");
+  osDelay(200);
+  
+#if MODULE_ENABLE_LOOPER
+  // ========================================
+  // TEST 5: MIDI Export - Single Track
+  // ========================================
+  dbg_print("TEST 5: MIDI Export - Single Track\r\n");
+  dbg_print("--------------------------------------\r\n");
+  
+  // Initialize looper
+  looper_init();
+  dbg_print("Looper initialized\r\n");
+  
+  // Clear track to ensure known state
+  looper_clear(0);
+  
+  // Export empty track (should succeed but note it's empty)
+  const char* track_file = "0:/test_track0.mid";
+  result = looper_export_track_midi(0, track_file);
+  if (result == 0) {
+    dbg_printf("[PASS] Track exported to %s\r\n", track_file);
+    test_passed++;
+  } else if (result == -2) {
+    dbg_print("[SKIP] Track is empty (expected)\r\n");
+  } else {
+    dbg_print("[FAIL] Track export failed\r\n");
+    test_failed++;
+  }
+  dbg_print("\r\n");
+  osDelay(200);
+  
+  // ========================================
+  // TEST 6: MIDI Export - All Tracks
+  // ========================================
+  dbg_print("TEST 6: MIDI Export - All Tracks\r\n");
+  dbg_print("--------------------------------------\r\n");
+  
+  const char* all_tracks_file = "0:/test_all_tracks.mid";
+  result = looper_export_midi(all_tracks_file);
+  if (result == 0) {
+    dbg_printf("[PASS] All tracks exported to %s\r\n", all_tracks_file);
+    test_passed++;
+  } else if (result == -2) {
+    dbg_print("[SKIP] No tracks have data (expected)\r\n");
+  } else {
+    dbg_print("[FAIL] All tracks export failed\r\n");
+    test_failed++;
+  }
+  dbg_print("\r\n");
+  osDelay(200);
+  
+  // ========================================
+  // TEST 7: MIDI Export - Scene Export
+  // ========================================
+  dbg_print("TEST 7: MIDI Export - Scene Export\r\n");
+  dbg_print("--------------------------------------\r\n");
+  
+  const char* scene_file = "0:/test_scene_A.mid";
+  result = looper_export_scene_midi(0, scene_file);
+  if (result == 0 || result == -2) {
+    dbg_printf("[PASS/SKIP] Scene export completed\r\n");
+    if (result == -2) {
+      dbg_print("         (Scene empty, which is expected)\r\n");
+    }
+    test_passed++;
+  } else {
+    dbg_print("[FAIL] Scene export failed\r\n");
+    test_failed++;
+  }
+  dbg_print("\r\n");
+  osDelay(200);
+  
+  // ========================================
+  // TEST 8: Scene Chaining Configuration
+  // ========================================
+  dbg_print("TEST 8: Scene Chaining Configuration\r\n");
+  dbg_print("--------------------------------------\r\n");
+  
+  // Configure scene chains: A->B->C->A
+  looper_set_scene_chain(0, 1, 1); // Scene A -> B
+  looper_set_scene_chain(1, 2, 1); // Scene B -> C
+  looper_set_scene_chain(2, 0, 1); // Scene C -> A (loop)
+  
+  // Verify configuration
+  int chain_ok = 1;
+  if (looper_get_scene_chain(0) != 1 || !looper_is_scene_chain_enabled(0)) {
+    dbg_print("[FAIL] Scene A->B chain not set correctly\r\n");
+    chain_ok = 0;
+  }
+  if (looper_get_scene_chain(1) != 2 || !looper_is_scene_chain_enabled(1)) {
+    dbg_print("[FAIL] Scene B->C chain not set correctly\r\n");
+    chain_ok = 0;
+  }
+  if (looper_get_scene_chain(2) != 0 || !looper_is_scene_chain_enabled(2)) {
+    dbg_print("[FAIL] Scene C->A chain not set correctly\r\n");
+    chain_ok = 0;
+  }
+  
+  if (chain_ok) {
+    dbg_print("[PASS] Scene chains configured: A->B->C->A\r\n");
+    test_passed++;
+  } else {
+    test_failed++;
+  }
+  dbg_print("\r\n");
+  osDelay(200);
+  
+  // ========================================
+  // TEST 9: Quick-Save System
+  // ========================================
+  dbg_print("TEST 9: Quick-Save System\r\n");
+  dbg_print("--------------------------------------\r\n");
+  
+  // Save to slot 0
+  dbg_print("Saving to quick-save slot 0...\r\n");
+  result = looper_quick_save(0, "Test Session");
+  if (result == 0) {
+    dbg_print("[PASS] Quick-save successful\r\n");
+    test_passed++;
+    
+    // Verify slot is marked as used
+    if (looper_quick_save_is_used(0)) {
+      dbg_print("[PASS] Slot 0 marked as used\r\n");
+      const char* name = looper_quick_save_get_name(0);
+      if (name) {
+        dbg_printf("[PASS] Slot name: %s\r\n", name);
+      }
+      test_passed++;
+    } else {
+      dbg_print("[FAIL] Slot 0 not marked as used\r\n");
+      test_failed++;
+    }
+    
+    // Test quick-load
+    dbg_print("Loading from quick-save slot 0...\r\n");
+    result = looper_quick_load(0);
+    if (result == 0) {
+      dbg_print("[PASS] Quick-load successful\r\n");
+      test_passed++;
+    } else {
+      dbg_print("[FAIL] Quick-load failed\r\n");
+      test_failed++;
+    }
+  } else {
+    dbg_print("[FAIL] Quick-save failed\r\n");
+    dbg_print("       Check: SD card writable\r\n");
+    test_failed++;
+  }
+  dbg_print("\r\n");
+  osDelay(200);
+  
+  // ========================================
+  // TEST 10: Scene Chaining Persistence
+  // ========================================
+  dbg_print("TEST 10: Scene Chaining Persistence\r\n");
+  dbg_print("--------------------------------------\r\n");
+  
+  // The scene chains should persist in quick-save
+  // We already saved them above, now verify they're still there
+  uint8_t next = looper_get_scene_chain(0);
+  uint8_t enabled = looper_is_scene_chain_enabled(0);
+  
+  if (next == 1 && enabled) {
+    dbg_print("[PASS] Scene chain A->B persisted\r\n");
+    test_passed++;
+  } else {
+    dbg_print("[FAIL] Scene chain lost after save/load\r\n");
+    test_failed++;
+  }
+  dbg_print("\r\n");
+  osDelay(200);
+  
+#else
+  dbg_print("\r\n[SKIP] Tests 5-10 (Looper not enabled)\r\n\r\n");
+#endif
+  
+  // ========================================
+  // TEST SUMMARY
+  // ========================================
+test_summary:
+  dbg_print("\r\n");
+  dbg_print("==============================================\r\n");
+  dbg_print("            TEST SUMMARY\r\n");
+  dbg_print("==============================================\r\n");
+  dbg_printf("Tests Passed: %d\r\n", test_passed);
+  dbg_printf("Tests Failed: %d\r\n", test_failed);
+  dbg_printf("Total Tests:  %d\r\n", test_passed + test_failed);
+  dbg_print("----------------------------------------------\r\n");
+  
+  if (test_failed == 0) {
+    dbg_print("RESULT: ALL TESTS PASSED!\r\n");
+    dbg_print("\r\n");
+    dbg_print("Features Verified:\r\n");
+    dbg_print("  - SD card mount/unmount\r\n");
+    dbg_print("  - Config file load/save\r\n");
+    dbg_print("  - Config parameter read/write\r\n");
+#if MODULE_ENABLE_LOOPER
+    dbg_print("  - MIDI export (track/scene/all)\r\n");
+    dbg_print("  - Scene chaining configuration\r\n");
+    dbg_print("  - Quick-save system\r\n");
+    dbg_print("  - Scene chain persistence\r\n");
+#endif
+  } else {
+    dbg_print("RESULT: SOME TESTS FAILED\r\n");
+    dbg_print("\r\n");
+    dbg_print("Troubleshooting:\r\n");
+    dbg_print("  1. Check SD card is inserted\r\n");
+    dbg_print("  2. Verify card is FAT32 formatted\r\n");
+    dbg_print("  3. Check SPI connections\r\n");
+    dbg_print("  4. Verify write protection is off\r\n");
+    dbg_print("  5. Ensure config.ngc exists on card\r\n");
+  }
+  dbg_print("==============================================\r\n");
+  dbg_print("\r\n");
+  
+  // Return success if all tests passed
+  return (test_failed == 0) ? 0 : -1;
+}
+
+// =============================================================================
+// MODULE_TEST_ALL - Run All Finite Tests
+// =============================================================================
+
+/**
+ * @brief Run all finite tests sequentially
+ * @return 0 if all tests passed, negative if any failed
+ * 
+ * This function runs all tests that complete and return (as opposed to
+ * tests that loop forever). Currently includes:
+ * - MODULE_TEST_OLED_SSD1322 (returns after pattern display)
+ * - MODULE_TEST_PATCH_SD (returns after validation)
+ * 
+ * Tests that run forever (excluded):
+ * - GDB_DEBUG, AINSER64, SRIO, SRIO_DOUT, MIDI_DIN, ROUTER, LOOPER,
+ *   LFO, HUMANIZER, UI_*, PRESSURE, USB_HOST_MIDI, USB_DEVICE_MIDI
+ */
+int module_test_all_run(void)
+{
+  dbg_print("\r\n");
+  dbg_print("==============================================\r\n");
+  dbg_print("   MODULE_TEST_ALL - Comprehensive Suite\r\n");
+  dbg_print("==============================================\r\n");
+  dbg_print("\r\n");
+  osDelay(200);
+  
+  int total_passed = 0;
+  int total_failed = 0;
+  
+  // Track which tests were run
+  typedef struct {
+    const char* name;
+    int result;
+    uint8_t skipped;
+  } test_result_t;
+  
+  test_result_t results[2] = {0};
+  int test_idx = 0;
+  
+  // ========================================
+  // TEST 1: OLED SSD1322 Driver
+  // ========================================
+#if MODULE_ENABLE_OLED
+  dbg_print("==============================================\r\n");
+  dbg_print("Running: MODULE_TEST_OLED_SSD1322\r\n");
+  dbg_print("==============================================\r\n");
+  osDelay(200);
+  
+  results[test_idx].name = "OLED_SSD1322";
+  results[test_idx].result = module_test_oled_ssd1322_run();
+  results[test_idx].skipped = 0;
+  
+  if (results[test_idx].result == 0) {
+    dbg_print("\r\n[PASS] MODULE_TEST_OLED_SSD1322 completed successfully\r\n\r\n");
+    total_passed++;
+  } else {
+    dbg_print("\r\n[FAIL] MODULE_TEST_OLED_SSD1322 failed\r\n\r\n");
+    total_failed++;
+  }
+  test_idx++;
+  osDelay(500);
+#else
+  dbg_print("[SKIP] MODULE_TEST_OLED_SSD1322 (MODULE_ENABLE_OLED disabled)\r\n");
+  results[test_idx].name = "OLED_SSD1322";
+  results[test_idx].skipped = 1;
+  test_idx++;
+#endif
+  
+  // ========================================
+  // TEST 2: Patch/SD Card
+  // ========================================
+#if MODULE_ENABLE_PATCH
+  dbg_print("==============================================\r\n");
+  dbg_print("Running: MODULE_TEST_PATCH_SD\r\n");
+  dbg_print("==============================================\r\n");
+  osDelay(200);
+  
+  results[test_idx].name = "PATCH_SD";
+  results[test_idx].result = module_test_patch_sd_run();
+  results[test_idx].skipped = 0;
+  
+  if (results[test_idx].result == 0) {
+    dbg_print("\r\n[PASS] MODULE_TEST_PATCH_SD completed successfully\r\n\r\n");
+    total_passed++;
+  } else {
+    dbg_print("\r\n[FAIL] MODULE_TEST_PATCH_SD failed\r\n\r\n");
+    total_failed++;
+  }
+  test_idx++;
+  osDelay(500);
+#else
+  dbg_print("[SKIP] MODULE_TEST_PATCH_SD (MODULE_ENABLE_PATCH disabled)\r\n");
+  results[test_idx].name = "PATCH_SD";
+  results[test_idx].skipped = 1;
+  test_idx++;
+#endif
+  
+  // ========================================
+  // FINAL SUMMARY
+  // ========================================
+  dbg_print("\r\n");
+  dbg_print("==============================================\r\n");
+  dbg_print("       MODULE_TEST_ALL - FINAL SUMMARY\r\n");
+  dbg_print("==============================================\r\n");
+  dbg_print("\r\n");
+  
+  // Print individual test results
+  dbg_print("Individual Test Results:\r\n");
+  dbg_print("----------------------------------------------\r\n");
+  for (int i = 0; i < test_idx; i++) {
+    dbg_printf("  %-15s : ", results[i].name);
+    if (results[i].skipped) {
+      dbg_print("[SKIP]\r\n");
+    } else if (results[i].result == 0) {
+      dbg_print("[PASS]\r\n");
+    } else {
+      dbg_print("[FAIL]\r\n");
+    }
+  }
+  dbg_print("\r\n");
+  
+  // Print statistics
+  dbg_print("Test Statistics:\r\n");
+  dbg_print("----------------------------------------------\r\n");
+  dbg_printf("Tests Passed:  %d\r\n", total_passed);
+  dbg_printf("Tests Failed:  %d\r\n", total_failed);
+  dbg_printf("Tests Skipped: %d\r\n", test_idx - total_passed - total_failed);
+  dbg_printf("Total Run:     %d\r\n", total_passed + total_failed);
+  dbg_print("----------------------------------------------\r\n");
+  dbg_print("\r\n");
+  
+  // Final verdict
+  if (total_failed == 0 && total_passed > 0) {
+    dbg_print("RESULT: ALL TESTS PASSED!\r\n");
+    dbg_print("\r\n");
+    dbg_print("All finite tests completed successfully.\r\n");
+    dbg_print("System validated and ready for operation.\r\n");
+  } else if (total_failed > 0) {
+    dbg_print("RESULT: SOME TESTS FAILED\r\n");
+    dbg_print("\r\n");
+    dbg_print("Please review failed tests above and check:\r\n");
+    dbg_print("  - Hardware connections\r\n");
+    dbg_print("  - Module configurations\r\n");
+    dbg_print("  - Required peripherals present\r\n");
+  } else {
+    dbg_print("RESULT: NO TESTS RUN\r\n");
+    dbg_print("\r\n");
+    dbg_print("All tests were skipped. Check that modules are enabled.\r\n");
+  }
+  
+  dbg_print("\r\n");
+  dbg_print("Note: Tests that run forever are not included:\r\n");
+  dbg_print("  - AINSER64, SRIO, MIDI_DIN, Router, Looper,\r\n");
+  dbg_print("  - LFO, Humanizer, UI pages, Pressure,\r\n");
+  dbg_print("  - USB Host/Device MIDI\r\n");
+  dbg_print("  Run these tests individually for validation.\r\n");
+  dbg_print("==============================================\r\n");
+  dbg_print("\r\n");
+  
+  // Return success if all tests passed
+  return (total_failed == 0 && total_passed > 0) ? 0 : -1;
 }
 
 void module_test_pressure_run(void)

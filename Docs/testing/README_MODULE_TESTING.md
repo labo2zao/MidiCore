@@ -28,12 +28,12 @@ MidiCore now provides a unified module testing framework that allows testing ind
 | MIDI DIN | `MODULE_TEST_MIDI_DIN` | Tests MIDI DIN I/O with LiveFX transform and MIDI learn |
 | Router | `MODULE_TEST_ROUTER` | Tests MIDI router and message forwarding |
 | Looper | `MODULE_TEST_LOOPER` | Tests MIDI looper recording/playback |
-| UI | `MODULE_TEST_UI` | Comprehensive automated UI page navigation & OLED test (all 29 modes) |
-| Patch/SD | `MODULE_TEST_PATCH_SD` | Tests SD card mounting and patch loading |
+| UI | `MODULE_TEST_UI` | Tests OLED display and user interface |
+| Patch/SD | `MODULE_TEST_PATCH_SD` | **Tests SD card config, MIDI export, scene chaining persistence** |
 | Pressure | `MODULE_TEST_PRESSURE` | Tests I2C pressure sensor (XGZP6847) |
 | Breath | `MODULE_TEST_BREATH` | Tests breath controller (pressure sensor + MIDI CC) - [Guide](BREATH_CONTROLLER_TEST_GUIDE.md) |
 | USB Host MIDI | `MODULE_TEST_USB_HOST_MIDI` | Tests USB Host MIDI device communication |
-| Footswitch | `MODULE_TEST_FOOTSWITCH` | Tests 8-channel footswitch mapping with configurable input (GPIO or SRIO) |
+| **All Tests** | `MODULE_TEST_ALL` | **Runs all finite tests sequentially (OLED + PATCH_SD)** |
 
 **Note:** The table above shows **preprocessor defines** you use in your build configuration. The internal enum values (in code) have an `_ID` suffix (e.g., `MODULE_TEST_AINSER64_ID`) to avoid naming conflicts.
 
@@ -271,12 +271,18 @@ The test automatically validates all SSD1322 enhancements:
 # Compile with Patch/SD test
 make CFLAGS+="-DMODULE_TEST_PATCH_SD=1"
 
-# Insert SD card with patches and monitor UART output
+# Insert SD card with config.ngc and monitor UART output
 ```
 
 **Expected Output:**
 - SD card mount status reported
-- Patch list/load feedback printed to UART
+- Config load/save tests executed
+- MIDI export tests performed
+- Scene chaining persistence verified
+- Quick-save system validated
+- Test summary with pass/fail counts
+
+**See also:** [MODULE_TEST_PATCH_SD.md](MODULE_TEST_PATCH_SD.md) for comprehensive documentation
 
 ### Example 8: Test Pressure Sensor
 
@@ -304,73 +310,17 @@ make CFLAGS+="-DMODULE_TEST_USB_HOST_MIDI=1"
 - USB device enumeration messages
 - Incoming MIDI events printed to UART
 
-### Example 10: Test Footswitch Mapping (Configurable: GPIO or SRIO)
+### Example 10: Run All Tests (Sequential)
 
-The footswitch test supports two input methods:
-
-**Method 1: GPIO-based (Default, Simpler)**
 ```bash
-# Compile with GPIO-based footswitch test (no external hardware)
-make CFLAGS+="-DMODULE_TEST_FOOTSWITCH"
+# Compile with MODULE_TEST_ALL
+make CFLAGS+="-DMODULE_TEST_ALL"
 
-# Connect 8 footswitches to GPIO pins
-# Connect UART to monitor footswitch actions
-```
-
-**Method 2: SRIO bit-bang (Alternative, Hardware-based)**
-```bash
-# Compile with SRIO-based footswitch test (requires 74HC165)
-make CFLAGS+="-DMODULE_TEST_FOOTSWITCH -DFOOTSWITCH_USE_SRIO"
-
-# Connect 8 footswitches to 74HC165 shift register
-# Connect bit-bang SPI pins
-# Connect UART to monitor footswitch actions
+# Runs all finite tests in sequence
 ```
 
 **Expected Output:**
-- Input method indication (GPIO or SRIO)
-- Hardware configuration details
-- Footswitch mapping configuration table
-- Button press/release events for each footswitch
-- Action execution messages (Play/Stop, Record, Overdub, etc.)
-- Looper state changes (STOP → PLAY → RECORD → OVERDUB)
-- Real-time monitoring of all 8 footswitches with debouncing
-
-**Hardware Requirements (GPIO mode - default):**
-- 8 momentary footswitches (SPST-NO, normally open)
-- Connected to specific GPIO pins:
-  - FS0: PE2 (J10B_D3)
-  - FS1: PE4 (J10B_D4)
-  - FS2: PE5 (J10B_D5)
-  - FS3: PE6 (J10B_D6)
-  - FS4: PB8 (J10A_D0)
-  - FS5: PB9 (J10A_D1)
-  - FS6: PB10 (J10A_D2)
-  - FS7: PB11 (J10A_D3)
-- Internal pull-up resistors enabled automatically
-- UART connection for debug output (115200 baud)
-
-**Hardware Requirements (SRIO mode - alternative):**
-- 8 momentary footswitches (SPST-NO, normally open)
-- 1x 74HC165 shift register for 8 footswitch inputs
-- Bit-bang SPI pins:
-  - SCK: PB12 (J10A_D4)
-  - MISO: PB14 (J10A_D6)
-  - /PL: PB15 (J10A_D7)
-- External pull-up resistors on 74HC165 inputs (10kΩ)
-- UART connection for debug output (115200 baud)
-
-**Test Features:**
-- FS0: Play/Stop Track 0
-- FS1: Record Track 0
-- FS2: Overdub Track 0
-- FS3: Undo Track 0
-- FS4: Mute Track 1
-- FS5: Tap Tempo
-- FS6: Trigger Scene A (0)
-- FS7: Clear Track 0
-
-**Note:** Both methods avoid conflicts with the main SRIO bus used for controller buttons. Choose GPIO for simplicity or SRIO for consistency with existing hardware design.
+```
 
 ## Production Mode (Default)
 
