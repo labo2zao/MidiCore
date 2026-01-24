@@ -58,17 +58,19 @@ void ui_page_sysex_render(uint32_t now_ms) {
   
   // Header
   char header[64];
+  
+  ui_gfx_set_font(UI_FONT_8X8);
   if (sysex_captured) {
     if (sysex_captured == 2) {
-      snprintf(header, sizeof(header), "SYSEX VIEWER  Captured: %u bytes [TRUNCATED]", sysex_length);
+      snprintf(header, sizeof(header), "SYSEX VIEW %ub [TRUNC]", sysex_length);
     } else {
-      snprintf(header, sizeof(header), "SYSEX VIEWER  Captured: %u bytes", sysex_length);
+      snprintf(header, sizeof(header), "SYSEX VIEW %u bytes", sysex_length);
     }
   } else {
-    snprintf(header, sizeof(header), "SYSEX VIEWER  Waiting for SysEx...");
+    snprintf(header, sizeof(header), "SYSEX VIEWER Ready");
   }
   ui_gfx_text(0, 0, header, 15);
-  ui_gfx_rect(0, 9, 256, 1, 4);
+  ui_gfx_hline(0, 11, 256, 8);
   
   if (sysex_captured && sysex_length > 0) {
     // Decode manufacturer ID (if present)
@@ -84,11 +86,11 @@ void ui_page_sysex_render(uint32_t now_ms) {
         // 1-byte manufacturer ID
         snprintf(mfr_line, sizeof(mfr_line), "Mfr: 0x%02X", mfr_id);
       }
-      ui_gfx_text(0, 14, mfr_line, 12);
+      ui_gfx_text(0, 15, mfr_line, 13);
     }
     
-    // Hex view (display rows of 16 bytes)
-    ui_gfx_text(0, 24, "Hex View:", 10);
+    // Hex view (display rows of 16 bytes) - better spacing with 8x8
+    ui_gfx_text(0, 26, "Hex View:", 11);
     
     uint16_t display_rows = 3;  // Show 3 rows of 16 bytes each
     uint16_t start_offset = scroll_offset * 16;
@@ -108,18 +110,18 @@ void ui_page_sysex_render(uint32_t now_ms) {
       }
       
       snprintf(line, sizeof(line), "%02X: %s", offset, hex_part);
-      ui_gfx_text(0, 34 + row * 8, line, 10);
+      ui_gfx_text(0, 36 + row * 9, line, 11);
     }
   } else {
     // No SysEx captured yet
-    ui_gfx_text(0, 24, "No SysEx message captured.", 8);
-    ui_gfx_text(0, 34, "Send a SysEx to this device to", 8);
-    ui_gfx_text(0, 42, "view its contents here.", 8);
+    ui_gfx_text(0, 26, "No SysEx message", 10);
+    ui_gfx_text(0, 36, "Send a SysEx to view", 10);
   }
   
-  // Footer
-  ui_gfx_rect(0, 62, 256, 1, 4);
-  ui_gfx_text(0, 54, "B1 SEND  B2 RCV  B3 CLR  B4 SAVE  ENC scroll", 8);
+  // Footer with smaller font
+  ui_gfx_hline(0, 54, 256, 6);
+  ui_gfx_set_font(UI_FONT_5X7);
+  ui_gfx_text(0, 56, "B1:SEND B2:RCV B3:CLR B4:SAVE ENC:scroll", 10);
 }
 
 /**

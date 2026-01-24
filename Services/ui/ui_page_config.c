@@ -108,11 +108,12 @@ void ui_page_config_render(uint32_t now_ms) {
   
   ui_gfx_clear(0);
   
-  // Header
+  // Header with 8x8 font
+  ui_gfx_set_font(UI_FONT_8X8);
   char header[64];
-  snprintf(header, sizeof(header), "CONFIG: %s", get_category_name(current_category));
+  snprintf(header, sizeof(header), "CFG: %s", get_category_name(current_category));
   ui_gfx_text(0, 0, header, 15);
-  ui_gfx_rect(0, 9, 256, 1, 4);
+  ui_gfx_hline(0, 11, 256, 8);
   
   // Category info with SD status
   char cat_info[64];
@@ -120,48 +121,48 @@ void ui_page_config_render(uint32_t now_ms) {
   snprintf(cat_info, sizeof(cat_info), "[Cat %u/%u] %s %s", 
            current_category + 1, CONFIG_CAT_COUNT,
            edit_mode ? "EDIT" : "VIEW", sd_status);
-  ui_gfx_text(0, 12, cat_info, 8);
+  ui_gfx_text(0, 13, cat_info, 10);
   
   // Status message (if active)
   if (status_msg_time > 0) {
     if (status_msg_time > now_ms - 10000) {  // Still valid
-      ui_gfx_text(0, 20, status_msg, 12);
+      ui_gfx_text(0, 23, status_msg, 13);
     } else {
       status_msg_time = 0;  // Expired
       status_msg[0] = '\0';
     }
   }
   
-  // Parameters
-  int y = (status_msg_time > 0) ? 32 : 24;
+  // Parameters - better spacing with 8x8 font
+  int y = (status_msg_time > 0) ? 34 : 25;
   uint8_t param_count = get_param_count(current_category);
   
   switch (current_category) {
     case CONFIG_CAT_DIN:
       render_param_line(y, "SRIO_DIN_ENABLE", config_data.din.srio_din_enable, 
                        current_param == 0, 0);
-      render_param_line(y + 8, "SRIO_DIN_BYTES", config_data.din.srio_din_bytes, 
+      render_param_line(y + 9, "SRIO_DIN_BYTES", config_data.din.srio_din_bytes, 
                        current_param == 1, 0);
-      render_param_line(y + 16, "DIN_INVERT_DEFAULT", config_data.din.din_invert_default, 
+      render_param_line(y + 18, "DIN_INVERT_DEFAULT", config_data.din.din_invert_default, 
                        current_param == 2, 0);
       break;
       
     case CONFIG_CAT_AINSER:
       render_param_line(y, "AINSER_ENABLE", config_data.ainser.ainser_enable, 
                        current_param == 0, 0);
-      render_param_line(y + 8, "AINSER_SCAN_MS", config_data.ainser.ainser_scan_ms, 
+      render_param_line(y + 9, "AINSER_SCAN_MS", config_data.ainser.ainser_scan_ms, 
                        current_param == 1, 0);
       break;
       
     case CONFIG_CAT_AIN:
       render_param_line(y, "AIN_VELOCITY_ENABLE", config_data.ain.ain_velocity_enable, 
                        current_param == 0, 0);
-      render_param_line(y + 8, "AIN_CALIBRATE_AUTO", config_data.ain.ain_calibrate_auto, 
+      render_param_line(y + 9, "AIN_CALIBRATE_AUTO", config_data.ain.ain_calibrate_auto, 
                        current_param == 1, 0);
       break;
       
     case CONFIG_CAT_SYSTEM:
-      ui_gfx_text(0, y, "System config (not implemented)", 8);
+      ui_gfx_text(0, y, "System config (not implemented)", 10);
       break;
       
     default:
@@ -171,14 +172,15 @@ void ui_page_config_render(uint32_t now_ms) {
   if (param_count > 0) {
     // Current parameter indicator
     if (current_param < param_count) {
-      int indicator_y = (status_msg_time > 0) ? (32 + current_param * 8) : (24 + current_param * 8);
-      ui_gfx_rect(0, indicator_y, 256, 8, 2);
+      int indicator_y = (status_msg_time > 0) ? (34 + current_param * 9) : (25 + current_param * 9);
+      ui_gfx_rect(0, indicator_y, 256, 9, 2);
     }
   }
   
-  // Footer
-  ui_gfx_rect(0, 62, 256, 1, 4);
-  ui_gfx_text(0, 54, "B1 SAVE  B2 LOAD  B3 EDIT  B4 CAT  ENC nav", 8);
+  // Footer with smaller font
+  ui_gfx_hline(0, 54, 256, 6);
+  ui_gfx_set_font(UI_FONT_5X7);
+  ui_gfx_text(0, 56, "B1:SAVE B2:LOAD B3:EDIT B4:CAT ENC:nav", 10);
 }
 
 /**

@@ -28,9 +28,10 @@ MidiCore now provides a unified module testing framework that allows testing ind
 | MIDI DIN | `MODULE_TEST_MIDI_DIN` | Tests MIDI DIN I/O with LiveFX transform and MIDI learn |
 | Router | `MODULE_TEST_ROUTER` | Tests MIDI router and message forwarding |
 | Looper | `MODULE_TEST_LOOPER` | Tests MIDI looper recording/playback |
-| UI | `MODULE_TEST_UI` | Tests OLED display and user interface |
+| UI | `MODULE_TEST_UI` | Comprehensive automated UI page navigation & OLED test (all 29 modes) |
 | Patch/SD | `MODULE_TEST_PATCH_SD` | Tests SD card mounting and patch loading |
 | Pressure | `MODULE_TEST_PRESSURE` | Tests I2C pressure sensor (XGZP6847) |
+| Breath | `MODULE_TEST_BREATH` | Tests breath controller (pressure sensor + MIDI CC) - [Guide](BREATH_CONTROLLER_TEST_GUIDE.md) |
 | USB Host MIDI | `MODULE_TEST_USB_HOST_MIDI` | Tests USB Host MIDI device communication |
 
 **Note:** The table above shows **preprocessor defines** you use in your build configuration. The internal enum values (in code) have an `_ID` suffix (e.g., `MODULE_TEST_AINSER64_ID`) to avoid naming conflicts.
@@ -133,18 +134,36 @@ make CFLAGS+="-DMODULE_TEST_SRIO"
 - If DIN reads stay fixed (e.g., always `0xFF`), verify `/PL` polarity; set `SRIO_DIN_PL_ACTIVE_LOW=0` if RC2 is inverted on your board.
 - If the chain is unstable, reduce SRIO SPI speed with `SRIO_SPI_PRESCALER` (default: 128).
 
-### Example 3: Test MIDI Router
+### Example 3: Test MIDI Router (Comprehensive)
 
 ```bash
 # Compile with Router test
 make CFLAGS+="-DMODULE_TEST_ROUTER=1"
 
-# Send MIDI to device and monitor output
+# Monitor UART output to see test phases
 ```
 
 **Expected Output:**
-- MIDI messages routed according to configuration
-- Can test different routing rules
+- Phase 1: Router initialization with node mapping
+- Phase 2: Basic routing configuration (3 routes)
+- Phase 3: Channel filtering tests
+- Phase 4: All message types tested (Note, CC, PC, Pressure, Pitch Bend)
+- Phase 5: Multi-destination routing (1→3 outputs)
+- Phase 6: Dynamic route enable/disable
+- Phase 7: Channel mask validation (16 channels)
+- Phase 8: Complete routing table display
+- Test summary with ✓ indicators
+- Continuous monitoring mode with periodic status
+
+**Test Duration:** ~5 seconds automated tests + continuous monitoring
+
+**Features Validated:**
+- 16x16 routing matrix functionality
+- Per-route channel filtering (16-bit chanmask)
+- All MIDI message types routing
+- Multi-destination routing
+- Route labels and modification
+- Real-time route changes
 
 ### Example 4: Test MIDI DIN with LiveFX and MIDI Learn
 
@@ -206,18 +225,44 @@ make CFLAGS+="-DMODULE_TEST_LOOPER=1"
 - Looper cycles through REC → PLAY → STOP states
 - MIDI events recorded and played back
 
-### Example 6: Test UI (OLED)
+### Example 6: Test UI (OLED) with Automated Navigation
 
 ```bash
 # Compile with UI test
 make CFLAGS+="-DMODULE_TEST_UI=1"
 
-# Observe the OLED for status updates
+# Connect UART terminal at 115200 baud to view test progress
+# Observe the OLED for automated page navigation and test mode rendering
 ```
 
 **Expected Output:**
-- OLED initializes and renders test UI screens
-- Buttons/encoders update the UI if connected
+- Comprehensive UART log showing 6 test phases:
+  - Phase 1: OLED and UI initialization
+  - Phase 2: Direct page navigation through all UI pages (3s each)
+  - Phase 3: Button-based navigation test (Button 5 cycles)
+  - Phase 4: All 29 OLED test modes rendered and validated
+  - Phase 5: Encoder stress test (rapid changes, large jumps)
+  - Phase 6: Status line validation
+- OLED display shows:
+  - Each UI page rendered in sequence
+  - All 29 OLED test modes including:
+    - Pattern/Grayscale tests (0-6)
+    - Animations (7-10, 15-19)
+    - Advanced graphics (11-14, 17-19)
+    - Hardware driver tests (20-27)
+    - Vortex tunnel demo (28)
+- Test completes in ~2-3 minutes, then enters manual mode
+- Buttons/encoders can be used for manual testing after automated tests
+
+**OLED Test Modes Validated:**
+The test automatically validates all SSD1322 enhancements:
+- Mode 0-6: Basic display tests (patterns, grayscale, text)
+- Mode 7-10: Animation tests (scrolling, ball, performance, circles)
+- Mode 11-14: Advanced features (bitmap, patterns, stress, auto-cycle)
+- Mode 15-16: Utility tests (burn-in prevention, performance stats)
+- Mode 17-19: 3D & UI elements (wireframe cube, advanced graphics, UI widgets)
+- Mode 20-27: Hardware driver tests (8 hardware test patterns)
+- Mode 28: Vortex tunnel demo
 
 ### Example 7: Test Patch/SD
 
@@ -290,6 +335,7 @@ Some tests require specific modules to be enabled in `Config/module_config.h`:
 | `MODULE_TEST_UI` | `MODULE_ENABLE_UI`, `MODULE_ENABLE_OLED` |
 | `MODULE_TEST_PATCH_SD` | `MODULE_ENABLE_PATCH` |
 | `MODULE_TEST_PRESSURE` | `MODULE_ENABLE_PRESSURE` |
+| `MODULE_TEST_BREATH` | `MODULE_ENABLE_PRESSURE`, `MODULE_ENABLE_EXPRESSION` (optional) |
 
 If required modules are not enabled, the test will idle in an infinite loop.
 

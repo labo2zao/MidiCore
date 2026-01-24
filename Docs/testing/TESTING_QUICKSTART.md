@@ -74,7 +74,62 @@ See [README_MIOS32_UART_CONFIG.md](README_MIOS32_UART_CONFIG.md) for full UART c
 
 ---
 
-### 5. Return to Production Mode
+### 5. Test Breath Controller (Pressure Sensor + MIDI CC)
+
+**Hardware Requirements:**
+- I2C pressure sensor (XGZP6847D 24-bit or generic 16-bit I2C ADC)
+- SCL/SDA connections with 4.7kΩ pull-up resistors
+- 3.3V power to sensor
+- UART2 for debug output (115200 baud)
+
+**Steps:**
+1. Add preprocessor define: `MODULE_TEST_BREATH`
+2. Build and flash
+3. Connect UART2 terminal at 115200 baud
+4. Blow/suck on breath sensor
+
+**Expected Result:**
+```
+=== Breath Controller Module Test ===
+
+=== Pressure Sensor Configuration ===
+  Enabled:     YES
+  I2C Bus:     1
+  I2C Address: 0x6D
+  Sensor Type: XGZP6847D 24-bit
+  Map Mode:    Center at 0 Pa
+  Range:       -40000 to 40000 Pa
+  Interval:    20 ms
+
+=== Expression/MIDI CC Configuration ===
+  Enabled:     YES
+  MIDI Ch:     1
+  CC Number:   2 (Breath Controller)
+  Curve:       Exponential (gamma=1.80)
+  Output:      0 to 127 (7-bit MIDI)
+  Rate:        20 ms
+  Smoothing:   200
+
+Time(s) | Raw Value | Pressure(Pa) | 12-bit | CC# | CC Val | Status
+--------|-----------|--------------|--------|-----|--------|--------
+    0.2 |         0 |           +0 |   2048 |   2 |     63 | OK
+    0.4 |      5000 |       +5000 |   2560 |   2 |     81 | OK
+    0.6 |     10000 |      +10000 |   3072 |   2 |     98 | OK
+```
+
+**Troubleshooting:**
+- **"I2C_ERR"**: Check I2C wiring, address (0x6D for XGZP6847D)
+- **"DISABLED"**: Enable in `pressure.ngc` or `module_config.h`
+- **"EXPR_OFF"**: Enable expression module in `expression.ngc`
+- No value changes: Check sensor power, verify blow/suck motion
+
+**Configuration Files (SD card):**
+- `pressure.ngc`: Sensor I2C address, type, range
+- `expression.ngc`: CC mapping, curves, smoothing
+
+---
+
+### 6. Return to Production Mode
 
 **Steps:**
 1. Remove all `MODULE_TEST_xxx` defines
@@ -231,11 +286,12 @@ This creates a minimal build that only tests AINSER64.
 | `MODULE_TEST_AINSER64` | 64-ch analog input |
 | `MODULE_TEST_SRIO` | Shift register DIN/DOUT |
 | `MODULE_TEST_MIDI_DIN` | MIDI IN/OUT via UART |
-| `MODULE_TEST_ROUTER` | MIDI routing |
+| `MODULE_TEST_ROUTER` | MIDI routing matrix (comprehensive 8-phase test) |
 | `MODULE_TEST_LOOPER` | MIDI recording/playback |
 | `MODULE_TEST_UI` | OLED display & UI |
 | `MODULE_TEST_PATCH_SD` | SD card & patches |
 | `MODULE_TEST_PRESSURE` | I2C pressure sensor |
+| `MODULE_TEST_BREATH` | Breath controller (pressure + MIDI CC) |
 | `MODULE_TEST_USB_HOST_MIDI` | USB Host MIDI |
 
 ---
