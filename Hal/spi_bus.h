@@ -12,6 +12,7 @@ typedef enum {
 void spibus_init(void);
 HAL_StatusTypeDef spibus_begin(spibus_dev_t dev);
 void spibus_end(spibus_dev_t dev);
+void spibus_set_sd_speed_fast(void);  // Switch SD card to fast speed after init
 
 HAL_StatusTypeDef spibus_tx(spibus_dev_t dev, const uint8_t* tx, uint16_t len, uint32_t timeout);
 HAL_StatusTypeDef spibus_rx(spibus_dev_t dev, uint8_t* rx, uint16_t len, uint32_t timeout);

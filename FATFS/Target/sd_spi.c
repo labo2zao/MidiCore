@@ -6,6 +6,10 @@
  * Implements SD card initialization, block read/write operations.
  * 
  * Based on ChaN's FatFs sample SD card driver.
+ * 
+ * IMPORTANT: SD card initialization requires slow SPI speed (~400 kHz).
+ * The spibus layer starts at 656 kHz (prescaler 256) for initialization,
+ * then switches to 42 MHz (prescaler 4) after successful init.
  */
 
 #include "sd_spi.h"
@@ -258,6 +262,8 @@ DSTATUS sd_spi_initialize(void)
   
   if (sd_card_type != SD_TYPE_UNKNOWN) {
     sd_status = 0;  // Clear STA_NOINIT flag
+    // Switch to fast SPI speed for data operations
+    spibus_set_sd_speed_fast();
   } else {
     sd_status = STA_NOINIT;
   }
