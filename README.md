@@ -61,9 +61,15 @@ python3 Tools/upload_firmware.py firmware.bin
 
 1. Clone the repository
 2. Open project in STM32CubeIDE
-3. Select build configuration (Debug/Release)
-4. For bootloader-compatible builds, use `STM32F407VGTX_FLASH_APP.ld` linker script
-5. Build → Generate binary
+3. Select build configuration (Debug/Release/Bootloader/Application)
+4. Build → Generate binary
+
+**Build Modes**:
+- **Mode 0 (Full)**: Single ELF, no bootloader separation - use `STM32F407VGTX_FLASH.ld`
+- **Mode 2 (Bootloader Only)**: Only bootloader (32KB) - use `STM32F407VGTX_FLASH_BOOT.ld`
+- **Mode 3 (Application Only)**: Only app (992KB) - use `STM32F407VGTX_FLASH_APP.ld`
+
+See [BUILD_MODES.md](BUILD_MODES.md) for detailed build configuration guide.
 
 #### Module Configuration
 
@@ -99,6 +105,7 @@ See [MIOS32_COMPATIBILITY.md](MIOS32_COMPATIBILITY.md) for detailed comparison.
 
 ## Documentation
 
+- [BUILD_MODES.md](BUILD_MODES.md) - **Build configuration guide (Full/Bootloader/App)**
 - [README_BOOTLOADER.md](README_BOOTLOADER.md) - USB MIDI bootloader guide
 - [README_INTEGRATION.md](README_INTEGRATION.md) - Project integration
 - [README_MODULE_CONFIG.md](README_MODULE_CONFIG.md) - Module configuration

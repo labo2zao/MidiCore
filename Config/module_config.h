@@ -230,6 +230,33 @@ extern "C" {
 #define MODULE_ENABLE_BOOTLOADER 1
 #endif
 
+/** 
+ * @brief Bootloader Build Mode Configuration
+ * 
+ * Controls which parts of the project are built:
+ * - 0 (BOOTLOADER_MODE_FULL): Build full project as single ELF (no bootloader separation)
+ *   Uses STM32F407VGTX_FLASH.ld (1024KB from 0x08000000)
+ * 
+ * - 2 (BOOTLOADER_MODE_BOOTLOADER_ONLY): Build only bootloader (32KB)
+ *   Uses STM32F407VGTX_FLASH_BOOT.ld (32KB from 0x08000000)
+ *   Bootloader code only, no application code included
+ * 
+ * - 3 (BOOTLOADER_MODE_APP_ONLY): Build only application (992KB)
+ *   Uses STM32F407VGTX_FLASH_APP.ld (992KB from 0x08008000)
+ *   Application code only, expects bootloader at 0x08000000
+ * 
+ * NOTE: Set this via build configuration or compiler defines:
+ *       -DBOOTLOADER_MODE=0  (or 2, or 3)
+ */
+#ifndef BOOTLOADER_MODE
+#define BOOTLOADER_MODE 0  /* Default: Full project build */
+#endif
+
+/* Bootloader mode constants */
+#define BOOTLOADER_MODE_FULL             0  /* Full project (no separation) */
+#define BOOTLOADER_MODE_BOOTLOADER_ONLY  2  /* Bootloader only */
+#define BOOTLOADER_MODE_APP_ONLY         3  /* Application only */
+
 /** @brief Enable Logging service */
 #ifndef MODULE_ENABLE_LOG
 #define MODULE_ENABLE_LOG 1
