@@ -148,7 +148,7 @@ static uint16_t g_length_constraints[LOOPER_TRACKS] = {0}; // 0 = no constraint
 static uint8_t g_track_links[LOOPER_TRACKS] = {0}; // Bitmask of linked tracks
 
 // Feature 5: Scene State Snapshots (lightweight state storage)
-#define NUM_SCENE_SNAPSHOTS 12  // Reduced from 16, good balance for quick-save
+#define NUM_SCENE_SNAPSHOTS 6  // Reduced from 16 to fit with pianoroll UI (57KB)
 
 typedef struct {
   uint8_t used;
