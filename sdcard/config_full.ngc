@@ -3,7 +3,7 @@
 
 # DIN Module (16 bytes = 128 digital inputs)
 SRIO_DIN_ENABLE = 1
-SRIO_DIN_BYTES = 16
+SRIO_DIN_BYTES = 8
 DIN_INVERT_DEFAULT = 0
 DIN_DEBOUNCE_MS = 20
 
