@@ -7,7 +7,25 @@
 #include <stdio.h>
 
 #ifndef PATCH_ADV_MAX_ENTRIES
-#define PATCH_ADV_MAX_ENTRIES 256
+// Memory optimization: Reduce entries in test builds to save RAM
+// Each entry is 160 bytes (24+24+64+48)
+// Production: 256 entries = 40 KB
+// Test: 128 entries = 20 KB (saves 20 KB)
+#if defined(MODULE_TEST_LOOPER) || defined(MODULE_TEST_OLED_SSD1322) || defined(MODULE_TEST_ALL) || \
+    defined(MODULE_TEST_UI) || defined(MODULE_TEST_GDB_DEBUG) || defined(MODULE_TEST_AINSER64) || \
+    defined(MODULE_TEST_SRIO) || defined(MODULE_TEST_SRIO_DOUT) || defined(MODULE_TEST_MIDI_DIN) || \
+    defined(MODULE_TEST_ROUTER) || defined(MODULE_TEST_LFO) || defined(MODULE_TEST_HUMANIZER) || \
+    defined(MODULE_TEST_UI_PAGE_SONG) || defined(MODULE_TEST_UI_PAGE_MIDI_MONITOR) || \
+    defined(MODULE_TEST_UI_PAGE_SYSEX) || defined(MODULE_TEST_UI_PAGE_CONFIG) || \
+    defined(MODULE_TEST_UI_PAGE_LIVEFX) || defined(MODULE_TEST_UI_PAGE_RHYTHM) || \
+    defined(MODULE_TEST_UI_PAGE_HUMANIZER) || defined(MODULE_TEST_PATCH_SD) || \
+    defined(MODULE_TEST_PRESSURE) || defined(MODULE_TEST_BREATH) || \
+    defined(MODULE_TEST_USB_HOST_MIDI) || defined(MODULE_TEST_USB_DEVICE_MIDI) || \
+    defined(MODULE_TEST_FOOTSWITCH) || defined(APP_TEST_DIN_MIDI)
+  #define PATCH_ADV_MAX_ENTRIES 128  // Test mode: 128 entries (20 KB)
+#else
+  #define PATCH_ADV_MAX_ENTRIES 256  // Production: 256 entries (40 KB)
+#endif
 #endif
 
 static patch_entry_t g_entries[PATCH_ADV_MAX_ENTRIES];
