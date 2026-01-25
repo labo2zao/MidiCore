@@ -34,7 +34,7 @@ MidiCore is a modular MIDI firmware for STM32 microcontrollers, inspired by the 
 - **No Programmer Needed** - Update without opening device or JTAG/SWD
 - **Simple Tool** - Python script for easy uploads
 
-See [README_BOOTLOADER.md](README_BOOTLOADER.md) for complete documentation.
+See [README_BOOTLOADER.md](Docs/development/README_BOOTLOADER.md) for complete documentation.
 
 ## Quick Start
 
@@ -69,7 +69,7 @@ python3 Tools/upload_firmware.py firmware.bin
 - **Mode 2 (Bootloader Only)**: Only bootloader (32KB) - use `STM32F407VGTX_FLASH_BOOT.ld`
 - **Mode 3 (Application Only)**: Only app (992KB) - use `STM32F407VGTX_FLASH_APP.ld`
 
-See [BUILD_MODES.md](BUILD_MODES.md) for detailed build configuration guide.
+See [BUILD_MODES.md](Docs/development/BUILD_MODES.md) for detailed build configuration guide.
 
 #### Module Configuration
 
@@ -101,15 +101,15 @@ MidiCore maintains high compatibility with MIOS32/MIDIbox hardware:
 - **Looper**: Based on LoopA (96 PPQN, quantization)
 - **USB MIDI Bootloader**: MIOS32-compatible SysEx protocol
 
-See [MIOS32_COMPATIBILITY.md](MIOS32_COMPATIBILITY.md) for detailed comparison.
+See [MIOS32_COMPATIBILITY.md](Docs/mios32/MIOS32_COMPATIBILITY.md) for detailed comparison.
 
 ## Documentation
 
-- [BUILD_MODES.md](BUILD_MODES.md) - **Build configuration guide (Full/Bootloader/App)**
-- [README_BOOTLOADER.md](README_BOOTLOADER.md) - USB MIDI bootloader guide
-- [README_INTEGRATION.md](README_INTEGRATION.md) - Project integration
-- [README_MODULE_CONFIG.md](README_MODULE_CONFIG.md) - Module configuration
-- [MIOS32_COMPATIBILITY.md](MIOS32_COMPATIBILITY.md) - MIOS32 compatibility details
+- [BUILD_MODES.md](Docs/development/BUILD_MODES.md) - **Build configuration guide (Full/Bootloader/App)**
+- [README_BOOTLOADER.md](Docs/development/README_BOOTLOADER.md) - USB MIDI bootloader guide
+- [README_INTEGRATION.md](Docs/getting-started/README_INTEGRATION.md) - Project integration
+- [README_MODULE_CONFIG.md](Docs/configuration/README_MODULE_CONFIG.md) - Module configuration
+- [MIOS32_COMPATIBILITY.md](Docs/mios32/MIOS32_COMPATIBILITY.md) - MIOS32 compatibility details
 - [Tools/README.md](Tools/README.md) - Firmware upload tools
 
 ## Architecture
@@ -225,7 +225,7 @@ MidiCore is a modular MIDI system featuring:
 - **[USB Configuration Guide](Docs/usb/USB_CONFIGURATION_GUIDE.md)** - USB setup
 - **[MIOS32 UART Configuration](Docs/configuration/README_MIOS32_UART_CONFIG.md)** - UART and debug
 - **[Portability Guide](Docs/development/README_PORTABILITY.md)** - STM32F4/H7 compatibility
-- **[Module Details](Modules_MidiCore_Detail_par_Module.txt)** - Detailed architecture (French)
+- **[Module Details](Docs/development/Modules_MidiCore_Detail_par_Module.txt)** - Detailed architecture (French)
 
 ## Module Testing
 
@@ -343,7 +343,7 @@ See individual source files for license information.
 ## Support
 
 For detailed module documentation (in French), see:
-- `Modules_MidiCore_Detail_par_Module.txt`
+- [Modules_MidiCore_Detail_par_Module.txt](Docs/development/Modules_MidiCore_Detail_par_Module.txt)
 
 For testing and development:
 - [README_MODULE_TESTING.md](Docs/testing/README_MODULE_TESTING.md)
