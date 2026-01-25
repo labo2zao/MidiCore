@@ -1,5 +1,5 @@
 /Release
 /.settings
 /*.zip
-
+/Debug/
 !/Debug/*.map
