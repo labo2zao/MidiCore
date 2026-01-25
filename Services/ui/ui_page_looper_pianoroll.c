@@ -72,9 +72,8 @@ static uint32_t notes_n = 0;
 
 // simple active map for pairing within one loop
 typedef struct { uint32_t on_idx; uint32_t start; uint8_t vel; uint8_t valid; } active_t;
-// Moved to CCMRAM to free RAM space (32KB array)
-// CCMRAM has 31KB free after looper optimization
-static active_t active[16][128] __attribute__((section(".ccmram")));
+// Large array (32KB) - only used in pianoroll UI
+static active_t active[16][128];
 
 static uint8_t is_note_on(const looper_event_view_t* e) {
   return (e->len==3) && ((e->b0 & 0xF0)==0x90) && e->b2!=0;
