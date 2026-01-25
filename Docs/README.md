@@ -2,19 +2,20 @@
 
 > **✨ Documentation has been recently reorganized!** All documentation files have been consolidated and organized into this folder structure. See [DOCUMENTATION_REORGANIZATION.md](DOCUMENTATION_REORGANIZATION.md) for details about what was moved and where.
 
+> **🌐 Bilingual Support:** Most folders now include README_FR.md for French translations. Look for 🇫🇷/🇬🇧 flags in folder README files.
+
 Complete documentation for the MidiCore MIDI controller system.
 
 ## 📚 Documentation Structure
 
-### 🚀 [Getting Started](getting-started/)
+### 🚀 [Getting Started](getting-started/) • [🇫🇷 Français](getting-started/README_FR.md)
 Quick start guides and project integration
-- [Integration Guide](getting-started/README_INTEGRATION.md) - Add modules to your project
-- [Project Integration](getting-started/README_PROJECT_INTEGRATION.md) - Merged project overview
-- [Bundle Guide](getting-started/README_BUNDLE.md) - AccordeonInstrument bundle
+- [Main Guide](getting-started/README.md) - Consolidated integration guide
 - [What To Do Now](getting-started/WHAT_TO_DO_NOW.md) - Clear action plan
 
-### 👤 [User Guides](user-guides/)
+### 👤 [User Guides](user-guides/) • [🇫🇷 Français](user-guides/README_FR.md)
 End-user features and functionality guides
+- [Overview](user-guides/README.md) - User guides overview
 - [Footswitch Guide](user-guides/FOOTSWITCH_GUIDE.md) - Pedal integration
 - [LoopA Features Plan](user-guides/LOOPA_FEATURES_PLAN.md) - Looper functionality
 - [UI Implementation](user-guides/UI_LOOPA_IMPLEMENTATION.md) - User interface guide
@@ -22,8 +23,9 @@ End-user features and functionality guides
 - [Automation System](user-guides/AUTOMATION_SYSTEM.md) - Automation documentation
 - [SCS Buttons Analysis](user-guides/SCS_BUTTONS_ANALYSIS.md) - Button system analysis
 
-### 🔌 [Hardware](hardware/)
+### 🔌 [Hardware](hardware/) • [🇫🇷 Français](hardware/README_FR.md)
 Hardware setup, wiring guides, and pinout information
+- [Overview](hardware/README.md) - Hardware documentation overview
 - [OLED Wiring Guide](hardware/OLED_WIRING_GUIDE.md) - OLED display wiring (SSD1322/SSD1306 LoopA compatible)
 - [OLED Improvements Summary](hardware/OLED_IMPROVEMENTS_SUMMARY.md) - OLED display improvements
 - [OLED SSD1322 Fix History](hardware/OLED_SSD1322_FIX_HISTORY.md) - Fix history for SSD1322
@@ -40,16 +42,18 @@ Hardware setup, wiring guides, and pinout information
 - [NHD-OLEDSSD1322DISP.pdf](hardware/NHD-OLEDSSD1322DISP.pdf) - OLED datasheet
 - [SSD1322.pdf](hardware/SSD1322%20(4).pdf) - SSD1322 controller datasheet
 
-### ⚙️ [Configuration](configuration/)
+### ⚙️ [Configuration](configuration/) • [🇫🇷 Français](configuration/README_FR.md)
 System configuration and setup
+- [Overview](configuration/README.md) - Configuration overview
 - [Module Configuration](configuration/README_MODULE_CONFIG.md) - Enable/disable modules
 - [MIOS32 UART Config](configuration/README_MIOS32_UART_CONFIG.md) - UART and debug setup
 - [SPI Configuration](configuration/SPI_CONFIGURATION_REFERENCE.md) - SPI parameters
 - [CubeMX Regeneration](configuration/CUBEMX_REGENERATION_GUIDE.md) - Protect custom code
 - [FreeRTOS Protection](configuration/FREERTOS_PROTECTION_GUIDE.md) - Protect tasks from CubeMX
 
-### 🧪 [Testing](testing/)
+### 🧪 [Testing](testing/) • [🇫🇷 Français](testing/README_FR.md)
 Testing procedures and validation
+- [Overview](testing/README.md) - Testing documentation overview
 - [Testing Quick Start](testing/TESTING_QUICKSTART.md) - Quick test examples
 - [Module Testing Guide](testing/README_MODULE_TESTING.md) - Complete testing guide
 - [Testing Protocol](testing/TESTING_PROTOCOL.md) - Comprehensive procedures (300+ tests)
@@ -74,8 +78,9 @@ Testing procedures and validation
 - [Phase B Implementation Guide](testing/PHASE_B_IMPLEMENTATION_GUIDE.md) - Phase B guide
 - [Quickstart Patch SD](testing/QUICKSTART_PATCH_SD.md) - Patch SD quickstart
 
-### 🔧 [Development](development/)
+### 🔧 [Development](development/) • [🇫🇷 Français](development/README_FR.md)
 Technical documentation and implementation details
+- [Overview](development/README.md) - Development documentation overview
 - [Bootloader Implementation](development/BOOTLOADER_IMPLEMENTATION.md) - USB MIDI bootloader implementation
 - [Bootloader Verification](development/BOOTLOADER_VERIFICATION.md) - Bootloader verification guide
 - [README Bootloader](development/README_BOOTLOADER.md) - Main bootloader documentation
@@ -99,8 +104,9 @@ Technical documentation and implementation details
 - [Final Implementation](development/README_IMPLEMENTATION_FINAL.md) - USB MIDI final config
 - [Module Details](development/Modules_MidiCore_Detail_par_Module.txt) - Detailed architecture (French)
 
-### 🔌 [USB Documentation](usb/)
+### 🔌 [USB Documentation](usb/) • [🇫🇷 Français](usb/README_FR.md)
 USB MIDI implementation and debugging
+- [Overview](usb/README.md) - USB documentation overview
 - [USB Configuration Guide](usb/USB_CONFIGURATION_GUIDE.md) - USB setup
 - [USB Device and Host Guide](usb/USB_DEVICE_AND_HOST_GUIDE.md) - Complete guide
 - [USB Host Explained](usb/USB_HOST_AND_DEVICE_EXPLAINED.md) - Architecture explanation
@@ -127,8 +133,9 @@ USB MIDI implementation and debugging
 - [USB MIDI Protocol Audit](usb/USB_MIDI_PROTOCOL_AUDIT.md) - Protocol audit
 - [USB MIDI SysEx Engine](usb/USB_MIDI_SYSEX_ENGINE.md) - SysEx implementation
 
-### 🔄 [MIOS32 Compatibility](mios32/)
+### 🔄 [MIOS32 Compatibility](mios32/) • [🇫🇷 Français](mios32/README_FR.md)
 MIOS32 compatibility and migration guides
+- [Overview](mios32/README.md) - MIOS32 compatibility overview
 - [MIOS32 Compatibility](mios32/MIOS32_COMPATIBILITY.md) - Overall compatibility
 - [MIOS32 Deep Comparison](mios32/MIOS32_DEEP_COMPARISON.md) - Detailed analysis
 - [MIOS32 Dual Mode Guide](mios32/MIOS32_DUAL_MODE_GUIDE.md) - Dual-mode USB
@@ -136,7 +143,7 @@ MIOS32 compatibility and migration guides
 - [MIOS32 Style Auto Switching](mios32/MIOS32_STYLE_AUTO_SWITCHING.md) - Mode switching
 - [MIOS32 Descriptor Analysis](mios32/MIOS32_DESCRIPTOR_ANALYSIS.md) - Descriptor details
 
-### 💼 [Commercial](commercial/)
+### 💼 [Commercial](commercial/) • [🇫🇷 Français](commercial/README_COMMERCIAL_FR.md)
 Commercial documentation and presentations
 - [Commercial README](commercial/README_COMMERCIAL.md) - Professional system overview (EN)
 - [Commercial README FR](commercial/README_COMMERCIAL_FR.md) - Vue d'ensemble professionnelle (FR)
