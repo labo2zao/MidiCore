@@ -14,14 +14,6 @@ static const char* st_name(looper_state_t st) {
     default: return "?";
   }
 }
-static const char* q_name(looper_quant_t q) {
-  switch (q) {
-    default: return "OFF";
-    case LOOPER_QUANT_1_16: return "1/16";
-    case LOOPER_QUANT_1_8:  return "1/8";
-    case LOOPER_QUANT_1_4:  return "1/4";
-  }
-}
 
 void ui_page_looper_render(uint32_t now_ms) {
   (void)now_ms;
@@ -47,7 +39,7 @@ void ui_page_looper_render(uint32_t now_ms) {
 
     snprintf(line, sizeof(line), "%cT%u %-4s L:%u Q:%s M:%u",
              (t==sel_track)?'>':' ', (unsigned)(t+1), st_name(st),
-             (unsigned)beats, q_name(q), (unsigned)mute);
+             (unsigned)beats, looper_get_quant_name(q), (unsigned)mute);
     ui_gfx_text(0, 14 + (int)t*13, line, (t==sel_track)?15:12);
   }
 
