@@ -38,6 +38,99 @@
 
 ---
 
+## 🛒 Aperçu pour les Acheteurs
+
+### **Pour qui ?**
+- Performeurs live qui exigent une fiabilité absolue sans ordinateur
+- Studios voulant un hub MIDI dédié à faible latence
+- Éducateurs/therapeutes qui ont besoin d’interfaces adaptables
+
+### **Ce que vous obtenez (en bref)**
+- **Boucleur 4 pistes + 8 scènes** pour des structures complètes
+- **Effets MIDI temps réel** (transposition, gamme, vélocité, routage)
+- **8 ports MIDI au total** (4x USB device + 4x DIN)
+- **Entrées analogiques 64 canaux** pour pédales, potars, capteurs
+- **Support contrôleur à souffle** pour un jeu expressif
+- **Projets sur carte SD** pour rappel et portabilité
+
+### **Ce que cela remplace**
+- Ordinateur + interface MIDI/audio
+- Boucleur séparé et matériel de routage
+- Plusieurs contrôleurs pour live et studio
+
+### **Checklist d’intégration**
+- Compatible **Windows/Mac/Linux** via USB MIDI class-compliant
+- MIDI DIN pour synthés legacy et matériel de scène
+- Carte SD pour sauvegarde et transfert des projets
+- Entrées extensibles pour configurations d’accessibilité
+
+---
+
+## 🧩 Détails modules & FX (référence acheteurs)
+
+### **Modules principaux**
+- **Looper (4 pistes / 8 scènes)** : enregistrement, overdub, undo/redo, copy/paste, quantize, sync tempo
+- **Routeur (matrice 8×8)** : routage MIDI entre ports USB/DIN avec filtres de canaux
+- **LiveFX** : couche de transformation temps réel par piste ou entrée
+- **AINSER64** : 64 entrées analogiques avec courbes, plages et mapping CC
+- **SRIO (DIN/DOUT)** : 128 boutons + 128 LED, debounce et inversion
+- **Pression/Souffle** : capteur bidirectionnel 24 bits avec courbes de réponse
+- **Footswitch** : 8 pédales mappées aux actions transport, scène, pistes
+
+### **LiveFX (effets) en bref**
+- **Transpose** : ±12 demi-tons en temps réel
+- **Force-to-Scale** : 15 gammes musicales avec tonique sélectionnable
+- **Velocity Scaling** : 0–200% pour la dynamique
+- **Humanizer** : micro-variations timing/vélocité
+- **Randomizer** : variation contrôlée pour jeu génératif
+- **Arpeggiator** : 5 modes, 1–4 octaves, contrôle du gate
+
+---
+
+## 🎛️ « Mais concrètement, je fais quoi avec ? » (exemples réels)
+
+### **Exemple 1 : L’orchestre à une personne**
+Tu joues au clavier et tu veux un morceau complet sans embaucher trois sosies.
+- Piste 1 : accords
+- Piste 2 : basse
+- Piste 3 : lead
+- Piste 4 : percussions via pads
+- Scènes A‑H : couplet, refrain, pont, solo
+Résultat : un arrangement complet, piloté aux pieds pendant que les mains restent sur le clavier. Bonus : tu as l’air d’un magicien. 🧙‍♂️
+
+### **Exemple 2 : « Mon studio est une jungle MIDI »**
+Tu as du USB, du DIN, et un DAW qui n’écoute jamais.
+- La matrice de routage envoie le contrôleur USB → synthé DIN
+- Le looper enregistre le DIN et rejoue vers l’USB
+- LiveFX met tes improvisations dans la bonne gamme
+Résultat : tout communique avec tout, sans sacrifices rituels aux dieux du MIDI.
+
+### **Exemple 3 : Le musicien à souffle expressif**
+Tu joues au souffle et tu veux une réponse naturelle.
+- Capteur de pression mappé sur CC11 (expression)
+- Courbes ajustées à ta respiration
+- Humanizer LiveFX pour garder le côté musical
+Résultat : un jeu expressif qui répond vraiment à toi.
+
+### **Exemple 4 : « Le mode entraînement sans larmes »**
+Tu veux améliorer le timing et avoir un vrai feedback.
+- Métronome + entraînement rythmique
+- Zones de timing visuelles
+- Scènes pour les exercices
+Résultat : tu progresses plus vite et tu arrêtes de blâmer le batteur (presque).
+
+---
+
+## 🧪 « Est‑ce que ça marche avec mon matos ? » (check rapide)
+- **DAW** : 4 ports MIDI USB (câbles 0–3)
+- **Synthés vintage** : 4 ports DIN pour les rigs old‑school
+- **Contrôleurs** : MIDI Learn mappe CC/Notes aux actions
+- **Carte SD** : sauvegarde des projets, transport facile
+
+Si ton matériel parle MIDI, il y a de grandes chances qu’il s’entende bien avec MidiCore.
+
+---
+
 ## ♿ Accessibilité & Technologie Musicale Adaptative
 
 ### **Engagement envers la Conception Inclusive**
@@ -95,4 +188,3 @@ L'**architecture modulaire** de MidiCore permet aux professionnels de santé, th
 #define MODULE_ENABLE_FOOTSWITCH  1  // Pédales
 #define MODULE_ENABLE_USB_HOST    1  // Contrôleurs adaptatifs externes
 ```
-

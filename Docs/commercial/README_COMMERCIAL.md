@@ -38,6 +38,99 @@
 
 ---
 
+## 🛒 Buyer-Focused Overview
+
+### **Who It’s For**
+- Live performers who need rock-solid reliability without a laptop
+- Studios that want a dedicated MIDI hub with low latency
+- Educators/therapists who require adaptable interfaces
+
+### **What You Get (At a Glance)**
+- **4-track looper + 8 scenes** for full song structures
+- **Real-time MIDI effects** (transpose, scale, velocity, routing)
+- **8 MIDI ports total** (4x USB device + 4x DIN)
+- **64-channel analog input** for pedals, knobs, and sensors
+- **Breath controller support** for expressive performance
+- **SD card projects** for recall and portability
+
+### **What It Replaces**
+- Laptop + audio/MIDI interface
+- Separate looper and routing hardware
+- Multiple controllers for live and studio setups
+
+### **Integration Checklist**
+- Works with **Windows/Mac/Linux** using class-compliant USB MIDI
+- MIDI DIN for legacy synths and stage gear
+- SD card for project backup and transfer
+- Expandable inputs for custom accessibility rigs
+
+---
+
+## 🧩 Modules & FX Details (Buyer Reference)
+
+### **Core Modules**
+- **Looper (4 tracks / 8 scenes)**: record, overdub, undo/redo, copy/paste, quantize, tempo sync
+- **Router (8×8 matrix)**: route MIDI between USB/DIN ports with channel filters
+- **LiveFX**: real-time transformation layer per track or input
+- **AINSER64**: 64 analog inputs with curves, ranges, and CC mapping
+- **SRIO (DIN/DOUT)**: 128 buttons + 128 LEDs, debounce and inversion
+- **Pressure/Breath**: 24-bit bidirectional pressure sensing with response curves
+- **Footswitch**: 8 pedals mapped to transport, scene, and track actions
+
+### **LiveFX (Effects) at a Glance**
+- **Transpose**: ±12 semitones in real time
+- **Force-to-Scale**: 15 musical scales with selectable root
+- **Velocity Scaling**: 0–200% for dynamics
+- **Humanizer**: timing/velocity micro-variations
+- **Randomizer**: controlled variation for generative play
+- **Arpeggiator**: 5 modes, 1–4 octaves, gate control
+
+---
+
+## 🎛️ “So… What Can I Actually Do With It?” (Real-Life Examples)
+
+### **Example 1: The One‑Person Band**
+You play keys and want to build a full song without hiring three clones.
+- Track 1: Chords
+- Track 2: Bassline
+- Track 3: Lead
+- Track 4: Percussion via pads
+- Scenes A‑H: Verse, Chorus, Bridge, Solo
+Result: a full arrangement, controlled by footswitches while your hands stay on the keys. Bonus: you look like a wizard. 🧙‍♂️
+
+### **Example 2: “My Studio Is a MIDI Jungle”**
+You have USB synths, DIN synths, and a DAW that refuses to listen.
+- Router matrix sends USB controller → DIN synth
+- Looper records DIN, replays to USB
+- LiveFX forces your noodling into a scale
+Result: everything talks to everything, without ritual sacrifices to the MIDI gods.
+
+### **Example 3: The Expressive Wind Player**
+You use a breath controller and want it to feel natural.
+- Pressure sensor mapped to CC11 (expression)
+- Curves tuned to your breathing style
+- LiveFX humanizer keeps it musical
+Result: dynamic, expressive performance that actually responds to you.
+
+### **Example 4: “Practice Mode Without Tears”**
+You’re learning timing and want real feedback.
+- Metronome + rhythm trainer
+- Visual timing zones
+- Scenes for drills
+Result: you improve faster and stop blaming the drummer (mostly).
+
+---
+
+## 🧪 “Will It Work With My Gear?” (Quick Reality Check)
+- **DAW**: Appears as 4 USB MIDI ports (cables 0–3)
+- **Legacy synths**: 4 DIN ports for old‑school rigs
+- **Controllers**: MIDI Learn maps CC/Notes to actions
+- **SD card**: Save projects, carry them to another setup
+
+If your gear speaks MIDI, it can probably be friends with MidiCore.
+
+---
+
 ## ♿ Accessibility & Adaptive Music Technology
 
 ### **Commitment to Inclusive Design**

@@ -147,7 +147,8 @@ MIOS32 compatibility and migration guides
 Commercial documentation and presentations
 - [Commercial README](commercial/README_COMMERCIAL.md) - Professional system overview (EN)
 - [Commercial README FR](commercial/README_COMMERCIAL_FR.md) - Vue d'ensemble professionnelle (FR)
-- [Product Presentation](commercial/PRESENTATION_PRODUIT.md) - Présentation produit (FR)
+- [Product Presentation](commercial/PRESENTATION_PRODUIT_EN.md) - Product presentation (EN)
+- [Présentation produit](commercial/PRESENTATION_PRODUIT.md) - Présentation produit (FR)
 
 ---
 
