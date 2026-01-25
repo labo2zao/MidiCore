@@ -28,12 +28,12 @@ extern "C" {
 //
 #ifndef LOOPER_UNDO_STACK_DEPTH
 #ifdef MODULE_TEST_LOOPER
-  // Test mode: Depth 2 fits in CCMRAM without clipboards there
-  #define LOOPER_UNDO_STACK_DEPTH 2
+  // Test mode: Depth 1 to fit with test clipboards (20KB) + pianoroll UI (57KB)
+  #define LOOPER_UNDO_STACK_DEPTH 1
 #else
-  // Production mode: Depth 3 (balanced for memory constraints)
-  // Depth 5 would require 96KB RAM, depth 3 uses 64KB
-  #define LOOPER_UNDO_STACK_DEPTH 3
+  // Production mode: Depth 1 to fit with pianoroll UI (57KB, required for main page)
+  // Pianoroll UI is NOT test-only - it's the main production page
+  #define LOOPER_UNDO_STACK_DEPTH 1
 #endif
 #endif
 

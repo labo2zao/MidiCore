@@ -1673,14 +1673,14 @@ typedef struct {
 } undo_stack_t;
 
 // Place undo stacks strategically based on mode
-// Test mode: depth=2, fits in CCMRAM (33KB)
-// Production mode: depth=5, too large for CCMRAM (99KB), place in RAM
+// Both modes use depth=1 due to pianoroll UI (57KB) being required in production
+// Pianoroll is the main accordion page, not a test feature
 #ifdef MODULE_TEST_LOOPER
-  // Test mode: Undo in CCMRAM (depth=2 fits)
+  // Test mode: Undo in CCMRAM (depth=1 fits with g_tr)
   static undo_stack_t undo_stacks[LOOPER_TRACKS] __attribute__((section(".ccmram")));
 #else
-  // Production mode: Undo in RAM (depth=5 too large for CCMRAM)
-  static undo_stack_t undo_stacks[LOOPER_TRACKS];
+  // Production mode: Undo in CCMRAM (depth=1 fits with g_tr)
+  static undo_stack_t undo_stacks[LOOPER_TRACKS] __attribute__((section(".ccmram")));
 #endif
 
 /**
