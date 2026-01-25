@@ -28,6 +28,18 @@ static int sd_read_datablock(uint8_t *buff, uint32_t btr);
 static int sd_write_datablock(const uint8_t *buff, uint8_t token);
 
 /**
+ * @brief Transfer a single byte over SPI
+ * @param data Data byte to send
+ * @retval Received byte
+ */
+static uint8_t spi_transfer_byte(uint8_t data)
+{
+  uint8_t rx;
+  spibus_txrx(SPIBUS_DEV_SD, &data, &rx, 1, 100);
+  return rx;
+}
+
+/**
  * @brief Wait for SD card to be ready
  * @param timeout_ms Timeout in milliseconds
  * @retval 0xFF if ready, 0 if timeout
@@ -38,7 +50,7 @@ static uint8_t sd_wait_ready(uint32_t timeout_ms)
   uint32_t start_tick = osKernelGetTickCount();
   
   do {
-    res = spibus_transfer_byte(SPIBUS_DEV_SD, 0xFF);
+    res = spi_transfer_byte(0xFF);
     if (res == 0xFF) return res;
     osDelay(1);
   } while ((osKernelGetTickCount() - start_tick) < timeout_ms);
@@ -71,27 +83,27 @@ static uint8_t sd_send_cmd(uint8_t cmd, uint32_t arg)
   }
   
   // Send command packet
-  spibus_transfer_byte(SPIBUS_DEV_SD, 0x40 | cmd);         // Start + command
-  spibus_transfer_byte(SPIBUS_DEV_SD, (uint8_t)(arg >> 24)); // Argument[31..24]
-  spibus_transfer_byte(SPIBUS_DEV_SD, (uint8_t)(arg >> 16)); // Argument[23..16]
-  spibus_transfer_byte(SPIBUS_DEV_SD, (uint8_t)(arg >> 8));  // Argument[15..8]
-  spibus_transfer_byte(SPIBUS_DEV_SD, (uint8_t)arg);         // Argument[7..0]
+  spi_transfer_byte( 0x40 | cmd);         // Start + command
+  spi_transfer_byte( (uint8_t)(arg >> 24)); // Argument[31..24]
+  spi_transfer_byte( (uint8_t)(arg >> 16)); // Argument[23..16]
+  spi_transfer_byte( (uint8_t)(arg >> 8));  // Argument[15..8]
+  spi_transfer_byte( (uint8_t)arg);         // Argument[7..0]
   
   // CRC (only needed for CMD0 and CMD8)
   n = 0x01;  // Dummy CRC + Stop
   if (cmd == SD_CMD0) n = 0x95;  // Valid CRC for CMD0(0)
   if (cmd == SD_CMD8) n = 0x87;  // Valid CRC for CMD8(0x1AA)
-  spibus_transfer_byte(SPIBUS_DEV_SD, n);
+  spi_transfer_byte( n);
   
   // Receive command response
   if (cmd == SD_CMD12) {
-    spibus_transfer_byte(SPIBUS_DEV_SD, 0xFF);  // Skip stuff byte on stop read
+    spi_transfer_byte( 0xFF);  // Skip stuff byte on stop read
   }
   
   // Wait for valid response (timeout: 10 attempts)
   n = 10;
   do {
-    res = spibus_transfer_byte(SPIBUS_DEV_SD, 0xFF);
+    res = spi_transfer_byte( 0xFF);
   } while ((res & 0x80) && --n);
   
   return res;
@@ -110,7 +122,7 @@ static int sd_read_datablock(uint8_t *buff, uint32_t btr)
   
   // Wait for data packet (start token 0xFE)
   do {
-    token = spibus_transfer_byte(SPIBUS_DEV_SD, 0xFF);
+    token = spi_transfer_byte( 0xFF);
     osDelay(1);
   } while ((token == 0xFF) && --timeout);
   
@@ -120,8 +132,8 @@ static int sd_read_datablock(uint8_t *buff, uint32_t btr)
   spibus_receive(SPIBUS_DEV_SD, buff, btr);
   
   // Discard CRC
-  spibus_transfer_byte(SPIBUS_DEV_SD, 0xFF);
-  spibus_transfer_byte(SPIBUS_DEV_SD, 0xFF);
+  spi_transfer_byte( 0xFF);
+  spi_transfer_byte( 0xFF);
   
   return 1;
 }
@@ -139,18 +151,18 @@ static int sd_write_datablock(const BYTE *buff, BYTE token)
   if (sd_wait_ready(SD_TIMEOUT_MS) != 0xFF) return 0;
   
   // Send token
-  spibus_transfer_byte(SPIBUS_DEV_SD, token);
+  spi_transfer_byte( token);
   
   if (token != 0xFD) {  // Not stop token
     // Send data block
     spibus_transmit(SPIBUS_DEV_SD, buff, 512);
     
     // Send dummy CRC
-    spibus_transfer_byte(SPIBUS_DEV_SD, 0xFF);
-    spibus_transfer_byte(SPIBUS_DEV_SD, 0xFF);
+    spi_transfer_byte( 0xFF);
+    spi_transfer_byte( 0xFF);
     
     // Receive data response
-    resp = spibus_transfer_byte(SPIBUS_DEV_SD, 0xFF);
+    resp = spi_transfer_byte( 0xFF);
     if ((resp & 0x1F) != 0x05) return 0;  // Data rejected
   }
   
@@ -170,18 +182,26 @@ DSTATUS sd_spi_initialize(void)
   spibus_init();
   
   // Send 80 dummy clocks with CS high to initialize card
-  spibus_deselect(SPIBUS_DEV_SD);
+  // Must send with CS deselected (HIGH)
+  spibus_end(SPIBUS_DEV_SD);  // Ensure CS is high
+  osDelay(10);  // Small delay for card power-up
+  
+  // Send dummy clocks without CS assertion (need to transmit without using spibus_begin)
+  // Temporarily acquire SPI bus access
   for (n = 0; n < 10; n++) {
-    spibus_transfer_byte(SPIBUS_DEV_SD, 0xFF);
+    uint8_t dummy = 0xFF;
+    spibus_tx(SPIBUS_DEV_SD, &dummy, 1, 100);
   }
   
-  // Select card
-  spibus_select(SPIBUS_DEV_SD);
+  osDelay(1);  // Let card settle
+  
+  // Now select card and start initialization
+  spibus_begin(SPIBUS_DEV_SD);
   
   // Enter idle state
   if (sd_send_cmd(SD_CMD0, 0) != 1) {
     sd_status = STA_NOINIT;
-    spibus_deselect(SPIBUS_DEV_SD);
+    spibus_end(SPIBUS_DEV_SD);
     return sd_status;
   }
   
@@ -189,7 +209,7 @@ DSTATUS sd_spi_initialize(void)
   if (sd_send_cmd(SD_CMD8, 0x1AA) == 1) {
     // SDv2+
     for (n = 0; n < 4; n++) {
-      ocr[n] = spibus_transfer_byte(SPIBUS_DEV_SD, 0xFF);
+      ocr[n] = spi_transfer_byte( 0xFF);
     }
     
     // Check if voltage range is compatible
@@ -204,7 +224,7 @@ DSTATUS sd_spi_initialize(void)
       // Check CCS bit in OCR
       if (tmr && sd_send_cmd(SD_CMD58, 0) == 0) {
         for (n = 0; n < 4; n++) {
-          ocr[n] = spibus_transfer_byte(SPIBUS_DEV_SD, 0xFF);
+          ocr[n] = spi_transfer_byte( 0xFF);
         }
         sd_card_type = (ocr[0] & 0x40) ? SD_TYPE_SDHC : SD_TYPE_SDV2;
       }
@@ -234,7 +254,7 @@ DSTATUS sd_spi_initialize(void)
     }
   }
   
-  spibus_deselect(SPIBUS_DEV_SD);
+  spibus_end(SPIBUS_DEV_SD);
   
   if (sd_card_type != SD_TYPE_UNKNOWN) {
     sd_status = 0;  // Clear STA_NOINIT flag
@@ -271,7 +291,7 @@ DRESULT sd_spi_read(BYTE *buff, DWORD sector, UINT count)
     sector *= 512;
   }
   
-  spibus_select(SPIBUS_DEV_SD);
+  spibus_begin(SPIBUS_DEV_SD);
   
   if (count == 1) {
     // Single block read
@@ -293,7 +313,7 @@ DRESULT sd_spi_read(BYTE *buff, DWORD sector, UINT count)
     }
   }
   
-  spibus_deselect(SPIBUS_DEV_SD);
+  spibus_end(SPIBUS_DEV_SD);
   
   return count ? RES_ERROR : RES_OK;
 }
@@ -316,7 +336,7 @@ DRESULT sd_spi_write(const BYTE *buff, DWORD sector, UINT count)
     sector *= 512;
   }
   
-  spibus_select(SPIBUS_DEV_SD);
+  spibus_begin(SPIBUS_DEV_SD);
   
   if (count == 1) {
     // Single block write
@@ -344,7 +364,7 @@ DRESULT sd_spi_write(const BYTE *buff, DWORD sector, UINT count)
     }
   }
   
-  spibus_deselect(SPIBUS_DEV_SD);
+  spibus_end(SPIBUS_DEV_SD);
   
   return count ? RES_ERROR : RES_OK;
 }
@@ -363,7 +383,7 @@ DRESULT sd_spi_ioctl(BYTE cmd, void *buff)
   
   if (sd_status & STA_NOINIT) return RES_NOTRDY;
   
-  spibus_select(SPIBUS_DEV_SD);
+  spibus_begin(SPIBUS_DEV_SD);
   
   switch (cmd) {
     case CTRL_SYNC:
@@ -400,7 +420,7 @@ DRESULT sd_spi_ioctl(BYTE cmd, void *buff)
       res = RES_PARERR;
   }
   
-  spibus_deselect(SPIBUS_DEV_SD);
+  spibus_end(SPIBUS_DEV_SD);
   
   return res;
 }

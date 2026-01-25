@@ -849,9 +849,25 @@ void module_test_srio_dout_run(void)
   dbg_print("  74HC595 Pin 14 (SER)   → PB15 (SPI2 MOSI)\r\n");
   dbg_print("\r\n");
   
-  dbg_print("LED Note: LEDs are ACTIVE LOW (0=ON, 1=OFF)\r\n");
-  dbg_print("  - 0x00 = All LEDs ON\r\n");
-  dbg_print("  - 0xFF = All LEDs OFF\r\n");
+  // LED polarity configuration
+  // Set to 0 if LEDs are ACTIVE HIGH (1=ON, 0=OFF)
+  // Set to 1 if LEDs are ACTIVE LOW  (0=ON, 1=OFF) - MIOS32 default
+  #ifndef SRIO_DOUT_LED_ACTIVE_LOW
+  #define SRIO_DOUT_LED_ACTIVE_LOW 1  // Default: MIOS32 active-low
+  #endif
+  
+  const uint8_t led_active_low = SRIO_DOUT_LED_ACTIVE_LOW;
+  const uint8_t LED_ON  = led_active_low ? 0x00 : 0xFF;
+  const uint8_t LED_OFF = led_active_low ? 0xFF : 0x00;
+  
+  dbg_printf("LED Polarity: %s\r\n", led_active_low ? "ACTIVE LOW (0=ON, 1=OFF)" : "ACTIVE HIGH (1=ON, 0=OFF)");
+  dbg_printf("  - LED ON pattern:  0x%02X\r\n", LED_ON);
+  dbg_printf("  - LED OFF pattern: 0x%02X\r\n", LED_OFF);
+  if (led_active_low) {
+    dbg_print("  (MIOS32 default: LEDs connected to ground via resistor)\r\n");
+  } else {
+    dbg_print("  (Alternative wiring: LEDs connected to Vcc via resistor)\r\n");
+  }
   dbg_print_separator();
   dbg_print("\r\n");
   
@@ -860,7 +876,7 @@ void module_test_srio_dout_run(void)
   uint32_t last_pattern_ms = 0;
   
   // Start with all LEDs OFF
-  memset(dout, 0xFF, SRIO_DOUT_BYTES);
+  memset(dout, LED_OFF, SRIO_DOUT_BYTES);
   srio_write_dout(dout);
   
   dbg_print("Starting LED pattern test...\r\n");
@@ -883,28 +899,32 @@ void module_test_srio_dout_run(void)
       switch (pattern_type) {
         case 0:
           // All LEDs ON
-          dbg_print("All LEDs ON (0x00)\r\n");
-          memset(dout, 0x00, SRIO_DOUT_BYTES);
+          dbg_printf("All LEDs ON (0x%02X)\r\n", LED_ON);
+          memset(dout, LED_ON, SRIO_DOUT_BYTES);
           break;
           
         case 1:
           // All LEDs OFF
-          dbg_print("All LEDs OFF (0xFF)\r\n");
-          memset(dout, 0xFF, SRIO_DOUT_BYTES);
+          dbg_printf("All LEDs OFF (0x%02X)\r\n", LED_OFF);
+          memset(dout, LED_OFF, SRIO_DOUT_BYTES);
           break;
           
         case 2:
           // Alternating pattern
-          dbg_print("Alternating pattern (0xAA/0x55)\r\n");
-          for (uint8_t i = 0; i < SRIO_DOUT_BYTES; i++) {
-            dout[i] = (i % 2 == 0) ? 0xAA : 0x55;
+          {
+            uint8_t alt1 = led_active_low ? 0xAA : 0x55;  // Even bytes: half LEDs ON
+            uint8_t alt2 = led_active_low ? 0x55 : 0xAA;  // Odd bytes: other half ON
+            dbg_printf("Alternating pattern (0x%02X/0x%02X)\r\n", alt1, alt2);
+            for (uint8_t i = 0; i < SRIO_DOUT_BYTES; i++) {
+              dout[i] = (i % 2 == 0) ? alt1 : alt2;
+            }
           }
           break;
           
         case 3:
           // Running light (one LED at a time)
           dbg_print("Running light\r\n");
-          memset(dout, 0xFF, SRIO_DOUT_BYTES);
+          memset(dout, LED_OFF, SRIO_DOUT_BYTES);
           uint8_t led_pos = (pattern_counter / 4) % (SRIO_DOUT_BYTES * 8);
           uint8_t byte_idx = led_pos / 8;
           uint8_t bit_idx = led_pos % 8;
