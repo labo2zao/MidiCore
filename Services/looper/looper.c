@@ -189,6 +189,45 @@ static inline uint32_t quant_step_ticks(looper_quant_t q) {
   if (q == LOOPER_QUANT_1_16) return (uint32_t)LOOPER_PPQN >> 2u;
   if (q == LOOPER_QUANT_1_8)  return (uint32_t)LOOPER_PPQN >> 1u;
   if (q == LOOPER_QUANT_1_4)  return (uint32_t)LOOPER_PPQN;
+  
+  // Triplet modes (3 notes per beat division)
+  // PPQN / 3 = 1/8 triplet (3 per quarter note)
+  if (q == LOOPER_QUANT_1_8T)  return (uint32_t)LOOPER_PPQN / 3u;
+  // PPQN / 6 = 1/16 triplet (6 per quarter note)
+  if (q == LOOPER_QUANT_1_16T) return (uint32_t)LOOPER_PPQN / 6u;
+  // PPQN / 12 = 1/32 triplet (12 per quarter note)
+  if (q == LOOPER_QUANT_1_32T) return (uint32_t)LOOPER_PPQN / 12u;
+  // PPQN * 2 / 3 = half-note triplet (3 per 2 quarter notes) - jazz ballads
+  if (q == LOOPER_QUANT_1_2T)  return ((uint32_t)LOOPER_PPQN * 2u) / 3u;
+  
+  // Quintuplet modes (5 notes per beat division)
+  // PPQN * 2 / 5 = 1/8 quintuplet (5 per 2 quarter notes)
+  if (q == LOOPER_QUANT_1_8Q)  return ((uint32_t)LOOPER_PPQN * 2u) / 5u;
+  // PPQN / 5 = 1/16 quintuplet (5 per quarter note)
+  if (q == LOOPER_QUANT_1_16Q) return (uint32_t)LOOPER_PPQN / 5u;
+  // PPQN / 10 = 1/32 quintuplet (10 per quarter note)
+  if (q == LOOPER_QUANT_1_32Q) return (uint32_t)LOOPER_PPQN / 10u;
+  
+  // Sextuplet modes (6 notes per beat division) - jazz phrases
+  // PPQN * 2 / 6 = 1/8 sextuplet (6 per 2 quarter notes)
+  if (q == LOOPER_QUANT_1_8S)  return ((uint32_t)LOOPER_PPQN * 2u) / 6u;
+  // PPQN / 6 = 1/16 sextuplet (6 per quarter note, math equivalent to 1/16T but different musical feel)
+  if (q == LOOPER_QUANT_1_16S) return (uint32_t)LOOPER_PPQN / 6u;
+  
+  // Septuplet modes (7 notes per beat division) - jazz runs
+  // PPQN * 2 / 7 = 1/8 septuplet (7 per 2 quarter notes)
+  if (q == LOOPER_QUANT_1_8SEPT)  return ((uint32_t)LOOPER_PPQN * 2u) / 7u;
+  // PPQN / 7 = 1/16 septuplet (7 per quarter note)
+  if (q == LOOPER_QUANT_1_16SEPT) return (uint32_t)LOOPER_PPQN / 7u;
+  
+  // Dotted note modes (uneven rhythms - 1.5x the base note value)
+  // PPQN * 3 / 2 = dotted quarter (1.5x quarter note)
+  if (q == LOOPER_QUANT_1_4_DOT)  return ((uint32_t)LOOPER_PPQN * 3u) >> 1u;
+  // PPQN * 3 / 4 = dotted eighth (1.5x eighth note)
+  if (q == LOOPER_QUANT_1_8_DOT)  return ((uint32_t)LOOPER_PPQN * 3u) >> 2u;
+  // PPQN * 3 / 8 = dotted sixteenth (1.5x sixteenth note)
+  if (q == LOOPER_QUANT_1_16_DOT) return ((uint32_t)LOOPER_PPQN * 3u) >> 3u;
+  
   return 0; // LOOPER_QUANT_OFF or default
 }
 
@@ -287,6 +326,34 @@ void looper_set_quant(uint8_t track, looper_quant_t q) {
 looper_quant_t looper_get_quant(uint8_t track) {
   if (track >= LOOPER_TRACKS) return LOOPER_QUANT_OFF;
   return g_tr[track].quant;
+}
+
+const char* looper_get_quant_name(looper_quant_t q) {
+  switch (q) {
+    case LOOPER_QUANT_OFF:       return "OFF";
+    case LOOPER_QUANT_1_16:      return "1/16";
+    case LOOPER_QUANT_1_8:       return "1/8";
+    case LOOPER_QUANT_1_4:       return "1/4";
+    case LOOPER_QUANT_1_32T:     return "1/32T";
+    case LOOPER_QUANT_1_16T:     return "1/16T";
+    case LOOPER_QUANT_1_8T:      return "1/8T";
+    case LOOPER_QUANT_1_2T:      return "1/2T";
+    case LOOPER_QUANT_1_32Q:     return "1/32Q";
+    case LOOPER_QUANT_1_16Q:     return "1/16Q";
+    case LOOPER_QUANT_1_8Q:      return "1/8Q";
+    case LOOPER_QUANT_1_16S:     return "1/16S";
+    case LOOPER_QUANT_1_8S:      return "1/8S";
+    case LOOPER_QUANT_1_16SEPT:  return "1/16x7";
+    case LOOPER_QUANT_1_8SEPT:   return "1/8x7";
+    case LOOPER_QUANT_1_16_DOT:  return "1/16.";
+    case LOOPER_QUANT_1_8_DOT:   return "1/8.";
+    case LOOPER_QUANT_1_4_DOT:   return "1/4.";
+    default:                     return "?";
+  }
+}
+
+uint32_t looper_get_quant_step_ticks(looper_quant_t q) {
+  return quant_step_ticks(q);
 }
 
 // Track Mute/Solo Controls

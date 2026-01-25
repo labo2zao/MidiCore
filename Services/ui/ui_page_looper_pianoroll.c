@@ -14,14 +14,9 @@ static inline uint32_t wrap_tick_i32(uint32_t cur, int32_t d, uint32_t L){
 }
 
 // --- quantize helpers (PPQN=96 as in looper) ---
+// Use the looper's quantization calculation to avoid duplication
 static uint32_t quant_step_ticks(looper_quant_t q) {
-  switch (q) {
-    default:
-    case LOOPER_QUANT_OFF:  return 0;
-    case LOOPER_QUANT_1_16: return 96u/4u;
-    case LOOPER_QUANT_1_8:  return 96u/2u;
-    case LOOPER_QUANT_1_4:  return 96u;
-  }
+  return looper_get_quant_step_ticks(q);
 }
 static uint32_t quantize_tick_u32(uint32_t t, uint32_t step) {
   if (!step) return t;
