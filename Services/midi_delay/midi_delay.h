@@ -3,10 +3,13 @@
  * @brief MIDI delay/echo effect with tempo sync and feedback
  * 
  * Repeats MIDI notes with tempo-synced delay time and adjustable feedback.
+ * Can be disabled with MODULE_ENABLE_MIDI_DELAY_FX=0 to save 3KB RAM.
+ * Most modern synths have built-in delay effects, so this may not be needed.
  */
 
 #pragma once
 #include <stdint.h>
+#include "Config/module_config.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -43,120 +46,6 @@ typedef enum {
 } midi_delay_division_t;
 
 /**
- * @brief Initialize MIDI delay module
- * @param tempo Initial tempo in BPM
- */
-void midi_delay_init(uint16_t tempo);
-
-/**
- * @brief Update tempo (for tempo-synced delays)
- * @param tempo Tempo in BPM (20-300)
- */
-void midi_delay_set_tempo(uint16_t tempo);
-
-/**
- * @brief Called every 1ms to process delayed events
- */
-void midi_delay_tick_1ms(void);
-
-/**
- * @brief Enable/disable delay for a track
- * @param track Track index (0-3)
- * @param enabled 1 to enable, 0 to disable
- */
-void midi_delay_set_enabled(uint8_t track, uint8_t enabled);
-
-/**
- * @brief Check if delay is enabled for a track
- * @param track Track index (0-3)
- * @return 1 if enabled, 0 if disabled
- */
-uint8_t midi_delay_is_enabled(uint8_t track);
-
-/**
- * @brief Set delay time division
- * @param track Track index (0-3)
- * @param division Delay time division
- */
-void midi_delay_set_division(uint8_t track, midi_delay_division_t division);
-
-/**
- * @brief Get delay time division
- * @param track Track index (0-3)
- * @return Current division
- */
-midi_delay_division_t midi_delay_get_division(uint8_t track);
-
-/**
- * @brief Set feedback amount (0-100%)
- * @param track Track index (0-3)
- * @param feedback Feedback percentage (0-100, higher = more repeats)
- */
-void midi_delay_set_feedback(uint8_t track, uint8_t feedback);
-
-/**
- * @brief Get feedback amount
- * @param track Track index (0-3)
- * @return Feedback percentage
- */
-uint8_t midi_delay_get_feedback(uint8_t track);
-
-/**
- * @brief Set mix (wet/dry balance)
- * @param track Track index (0-3)
- * @param mix Mix percentage (0=dry only, 100=wet only, 50=equal mix)
- */
-void midi_delay_set_mix(uint8_t track, uint8_t mix);
-
-/**
- * @brief Get mix
- * @param track Track index (0-3)
- * @return Mix percentage
- */
-uint8_t midi_delay_get_mix(uint8_t track);
-
-/**
- * @brief Set velocity decay per repeat
- * @param track Track index (0-3)
- * @param decay Velocity decay percentage (0-100, 0=no decay, 100=full decay)
- */
-void midi_delay_set_velocity_decay(uint8_t track, uint8_t decay);
-
-/**
- * @brief Get velocity decay
- * @param track Track index (0-3)
- * @return Velocity decay percentage
- */
-uint8_t midi_delay_get_velocity_decay(uint8_t track);
-
-/**
- * @brief Process input MIDI note (adds to delay buffer)
- * @param track Track index (0-3)
- * @param note MIDI note number
- * @param velocity Note velocity
- * @param channel MIDI channel
- */
-void midi_delay_process_note(uint8_t track, uint8_t note, uint8_t velocity, uint8_t channel);
-
-/**
- * @brief Clear all delayed events for a track
- * @param track Track index (0-3)
- */
-void midi_delay_clear(uint8_t track);
-
-/**
- * @brief Clear all delayed events for all tracks
- */
-void midi_delay_clear_all(void);
-
-/**
- * @brief Get division name
- * @param division Division type
- * @return Division name string
- */
-const char* midi_delay_get_division_name(midi_delay_division_t division);
-
-/**
  * @brief Callback for outputting delayed notes (set by user)
  * @param track Track index
  * @param note MIDI note
@@ -167,11 +56,53 @@ const char* midi_delay_get_division_name(midi_delay_division_t division);
 typedef void (*midi_delay_output_cb_t)(uint8_t track, uint8_t note, uint8_t velocity, 
                                        uint8_t channel, uint8_t is_note_on);
 
-/**
- * @brief Set output callback for delayed notes
- * @param callback Callback function
- */
+#if MODULE_ENABLE_MIDI_DELAY_FX
+
+// Full implementation available
+void midi_delay_init(uint16_t tempo);
+void midi_delay_set_tempo(uint16_t tempo);
+void midi_delay_tick_1ms(void);
+void midi_delay_set_enabled(uint8_t track, uint8_t enabled);
+uint8_t midi_delay_is_enabled(uint8_t track);
+void midi_delay_set_division(uint8_t track, midi_delay_division_t division);
+midi_delay_division_t midi_delay_get_division(uint8_t track);
+void midi_delay_set_feedback(uint8_t track, uint8_t feedback);
+uint8_t midi_delay_get_feedback(uint8_t track);
+void midi_delay_set_mix(uint8_t track, uint8_t mix);
+uint8_t midi_delay_get_mix(uint8_t track);
+void midi_delay_set_velocity_decay(uint8_t track, uint8_t decay);
+uint8_t midi_delay_get_velocity_decay(uint8_t track);
+void midi_delay_process_note(uint8_t track, uint8_t note, uint8_t velocity, uint8_t channel);
+void midi_delay_clear(uint8_t track);
+void midi_delay_clear_all(void);
+const char* midi_delay_get_division_name(midi_delay_division_t division);
 void midi_delay_set_output_callback(midi_delay_output_cb_t callback);
+
+#else
+
+// Stub implementations (no-op) when module is disabled
+static inline void midi_delay_init(uint16_t tempo) { (void)tempo; }
+static inline void midi_delay_set_tempo(uint16_t tempo) { (void)tempo; }
+static inline void midi_delay_tick_1ms(void) {}
+static inline void midi_delay_set_enabled(uint8_t track, uint8_t enabled) { (void)track; (void)enabled; }
+static inline uint8_t midi_delay_is_enabled(uint8_t track) { (void)track; return 0; }
+static inline void midi_delay_set_division(uint8_t track, midi_delay_division_t division) { (void)track; (void)division; }
+static inline midi_delay_division_t midi_delay_get_division(uint8_t track) { (void)track; return DELAY_DIV_1_8; }
+static inline void midi_delay_set_feedback(uint8_t track, uint8_t feedback) { (void)track; (void)feedback; }
+static inline uint8_t midi_delay_get_feedback(uint8_t track) { (void)track; return 0; }
+static inline void midi_delay_set_mix(uint8_t track, uint8_t mix) { (void)track; (void)mix; }
+static inline uint8_t midi_delay_get_mix(uint8_t track) { (void)track; return 0; }
+static inline void midi_delay_set_velocity_decay(uint8_t track, uint8_t decay) { (void)track; (void)decay; }
+static inline uint8_t midi_delay_get_velocity_decay(uint8_t track) { (void)track; return 0; }
+static inline void midi_delay_process_note(uint8_t track, uint8_t note, uint8_t velocity, uint8_t channel) { 
+    (void)track; (void)note; (void)velocity; (void)channel; 
+}
+static inline void midi_delay_clear(uint8_t track) { (void)track; }
+static inline void midi_delay_clear_all(void) {}
+static inline const char* midi_delay_get_division_name(midi_delay_division_t division) { (void)division; return "Disabled"; }
+static inline void midi_delay_set_output_callback(midi_delay_output_cb_t callback) { (void)callback; }
+
+#endif // MODULE_ENABLE_MIDI_DELAY_FX
 
 #ifdef __cplusplus
 }
