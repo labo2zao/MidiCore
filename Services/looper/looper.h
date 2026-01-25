@@ -32,12 +32,24 @@ extern "C" {
 //     RAM: g_automation (8KB) + undo (99KB if depth=5) + other (20KB) = 127KB / 128KB ✅
 //
 #ifndef LOOPER_UNDO_STACK_DEPTH
-#ifdef MODULE_TEST_LOOPER
-  // Test mode: Depth 2 to fit with test clipboards (20KB) + pianoroll UI (57KB)
+// Check if ANY test mode is active (must match looper.c memory placement logic)
+#if defined(MODULE_TEST_LOOPER) || defined(MODULE_TEST_OLED_SSD1322) || defined(MODULE_TEST_ALL) || \
+    defined(MODULE_TEST_UI) || defined(MODULE_TEST_GDB_DEBUG) || defined(MODULE_TEST_AINSER64) || \
+    defined(MODULE_TEST_SRIO) || defined(MODULE_TEST_SRIO_DOUT) || defined(MODULE_TEST_MIDI_DIN) || \
+    defined(MODULE_TEST_ROUTER) || defined(MODULE_TEST_LFO) || defined(MODULE_TEST_HUMANIZER) || \
+    defined(MODULE_TEST_UI_PAGE_SONG) || defined(MODULE_TEST_UI_PAGE_MIDI_MONITOR) || \
+    defined(MODULE_TEST_UI_PAGE_SYSEX) || defined(MODULE_TEST_UI_PAGE_CONFIG) || \
+    defined(MODULE_TEST_UI_PAGE_LIVEFX) || defined(MODULE_TEST_UI_PAGE_RHYTHM) || \
+    defined(MODULE_TEST_UI_PAGE_HUMANIZER) || defined(MODULE_TEST_PATCH_SD) || \
+    defined(MODULE_TEST_PRESSURE) || defined(MODULE_TEST_BREATH) || \
+    defined(MODULE_TEST_USB_HOST_MIDI) || defined(MODULE_TEST_USB_DEVICE_MIDI) || \
+    defined(MODULE_TEST_FOOTSWITCH) || defined(APP_TEST_DIN_MIDI)
+  // Test mode: Depth 2 to keep undo_stacks small for CCMRAM placement
+  // Test modes have additional allocations, so we reduce undo depth and keep in CCMRAM
   #define LOOPER_UNDO_STACK_DEPTH 2
 #else
   // Production mode: Depth 5 (user requirement - maintained from PR #54)
-  // Pianoroll UI is NOT test-only - it's the main production page
+  // Undo stacks placed in RAM (too large for CCMRAM with depth=5)
   #define LOOPER_UNDO_STACK_DEPTH 5
 #endif
 #endif
@@ -46,8 +58,18 @@ extern "C" {
 // Allows independent control of track vs scene clipboard features
 // - LOOPER_ENABLE_TRACK_CLIPBOARD: Track copy/paste (~4KB)
 // - LOOPER_ENABLE_SCENE_CLIPBOARD: Scene copy/paste (~16KB)
-// If MODULE_TEST_LOOPER is not defined, clipboards are always disabled
-#ifdef MODULE_TEST_LOOPER
+// If no test mode is defined, clipboards are always disabled
+#if defined(MODULE_TEST_LOOPER) || defined(MODULE_TEST_OLED_SSD1322) || defined(MODULE_TEST_ALL) || \
+    defined(MODULE_TEST_UI) || defined(MODULE_TEST_GDB_DEBUG) || defined(MODULE_TEST_AINSER64) || \
+    defined(MODULE_TEST_SRIO) || defined(MODULE_TEST_SRIO_DOUT) || defined(MODULE_TEST_MIDI_DIN) || \
+    defined(MODULE_TEST_ROUTER) || defined(MODULE_TEST_LFO) || defined(MODULE_TEST_HUMANIZER) || \
+    defined(MODULE_TEST_UI_PAGE_SONG) || defined(MODULE_TEST_UI_PAGE_MIDI_MONITOR) || \
+    defined(MODULE_TEST_UI_PAGE_SYSEX) || defined(MODULE_TEST_UI_PAGE_CONFIG) || \
+    defined(MODULE_TEST_UI_PAGE_LIVEFX) || defined(MODULE_TEST_UI_PAGE_RHYTHM) || \
+    defined(MODULE_TEST_UI_PAGE_HUMANIZER) || defined(MODULE_TEST_PATCH_SD) || \
+    defined(MODULE_TEST_PRESSURE) || defined(MODULE_TEST_BREATH) || \
+    defined(MODULE_TEST_USB_HOST_MIDI) || defined(MODULE_TEST_USB_DEVICE_MIDI) || \
+    defined(MODULE_TEST_FOOTSWITCH) || defined(APP_TEST_DIN_MIDI)
   #ifndef LOOPER_ENABLE_TRACK_CLIPBOARD
     #define LOOPER_ENABLE_TRACK_CLIPBOARD 1  // Default: enabled in test mode
   #endif
