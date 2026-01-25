@@ -13,7 +13,14 @@ extern "C" {
 #endif
 
 #define MIDI_DELAY_MAX_TRACKS 4
-#define MIDI_DELAY_MAX_EVENTS 128  // Maximum delayed events per track
+
+// Maximum delayed events per track (configurable for memory optimization)
+// Each event: ~12 bytes
+// Default: 128 events = 6KB total (128 * 12 * 4 tracks ≈ 6KB)
+// Reduced: 64 events = 3KB total (saves 3KB RAM)
+#ifndef MIDI_DELAY_MAX_EVENTS
+  #define MIDI_DELAY_MAX_EVENTS 64  // Reduced from 128 to save 3KB RAM
+#endif
 
 /**
  * @brief Delay time divisions

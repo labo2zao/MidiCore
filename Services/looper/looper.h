@@ -33,12 +33,12 @@ extern "C" {
 //
 #ifndef LOOPER_UNDO_STACK_DEPTH
 #ifdef MODULE_TEST_LOOPER
-  // Test mode: Depth 1 to fit with test clipboards (20KB) + pianoroll UI (57KB)
-  #define LOOPER_UNDO_STACK_DEPTH 1
+  // Test mode: Depth 2 to fit with test clipboards (20KB) + pianoroll UI (57KB)
+  #define LOOPER_UNDO_STACK_DEPTH 2
 #else
-  // Production mode: Depth 1 to fit with pianoroll UI (57KB, required for main page)
+  // Production mode: Depth 5 (user requirement - maintained from PR #54)
   // Pianoroll UI is NOT test-only - it's the main production page
-  #define LOOPER_UNDO_STACK_DEPTH 1
+  #define LOOPER_UNDO_STACK_DEPTH 5
 #endif
 #endif
 
