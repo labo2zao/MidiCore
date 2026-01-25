@@ -1677,12 +1677,25 @@ typedef struct {
 // Place undo stacks strategically based on mode
 // Both modes use depth=1 due to pianoroll UI (57KB) being required in production
 // Pianoroll is the main accordion page, not a test feature
-#if defined(MODULE_TEST_LOOPER) || defined(MODULE_TEST_OLED_SSD1322) || defined(MODULE_TEST_ALL) || defined(MODULE_TEST_UI)
-  // Test mode: Undo in CCMRAM (depth=2, smaller than production)
-  // Any test mode that might have additional test-specific allocations
+// Check if ANY test mode is active
+// Test modes have additional allocations (test phases, clipboards, etc.) that consume extra RAM
+// Therefore, we use smaller undo depth (2) and keep undo_stacks in CCMRAM to free up RAM
+#if defined(MODULE_TEST_LOOPER) || defined(MODULE_TEST_OLED_SSD1322) || defined(MODULE_TEST_ALL) || \
+    defined(MODULE_TEST_UI) || defined(MODULE_TEST_GDB_DEBUG) || defined(MODULE_TEST_AINSER64) || \
+    defined(MODULE_TEST_SRIO) || defined(MODULE_TEST_SRIO_DOUT) || defined(MODULE_TEST_MIDI_DIN) || \
+    defined(MODULE_TEST_ROUTER) || defined(MODULE_TEST_LFO) || defined(MODULE_TEST_HUMANIZER) || \
+    defined(MODULE_TEST_UI_PAGE_SONG) || defined(MODULE_TEST_UI_PAGE_MIDI_MONITOR) || \
+    defined(MODULE_TEST_UI_PAGE_SYSEX) || defined(MODULE_TEST_UI_PAGE_CONFIG) || \
+    defined(MODULE_TEST_UI_PAGE_LIVEFX) || defined(MODULE_TEST_UI_PAGE_RHYTHM) || \
+    defined(MODULE_TEST_UI_PAGE_HUMANIZER) || defined(MODULE_TEST_PATCH_SD) || \
+    defined(MODULE_TEST_PRESSURE) || defined(MODULE_TEST_BREATH) || \
+    defined(MODULE_TEST_USB_HOST_MIDI) || defined(MODULE_TEST_USB_DEVICE_MIDI) || \
+    defined(MODULE_TEST_FOOTSWITCH) || defined(APP_TEST_DIN_MIDI)
+  // Test mode: Undo in CCMRAM (depth=2, ~7KB per track)
+  // Any test mode may have additional test-specific allocations that need RAM
   static undo_stack_t undo_stacks[LOOPER_TRACKS] __attribute__((section(".ccmram")));
 #else
-  // Production mode: Undo in RAM (depth=5, ~99KB - too large for CCMRAM)
+  // Production mode: Undo in RAM (depth=5, ~99KB total)
   // With depth=5: 4 tracks × ~25KB = ~100KB (doesn't fit in 64KB CCMRAM)
   // CCMRAM reserved for g_tr only (~25KB), leaving 39KB free
   static undo_stack_t undo_stacks[LOOPER_TRACKS];  // In RAM
