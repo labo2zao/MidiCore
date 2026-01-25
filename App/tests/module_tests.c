@@ -5001,9 +5001,12 @@ void module_test_ui_run(void)
 #if defined(OLED_USE_NEWHAVEN_INIT)
   oled_init_newhaven();  // Complete Newhaven NHD-3.12 initialization
   dbg_print(" Newhaven OK\r\n");
-#else
+#elif MODULE_TEST_OLED
   oled_init();  // Simple MIOS32 test initialization
   dbg_print(" MIOS32 OK\r\n");
+#else
+  oled_init_newhaven();  // Production: use Newhaven init
+  dbg_print(" Production OK\r\n");
 #endif
   
   dbg_print("[Init] Initializing UI...");

@@ -14,7 +14,9 @@
 #include "Services/ui/ui_page_livefx.h"
 #include "Services/ui/ui_page_rhythm.h"
 #include "Services/ui/ui_page_automation.h"
+#if MODULE_TEST_OLED
 #include "Services/ui/ui_page_oled_test.h"
+#endif
 #if MODULE_ENABLE_LFO && MODULE_ENABLE_HUMANIZER
 #include "Services/ui/ui_page_humanizer.h"
 #endif
@@ -205,7 +207,9 @@ ui_gfx_text(0, 2, line1, 15);
 #if MODULE_ENABLE_LFO && MODULE_ENABLE_HUMANIZER
     case UI_PAGE_HUMANIZER: ui_page_humanizer_on_button(id, pressed); break;
 #endif
+#if MODULE_TEST_OLED
     case UI_PAGE_OLED_TEST: ui_page_oled_test_on_button(id, pressed); break;
+#endif
     default: break;
   }
 }
@@ -295,7 +299,9 @@ ui_gfx_text(0, 2, line1, 15);
 #if MODULE_ENABLE_LFO && MODULE_ENABLE_HUMANIZER
     case UI_PAGE_HUMANIZER: ui_page_humanizer_render(g_ms); break;
 #endif
+#if MODULE_TEST_OLED
     case UI_PAGE_OLED_TEST: ui_page_oled_test_render(g_ms); break;
+#endif
     default: break;
   }
 
