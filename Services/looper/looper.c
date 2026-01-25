@@ -334,20 +334,20 @@ const char* looper_get_quant_name(looper_quant_t q) {
     case LOOPER_QUANT_1_16:      return "1/16";
     case LOOPER_QUANT_1_8:       return "1/8";
     case LOOPER_QUANT_1_4:       return "1/4";
-    case LOOPER_QUANT_1_8T:      return "1/8T";
-    case LOOPER_QUANT_1_16T:     return "1/16T";
     case LOOPER_QUANT_1_32T:     return "1/32T";
+    case LOOPER_QUANT_1_16T:     return "1/16T";
+    case LOOPER_QUANT_1_8T:      return "1/8T";
     case LOOPER_QUANT_1_2T:      return "1/2T";
-    case LOOPER_QUANT_1_8Q:      return "1/8Q";
-    case LOOPER_QUANT_1_16Q:     return "1/16Q";
     case LOOPER_QUANT_1_32Q:     return "1/32Q";
-    case LOOPER_QUANT_1_8S:      return "1/8S";
+    case LOOPER_QUANT_1_16Q:     return "1/16Q";
+    case LOOPER_QUANT_1_8Q:      return "1/8Q";
     case LOOPER_QUANT_1_16S:     return "1/16S";
-    case LOOPER_QUANT_1_8SEPT:   return "1/8x7";
+    case LOOPER_QUANT_1_8S:      return "1/8S";
     case LOOPER_QUANT_1_16SEPT:  return "1/16x7";
-    case LOOPER_QUANT_1_4_DOT:   return "1/4.";
-    case LOOPER_QUANT_1_8_DOT:   return "1/8.";
+    case LOOPER_QUANT_1_8SEPT:   return "1/8x7";
     case LOOPER_QUANT_1_16_DOT:  return "1/16.";
+    case LOOPER_QUANT_1_8_DOT:   return "1/8.";
+    case LOOPER_QUANT_1_4_DOT:   return "1/4.";
     default:                     return "?";
   }
 }
