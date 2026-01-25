@@ -334,6 +334,12 @@ void oled_init(void) {
   memset(fb, 0x00, sizeof(fb));
 }
 
+#endif // MODULE_TEST_OLED
+
+// ============================================================================
+// PRODUCTION FUNCTIONS - Always compiled, required for normal operation
+// ============================================================================
+
 // Newhaven NHD-3.12 datasheet initialization (LoopA production code)
 // Source: LoopA app_lcd.c - active "Initialize display (NHD 3.12 datasheet)" section
 // This is MORE COMPLETE than the simple MIOS32 test init above
@@ -473,6 +479,13 @@ uint8_t *oled_framebuffer(void) {
 void oled_clear(void) {
   memset(fb, 0x00, sizeof(fb));
 }
+
+// ============================================================================
+// TEST PATTERN FUNCTIONS - Only compile when MODULE_TEST_OLED is enabled
+// Visual verification patterns for hardware testing
+// NOT NEEDED FOR PRODUCTION
+// ============================================================================
+#ifdef MODULE_TEST_OLED
 
 // MIOS32-compatible test screen function - EXACT replica
 // Source: github.com/midibox/mios32/apps/mios32_test/app_lcd/ssd1322/app.c testScreen()
