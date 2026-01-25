@@ -447,7 +447,7 @@ Discarded input sections
  .debug_macro   0x00000000       0x16 ./App/ain_raw_debug_task.o
  .debug_macro   0x00000000       0x20 ./App/ain_raw_debug_task.o
  .debug_line    0x00000000      0xcdf ./App/ain_raw_debug_task.o
- .debug_str     0x00000000    0xe0685 ./App/ain_raw_debug_task.o
+ .debug_str     0x00000000    0xe0684 ./App/ain_raw_debug_task.o
  .comment       0x00000000       0x44 ./App/ain_raw_debug_task.o
  .debug_frame   0x00000000       0xac ./App/ain_raw_debug_task.o
  .ARM.attributes
@@ -1113,7 +1113,7 @@ Discarded input sections
  .debug_macro   0x00000000       0xb5 ./App/freertos_hooks.o
  .debug_macro   0x00000000       0xaa ./App/freertos_hooks.o
  .debug_line    0x00000000      0x790 ./App/freertos_hooks.o
- .debug_str     0x00000000     0xb23a ./App/freertos_hooks.o
+ .debug_str     0x00000000     0xb239 ./App/freertos_hooks.o
  .comment       0x00000000       0x44 ./App/freertos_hooks.o
  .debug_frame   0x00000000       0x4c ./App/freertos_hooks.o
  .ARM.attributes
@@ -1758,7 +1758,7 @@ Discarded input sections
  .debug_macro   0x00000000       0x22 ./App/tests/app_test_ainser_midi.o
  .debug_macro   0x00000000       0x10 ./App/tests/app_test_ainser_midi.o
  .debug_line    0x00000000      0xeb1 ./App/tests/app_test_ainser_midi.o
- .debug_str     0x00000000    0xe106e ./App/tests/app_test_ainser_midi.o
+ .debug_str     0x00000000    0xe106d ./App/tests/app_test_ainser_midi.o
  .comment       0x00000000       0x44 ./App/tests/app_test_ainser_midi.o
  .debug_frame   0x00000000       0x54 ./App/tests/app_test_ainser_midi.o
  .ARM.attributes
@@ -1970,7 +1970,7 @@ Discarded input sections
  .debug_macro   0x00000000       0x2e ./App/tests/app_test_din_midi.o
  .debug_macro   0x00000000       0x28 ./App/tests/app_test_din_midi.o
  .debug_line    0x00000000      0xecd ./App/tests/app_test_din_midi.o
- .debug_str     0x00000000    0xe172d ./App/tests/app_test_din_midi.o
+ .debug_str     0x00000000    0xe172c ./App/tests/app_test_din_midi.o
  .comment       0x00000000       0x44 ./App/tests/app_test_din_midi.o
  .debug_frame   0x00000000       0x5c ./App/tests/app_test_din_midi.o
  .ARM.attributes
@@ -2634,7 +2634,7 @@ Discarded input sections
  .debug_macro   0x00000000       0x16 ./App/tests/test_config_runtime.o
  .debug_macro   0x00000000       0x29 ./App/tests/test_config_runtime.o
  .debug_line    0x00000000     0x1378 ./App/tests/test_config_runtime.o
- .debug_str     0x00000000    0xe0b6f ./App/tests/test_config_runtime.o
+ .debug_str     0x00000000    0xe0b6e ./App/tests/test_config_runtime.o
  .comment       0x00000000       0x44 ./App/tests/test_config_runtime.o
  .debug_frame   0x00000000      0x354 ./App/tests/test_config_runtime.o
  .ARM.attributes
@@ -3162,7 +3162,7 @@ Discarded input sections
  .debug_macro   0x00000000      0x12d ./Core/Src/freertos.o
  .debug_macro   0x00000000      0x30a ./Core/Src/freertos.o
  .debug_line    0x00000000      0xa75 ./Core/Src/freertos.o
- .debug_str     0x00000000    0xde857 ./Core/Src/freertos.o
+ .debug_str     0x00000000    0xde856 ./Core/Src/freertos.o
  .comment       0x00000000       0x44 ./Core/Src/freertos.o
  .ARM.attributes
                 0x00000000       0x34 ./Core/Src/freertos.o
@@ -9801,7 +9801,7 @@ Discarded input sections
  .debug_macro   0x00000000      0x12f ./Middlewares/ST/STM32_USB_Host_Library/Class/HID/Src/usbh_hid.o
  .debug_macro   0x00000000      0x255 ./Middlewares/ST/STM32_USB_Host_Library/Class/HID/Src/usbh_hid.o
  .debug_line    0x00000000     0x1285 ./Middlewares/ST/STM32_USB_Host_Library/Class/HID/Src/usbh_hid.o
- .debug_str     0x00000000    0xe402e ./Middlewares/ST/STM32_USB_Host_Library/Class/HID/Src/usbh_hid.o
+ .debug_str     0x00000000    0xe402d ./Middlewares/ST/STM32_USB_Host_Library/Class/HID/Src/usbh_hid.o
  .comment       0x00000000       0x44 ./Middlewares/ST/STM32_USB_Host_Library/Class/HID/Src/usbh_hid.o
  .debug_frame   0x00000000      0x2b8 ./Middlewares/ST/STM32_USB_Host_Library/Class/HID/Src/usbh_hid.o
  .ARM.attributes
@@ -10049,7 +10049,7 @@ Discarded input sections
  .debug_macro   0x00000000      0x5bf ./Middlewares/ST/STM32_USB_Host_Library/Class/HID/Src/usbh_hid_keybd.o
  .debug_macro   0x00000000      0x255 ./Middlewares/ST/STM32_USB_Host_Library/Class/HID/Src/usbh_hid_keybd.o
  .debug_line    0x00000000      0xe69 ./Middlewares/ST/STM32_USB_Host_Library/Class/HID/Src/usbh_hid_keybd.o
- .debug_str     0x00000000    0xe3e49 ./Middlewares/ST/STM32_USB_Host_Library/Class/HID/Src/usbh_hid_keybd.o
+ .debug_str     0x00000000    0xe3e48 ./Middlewares/ST/STM32_USB_Host_Library/Class/HID/Src/usbh_hid_keybd.o
  .comment       0x00000000       0x44 ./Middlewares/ST/STM32_USB_Host_Library/Class/HID/Src/usbh_hid_keybd.o
  .debug_frame   0x00000000       0xa4 ./Middlewares/ST/STM32_USB_Host_Library/Class/HID/Src/usbh_hid_keybd.o
  .ARM.attributes
@@ -10281,7 +10281,7 @@ Discarded input sections
  .debug_macro   0x00000000      0x12f ./Middlewares/ST/STM32_USB_Host_Library/Class/HID/Src/usbh_hid_mouse.o
  .debug_macro   0x00000000      0x255 ./Middlewares/ST/STM32_USB_Host_Library/Class/HID/Src/usbh_hid_mouse.o
  .debug_line    0x00000000      0xdc1 ./Middlewares/ST/STM32_USB_Host_Library/Class/HID/Src/usbh_hid_mouse.o
- .debug_str     0x00000000    0xe3ccf ./Middlewares/ST/STM32_USB_Host_Library/Class/HID/Src/usbh_hid_mouse.o
+ .debug_str     0x00000000    0xe3cce ./Middlewares/ST/STM32_USB_Host_Library/Class/HID/Src/usbh_hid_mouse.o
  .comment       0x00000000       0x44 ./Middlewares/ST/STM32_USB_Host_Library/Class/HID/Src/usbh_hid_mouse.o
  .debug_frame   0x00000000       0x7c ./Middlewares/ST/STM32_USB_Host_Library/Class/HID/Src/usbh_hid_mouse.o
  .ARM.attributes
@@ -10495,7 +10495,7 @@ Discarded input sections
  .debug_macro   0x00000000      0x12f ./Middlewares/ST/STM32_USB_Host_Library/Class/HID/Src/usbh_hid_parser.o
  .debug_macro   0x00000000      0x255 ./Middlewares/ST/STM32_USB_Host_Library/Class/HID/Src/usbh_hid_parser.o
  .debug_line    0x00000000      0xeaa ./Middlewares/ST/STM32_USB_Host_Library/Class/HID/Src/usbh_hid_parser.o
- .debug_str     0x00000000    0xe318b ./Middlewares/ST/STM32_USB_Host_Library/Class/HID/Src/usbh_hid_parser.o
+ .debug_str     0x00000000    0xe318a ./Middlewares/ST/STM32_USB_Host_Library/Class/HID/Src/usbh_hid_parser.o
  .comment       0x00000000       0x44 ./Middlewares/ST/STM32_USB_Host_Library/Class/HID/Src/usbh_hid_parser.o
  .debug_frame   0x00000000       0x60 ./Middlewares/ST/STM32_USB_Host_Library/Class/HID/Src/usbh_hid_parser.o
  .ARM.attributes
@@ -10750,7 +10750,7 @@ Discarded input sections
  .debug_macro   0x00000000       0x2e ./Middlewares/ST/STM32_USB_Host_Library/Core/Src/usbh_core.o
  .debug_macro   0x00000000       0x28 ./Middlewares/ST/STM32_USB_Host_Library/Core/Src/usbh_core.o
  .debug_line    0x00000000     0x142e ./Middlewares/ST/STM32_USB_Host_Library/Core/Src/usbh_core.o
- .debug_str     0x00000000    0xe1f6d ./Middlewares/ST/STM32_USB_Host_Library/Core/Src/usbh_core.o
+ .debug_str     0x00000000    0xe1f6c ./Middlewares/ST/STM32_USB_Host_Library/Core/Src/usbh_core.o
  .comment       0x00000000       0x44 ./Middlewares/ST/STM32_USB_Host_Library/Core/Src/usbh_core.o
  .debug_frame   0x00000000      0x394 ./Middlewares/ST/STM32_USB_Host_Library/Core/Src/usbh_core.o
  .ARM.attributes
@@ -10988,7 +10988,7 @@ Discarded input sections
  .debug_macro   0x00000000       0x28 ./Middlewares/ST/STM32_USB_Host_Library/Core/Src/usbh_ctlreq.o
  .debug_macro   0x00000000       0x28 ./Middlewares/ST/STM32_USB_Host_Library/Core/Src/usbh_ctlreq.o
  .debug_line    0x00000000     0x1356 ./Middlewares/ST/STM32_USB_Host_Library/Core/Src/usbh_ctlreq.o
- .debug_str     0x00000000    0xe1942 ./Middlewares/ST/STM32_USB_Host_Library/Core/Src/usbh_ctlreq.o
+ .debug_str     0x00000000    0xe1941 ./Middlewares/ST/STM32_USB_Host_Library/Core/Src/usbh_ctlreq.o
  .comment       0x00000000       0x44 ./Middlewares/ST/STM32_USB_Host_Library/Core/Src/usbh_ctlreq.o
  .debug_frame   0x00000000      0x28c ./Middlewares/ST/STM32_USB_Host_Library/Core/Src/usbh_ctlreq.o
  .ARM.attributes
@@ -11210,7 +11210,7 @@ Discarded input sections
  .debug_macro   0x00000000       0x28 ./Middlewares/ST/STM32_USB_Host_Library/Core/Src/usbh_ioreq.o
  .debug_macro   0x00000000       0x2e ./Middlewares/ST/STM32_USB_Host_Library/Core/Src/usbh_ioreq.o
  .debug_line    0x00000000      0xd1c ./Middlewares/ST/STM32_USB_Host_Library/Core/Src/usbh_ioreq.o
- .debug_str     0x00000000    0xe16b2 ./Middlewares/ST/STM32_USB_Host_Library/Core/Src/usbh_ioreq.o
+ .debug_str     0x00000000    0xe16b1 ./Middlewares/ST/STM32_USB_Host_Library/Core/Src/usbh_ioreq.o
  .comment       0x00000000       0x44 ./Middlewares/ST/STM32_USB_Host_Library/Core/Src/usbh_ioreq.o
  .debug_frame   0x00000000      0x154 ./Middlewares/ST/STM32_USB_Host_Library/Core/Src/usbh_ioreq.o
  .ARM.attributes
@@ -11424,7 +11424,7 @@ Discarded input sections
  .debug_macro   0x00000000       0x2e ./Middlewares/ST/STM32_USB_Host_Library/Core/Src/usbh_pipes.o
  .debug_macro   0x00000000       0x28 ./Middlewares/ST/STM32_USB_Host_Library/Core/Src/usbh_pipes.o
  .debug_line    0x00000000      0xcc9 ./Middlewares/ST/STM32_USB_Host_Library/Core/Src/usbh_pipes.o
- .debug_str     0x00000000    0xe1648 ./Middlewares/ST/STM32_USB_Host_Library/Core/Src/usbh_pipes.o
+ .debug_str     0x00000000    0xe1647 ./Middlewares/ST/STM32_USB_Host_Library/Core/Src/usbh_pipes.o
  .comment       0x00000000       0x44 ./Middlewares/ST/STM32_USB_Host_Library/Core/Src/usbh_pipes.o
  .debug_frame   0x00000000       0xcc ./Middlewares/ST/STM32_USB_Host_Library/Core/Src/usbh_pipes.o
  .ARM.attributes
@@ -12475,7 +12475,7 @@ Discarded input sections
  .debug_macro   0x00000000       0xaa ./Middlewares/Third_Party/FreeRTOS/Source/croutine.o
  .debug_macro   0x00000000       0x43 ./Middlewares/Third_Party/FreeRTOS/Source/croutine.o
  .debug_line    0x00000000      0x687 ./Middlewares/Third_Party/FreeRTOS/Source/croutine.o
- .debug_str     0x00000000     0xb66a ./Middlewares/Third_Party/FreeRTOS/Source/croutine.o
+ .debug_str     0x00000000     0xb669 ./Middlewares/Third_Party/FreeRTOS/Source/croutine.o
  .comment       0x00000000       0x44 ./Middlewares/Third_Party/FreeRTOS/Source/croutine.o
  .ARM.attributes
                 0x00000000       0x34 ./Middlewares/Third_Party/FreeRTOS/Source/croutine.o
@@ -12592,7 +12592,7 @@ Discarded input sections
  .debug_macro   0x00000000       0xaa ./Middlewares/Third_Party/FreeRTOS/Source/event_groups.o
  .debug_macro   0x00000000       0x91 ./Middlewares/Third_Party/FreeRTOS/Source/event_groups.o
  .debug_line    0x00000000      0xb79 ./Middlewares/Third_Party/FreeRTOS/Source/event_groups.o
- .debug_str     0x00000000     0xc0de ./Middlewares/Third_Party/FreeRTOS/Source/event_groups.o
+ .debug_str     0x00000000     0xc0dd ./Middlewares/Third_Party/FreeRTOS/Source/event_groups.o
  .comment       0x00000000       0x44 ./Middlewares/Third_Party/FreeRTOS/Source/event_groups.o
  .debug_frame   0x00000000      0x23c ./Middlewares/Third_Party/FreeRTOS/Source/event_groups.o
  .ARM.attributes
@@ -12901,7 +12901,7 @@ Discarded input sections
  .debug_macro   0x00000000       0xaa ./Middlewares/Third_Party/FreeRTOS/Source/stream_buffer.o
  .debug_macro   0x00000000       0x18 ./Middlewares/Third_Party/FreeRTOS/Source/stream_buffer.o
  .debug_line    0x00000000      0xfe3 ./Middlewares/Third_Party/FreeRTOS/Source/stream_buffer.o
- .debug_str     0x00000000     0xc18e ./Middlewares/Third_Party/FreeRTOS/Source/stream_buffer.o
+ .debug_str     0x00000000     0xc18d ./Middlewares/Third_Party/FreeRTOS/Source/stream_buffer.o
  .comment       0x00000000       0x44 ./Middlewares/Third_Party/FreeRTOS/Source/stream_buffer.o
  .debug_frame   0x00000000      0x3c8 ./Middlewares/Third_Party/FreeRTOS/Source/stream_buffer.o
  .ARM.attributes
@@ -13595,7 +13595,7 @@ Discarded input sections
  .debug_macro   0x00000000       0xfa ./Services/ainser/ainser_map.o
  .debug_macro   0x00000000       0xe2 ./Services/ainser/ainser_map.o
  .debug_line    0x00000000     0x1234 ./Services/ainser/ainser_map.o
- .debug_str     0x00000000    0xe076d ./Services/ainser/ainser_map.o
+ .debug_str     0x00000000    0xe076c ./Services/ainser/ainser_map.o
  .comment       0x00000000       0x44 ./Services/ainser/ainser_map.o
  .debug_frame   0x00000000      0x1b0 ./Services/ainser/ainser_map.o
  .ARM.attributes
@@ -15237,7 +15237,7 @@ Discarded input sections
  .debug_macro   0x00000000       0x10 ./Services/config/runtime_config.o
  .debug_macro   0x00000000      0x460 ./Services/config/runtime_config.o
  .debug_line    0x00000000     0x108d ./Services/config/runtime_config.o
- .debug_str     0x00000000    0xe15f2 ./Services/config/runtime_config.o
+ .debug_str     0x00000000    0xe15f1 ./Services/config/runtime_config.o
  .comment       0x00000000       0x44 ./Services/config/runtime_config.o
  .debug_frame   0x00000000      0x290 ./Services/config/runtime_config.o
  .ARM.attributes
@@ -15627,7 +15627,7 @@ Discarded input sections
  .debug_macro   0x00000000       0xfa ./Services/din/din_map.o
  .debug_macro   0x00000000       0xe2 ./Services/din/din_map.o
  .debug_line    0x00000000     0x1115 ./Services/din/din_map.o
- .debug_str     0x00000000    0xe06bf ./Services/din/din_map.o
+ .debug_str     0x00000000    0xe06be ./Services/din/din_map.o
  .comment       0x00000000       0x44 ./Services/din/din_map.o
  .debug_frame   0x00000000      0x164 ./Services/din/din_map.o
  .ARM.attributes
@@ -15913,7 +15913,7 @@ Discarded input sections
  .debug_macro   0x00000000       0xfa ./Services/dream/dream_sysex.o
  .debug_macro   0x00000000       0xe2 ./Services/dream/dream_sysex.o
  .debug_line    0x00000000     0x149e ./Services/dream/dream_sysex.o
- .debug_str     0x00000000    0xe0882 ./Services/dream/dream_sysex.o
+ .debug_str     0x00000000    0xe0881 ./Services/dream/dream_sysex.o
  .comment       0x00000000       0x44 ./Services/dream/dream_sysex.o
  .debug_frame   0x00000000      0x1e8 ./Services/dream/dream_sysex.o
  .ARM.attributes
@@ -18344,7 +18344,7 @@ Discarded input sections
  .debug_macro   0x00000000       0xdb ./Services/midi/midi_router.o
  .debug_macro   0x00000000      0x11f ./Services/midi/midi_router.o
  .debug_line    0x00000000     0x10f8 ./Services/midi/midi_router.o
- .debug_str     0x00000000    0xe1f10 ./Services/midi/midi_router.o
+ .debug_str     0x00000000    0xe1f0f ./Services/midi/midi_router.o
  .comment       0x00000000       0x44 ./Services/midi/midi_router.o
  .debug_frame   0x00000000      0x1ec ./Services/midi/midi_router.o
  .ARM.attributes
@@ -19684,7 +19684,7 @@ Discarded input sections
  .debug_macro   0x00000000       0xfa ./Services/patch/patch_bank.o
  .debug_macro   0x00000000       0xe2 ./Services/patch/patch_bank.o
  .debug_line    0x00000000      0xe2f ./Services/patch/patch_bank.o
- .debug_str     0x00000000    0xe04ce ./Services/patch/patch_bank.o
+ .debug_str     0x00000000    0xe04cd ./Services/patch/patch_bank.o
  .comment       0x00000000       0x44 ./Services/patch/patch_bank.o
  .debug_frame   0x00000000       0x88 ./Services/patch/patch_bank.o
  .ARM.attributes
@@ -20635,7 +20635,7 @@ Discarded input sections
  .debug_macro   0x00000000       0x10 ./Services/performance/perf_monitor.o
  .debug_macro   0x00000000      0x460 ./Services/performance/perf_monitor.o
  .debug_line    0x00000000      0xf6b ./Services/performance/perf_monitor.o
- .debug_str     0x00000000    0xe143d ./Services/performance/perf_monitor.o
+ .debug_str     0x00000000    0xe143c ./Services/performance/perf_monitor.o
  .comment       0x00000000       0x44 ./Services/performance/perf_monitor.o
  .debug_frame   0x00000000      0x1d8 ./Services/performance/perf_monitor.o
  .ARM.attributes
@@ -22691,7 +22691,7 @@ Discarded input sections
  .debug_macro   0x00000000       0xfa ./Services/ui/ui_actions.o
  .debug_macro   0x00000000       0xe2 ./Services/ui/ui_actions.o
  .debug_line    0x00000000     0x1194 ./Services/ui/ui_actions.o
- .debug_str     0x00000000    0xe087e ./Services/ui/ui_actions.o
+ .debug_str     0x00000000    0xe087d ./Services/ui/ui_actions.o
  .comment       0x00000000       0x44 ./Services/ui/ui_actions.o
  .debug_frame   0x00000000      0x160 ./Services/ui/ui_actions.o
  .ARM.attributes
@@ -22979,7 +22979,7 @@ Discarded input sections
  .debug_macro   0x00000000       0xfa ./Services/ui/ui_bindings.o
  .debug_macro   0x00000000       0xe2 ./Services/ui/ui_bindings.o
  .debug_line    0x00000000      0xf0b ./Services/ui/ui_bindings.o
- .debug_str     0x00000000    0xe05cd ./Services/ui/ui_bindings.o
+ .debug_str     0x00000000    0xe05cc ./Services/ui/ui_bindings.o
  .comment       0x00000000       0x44 ./Services/ui/ui_bindings.o
  .debug_frame   0x00000000       0xf8 ./Services/ui/ui_bindings.o
  .ARM.attributes
@@ -23177,7 +23177,7 @@ Discarded input sections
  .debug_macro   0x00000000       0xfa ./Services/ui/ui_encoders.o
  .debug_macro   0x00000000       0xe2 ./Services/ui/ui_encoders.o
  .debug_line    0x00000000     0x1012 ./Services/ui/ui_encoders.o
- .debug_str     0x00000000    0xe061a ./Services/ui/ui_encoders.o
+ .debug_str     0x00000000    0xe0619 ./Services/ui/ui_encoders.o
  .comment       0x00000000       0x44 ./Services/ui/ui_encoders.o
  .debug_frame   0x00000000      0x11c ./Services/ui/ui_encoders.o
  .ARM.attributes
@@ -24522,7 +24522,7 @@ Discarded input sections
  .debug_macro   0x00000000       0x8e ./Services/usb_host_midi/usb_host_midi.o
  .debug_macro   0x00000000      0x201 ./Services/usb_host_midi/usb_host_midi.o
  .debug_line    0x00000000      0xdc5 ./Services/usb_host_midi/usb_host_midi.o
- .debug_str     0x00000000    0xe1a31 ./Services/usb_host_midi/usb_host_midi.o
+ .debug_str     0x00000000    0xe1a30 ./Services/usb_host_midi/usb_host_midi.o
  .comment       0x00000000       0x44 ./Services/usb_host_midi/usb_host_midi.o
  .debug_frame   0x00000000       0xa0 ./Services/usb_host_midi/usb_host_midi.o
  .ARM.attributes
@@ -24755,7 +24755,7 @@ Discarded input sections
  .debug_macro   0x00000000       0x2e ./Services/usb_host_midi/usbh_midi.o
  .debug_macro   0x00000000       0x28 ./Services/usb_host_midi/usbh_midi.o
  .debug_line    0x00000000     0x103e ./Services/usb_host_midi/usbh_midi.o
- .debug_str     0x00000000    0xe1964 ./Services/usb_host_midi/usbh_midi.o
+ .debug_str     0x00000000    0xe1963 ./Services/usb_host_midi/usbh_midi.o
  .comment       0x00000000       0x44 ./Services/usb_host_midi/usbh_midi.o
  .debug_frame   0x00000000      0x1f8 ./Services/usb_host_midi/usbh_midi.o
  .ARM.attributes
@@ -26534,7 +26534,7 @@ Discarded input sections
  .debug_macro   0x00000000      0x5bf ./USB_HOST/App/usb_host.o
  .debug_macro   0x00000000      0x12f ./USB_HOST/App/usb_host.o
  .debug_line    0x00000000      0xd15 ./USB_HOST/App/usb_host.o
- .debug_str     0x00000000    0xe2d40 ./USB_HOST/App/usb_host.o
+ .debug_str     0x00000000    0xe2d3f ./USB_HOST/App/usb_host.o
  .comment       0x00000000       0x44 ./USB_HOST/App/usb_host.o
  .debug_frame   0x00000000       0x54 ./USB_HOST/App/usb_host.o
  .ARM.attributes
@@ -26790,7 +26790,7 @@ Discarded input sections
  .debug_macro   0x00000000       0x2e ./USB_HOST/Target/usbh_conf.o
  .debug_macro   0x00000000       0x28 ./USB_HOST/Target/usbh_conf.o
  .debug_line    0x00000000      0xf68 ./USB_HOST/Target/usbh_conf.o
- .debug_str     0x00000000    0xe25a6 ./USB_HOST/Target/usbh_conf.o
+ .debug_str     0x00000000    0xe25a5 ./USB_HOST/Target/usbh_conf.o
  .comment       0x00000000       0x44 ./USB_HOST/Target/usbh_conf.o
  .debug_frame   0x00000000      0x3b0 ./USB_HOST/Target/usbh_conf.o
  .ARM.attributes
@@ -31189,7 +31189,7 @@ LOAD J:/soft/STM32CubeIDE_2.0.0/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.ex
                 0x100080b0                        _eccmram = .
                 0x100080b0                        . = ALIGN (0x4)
 
-.bss            0x20000430    0x222f8
+.bss            0x20000430    0x1fef8
                 0x20000430                        _sbss = .
                 0x20000430                        __bss_start__ = _sbss
  *(.bss)
@@ -31376,340 +31376,340 @@ LOAD J:/soft/STM32CubeIDE_2.0.0/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.ex
  *fill*         0x20004219        0x3 
  .bss.ulMaxPRIGROUPValue
                 0x2000421c        0x4 ./Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F/port.o
- .bss.ucHeap    0x20004220     0x2800 ./Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_4.o
- .bss.xStart    0x20006a20        0x8 ./Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_4.o
- .bss.pxEnd     0x20006a28        0x4 ./Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_4.o
+ .bss.ucHeap    0x20004220      0x400 ./Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_4.o
+ .bss.xStart    0x20004620        0x8 ./Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_4.o
+ .bss.pxEnd     0x20004628        0x4 ./Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_4.o
  .bss.xFreeBytesRemaining
-                0x20006a2c        0x4 ./Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_4.o
+                0x2000462c        0x4 ./Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_4.o
  .bss.xMinimumEverFreeBytesRemaining
-                0x20006a30        0x4 ./Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_4.o
+                0x20004630        0x4 ./Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_4.o
  .bss.xNumberOfSuccessfulAllocations
-                0x20006a34        0x4 ./Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_4.o
+                0x20004634        0x4 ./Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_4.o
  .bss.xNumberOfSuccessfulFrees
-                0x20006a38        0x4 ./Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_4.o
+                0x20004638        0x4 ./Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_4.o
  .bss.xBlockAllocatedBit
-                0x20006a3c        0x4 ./Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_4.o
- .bss.g_keys    0x20006a40      0x500 ./Services/ain/ain.o
+                0x2000463c        0x4 ./Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_4.o
+ .bss.g_keys    0x20004640      0x500 ./Services/ain/ain.o
  .bss.g_dbg_raw
-                0x20006f40       0x80 ./Services/ain/ain.o
+                0x20004b40       0x80 ./Services/ain/ain.o
  .bss.g_dbg_filt
-                0x20006fc0       0x80 ./Services/ain/ain.o
+                0x20004bc0       0x80 ./Services/ain/ain.o
  .bss.g_dbg_pos14
-                0x20007040       0x80 ./Services/ain/ain.o
- .bss.evq       0x200070c0      0x180 ./Services/ain/ain.o
- .bss.evq_w     0x20007240        0x1 ./Services/ain/ain.o
- .bss.evq_r     0x20007241        0x1 ./Services/ain/ain.o
- .bss.g_bank    0x20007242        0x1 ./Services/ain/ain.o
- .bss.g_step    0x20007243        0x1 ./Services/ain/ain.o
+                0x20004c40       0x80 ./Services/ain/ain.o
+ .bss.evq       0x20004cc0      0x180 ./Services/ain/ain.o
+ .bss.evq_w     0x20004e40        0x1 ./Services/ain/ain.o
+ .bss.evq_r     0x20004e41        0x1 ./Services/ain/ain.o
+ .bss.g_bank    0x20004e42        0x1 ./Services/ain/ain.o
+ .bss.g_step    0x20004e43        0x1 ./Services/ain/ain.o
  .bss.g_last_error
-                0x20007244       0x80 ./Services/config_io/config_io.o
+                0x20004e44       0x80 ./Services/config_io/config_io.o
  .bss.g_sd_initialized
-                0x200072c4        0x1 ./Services/config_io/config_io.o
- *fill*         0x200072c5        0x3 
- .bss.g_cfg     0x200072c8       0x16 ./Services/expression/expression.o
- .bss.g_raw     0x200072de        0x2 ./Services/expression/expression.o
- .bss.g_pa      0x200072e0        0x4 ./Services/expression/expression.o
- .bss.g_ms      0x200072e4        0x4 ./Services/expression/expression.o
- .bss.g_filt    0x200072e8        0x4 ./Services/expression/expression.o
+                0x20004ec4        0x1 ./Services/config_io/config_io.o
+ *fill*         0x20004ec5        0x3 
+ .bss.g_cfg     0x20004ec8       0x16 ./Services/expression/expression.o
+ .bss.g_raw     0x20004ede        0x2 ./Services/expression/expression.o
+ .bss.g_pa      0x20004ee0        0x4 ./Services/expression/expression.o
+ .bss.g_ms      0x20004ee4        0x4 ./Services/expression/expression.o
+ .bss.g_filt    0x20004ee8        0x4 ./Services/expression/expression.o
  .bss.g_last_dir
-                0x200072ec        0x1 ./Services/expression/expression.o
- .bss.g_err     0x200072ed        0x1 ./Services/fs/sd_guard.o
- .bss.g_ro      0x200072ee        0x1 ./Services/fs/sd_guard.o
- *fill*         0x200072ef        0x1 
- .bss.g_btn     0x200072f0      0x200 ./Services/input/input.o
- .bss.g_shift   0x200074f0        0x1 ./Services/input/input.o
- *fill*         0x200074f1        0x3 
- .bss.g_cfg     0x200074f4       0x18 ./Services/instrument/instrument_cfg.o
- .bss.g_lfo     0x2000750c       0x60 ./Services/lfo/lfo.o
- .bss.g_livefx  0x2000756c       0x18 ./Services/livefx/livefx.o
- .bss.g_lines   0x20007584      0xc00 ./Services/log/log.o
- .bss.g_head    0x20008184        0x1 ./Services/log/log.o
- .bss.g_count   0x20008185        0x1 ./Services/log/log.o
- *fill*         0x20008186        0x2 
+                0x20004eec        0x1 ./Services/expression/expression.o
+ .bss.g_err     0x20004eed        0x1 ./Services/fs/sd_guard.o
+ .bss.g_ro      0x20004eee        0x1 ./Services/fs/sd_guard.o
+ *fill*         0x20004eef        0x1 
+ .bss.g_btn     0x20004ef0      0x200 ./Services/input/input.o
+ .bss.g_shift   0x200050f0        0x1 ./Services/input/input.o
+ *fill*         0x200050f1        0x3 
+ .bss.g_cfg     0x200050f4       0x18 ./Services/instrument/instrument_cfg.o
+ .bss.g_lfo     0x2000510c       0x60 ./Services/lfo/lfo.o
+ .bss.g_livefx  0x2000516c       0x18 ./Services/livefx/livefx.o
+ .bss.g_lines   0x20005184      0xc00 ./Services/log/log.o
+ .bss.g_head    0x20005d84        0x1 ./Services/log/log.o
+ .bss.g_count   0x20005d85        0x1 ./Services/log/log.o
+ *fill*         0x20005d86        0x2 
  .bss.g_footswitch
-                0x20008188       0x40 ./Services/looper/looper.o
+                0x20005d88       0x40 ./Services/looper/looper.o
  .bss.g_midi_learn
-                0x200081c8       0xa0 ./Services/looper/looper.o
+                0x20005dc8       0xa0 ./Services/looper/looper.o
  .bss.g_midi_learn_count
-                0x20008268        0x1 ./Services/looper/looper.o
- *fill*         0x20008269        0x3 
+                0x20005e68        0x1 ./Services/looper/looper.o
+ *fill*         0x20005e69        0x3 
  .bss.g_midi_learn_state
-                0x2000826c        0x8 ./Services/looper/looper.o
+                0x20005e6c        0x8 ./Services/looper/looper.o
  .bss.g_quick_save_slots
-                0x20008274      0x140 ./Services/looper/looper.o
+                0x20005e74      0x140 ./Services/looper/looper.o
  .bss.g_automation
-                0x200083b4     0x1030 ./Services/looper/looper.o
+                0x20005fb4     0x1030 ./Services/looper/looper.o
  .bss.g_ticks_per_ms_q16
-                0x200093e4        0x4 ./Services/looper/looper.o
+                0x20006fe4        0x4 ./Services/looper/looper.o
  .bss.g_acc_q16
-                0x200093e8        0x4 ./Services/looper/looper.o
- .bss.g_mutex   0x200093ec        0x4 ./Services/looper/looper.o
+                0x20006fe8        0x4 ./Services/looper/looper.o
+ .bss.g_mutex   0x20006fec        0x4 ./Services/looper/looper.o
  .bss.g_track_muted
-                0x200093f0        0x4 ./Services/looper/looper.o
+                0x20006ff0        0x4 ./Services/looper/looper.o
  .bss.g_track_solo
-                0x200093f4        0x4 ./Services/looper/looper.o
+                0x20006ff4        0x4 ./Services/looper/looper.o
  .bss.g_global_transpose
-                0x200093f8        0x1 ./Services/looper/looper.o
- *fill*         0x200093f9        0x3 
- .bss.g_scenes  0x200093fc       0xc0 ./Services/looper/looper.o
+                0x20006ff8        0x1 ./Services/looper/looper.o
+ *fill*         0x20006ff9        0x3 
+ .bss.g_scenes  0x20006ffc       0xc0 ./Services/looper/looper.o
  .bss.g_current_scene
-                0x200094bc        0x1 ./Services/looper/looper.o
- *fill*         0x200094bd        0x3 
+                0x200070bc        0x1 ./Services/looper/looper.o
+ *fill*         0x200070bd        0x3 
  .bss.g_scene_chains
-                0x200094c0        0xc ./Services/looper/looper.o
+                0x200070c0        0xc ./Services/looper/looper.o
  .bss.g_length_constraints
-                0x200094cc        0x8 ./Services/looper/looper.o
+                0x200070cc        0x8 ./Services/looper/looper.o
  .bss.g_track_links
-                0x200094d4        0x4 ./Services/looper/looper.o
- .bss.g_step    0x200094d8       0x20 ./Services/looper/looper.o
+                0x200070d4        0x4 ./Services/looper/looper.o
+ .bss.g_step    0x200070d8       0x20 ./Services/looper/looper.o
  .bss.g_step_size
-                0x200094f8        0x4 ./Services/looper/looper.o
+                0x200070f8        0x4 ./Services/looper/looper.o
  .bss.g_tempo_tap
-                0x200094fc       0x28 ./Services/looper/looper.o
+                0x200070fc       0x28 ./Services/looper/looper.o
  .bss.g_randomize_params
-                0x20009524        0xc ./Services/looper/looper.o
+                0x20007124        0xc ./Services/looper/looper.o
  .bss.g_humanize_params
-                0x20009530       0x10 ./Services/looper/looper.o
- .bss.q         0x20009540      0x400 ./Services/midi/midi_delayq.o
- .bss.g_ctx     0x20009940      0x1a0 ./Services/midi/midi_din.o
+                0x20007130       0x10 ./Services/looper/looper.o
+ .bss.q         0x20007140      0x400 ./Services/midi/midi_delayq.o
+ .bss.g_ctx     0x20007540      0x1a0 ./Services/midi/midi_din.o
  .bss.g_entries
-                0x20009ae0     0xa000 ./Services/patch/patch_adv.o
- .bss.g_count   0x20013ae0        0x4 ./Services/patch/patch_adv.o
- .bss.g_fs      0x20013ae4      0x234 ./Services/patch/patch_sd_mount.o
- .bss.g_pm      0x20013d18     0x114c ./Services/patch/patch_system.o
- .bss.g_cfg     0x20014e64       0x20 ./Services/pressure/pressure_i2c.o
- .bss.g_config  0x20014e84       0x16 ./Services/rhythm_trainer/rhythm_trainer.o
- *fill*         0x20014e9a        0x2 
- .bss.g_stats   0x20014e9c       0x28 ./Services/rhythm_trainer/rhythm_trainer.o
+                0x200076e0     0xa000 ./Services/patch/patch_adv.o
+ .bss.g_count   0x200116e0        0x4 ./Services/patch/patch_adv.o
+ .bss.g_fs      0x200116e4      0x234 ./Services/patch/patch_sd_mount.o
+ .bss.g_pm      0x20011918     0x114c ./Services/patch/patch_system.o
+ .bss.g_cfg     0x20012a64       0x20 ./Services/pressure/pressure_i2c.o
+ .bss.g_config  0x20012a84       0x16 ./Services/rhythm_trainer/rhythm_trainer.o
+ *fill*         0x20012a9a        0x2 
+ .bss.g_stats   0x20012a9c       0x28 ./Services/rhythm_trainer/rhythm_trainer.o
  .bss.g_last_eval
-                0x20014ec4        0x1 ./Services/rhythm_trainer/rhythm_trainer.o
- *fill*         0x20014ec5        0x3 
+                0x20012ac4        0x1 ./Services/rhythm_trainer/rhythm_trainer.o
+ *fill*         0x20012ac5        0x3 
  .bss.g_last_error
-                0x20014ec8        0x4 ./Services/rhythm_trainer/rhythm_trainer.o
- .bss.g_mutex   0x20014ecc        0x4 ./Services/rhythm_trainer/rhythm_trainer.o
- .bss.g_routes  0x20014ed0     0x1400 ./Services/router/router.o
- .bss.g_send    0x200162d0        0x4 ./Services/router/router.o
+                0x20012ac8        0x4 ./Services/rhythm_trainer/rhythm_trainer.o
+ .bss.g_mutex   0x20012acc        0x4 ./Services/rhythm_trainer/rhythm_trainer.o
+ .bss.g_routes  0x20012ad0     0x1400 ./Services/router/router.o
+ .bss.g_send    0x20013ed0        0x4 ./Services/router/router.o
  .bss.g_router_mutex
-                0x200162d4        0x4 ./Services/router/router.o
+                0x20013ed4        0x4 ./Services/router/router.o
  .bss.g_track_map
-                0x200162d8       0x10 ./Services/router_hooks/router_hooks.o
+                0x20013ed8       0x10 ./Services/router_hooks/router_hooks.o
  .bss.g_timestamp_ms
-                0x200162e8        0x4 ./Services/router_hooks/router_hooks.o
- .bss.g_forced  0x200162ec        0x1 ./Services/safe/safe_mode.o
- .bss.g_cfg     0x200162ed        0x1 ./Services/safe/safe_mode.o
- *fill*         0x200162ee        0x2 
- .bss.g         0x200162f0       0x20 ./Services/srio/srio.o
- .bss.g_inited  0x20016310        0x1 ./Services/srio/srio.o
- .bss.g_num_sr  0x20016311        0x1 ./Services/srio/srio.o
+                0x20013ee8        0x4 ./Services/router_hooks/router_hooks.o
+ .bss.g_forced  0x20013eec        0x1 ./Services/safe/safe_mode.o
+ .bss.g_cfg     0x20013eed        0x1 ./Services/safe/safe_mode.o
+ *fill*         0x20013eee        0x2 
+ .bss.g         0x20013ef0       0x20 ./Services/srio/srio.o
+ .bss.g_inited  0x20013f10        0x1 ./Services/srio/srio.o
+ .bss.g_num_sr  0x20013f11        0x1 ./Services/srio/srio.o
  .bss.g_debounce_time
-                0x20016312        0x2 ./Services/srio/srio.o
+                0x20013f12        0x2 ./Services/srio/srio.o
  .bss.g_debounce_ctr
-                0x20016314        0x2 ./Services/srio/srio.o
- *fill*         0x20016316        0x2 
- .bss.g_din     0x20016318        0x4 ./Services/srio/srio.o
+                0x20013f14        0x2 ./Services/srio/srio.o
+ *fill*         0x20013f16        0x2 
+ .bss.g_din     0x20013f18        0x4 ./Services/srio/srio.o
  .bss.g_din_buffer
-                0x2001631c        0x4 ./Services/srio/srio.o
+                0x20013f1c        0x4 ./Services/srio/srio.o
  .bss.g_din_changed
-                0x20016320        0x4 ./Services/srio/srio.o
- .bss.din.3     0x20016324        0x8 ./Services/srio/srio.o
+                0x20013f20        0x4 ./Services/srio/srio.o
+ .bss.din.3     0x20013f24        0x8 ./Services/srio/srio.o
  .bss.din_buffer.2
-                0x2001632c        0x8 ./Services/srio/srio.o
+                0x20013f2c        0x8 ./Services/srio/srio.o
  .bss.din_changed.1
-                0x20016334        0x8 ./Services/srio/srio.o
+                0x20013f34        0x8 ./Services/srio/srio.o
  .bss.dout_dummy.0
-                0x2001633c       0x20 ./Services/srio/srio.o
- .bss.g_reason  0x2001635c        0x1 ./Services/system/boot_reason.o
- *fill*         0x2001635d        0x3 
+                0x20013f3c       0x20 ./Services/srio/srio.o
+ .bss.g_reason  0x20013f5c        0x1 ./Services/system/boot_reason.o
+ *fill*         0x20013f5d        0x3 
  .bss.g_panic_code
-                0x20016360        0x4 ./Services/system/panic.o
+                0x20013f60        0x4 ./Services/system/panic.o
  .bss.g_sd_required
-                0x20016364        0x1 ./Services/system/system_status.o
- *fill*         0x20016365        0x3 
+                0x20013f64        0x1 ./Services/system/system_status.o
+ *fill*         0x20013f65        0x3 
  .bss.s_status_line
-                0x20016368       0x16 ./Services/ui/ui.o
- .bss.g_page    0x2001637e        0x1 ./Services/ui/ui.o
- *fill*         0x2001637f        0x1 
- .bss.g_ms      0x20016380        0x4 ./Services/ui/ui.o
+                0x20013f68       0x16 ./Services/ui/ui.o
+ .bss.g_page    0x20013f7e        0x1 ./Services/ui/ui.o
+ *fill*         0x20013f7f        0x1 
+ .bss.g_ms      0x20013f80        0x4 ./Services/ui/ui.o
  .bss.g_last_flush
-                0x20016384        0x4 ./Services/ui/ui.o
+                0x20013f84        0x4 ./Services/ui/ui.o
  .bss.g_chord_mode
-                0x20016388        0x1 ./Services/ui/ui.o
- *fill*         0x20016389        0x3 
+                0x20013f88        0x1 ./Services/ui/ui.o
+ *fill*         0x20013f89        0x3 
  .bss.g_chord_bank
-                0x2001638c       0x5d ./Services/ui/ui.o
- *fill*         0x200163e9        0x3 
+                0x20013f8c       0x5d ./Services/ui/ui.o
+ *fill*         0x20013fe9        0x3 
  .bss.g_button_state
-                0x200163ec        0xa ./Services/ui/ui.o
+                0x20013fec        0xa ./Services/ui/ui.o
  .bss.g_combo_active
-                0x200163f6        0x1 ./Services/ui/ui.o
- *fill*         0x200163f7        0x1 
- .bss.g_fb      0x200163f8        0x4 ./Services/ui/ui_gfx.o
- .bss.g_w       0x200163fc        0x2 ./Services/ui/ui_gfx.o
- .bss.g_h       0x200163fe        0x2 ./Services/ui/ui_gfx.o
+                0x20013ff6        0x1 ./Services/ui/ui.o
+ *fill*         0x20013ff7        0x1 
+ .bss.g_fb      0x20013ff8        0x4 ./Services/ui/ui_gfx.o
+ .bss.g_w       0x20013ffc        0x2 ./Services/ui/ui_gfx.o
+ .bss.g_h       0x20013ffe        0x2 ./Services/ui/ui_gfx.o
  .bss.g_current_font
-                0x20016400        0x1 ./Services/ui/ui_gfx.o
+                0x20014000        0x1 ./Services/ui/ui_gfx.o
  .bss.current_mode
-                0x20016401        0x1 ./Services/ui/ui_page_automation.o
+                0x20014001        0x1 ./Services/ui/ui_page_automation.o
  .bss.current_workflow
-                0x20016402        0x1 ./Services/ui/ui_page_automation.o
+                0x20014002        0x1 ./Services/ui/ui_page_automation.o
  .bss.scene_chain_enabled
-                0x20016403        0x1 ./Services/ui/ui_page_automation.o
+                0x20014003        0x1 ./Services/ui/ui_page_automation.o
  .bss.chain_from_scene
-                0x20016404        0x1 ./Services/ui/ui_page_automation.o
+                0x20014004        0x1 ./Services/ui/ui_page_automation.o
  .bss.auto_trigger_enabled
-                0x20016405        0x1 ./Services/ui/ui_page_automation.o
+                0x20014005        0x1 ./Services/ui/ui_page_automation.o
  .bss.cursor_pos
-                0x20016406        0x1 ./Services/ui/ui_page_automation.o
+                0x20014006        0x1 ./Services/ui/ui_page_automation.o
  .bss.current_category
-                0x20016407        0x1 ./Services/ui/ui_page_config.o
+                0x20014007        0x1 ./Services/ui/ui_page_config.o
  .bss.current_param
-                0x20016408        0x1 ./Services/ui/ui_page_config.o
+                0x20014008        0x1 ./Services/ui/ui_page_config.o
  .bss.edit_mode
-                0x20016409        0x1 ./Services/ui/ui_page_config.o
+                0x20014009        0x1 ./Services/ui/ui_page_config.o
  .bss.initialized
-                0x2001640a        0x1 ./Services/ui/ui_page_config.o
- *fill*         0x2001640b        0x1 
+                0x2001400a        0x1 ./Services/ui/ui_page_config.o
+ *fill*         0x2001400b        0x1 
  .bss.config_data
-                0x2001640c       0x40 ./Services/ui/ui_page_config.o
+                0x2001400c       0x40 ./Services/ui/ui_page_config.o
  .bss.status_msg
-                0x2001644c       0x40 ./Services/ui/ui_page_config.o
+                0x2001404c       0x40 ./Services/ui/ui_page_config.o
  .bss.status_msg_time
-                0x2001648c        0x4 ./Services/ui/ui_page_config.o
+                0x2001408c        0x4 ./Services/ui/ui_page_config.o
  .bss.selected_track
-                0x20016490        0x1 ./Services/ui/ui_page_livefx.o
+                0x20014090        0x1 ./Services/ui/ui_page_livefx.o
  .bss.selected_param
-                0x20016491        0x1 ./Services/ui/ui_page_livefx.o
+                0x20014091        0x1 ./Services/ui/ui_page_livefx.o
  .bss.edit_mode
-                0x20016492        0x1 ./Services/ui/ui_page_livefx.o
+                0x20014092        0x1 ./Services/ui/ui_page_livefx.o
  .bss.sel_track
-                0x20016493        0x1 ./Services/ui/ui_page_looper.o
- .bss.g_track   0x20016494        0x1 ./Services/ui/ui_page_looper_pianoroll.o
- *fill*         0x20016495        0x3 
- .bss.g_cursor  0x20016498        0x4 ./Services/ui/ui_page_looper_pianoroll.o
- .bss.g_sel     0x2001649c        0x4 ./Services/ui/ui_page_looper_pianoroll.o
- .bss.g_edit    0x200164a0        0x1 ./Services/ui/ui_page_looper_pianoroll.o
- .bss.g_field   0x200164a1        0x1 ./Services/ui/ui_page_looper_pianoroll.o
- *fill*         0x200164a2        0x2 
- .bss.ev        0x200164a4     0x2400 ./Services/ui/ui_page_looper_pianoroll.o
- .bss.ev_n      0x200188a4        0x4 ./Services/ui/ui_page_looper_pianoroll.o
- .bss.notes     0x200188a8     0x1400 ./Services/ui/ui_page_looper_pianoroll.o
- .bss.notes_n   0x20019ca8        0x4 ./Services/ui/ui_page_looper_pianoroll.o
- .bss.active    0x20019cac     0x6000 ./Services/ui/ui_page_looper_pianoroll.o
- .bss.g_track   0x2001fcac        0x1 ./Services/ui/ui_page_looper_timeline.o
- *fill*         0x2001fcad        0x3 
+                0x20014093        0x1 ./Services/ui/ui_page_looper.o
+ .bss.g_track   0x20014094        0x1 ./Services/ui/ui_page_looper_pianoroll.o
+ *fill*         0x20014095        0x3 
+ .bss.g_cursor  0x20014098        0x4 ./Services/ui/ui_page_looper_pianoroll.o
+ .bss.g_sel     0x2001409c        0x4 ./Services/ui/ui_page_looper_pianoroll.o
+ .bss.g_edit    0x200140a0        0x1 ./Services/ui/ui_page_looper_pianoroll.o
+ .bss.g_field   0x200140a1        0x1 ./Services/ui/ui_page_looper_pianoroll.o
+ *fill*         0x200140a2        0x2 
+ .bss.ev        0x200140a4     0x2400 ./Services/ui/ui_page_looper_pianoroll.o
+ .bss.ev_n      0x200164a4        0x4 ./Services/ui/ui_page_looper_pianoroll.o
+ .bss.notes     0x200164a8     0x1400 ./Services/ui/ui_page_looper_pianoroll.o
+ .bss.notes_n   0x200178a8        0x4 ./Services/ui/ui_page_looper_pianoroll.o
+ .bss.active    0x200178ac     0x6000 ./Services/ui/ui_page_looper_pianoroll.o
+ .bss.g_track   0x2001d8ac        0x1 ./Services/ui/ui_page_looper_timeline.o
+ *fill*         0x2001d8ad        0x3 
  .bss.g_cursor_tick
-                0x2001fcb0        0x4 ./Services/ui/ui_page_looper_timeline.o
+                0x2001d8b0        0x4 ./Services/ui/ui_page_looper_timeline.o
  .bss.g_sel_idx
-                0x2001fcb4        0x4 ./Services/ui/ui_page_looper_timeline.o
+                0x2001d8b4        0x4 ./Services/ui/ui_page_looper_timeline.o
  .bss.g_in_edit
-                0x2001fcb8        0x1 ./Services/ui/ui_page_looper_timeline.o
+                0x2001d8b8        0x1 ./Services/ui/ui_page_looper_timeline.o
  .bss.g_edit_field
-                0x2001fcb9        0x1 ./Services/ui/ui_page_looper_timeline.o
- *fill*         0x2001fcba        0x2 
- .bss.snap      0x2001fcbc     0x1800 ./Services/ui/ui_page_looper_timeline.o
- .bss.snap_n    0x200214bc        0x4 ./Services/ui/ui_page_looper_timeline.o
+                0x2001d8b9        0x1 ./Services/ui/ui_page_looper_timeline.o
+ *fill*         0x2001d8ba        0x2 
+ .bss.snap      0x2001d8bc     0x1800 ./Services/ui/ui_page_looper_timeline.o
+ .bss.snap_n    0x2001f0bc        0x4 ./Services/ui/ui_page_looper_timeline.o
  .bss.event_buffer
-                0x200214c0       0x48 ./Services/ui/ui_page_midi_monitor.o
+                0x2001f0c0       0x48 ./Services/ui/ui_page_midi_monitor.o
  .bss.event_count
-                0x20021508        0x1 ./Services/ui/ui_page_midi_monitor.o
- .bss.paused    0x20021509        0x1 ./Services/ui/ui_page_midi_monitor.o
+                0x2001f108        0x1 ./Services/ui/ui_page_midi_monitor.o
+ .bss.paused    0x2001f109        0x1 ./Services/ui/ui_page_midi_monitor.o
  .bss.test_mode
-                0x2002150a        0x1 ./Services/ui/ui_page_oled_test.o
- *fill*         0x2002150b        0x1 
+                0x2001f10a        0x1 ./Services/ui/ui_page_oled_test.o
+ *fill*         0x2001f10b        0x1 
  .bss.last_update
-                0x2002150c        0x4 ./Services/ui/ui_page_oled_test.o
+                0x2001f10c        0x4 ./Services/ui/ui_page_oled_test.o
  .bss.anim_frame
-                0x20021510        0x1 ./Services/ui/ui_page_oled_test.o
- *fill*         0x20021511        0x3 
+                0x2001f110        0x1 ./Services/ui/ui_page_oled_test.o
+ *fill*         0x2001f111        0x3 
  .bss.scroll_offset
-                0x20021514        0x4 ./Services/ui/ui_page_oled_test.o
+                0x2001f114        0x4 ./Services/ui/ui_page_oled_test.o
  .bss.fps_counter
-                0x20021518        0x4 ./Services/ui/ui_page_oled_test.o
+                0x2001f118        0x4 ./Services/ui/ui_page_oled_test.o
  .bss.fps_last_time
-                0x2002151c        0x4 ./Services/ui/ui_page_oled_test.o
+                0x2001f11c        0x4 ./Services/ui/ui_page_oled_test.o
  .bss.fps_value
-                0x20021520        0x4 ./Services/ui/ui_page_oled_test.o
+                0x2001f120        0x4 ./Services/ui/ui_page_oled_test.o
  .bss.auto_cycle_timer
-                0x20021524        0x4 ./Services/ui/ui_page_oled_test.o
- .bss.fps_max   0x20021528        0x4 ./Services/ui/ui_page_oled_test.o
+                0x2001f124        0x4 ./Services/ui/ui_page_oled_test.o
+ .bss.fps_max   0x2001f128        0x4 ./Services/ui/ui_page_oled_test.o
  .bss.frame_time_sum
-                0x2002152c        0x4 ./Services/ui/ui_page_oled_test.o
+                0x2001f12c        0x4 ./Services/ui/ui_page_oled_test.o
  .bss.frame_time_count
-                0x20021530        0x4 ./Services/ui/ui_page_oled_test.o
+                0x2001f130        0x4 ./Services/ui/ui_page_oled_test.o
  .bss.last_frame_time
-                0x20021534        0x4 ./Services/ui/ui_page_oled_test.o
+                0x2001f134        0x4 ./Services/ui/ui_page_oled_test.o
  .bss.s_edit_mode
-                0x20021538        0x1 ./Services/ui/ui_page_rhythm.o
+                0x2001f138        0x1 ./Services/ui/ui_page_rhythm.o
  .bss.selected_scene
-                0x20021539        0x1 ./Services/ui/ui_page_song.o
+                0x2001f139        0x1 ./Services/ui/ui_page_song.o
  .bss.selected_track
-                0x2002153a        0x1 ./Services/ui/ui_page_song.o
- *fill*         0x2002153b        0x1 
+                0x2001f13a        0x1 ./Services/ui/ui_page_song.o
+ *fill*         0x2001f13b        0x1 
  .bss.sysex_buffer
-                0x2002153c       0x80 ./Services/ui/ui_page_sysex.o
+                0x2001f13c       0x80 ./Services/ui/ui_page_sysex.o
  .bss.sysex_length
-                0x200215bc        0x2 ./Services/ui/ui_page_sysex.o
+                0x2001f1bc        0x2 ./Services/ui/ui_page_sysex.o
  .bss.sysex_captured
-                0x200215be        0x1 ./Services/ui/ui_page_sysex.o
- *fill*         0x200215bf        0x1 
+                0x2001f1be        0x1 ./Services/ui/ui_page_sysex.o
+ *fill*         0x2001f1bf        0x1 
  .bss.scroll_offset
-                0x200215c0        0x2 ./Services/ui/ui_page_sysex.o
- .bss.s_loaded  0x200215c2        0x1 ./Services/ui/ui_state.o
- .bss.s_dirty   0x200215c3        0x1 ./Services/ui/ui_state.o
- .bss.s_ms      0x200215c4        0x4 ./Services/ui/ui_state.o
+                0x2001f1c0        0x2 ./Services/ui/ui_page_sysex.o
+ .bss.s_loaded  0x2001f1c2        0x1 ./Services/ui/ui_state.o
+ .bss.s_dirty   0x2001f1c3        0x1 ./Services/ui/ui_state.o
+ .bss.s_ms      0x2001f1c4        0x4 ./Services/ui/ui_state.o
  .bss.s_last_save_ms
-                0x200215c8        0x4 ./Services/ui/ui_state.o
+                0x2001f1c8        0x4 ./Services/ui/ui_state.o
  .bss.sysex_buffers
-                0x200215cc      0x410 ./Services/usb_midi/usb_midi.o
- .bss.g_z       0x200219dc       0x30 ./Services/zones/zones_cfg.o
+                0x2001f1cc      0x410 ./Services/usb_midi/usb_midi.o
+ .bss.g_z       0x2001f5dc       0x30 ./Services/zones/zones_cfg.o
  .bss.hUsbDeviceFS
-                0x20021a0c      0x2dc ./USB_DEVICE/App/usb_device.o
-                0x20021a0c                hUsbDeviceFS
+                0x2001f60c      0x2dc ./USB_DEVICE/App/usb_device.o
+                0x2001f60c                hUsbDeviceFS
  .bss.USBD_StrDesc
-                0x20021ce8      0x200 ./USB_DEVICE/App/usbd_desc.o
-                0x20021ce8                USBD_StrDesc
+                0x2001f8e8      0x200 ./USB_DEVICE/App/usbd_desc.o
+                0x2001f8e8                USBD_StrDesc
  .bss.midi_class_data
-                0x20021ee8      0x20c ./USB_DEVICE/Class/MIDI/Src/usbd_midi.o
+                0x2001fae8      0x20c ./USB_DEVICE/Class/MIDI/Src/usbd_midi.o
  .bss.midi_fops
-                0x200220f4        0x4 ./USB_DEVICE/Class/MIDI/Src/usbd_midi.o
+                0x2001fcf4        0x4 ./USB_DEVICE/Class/MIDI/Src/usbd_midi.o
  .bss.hpcd_USB_OTG_FS
-                0x200220f8      0x4e4 ./USB_DEVICE/Target/usbd_conf.o
-                0x200220f8                hpcd_USB_OTG_FS
+                0x2001fcf8      0x4e4 ./USB_DEVICE/Target/usbd_conf.o
+                0x2001fcf8                hpcd_USB_OTG_FS
  .bss.__malloc_sbrk_start
-                0x200225dc        0x4 J:/soft/STM32CubeIDE_2.0.0/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.13.3.rel1.win32_1.0.100.202509120712/tools/bin/../lib/gcc/arm-none-eabi/13.3.1/../../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard\libc_nano.a(libc_a-mallocr.o)
-                0x200225dc                __malloc_sbrk_start
+                0x200201dc        0x4 J:/soft/STM32CubeIDE_2.0.0/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.13.3.rel1.win32_1.0.100.202509120712/tools/bin/../lib/gcc/arm-none-eabi/13.3.1/../../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard\libc_nano.a(libc_a-mallocr.o)
+                0x200201dc                __malloc_sbrk_start
  .bss.__malloc_free_list
-                0x200225e0        0x4 J:/soft/STM32CubeIDE_2.0.0/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.13.3.rel1.win32_1.0.100.202509120712/tools/bin/../lib/gcc/arm-none-eabi/13.3.1/../../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard\libc_nano.a(libc_a-mallocr.o)
-                0x200225e0                __malloc_free_list
- .bss.__sf      0x200225e4      0x138 J:/soft/STM32CubeIDE_2.0.0/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.13.3.rel1.win32_1.0.100.202509120712/tools/bin/../lib/gcc/arm-none-eabi/13.3.1/../../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard\libc_nano.a(libc_a-findfp.o)
-                0x200225e4                __sf
+                0x200201e0        0x4 J:/soft/STM32CubeIDE_2.0.0/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.13.3.rel1.win32_1.0.100.202509120712/tools/bin/../lib/gcc/arm-none-eabi/13.3.1/../../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard\libc_nano.a(libc_a-mallocr.o)
+                0x200201e0                __malloc_free_list
+ .bss.__sf      0x200201e4      0x138 J:/soft/STM32CubeIDE_2.0.0/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.13.3.rel1.win32_1.0.100.202509120712/tools/bin/../lib/gcc/arm-none-eabi/13.3.1/../../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard\libc_nano.a(libc_a-findfp.o)
+                0x200201e4                __sf
  .bss.__stdio_exit_handler
-                0x2002271c        0x4 J:/soft/STM32CubeIDE_2.0.0/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.13.3.rel1.win32_1.0.100.202509120712/tools/bin/../lib/gcc/arm-none-eabi/13.3.1/../../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard\libc_nano.a(libc_a-findfp.o)
-                0x2002271c                __stdio_exit_handler
- .bss.errno     0x20022720        0x4 J:/soft/STM32CubeIDE_2.0.0/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.13.3.rel1.win32_1.0.100.202509120712/tools/bin/../lib/gcc/arm-none-eabi/13.3.1/../../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard\libc_nano.a(libc_a-reent.o)
-                0x20022720                errno
+                0x2002031c        0x4 J:/soft/STM32CubeIDE_2.0.0/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.13.3.rel1.win32_1.0.100.202509120712/tools/bin/../lib/gcc/arm-none-eabi/13.3.1/../../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard\libc_nano.a(libc_a-findfp.o)
+                0x2002031c                __stdio_exit_handler
+ .bss.errno     0x20020320        0x4 J:/soft/STM32CubeIDE_2.0.0/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.13.3.rel1.win32_1.0.100.202509120712/tools/bin/../lib/gcc/arm-none-eabi/13.3.1/../../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard\libc_nano.a(libc_a-reent.o)
+                0x20020320                errno
  .bss.__lock___malloc_recursive_mutex
-                0x20022724        0x1 J:/soft/STM32CubeIDE_2.0.0/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.13.3.rel1.win32_1.0.100.202509120712/tools/bin/../lib/gcc/arm-none-eabi/13.3.1/../../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard\libc_nano.a(libc_a-lock.o)
-                0x20022724                __lock___malloc_recursive_mutex
+                0x20020324        0x1 J:/soft/STM32CubeIDE_2.0.0/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.13.3.rel1.win32_1.0.100.202509120712/tools/bin/../lib/gcc/arm-none-eabi/13.3.1/../../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard\libc_nano.a(libc_a-lock.o)
+                0x20020324                __lock___malloc_recursive_mutex
  .bss.__lock___sfp_recursive_mutex
-                0x20022725        0x1 J:/soft/STM32CubeIDE_2.0.0/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.13.3.rel1.win32_1.0.100.202509120712/tools/bin/../lib/gcc/arm-none-eabi/13.3.1/../../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard\libc_nano.a(libc_a-lock.o)
-                0x20022725                __lock___sfp_recursive_mutex
+                0x20020325        0x1 J:/soft/STM32CubeIDE_2.0.0/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.13.3.rel1.win32_1.0.100.202509120712/tools/bin/../lib/gcc/arm-none-eabi/13.3.1/../../../../arm-none-eabi/lib/thumb/v7e-m+fp/hard\libc_nano.a(libc_a-lock.o)
+                0x20020325                __lock___sfp_recursive_mutex
  *(COMMON)
-                0x20022728                        . = ALIGN (0x4)
- *fill*         0x20022726        0x2 
-                0x20022728                        _ebss = .
-                0x20022728                        __bss_end__ = _ebss
+                0x20020328                        . = ALIGN (0x4)
+ *fill*         0x20020326        0x2 
+                0x20020328                        _ebss = .
+                0x20020328                        __bss_end__ = _ebss
 
 ._user_heap_stack
-                0x20022728      0x600
-                0x20022728                        . = ALIGN (0x8)
+                0x20020328      0x600
+                0x20020328                        . = ALIGN (0x8)
                 [!provide]                        PROVIDE (end = .)
-                0x20022728                        PROVIDE (_end = .)
-                0x20022928                        . = (. + _Min_Heap_Size)
- *fill*         0x20022728      0x200 
-                0x20022d28                        . = (. + _Min_Stack_Size)
- *fill*         0x20022928      0x400 
-                0x20022d28                        . = ALIGN (0x8)
+                0x20020328                        PROVIDE (_end = .)
+                0x20020528                        . = (. + _Min_Heap_Size)
+ *fill*         0x20020328      0x200 
+                0x20020928                        . = (. + _Min_Stack_Size)
+ *fill*         0x20020528      0x400 
+                0x20020928                        . = ALIGN (0x8)
 
 /DISCARD/
  libc.a(*)
@@ -33130,230 +33130,230 @@ LOAD J:/soft/STM32CubeIDE_2.0.0/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.ex
  .debug_line    0x0006b130      0xe1e ./USB_DEVICE/Class/MIDI/Src/usbd_midi.o
  .debug_line    0x0006bf4e     0x1030 ./USB_DEVICE/Target/usbd_conf.o
 
-.debug_str      0x00000000    0xfd32f
- .debug_str     0x00000000    0xfd32f ./App/ain_midi_task.o
+.debug_str      0x00000000    0xfd32e
+ .debug_str     0x00000000    0xfd32e ./App/ain_midi_task.o
                                0x80b2 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./App/app_entry.o
-                               0xbc64 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./App/app_init.o
+ .debug_str     0x000fd32e        0x0 ./App/app_entry.o
+                               0xbc63 (size before relaxing)
+ .debug_str     0x000fd32e        0x0 ./App/app_init.o
                               0xdcb4e (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./App/calibration_task.o
-                              0xe138a (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./App/i2c_scan.o
+ .debug_str     0x000fd32e        0x0 ./App/calibration_task.o
+                              0xe1389 (size before relaxing)
+ .debug_str     0x000fd32e        0x0 ./App/i2c_scan.o
                                0x3dfc (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./App/midi_io_task.o
+ .debug_str     0x000fd32e        0x0 ./App/midi_io_task.o
                                0x49f9 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./App/pressure_task.o
+ .debug_str     0x000fd32e        0x0 ./App/pressure_task.o
                                0x4958 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./App/tests/module_tests.o
+ .debug_str     0x000fd32e        0x0 ./App/tests/module_tests.o
                               0xdfb4c (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./App/tests/test_debug.o
+ .debug_str     0x000fd32e        0x0 ./App/tests/test_debug.o
                               0xdbc51 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./App/tests/test_midi_din_livefx_automated.o
+ .debug_str     0x000fd32e        0x0 ./App/tests/test_midi_din_livefx_automated.o
                               0xdb399 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./App/tests/test_oled_mirror.o
+ .debug_str     0x000fd32e        0x0 ./App/tests/test_oled_mirror.o
                                0x7c34 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Core/Src/main.o
-                              0xe3cce (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Core/Src/stm32f4xx_hal_msp.o
+ .debug_str     0x000fd32e        0x0 ./Core/Src/main.o
+                              0xe3ccd (size before relaxing)
+ .debug_str     0x000fd32e        0x0 ./Core/Src/stm32f4xx_hal_msp.o
                               0xd93e8 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Core/Src/stm32f4xx_hal_timebase_tim.o
+ .debug_str     0x000fd32e        0x0 ./Core/Src/stm32f4xx_hal_timebase_tim.o
                               0xd79e2 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Core/Src/stm32f4xx_it.o
+ .debug_str     0x000fd32e        0x0 ./Core/Src/stm32f4xx_it.o
                               0xd84a4 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Core/Src/syscalls.o
+ .debug_str     0x000fd32e        0x0 ./Core/Src/syscalls.o
                                0x99f6 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Core/Src/sysmem.o
+ .debug_str     0x000fd32e        0x0 ./Core/Src/sysmem.o
                                0x7794 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Core/Src/system_stm32f4xx.o
+ .debug_str     0x000fd32e        0x0 ./Core/Src/system_stm32f4xx.o
                               0xd6eeb (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Core/Startup/startup_stm32f407vgtx.o
+ .debug_str     0x000fd32e        0x0 ./Core/Startup/startup_stm32f407vgtx.o
                                  0x6d (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal.o
+ .debug_str     0x000fd32e        0x0 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal.o
                               0xd7a6f (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_adc.o
+ .debug_str     0x000fd32e        0x0 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_adc.o
                               0xd74d8 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_can.o
+ .debug_str     0x000fd32e        0x0 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_can.o
                               0xd75e5 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_cortex.o
+ .debug_str     0x000fd32e        0x0 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_cortex.o
                               0xd77eb (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dma.o
+ .debug_str     0x000fd32e        0x0 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_dma.o
                               0xd7305 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_gpio.o
+ .debug_str     0x000fd32e        0x0 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_gpio.o
                               0xd7066 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_i2c.o
+ .debug_str     0x000fd32e        0x0 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_i2c.o
                               0xd7f09 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_pcd.o
+ .debug_str     0x000fd32e        0x0 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_pcd.o
                               0xd79c9 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_pcd_ex.o
+ .debug_str     0x000fd32e        0x0 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_pcd_ex.o
                               0xd71a0 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_rcc.o
+ .debug_str     0x000fd32e        0x0 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_rcc.o
                               0xd731f (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_spi.o
+ .debug_str     0x000fd32e        0x0 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_spi.o
                               0xd77a9 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_tim.o
+ .debug_str     0x000fd32e        0x0 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_tim.o
                               0xd8275 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_tim_ex.o
+ .debug_str     0x000fd32e        0x0 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_tim_ex.o
                               0xd7a81 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_uart.o
+ .debug_str     0x000fd32e        0x0 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_hal_uart.o
                               0xd7900 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_ll_usb.o
+ .debug_str     0x000fd32e        0x0 ./Drivers/STM32F4xx_HAL_Driver/Src/stm32f4xx_ll_usb.o
                               0xd78a4 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./FATFS/App/fatfs.o
-                              0xdfc2f (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./FATFS/Target/user_diskio.o
-                              0xdfba5 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Hal/ainser64_hw/hal_ainser64_hw_step.o
+ .debug_str     0x000fd32e        0x0 ./FATFS/App/fatfs.o
+                              0xdfc2e (size before relaxing)
+ .debug_str     0x000fd32e        0x0 ./FATFS/Target/user_diskio.o
+                              0xdfba4 (size before relaxing)
+ .debug_str     0x000fd32e        0x0 ./Hal/ainser64_hw/hal_ainser64_hw_step.o
                               0xdaf4d (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Hal/delay_us.o
+ .debug_str     0x000fd32e        0x0 ./Hal/delay_us.o
                               0xd7a54 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Hal/i2c_hal.o
+ .debug_str     0x000fd32e        0x0 ./Hal/i2c_hal.o
                               0xd7ed8 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Hal/spi_bus.o
+ .debug_str     0x000fd32e        0x0 ./Hal/spi_bus.o
                               0xd8264 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Hal/oled_ssd1322/oled_ssd1322.o
+ .debug_str     0x000fd32e        0x0 ./Hal/oled_ssd1322/oled_ssd1322.o
                               0xdafa1 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Hal/uart_midi/hal_uart_midi.o
+ .debug_str     0x000fd32e        0x0 ./Hal/uart_midi/hal_uart_midi.o
                               0xdb1b4 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_core.o
+ .debug_str     0x000fd32e        0x0 ./Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_core.o
                               0xdb955 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ctlreq.o
+ .debug_str     0x000fd32e        0x0 ./Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ctlreq.o
                               0xdb780 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ioreq.o
+ .debug_str     0x000fd32e        0x0 ./Middlewares/ST/STM32_USB_Device_Library/Core/Src/usbd_ioreq.o
                               0xdb655 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Middlewares/Third_Party/FatFs/src/diskio.o
-                              0xdfb29 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Middlewares/Third_Party/FatFs/src/ff.o
-                              0xe0e2c (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Middlewares/Third_Party/FatFs/src/ff_gen_drv.o
-                              0xdfb7a (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Middlewares/Third_Party/FatFs/src/option/syscall.o
-                              0xdfa1a (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.o
-                              0xe1ee6 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Middlewares/Third_Party/FreeRTOS/Source/list.o
-                               0xac45 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Middlewares/Third_Party/FreeRTOS/Source/queue.o
-                               0xc785 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Middlewares/Third_Party/FreeRTOS/Source/tasks.o
-                               0xd58a (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Middlewares/Third_Party/FreeRTOS/Source/timers.o
-                               0xcfd6 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F/port.o
-                               0xb983 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_4.o
-                               0xb587 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Services/ain/ain.o
+ .debug_str     0x000fd32e        0x0 ./Middlewares/Third_Party/FatFs/src/diskio.o
+                              0xdfb28 (size before relaxing)
+ .debug_str     0x000fd32e        0x0 ./Middlewares/Third_Party/FatFs/src/ff.o
+                              0xe0e2b (size before relaxing)
+ .debug_str     0x000fd32e        0x0 ./Middlewares/Third_Party/FatFs/src/ff_gen_drv.o
+                              0xdfb79 (size before relaxing)
+ .debug_str     0x000fd32e        0x0 ./Middlewares/Third_Party/FatFs/src/option/syscall.o
+                              0xdfa19 (size before relaxing)
+ .debug_str     0x000fd32e        0x0 ./Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.o
+                              0xe1ee5 (size before relaxing)
+ .debug_str     0x000fd32e        0x0 ./Middlewares/Third_Party/FreeRTOS/Source/list.o
+                               0xac44 (size before relaxing)
+ .debug_str     0x000fd32e        0x0 ./Middlewares/Third_Party/FreeRTOS/Source/queue.o
+                               0xc784 (size before relaxing)
+ .debug_str     0x000fd32e        0x0 ./Middlewares/Third_Party/FreeRTOS/Source/tasks.o
+                               0xd589 (size before relaxing)
+ .debug_str     0x000fd32e        0x0 ./Middlewares/Third_Party/FreeRTOS/Source/timers.o
+                               0xcfd5 (size before relaxing)
+ .debug_str     0x000fd32e        0x0 ./Middlewares/Third_Party/FreeRTOS/Source/portable/GCC/ARM_CM4F/port.o
+                               0xb982 (size before relaxing)
+ .debug_str     0x000fd32e        0x0 ./Middlewares/Third_Party/FreeRTOS/Source/portable/MemMang/heap_4.o
+                               0xb586 (size before relaxing)
+ .debug_str     0x000fd32e        0x0 ./Services/ain/ain.o
                                0x8049 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Services/config/config.o
-                              0xe0d22 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Services/config_io/config_io.o
-                              0xe081b (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Services/expression/expression.o
+ .debug_str     0x000fd32e        0x0 ./Services/config/config.o
+                              0xe0d21 (size before relaxing)
+ .debug_str     0x000fd32e        0x0 ./Services/config_io/config_io.o
+                              0xe081a (size before relaxing)
+ .debug_str     0x000fd32e        0x0 ./Services/expression/expression.o
                                0x8003 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Services/expression/expression_cfg.o
-                              0xe062e (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Services/fs/fs_atomic.o
-                              0xdfc27 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Services/fs/sd_guard.o
+ .debug_str     0x000fd32e        0x0 ./Services/expression/expression_cfg.o
+                              0xe062d (size before relaxing)
+ .debug_str     0x000fd32e        0x0 ./Services/fs/fs_atomic.o
+                              0xdfc26 (size before relaxing)
+ .debug_str     0x000fd32e        0x0 ./Services/fs/sd_guard.o
                                0x3e1a (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Services/humanize/humanize.o
+ .debug_str     0x000fd32e        0x0 ./Services/humanize/humanize.o
                                0x3f56 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Services/input/input.o
+ .debug_str     0x000fd32e        0x0 ./Services/input/input.o
                                0x74f8 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Services/instrument/instrument_cfg.o
-                              0xe0772 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Services/lfo/lfo.o
+ .debug_str     0x000fd32e        0x0 ./Services/instrument/instrument_cfg.o
+                              0xe0771 (size before relaxing)
+ .debug_str     0x000fd32e        0x0 ./Services/lfo/lfo.o
                                0x7fde (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Services/livefx/livefx.o
+ .debug_str     0x000fd32e        0x0 ./Services/livefx/livefx.o
                                0x761f (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Services/log/log.o
-                              0xe0399 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Services/looper/looper.o
-                              0xe294e (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Services/midi/midi_delayq.o
+ .debug_str     0x000fd32e        0x0 ./Services/log/log.o
+                              0xe0398 (size before relaxing)
+ .debug_str     0x000fd32e        0x0 ./Services/looper/looper.o
+                              0xe294d (size before relaxing)
+ .debug_str     0x000fd32e        0x0 ./Services/midi/midi_delayq.o
                                0x74c4 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Services/midi/midi_din.o
+ .debug_str     0x000fd32e        0x0 ./Services/midi/midi_din.o
                               0xdaff0 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Services/patch/patch.o
+ .debug_str     0x000fd32e        0x0 ./Services/patch/patch.o
                                0x3e52 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Services/patch/patch_adv.o
-                              0xe0d6e (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Services/patch/patch_manager.o
-                              0xdff4e (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Services/patch/patch_sd_mount.o
-                              0xdfbdf (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Services/patch/patch_state.o
-                              0xe0bb6 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Services/patch/patch_system.o
+ .debug_str     0x000fd32e        0x0 ./Services/patch/patch_adv.o
+                              0xe0d6d (size before relaxing)
+ .debug_str     0x000fd32e        0x0 ./Services/patch/patch_manager.o
+                              0xdff4d (size before relaxing)
+ .debug_str     0x000fd32e        0x0 ./Services/patch/patch_sd_mount.o
+                              0xdfbde (size before relaxing)
+ .debug_str     0x000fd32e        0x0 ./Services/patch/patch_state.o
+                              0xe0bb5 (size before relaxing)
+ .debug_str     0x000fd32e        0x0 ./Services/patch/patch_system.o
                                0x84b8 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Services/pressure/pressure_i2c.o
-                              0xe0f62 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Services/rhythm_trainer/rhythm_trainer.o
+ .debug_str     0x000fd32e        0x0 ./Services/pressure/pressure_i2c.o
+                              0xe0f61 (size before relaxing)
+ .debug_str     0x000fd32e        0x0 ./Services/rhythm_trainer/rhythm_trainer.o
                                0x7cdf (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Services/router/router.o
+ .debug_str     0x000fd32e        0x0 ./Services/router/router.o
                                0x78a4 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Services/router/router_send.o
+ .debug_str     0x000fd32e        0x0 ./Services/router/router_send.o
                               0xd7bf8 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Services/router_hooks/router_hooks.o
+ .debug_str     0x000fd32e        0x0 ./Services/router_hooks/router_hooks.o
                                0x777e (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Services/safe/safe_mode.o
+ .debug_str     0x000fd32e        0x0 ./Services/safe/safe_mode.o
                                0x3ebb (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Services/scale/scale.o
+ .debug_str     0x000fd32e        0x0 ./Services/scale/scale.o
                                0x75a4 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Services/srio/srio.o
+ .debug_str     0x000fd32e        0x0 ./Services/srio/srio.o
                               0xdba7f (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Services/system/boot_reason.o
+ .debug_str     0x000fd32e        0x0 ./Services/system/boot_reason.o
                               0xd7ade (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Services/system/panic.o
+ .debug_str     0x000fd32e        0x0 ./Services/system/panic.o
                               0xd7a17 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Services/system/system_status.o
+ .debug_str     0x000fd32e        0x0 ./Services/system/system_status.o
                                0x3e42 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Services/ui/chord_cfg.o
-                              0xe0689 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Services/ui/ui.o
+ .debug_str     0x000fd32e        0x0 ./Services/ui/chord_cfg.o
+                              0xe0688 (size before relaxing)
+ .debug_str     0x000fd32e        0x0 ./Services/ui/ui.o
                                0x80d2 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Services/ui/ui_gfx.o
+ .debug_str     0x000fd32e        0x0 ./Services/ui/ui_gfx.o
                                0x7608 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Services/ui/ui_page_automation.o
+ .debug_str     0x000fd32e        0x0 ./Services/ui/ui_page_automation.o
                                0x7e45 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Services/ui/ui_page_config.o
+ .debug_str     0x000fd32e        0x0 ./Services/ui/ui_page_config.o
                                0x7f23 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Services/ui/ui_page_livefx.o
+ .debug_str     0x000fd32e        0x0 ./Services/ui/ui_page_livefx.o
                                0x7d75 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Services/ui/ui_page_looper.o
+ .debug_str     0x000fd32e        0x0 ./Services/ui/ui_page_looper.o
                                0x7d17 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Services/ui/ui_page_looper_pianoroll.o
+ .debug_str     0x000fd32e        0x0 ./Services/ui/ui_page_looper_pianoroll.o
                                0x7f7e (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Services/ui/ui_page_looper_timeline.o
+ .debug_str     0x000fd32e        0x0 ./Services/ui/ui_page_looper_timeline.o
                                0x7eb5 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Services/ui/ui_page_midi_monitor.o
+ .debug_str     0x000fd32e        0x0 ./Services/ui/ui_page_midi_monitor.o
                                0x7b89 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Services/ui/ui_page_oled_test.o
+ .debug_str     0x000fd32e        0x0 ./Services/ui/ui_page_oled_test.o
                                0x7fc9 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Services/ui/ui_page_rhythm.o
+ .debug_str     0x000fd32e        0x0 ./Services/ui/ui_page_rhythm.o
                                0x80ac (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Services/ui/ui_page_song.o
+ .debug_str     0x000fd32e        0x0 ./Services/ui/ui_page_song.o
                                0x7cb9 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Services/ui/ui_page_sysex.o
+ .debug_str     0x000fd32e        0x0 ./Services/ui/ui_page_sysex.o
                                0x7b4f (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Services/ui/ui_state.o
-                              0xe0bf6 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Services/usb_midi/usb_midi.o
+ .debug_str     0x000fd32e        0x0 ./Services/ui/ui_state.o
+                              0xe0bf5 (size before relaxing)
+ .debug_str     0x000fd32e        0x0 ./Services/usb_midi/usb_midi.o
                               0xdbfee (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Services/velocity/velocity.o
+ .debug_str     0x000fd32e        0x0 ./Services/velocity/velocity.o
                                0x7c5e (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Services/watchdog/watchdog.o
+ .debug_str     0x000fd32e        0x0 ./Services/watchdog/watchdog.o
                               0xd7a36 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./Services/zones/zones_cfg.o
-                              0xe063a (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./USB_DEVICE/App/usb_device.o
+ .debug_str     0x000fd32e        0x0 ./Services/zones/zones_cfg.o
+                              0xe0639 (size before relaxing)
+ .debug_str     0x000fd32e        0x0 ./USB_DEVICE/App/usb_device.o
                               0xdc445 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./USB_DEVICE/App/usbd_desc.o
+ .debug_str     0x000fd32e        0x0 ./USB_DEVICE/App/usbd_desc.o
                               0xdb536 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./USB_DEVICE/Class/MIDI/Src/usbd_midi.o
+ .debug_str     0x000fd32e        0x0 ./USB_DEVICE/Class/MIDI/Src/usbd_midi.o
                               0xdc123 (size before relaxing)
- .debug_str     0x000fd32f        0x0 ./USB_DEVICE/Target/usbd_conf.o
+ .debug_str     0x000fd32e        0x0 ./USB_DEVICE/Target/usbd_conf.o
                               0xdcd06 (size before relaxing)
 
 .comment        0x00000000       0x43
