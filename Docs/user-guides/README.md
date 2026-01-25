@@ -1,5 +1,7 @@
 # User Guides
 
+> 🇫🇷 [Version française disponible](README_FR.md)
+
 Documentation for end-user features and functionality of MidiCore.
 
 ## Available Guides

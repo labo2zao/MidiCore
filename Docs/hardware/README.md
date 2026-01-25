@@ -1,5 +1,7 @@
 # Hardware Documentation
 
+> 🇫🇷 [Version française disponible](README_FR.md)
+
 This section contains hardware setup, wiring guides, and pinout information for MidiCore.
 
 ## Hardware Guides

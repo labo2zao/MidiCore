@@ -1,5 +1,7 @@
 # Development Documentation
 
+> 🇫🇷 [Version française disponible](README_FR.md)
+
 Technical documentation, implementation details, and compatibility information for MidiCore developers.
 
 ## Implementation Details
