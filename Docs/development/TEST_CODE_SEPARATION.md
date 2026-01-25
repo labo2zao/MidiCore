@@ -34,18 +34,18 @@ void test_function(void) {
 
 | File | Type | Status | Guard | Notes |
 |------|------|--------|-------|-------|
-| `ain_raw_debug_task.c/h` | Debug Task | ⚠️ TODO | Needs `#ifdef MODULE_TEST_AIN_RAW` | AIN raw value debug output |
-| `midi_din_debug_task.c/h` | Debug Task | ⚠️ TODO | Needs `#ifdef MODULE_TEST_MIDI_DIN_DEBUG` | MIDI DIN traffic debug |
-| `din_selftest.c/h` | Test | ⚠️ TODO | Needs `#ifdef MODULE_TEST_DIN_SELFTEST` | DIN self-test (deprecated?) |
+| `ain_raw_debug_task.c/h` | Debug Task | ✅ DONE | MODULE_ENABLE_AIN_RAW_DEBUG | Header marked TEST ONLY (commit 71036a1) |
+| `midi_din_debug_task.c/h` | Debug Task | ✅ DONE | DEBUG_MIDI_DIN_MONITOR | Header marked TEST ONLY (commit 71036a1) |
+| `din_selftest.c/h` | Test | ✅ REMOVED | N/A | Deprecated - replaced by MODULE_TEST_SRIO (commit 8ddd4ba) |
 
 ### ✅ HAL Layer
 
 | File | Function | Status | Guard | Notes |
 |------|----------|--------|-------|-------|
-| `oled_ssd1322.h` | `oled_init()` | ✅ DONE | Already marked "FOR TESTING ONLY" | Simple MIOS32 test init |
-| `oled_ssd1322.h` | `oled_init_progressive()` | ✅ DONE | Already marked "FOR TESTING ONLY" | Debug step-by-step init |
-| `oled_ssd1322.h` | `oled_test_*()` functions | ⚠️ TODO | Need `#ifdef MODULE_TEST_OLED` | 9 test pattern functions |
-| `oled_ssd1322.c` | Test function implementations | ⚠️ TODO | Need `#ifdef MODULE_TEST_OLED` | Implementations of above |
+| `oled_ssd1322.h` | `oled_init()` | ✅ DONE | MODULE_TEST_OLED | Simple MIOS32 test init (commit bf202f4) |
+| `oled_ssd1322.h` | `oled_init_progressive()` | ✅ DONE | MODULE_TEST_OLED | Debug step-by-step init (commit bf202f4) |
+| `oled_ssd1322.h` | `oled_test_*()` functions | ✅ DONE | MODULE_TEST_OLED | 9 test pattern functions (commit bf202f4) |
+| `oled_ssd1322.c` | Test function implementations | ✅ DONE | MODULE_TEST_OLED | All test implementations guarded (commit bf202f4) |
 
 ### ✅ Services Layer
 
