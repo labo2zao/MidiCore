@@ -4,9 +4,9 @@ Comprehensive MIDI processing modules designed specifically for accordion makers
 
 ## Overview
 
-These modules implement accordion-specific MIDI features including bellows expression, musette tuning, Stradella bass system, and register coupling. Designed for both traditional acoustic-MIDI hybrid accordions and pure MIDI accordions.
+These modules implement accordion-specific MIDI features including bellows expression, musette tuning, Stradella bass system, register coupling, bellows shake detection, and more. Designed for both traditional acoustic-MIDI hybrid accordions and pure MIDI accordions.
 
-## Modules
+## Modules (6 Total)
 
 ### 1. Bellows Expression (`bellows_expression/`)
 
@@ -146,6 +146,105 @@ bass_chord_process_button(0, 42, 100, 0);  // Major D chord
 
 ---
 
+### 4. Register Coupling (`register_coupling/`)
+
+**Automatic voice combination management and register switching**
+
+**Features:**
+- 16 standard accordion registers:
+  - **Master**: All reeds (L-L-M-M-H) - full sound
+  - **Musette**: L-M-H - classic wet musette
+  - **Bandoneon**: L-M - dry, dark
+  - **Accordion**: M-M - slightly wet
+  - **Violin**: M-H - bright
+  - **Clarinet**: M - single reed, clear
+  - **Bassoon**: L - single reed, dark
+  - **Piccolo**: H - single reed, bright
+  - **Organ**: M-M-H - organ-like
+  - **Harmonium**: L-M-M-H - full, slightly wet
+  - **Oboe**: L-H - hollow
+  - **Flute**: M-H - airy
+  - **Custom 1-4**: User-defined combinations
+- Smooth register transitions (crossfade)
+- Configurable transition time (10-500ms)
+- Register memory (remembers last register per key range)
+- Foot switch support (next/previous register)
+- Reed set management (L1, L2, M1, M2, H)
+
+**Use Cases:**
+- Professional accordion register simulation
+- Voice combination management
+- Smooth transitions between registers
+- Custom reed configurations
+
+**Example:**
+```c
+// Setup register system
+reg_coupling_init();
+reg_coupling_set_register(0, REG_MUSETTE);  // Start with musette
+reg_coupling_set_smooth_transition(0, 1);
+reg_coupling_set_transition_time(0, 80);    // 80ms crossfade
+reg_coupling_set_output_callback(my_reed_output);
+
+// Process notes - automatically applies register configuration
+reg_coupling_process_note(0, 60, 100, 0);
+
+// Change register (foot switch)
+reg_coupling_next_register(0);  // Cycle to next register
+
+// Get current configuration
+reed_set_config_t config;
+reg_coupling_get_reed_config(0, REG_CLARINET, &config);
+```
+
+---
+
+### 5. Bellows Shake (`bellows_shake/`)
+
+**Detects and generates tremolo from bellows shaking**
+
+**Features:**
+- Automatic shake/vibrato detection
+- Frequency range detection (2-20 Hz)
+- Configurable sensitivity (0-100%)
+- Multiple tremolo targets:
+  - **Volume**: Modulate expression (traditional tremolo)
+  - **Pitch**: Modulate pitch (vibrato)
+  - **Filter**: Modulate filter cutoff
+  - **Both**: Volume + pitch simultaneously
+- Depth control (0-100%)
+- Real-time frequency measurement
+- Zero-crossing detection algorithm
+
+**Use Cases:**
+- Authentic accordion tremolo
+- Bellows shake technique
+- Vibrato generation
+- Expressive performance
+
+**Example:**
+```c
+// Setup shake detection
+bellows_shake_init();
+bellows_shake_set_enabled(0, 1);
+bellows_shake_set_sensitivity(0, 60);      // Moderate sensitivity
+bellows_shake_set_depth(0, 70);            // 70% tremolo depth
+bellows_shake_set_target(0, SHAKE_TARGET_VOLUME);
+bellows_shake_set_freq_range(0, 4, 12);   // 4-12 Hz range
+bellows_shake_set_cc_callback(my_cc_output);
+
+// Process pressure - automatically detects shake
+bellows_shake_process_pressure(0, pressure, timestamp, 0);
+
+// Check if shake detected
+if (bellows_shake_is_detected(0)) {
+    uint8_t freq = bellows_shake_get_frequency(0);
+    printf("Shake detected at %d Hz\n", freq);
+}
+```
+
+---
+
 ## Integration with Existing MidiCore Features
 
 These accordion modules work seamlessly with existing MidiCore features:
@@ -182,19 +281,32 @@ void setup_professional_accordion(void) {
     bellows_set_smoothing(0, 25);
     bellows_set_bidirectional(0, 1);
     
-    // 2. French musette on right hand
+    // 2. Bellows shake detection for tremolo
+    bellows_shake_init();
+    bellows_shake_set_enabled(0, 1);
+    bellows_shake_set_sensitivity(0, 60);
+    bellows_shake_set_depth(0, 70);
+    bellows_shake_set_target(0, SHAKE_TARGET_VOLUME);
+    
+    // 3. Register coupling for voice management
+    reg_coupling_init();
+    reg_coupling_set_register(0, REG_MUSETTE);
+    reg_coupling_set_smooth_transition(0, 1);
+    reg_coupling_set_transition_time(0, 80);
+    
+    // 4. French musette on right hand
     musette_init();
     musette_set_style(0, MUSETTE_STYLE_FRENCH);
     musette_set_voices(0, MUSETTE_VOICES_3_LMH);
     musette_set_stereo_spread(0, 55);
     
-    // 3. Stradella bass on left hand
+    // 5. Stradella bass on left hand
     bass_chord_init();
     bass_chord_set_layout(0, BASS_LAYOUT_120);
     bass_chord_set_octave_doubling(0, 1);
     bass_chord_set_voicing_density(0, 1);
     
-    // 4. Optional: Add swing for musette
+    // 6. Optional: Add swing for musette
     swing_init();
     swing_set_groove_type(0, GROOVE_TYPE_SWING);
     swing_set_amount(0, 55);
@@ -267,8 +379,10 @@ Per track:
 - Bellows Expression: ~50 bytes
 - Musette Detune: ~30 bytes
 - Bass Chord System: ~20 bytes
+- Register Coupling: ~80 bytes
+- Bellows Shake: ~300 bytes (includes pressure history)
 
-Total for 4 tracks: ~400 bytes
+Total for 4 tracks: ~1.9 KB
 
 ## Performance
 
