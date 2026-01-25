@@ -280,17 +280,51 @@ extern "C" {
 #endif
 
 // =============================================================================
-// DEBUG/TEST MODULES
+// PRODUCTION / TEST MODE CONFIGURATION
+// =============================================================================
+
+/**
+ * @brief Production Mode - Final MidiCore build configuration
+ * 
+ * When PRODUCTION_MODE=1:
+ * - All production modules are enabled (MIDI, Router, OLED, Looper, etc.)
+ * - ALL test/debug code is excluded (saves ~25KB Flash)
+ * - Production-grade initialization (oled_init_newhaven, etc.)
+ * - Optimized binary for deployment
+ * 
+ * When PRODUCTION_MODE=0 (Development/Test):
+ * - Test modules can be individually enabled
+ * - Debug tasks available
+ * - Test UI pages compiled
+ * - Hardware verification tools available
+ * 
+ * This is the MASTER FLAG for production builds.
+ * Set to 1 for final MidiCore hex compilation.
+ */
+#ifndef PRODUCTION_MODE
+#define PRODUCTION_MODE 1  // Default: Production mode (final hex compilation)
+#endif
+
+// =============================================================================
+// DEBUG/TEST MODULES (Automatically disabled in PRODUCTION_MODE)
 // =============================================================================
 
 /** @brief Enable AIN raw debug task (UART output of ADC values) */
 #ifndef MODULE_ENABLE_AIN_RAW_DEBUG
-#define MODULE_ENABLE_AIN_RAW_DEBUG 0  // Disabled by default
+#if PRODUCTION_MODE
+#define MODULE_ENABLE_AIN_RAW_DEBUG 0  // Always disabled in production
+#else
+#define MODULE_ENABLE_AIN_RAW_DEBUG 0  // Disabled by default (can enable for testing)
+#endif
 #endif
 
 /** @brief Enable MIDI DIN debug monitoring */
 #ifndef MODULE_ENABLE_MIDI_DIN_DEBUG
-#define MODULE_ENABLE_MIDI_DIN_DEBUG 0  // Disabled by default
+#if PRODUCTION_MODE
+#define MODULE_ENABLE_MIDI_DIN_DEBUG 0  // Always disabled in production
+#else
+#define MODULE_ENABLE_MIDI_DIN_DEBUG 0  // Disabled by default (can enable for testing)
+#endif
 #endif
 
 /** @brief Enable USB MIDI debug output via UART
@@ -307,7 +341,11 @@ extern "C" {
  * Usage: See Docs/USB_DEBUG_UART_QUICKSTART.md
  */
 #ifndef MODULE_ENABLE_USB_MIDI_DEBUG
-#define MODULE_ENABLE_USB_MIDI_DEBUG 0  // Disabled by default (verbose UART output)
+#if PRODUCTION_MODE
+#define MODULE_ENABLE_USB_MIDI_DEBUG 0  // Always disabled in production
+#else
+#define MODULE_ENABLE_USB_MIDI_DEBUG 0  // Disabled by default (can enable for testing)
+#endif
 #endif
 
 /** @brief Enable OLED SSD1322 test functions and test page
@@ -318,13 +356,17 @@ extern "C" {
  * - oled_test_*() - Test patterns (checkerboard, gradients, etc.)
  * - ui_page_oled_test - Complete OLED test UI page
  * 
- * Production builds should use MODULE_TEST_OLED=0 (saves ~4KB Flash).
- * Test builds set MODULE_TEST_OLED=1 to enable all test functions.
+ * Production builds (PRODUCTION_MODE=1): Always disabled (saves ~25KB Flash)
+ * Test builds (PRODUCTION_MODE=0): Can be enabled for hardware verification
  * 
  * Note: Production always uses oled_init_newhaven() regardless of this setting.
  */
 #ifndef MODULE_TEST_OLED
-#define MODULE_TEST_OLED 0  // Disabled by default in production (saves ~4KB Flash)
+#if PRODUCTION_MODE
+#define MODULE_TEST_OLED 0  // Always disabled in production (saves ~25KB Flash)
+#else
+#define MODULE_TEST_OLED 0  // Disabled by default (set to 1 for OLED testing)
+#endif
 #endif
 
 

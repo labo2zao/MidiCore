@@ -7453,6 +7453,7 @@ int module_test_oled_ssd1322_run(void)
   
   dbg_print("[OK] Init complete\r\n\r\n");
   
+#if MODULE_TEST_OLED
   // Array of test functions and their descriptions
   typedef struct {
     void (*test_func)(void);
@@ -7493,10 +7494,14 @@ int module_test_oled_ssd1322_run(void)
   }
   
   dbg_print("=== ALL DIRECT PATTERN TESTS COMPLETE ===\r\n\r\n");
+#else
+  dbg_print("Step 2: SKIPPED (MODULE_TEST_OLED=0 - test functions not compiled)\r\n\r\n");
+#endif // MODULE_TEST_OLED
   
   // ============================================================================
   // Step 3: UI Page Test (Framebuffer-based rendering)
   // ============================================================================
+#if MODULE_TEST_OLED
   dbg_print("Step 3: UI Page Test (Framebuffer + Graphics API)\r\n");
   dbg_print("===============================================\r\n");
   dbg_print("This test demonstrates the production UI framework:\r\n");
