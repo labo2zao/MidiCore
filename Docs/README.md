@@ -83,12 +83,9 @@ MIOS32 compatibility and migration guides
 - **[MIOS32 USB](mios32/MIOS32_USB.md)** - Dual-mode USB implementation and automatic switching
 - [MIOS32 Descriptor Analysis](mios32/MIOS32_DESCRIPTOR_ANALYSIS.md) - Descriptor details
 
-### 💼 [Commercial](commercial/) • [🇫🇷 Français](commercial/README_COMMERCIAL_FR.md)
+### 💼 [Commercial](commercial/)
 Commercial documentation and presentations
-- [Commercial README](commercial/README_COMMERCIAL.md) - Professional system overview (EN)
-- [Commercial README FR](commercial/README_COMMERCIAL_FR.md) - Vue d'ensemble professionnelle (FR)
-- [Product Presentation](commercial/PRESENTATION_PRODUIT_EN.md) - Product presentation (EN)
-- [Présentation produit](commercial/PRESENTATION_PRODUIT.md) - Présentation produit (FR)
+- **[Commercial Guide](commercial/COMMERCIAL_GUIDE.md)** - Bilingual (🇬🇧/🇫🇷) complete commercial documentation and product presentation
 
 ---
 
