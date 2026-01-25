@@ -350,14 +350,25 @@ extern "C" {
 
 /** @brief Enable OLED SSD1322 test functions and test page
  * 
- * When enabled, compiles OLED test functions for hardware verification:
+ * When enabled (MODULE_TEST_OLED=1):
+ * - Compiles OLED test functions for hardware verification
  * - oled_init() - Simple MIOS32 test init
  * - oled_init_progressive() - Step-by-step debug init
  * - oled_test_*() - Test patterns (checkerboard, gradients, etc.)
  * - ui_page_oled_test - Complete OLED test UI page
+ * - RUNS OLED test at startup (StartDefaultTask)
  * 
- * Production builds (PRODUCTION_MODE=1): Always disabled (saves ~25KB Flash)
- * Test builds (PRODUCTION_MODE=0): Can be enabled for hardware verification
+ * When disabled (MODULE_TEST_OLED=0):
+ * - No test code compiled (saves ~25KB Flash)
+ * - Main application runs at startup
+ * 
+ * Production builds (PRODUCTION_MODE=1): Always disabled
+ * Test builds (PRODUCTION_MODE=0): Set to 1 for OLED testing
+ * 
+ * To run OLED hardware test:
+ * 1. Set PRODUCTION_MODE=0 (enable dev/test mode)
+ * 2. Set MODULE_TEST_OLED=1 (compile test code AND run at startup)
+ * 3. Rebuild and flash
  * 
  * Note: Production always uses oled_init_newhaven() regardless of this setting.
  */
@@ -369,19 +380,10 @@ extern "C" {
 #endif
 #endif
 
-/** @brief Select OLED test to run at startup
- * 
- * To run OLED hardware test:
- * 1. Set PRODUCTION_MODE=0 (enable dev/test mode)
- * 2. Set MODULE_TEST_OLED=1 (enable OLED test code)
- * 3. Set MODULE_TEST_OLED_SSD1322=1 (select OLED test to run)
- * 4. Rebuild and flash
- * 
- * This will make StartDefaultTask() run the OLED test instead of the main app.
- * The test displays patterns and allows interactive testing with the UI.
- */
+// MODULE_TEST_OLED_SSD1322 is now automatically set based on MODULE_TEST_OLED
+// No need for separate flag - kept for backwards compatibility
 #ifndef MODULE_TEST_OLED_SSD1322
-#define MODULE_TEST_OLED_SSD1322 0  // Set to 1 to run OLED test at startup
+#define MODULE_TEST_OLED_SSD1322 MODULE_TEST_OLED
 #endif
 
 
