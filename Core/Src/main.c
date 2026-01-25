@@ -785,7 +785,7 @@ static void MX_GPIO_Init(void)
                           |MUX_S2_Pin|GPIO_PIN_6|GPIO_PIN_7, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, OLED_DC_Pin|SRIO_RC1_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, OLED_DC_Pin|SRIO_RC1_Pin|GPIO_PIN_4, GPIO_PIN_RESET);  // Added PA4 for SD_CS
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(SRIO_RC2_GPIO_Port, SRIO_RC2_Pin, GPIO_PIN_RESET);
@@ -849,8 +849,8 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Alternate = GPIO_AF8_USART6;
   HAL_GPIO_Init(MIDI3_OUT_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : OLED_DC_Pin SRIO_RC1_Pin */
-  GPIO_InitStruct.Pin = OLED_DC_Pin|SRIO_RC1_Pin;
+  /*Configure GPIO pins : OLED_DC_Pin SRIO_RC1_Pin PA4 (SD_CS) */
+  GPIO_InitStruct.Pin = OLED_DC_Pin|SRIO_RC1_Pin|GPIO_PIN_4;  // Added PA4 for SD card CS
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;  // Fast speed for OLED DC signal
