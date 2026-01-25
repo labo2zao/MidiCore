@@ -136,6 +136,14 @@ extern "C" {
 #define MODULE_ENABLE_UI_PAGE_CONFIG 1
 #endif
 
+/** @brief Enable UI Looper Pianoroll page
+ *  Note: Pianoroll uses significant RAM (~37KB). Disable to save memory.
+ *  When disabled, saves: ~37KB RAM (24KB active map + 9KB events + 4KB notes)
+ */
+#ifndef MODULE_ENABLE_UI_PAGE_PIANOROLL
+#define MODULE_ENABLE_UI_PAGE_PIANOROLL 0  // Disabled by default (high RAM usage)
+#endif
+
 /** @brief Enable Expression pedal/pressure service */
 #ifndef MODULE_ENABLE_EXPRESSION
 #define MODULE_ENABLE_EXPRESSION 1
