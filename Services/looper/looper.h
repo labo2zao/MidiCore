@@ -71,10 +71,10 @@ extern "C" {
     defined(MODULE_TEST_USB_HOST_MIDI) || defined(MODULE_TEST_USB_DEVICE_MIDI) || \
     defined(MODULE_TEST_FOOTSWITCH) || defined(APP_TEST_DIN_MIDI)
   #ifndef LOOPER_ENABLE_TRACK_CLIPBOARD
-    #define LOOPER_ENABLE_TRACK_CLIPBOARD 1  // Default: enabled in test mode
+    #define LOOPER_ENABLE_TRACK_CLIPBOARD 0  // Default: disabled to save RAM (~4KB)
   #endif
   #ifndef LOOPER_ENABLE_SCENE_CLIPBOARD
-    #define LOOPER_ENABLE_SCENE_CLIPBOARD 1  // Default: enabled in test mode
+    #define LOOPER_ENABLE_SCENE_CLIPBOARD 0  // Default: disabled to save RAM (~16KB)
   #endif
 #else
   // Production mode: clipboards always disabled
