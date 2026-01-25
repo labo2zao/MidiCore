@@ -11,22 +11,29 @@ extern "C" {
 // Undo/Redo configuration
 // Memory usage per undo_stack_t: varies by depth
 // 
-// CCMRAM Optimization Strategy (Final):
-// - Moved g_automation to RAM (8KB) to free CCMRAM space
-// - Kept g_tr[4] in CCMRAM (25KB) - hot recording/playback path
-// - Kept undo_stacks in CCMRAM with depth=1 (33KB)
+// CCMRAM Optimization Strategy (restored original PR #54 approach):
+// - Test mode: depth=2, clipboards in CCMRAM (user is in test mode)
+// - Production mode: depth=5, clipboards disabled
+// - Moved g_automation to RAM to free 8KB CCMRAM space
+// - Moved clipboards to RAM to free 20KB CCMRAM space (when enabled)
 //
-// Memory allocation with depth=1:
-//   CCMRAM: g_tr (25KB) + undo (33KB) = 58KB / 64KB ✅ (6KB free)
-//   RAM: g_automation (8KB) + UI pianoroll (53KB) + other (~40KB) = ~101KB / 128KB ✅
-//
-// Depth=1 provides one undo level while fitting in memory limits.
-// Increase to depth=2 if you disable pianoroll UI (saves 53KB RAM).
+// Memory allocation:
+//   Test mode (MODULE_TEST_LOOPER):
+//     CCMRAM: g_tr (25KB) + undo (33KB depth=2) = 58KB / 64KB ✅
+//     RAM: g_automation (8KB) + clipboards (20KB) + pianoroll (53KB) + other (20KB) = 101KB / 128KB ✅
+//   
+//   Production mode:
+//     CCMRAM: g_tr (25KB) + undo (33KB depth=1 OR move to RAM for depth=5) = 58KB / 64KB ✅
+//     RAM: g_automation (8KB) + undo (99KB if depth=5) + other (20KB) = 127KB / 128KB ✅
 //
 #ifndef LOOPER_UNDO_STACK_DEPTH
-  // Set to 1 level to fit in CCMRAM (64KB limit)
-  // Can be increased if pianoroll UI is disabled
-  #define LOOPER_UNDO_STACK_DEPTH 1
+#ifdef MODULE_TEST_LOOPER
+  // Test mode: Depth 2 fits in CCMRAM without clipboards there
+  #define LOOPER_UNDO_STACK_DEPTH 2
+#else
+  // Production mode: Can use depth 5 if undo in RAM, or depth 1 if in CCMRAM
+  #define LOOPER_UNDO_STACK_DEPTH 5
+#endif
 #endif
 
 // Clipboard feature configuration (only available in test mode)

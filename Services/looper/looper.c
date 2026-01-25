@@ -1672,8 +1672,16 @@ typedef struct {
   uint8_t count;          // Number of valid states
 } undo_stack_t;
 
-// Place undo stacks in CCMRAM to save regular RAM
-static undo_stack_t undo_stacks[LOOPER_TRACKS] __attribute__((section(".ccmram")));
+// Place undo stacks strategically based on mode
+// Test mode: depth=2, fits in CCMRAM (33KB)
+// Production mode: depth=5, too large for CCMRAM (99KB), place in RAM
+#ifdef MODULE_TEST_LOOPER
+  // Test mode: Undo in CCMRAM (depth=2 fits)
+  static undo_stack_t undo_stacks[LOOPER_TRACKS] __attribute__((section(".ccmram")));
+#else
+  // Production mode: Undo in RAM (depth=5 too large for CCMRAM)
+  static undo_stack_t undo_stacks[LOOPER_TRACKS];
+#endif
 
 /**
  * @brief Save current track state to undo history
@@ -2128,7 +2136,7 @@ uint8_t looper_is_external_clock_active(void) {
 
 #if LOOPER_ENABLE_TRACK_CLIPBOARD
 // Track clipboard - only compiled when enabled (~4KB)
-// Allows copying and pasting individual track data during testing
+// Moved to RAM to free CCMRAM space (was causing overflow in test mode)
 static struct {
   uint8_t valid;  // 1 if clipboard has data
   uint32_t count;
@@ -2136,13 +2144,12 @@ static struct {
   uint16_t loop_beats;
   looper_quant_t quant;
   looper_evt_t events[LOOPER_MAX_EVENTS];
-} track_clipboard __attribute__((section(".ccmram"))) = {0};
+} track_clipboard = {0};
 #endif // LOOPER_ENABLE_TRACK_CLIPBOARD
 
 #if LOOPER_ENABLE_SCENE_CLIPBOARD
 // Scene clipboard - only compiled when enabled (~16KB)
-// Allows copying and pasting entire scenes (4 tracks) during testing
-// Can be disabled with LOOPER_ENABLE_SCENE_CLIPBOARD=0 to save 16KB
+// Moved to RAM to free CCMRAM space (was causing overflow in test mode)
 static struct {
   uint8_t valid;  // 1 if clipboard has data
   struct {
@@ -2152,7 +2159,7 @@ static struct {
     uint16_t loop_beats;
     looper_evt_t events[LOOPER_MAX_EVENTS];
   } tracks[LOOPER_TRACKS];
-} scene_clipboard __attribute__((section(".ccmram"))) = {0};
+} scene_clipboard = {0};
 #endif // LOOPER_ENABLE_SCENE_CLIPBOARD
 
 #if LOOPER_ENABLE_TRACK_CLIPBOARD
