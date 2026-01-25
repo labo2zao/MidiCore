@@ -4,7 +4,9 @@
 #include "Services/ui/ui_gfx.h"
 #include "Services/ui/ui_page_looper.h"
 #include "Services/ui/ui_page_looper_timeline.h"
+#if MODULE_ENABLE_UI_PAGE_PIANOROLL
 #include "Services/ui/ui_page_looper_pianoroll.h"
+#endif
 #include "Services/ui/ui_page_song.h"
 #include "Services/ui/ui_page_midi_monitor.h"
 #include "Services/ui/ui_page_sysex.h"
