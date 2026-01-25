@@ -106,9 +106,10 @@ typedef struct {
   looper_automation_event_t events[LOOPER_AUTOMATION_MAX_EVENTS];
 } looper_automation_t;
 
-// Moved to regular RAM to free CCMRAM for undo stacks  
-// This frees 8KB in CCMRAM to help accommodate undo depth=5
-static looper_automation_t g_automation[LOOPER_TRACKS];
+// Moved to CCMRAM for production to free regular RAM for bootloader
+// This provides ~8KB more RAM headroom (important for bootloader operation)
+// CCMRAM usage: g_tr(17KB) + fb(8KB) + active(24KB) + g_automation(8KB) = 57KB / 64KB ✅
+static looper_automation_t g_automation[LOOPER_TRACKS] __attribute__((section(".ccmram")));
 
 static uint32_t g_ticks_per_ms_q16 = 0;
 static uint32_t g_acc_q16 = 0;
