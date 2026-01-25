@@ -274,6 +274,13 @@ void oled_init_progressive(uint8_t max_step) {
   memset(fb, 0x00, sizeof(fb));
 }
 
+// ============================================================================
+// TEST/DEBUG FUNCTIONS - Only compile when MODULE_TEST_OLED is enabled
+// These functions are for hardware testing and debugging only
+// NOT NEEDED FOR PRODUCTION
+// ============================================================================
+#ifdef MODULE_TEST_OLED
+
 // MIOS32-compatible initialization - EXACT replica
 // Source: midibox/mios32/modules/app_lcd/ssd1322/app_lcd.c APP_LCD_Init()
 void oled_init(void) {
@@ -718,3 +725,5 @@ void oled_test_text_pattern(void) {
     }
   }
 }
+
+#endif // MODULE_TEST_OLED
