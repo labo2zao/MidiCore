@@ -6,7 +6,12 @@
 extern "C" {
 #endif
 
-#define LOOPER_TRACKS 4
+// Number of looper tracks (configurable for memory optimization)
+// Each track consumes ~16KB (g_tr + undo_stacks + g_automation)
+// Options: 2 tracks (saves 32KB) or 4 tracks (default)
+#ifndef LOOPER_TRACKS
+  #define LOOPER_TRACKS 4  // Default: 4 tracks for full polyphony
+#endif
 
 // Undo/Redo configuration
 // Memory usage per undo_stack_t: varies by depth
@@ -196,7 +201,12 @@ int looper_edit_event(uint8_t track, uint32_t idx, uint32_t new_tick,
 int looper_add_event(uint8_t track, uint32_t tick, uint8_t len, uint8_t b0, uint8_t b1, uint8_t b2);
 
 // ---- Song Mode / Scene Management ----
-#define LOOPER_SCENES 6  // Reduced from 8 to save memory
+// Number of scene slots (configurable for memory optimization)
+// Each scene uses minimal memory (~32 bytes per track)
+// Options: 4 scenes (minimal) or 6 scenes (default) or 8 scenes (full)
+#ifndef LOOPER_SCENES
+  #define LOOPER_SCENES 6  // Default: 6 scenes, adequate for live performance
+#endif
 
 typedef struct {
   uint8_t has_clip;       // 1 if this scene has a clip recorded
