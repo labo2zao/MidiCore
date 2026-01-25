@@ -38,6 +38,40 @@
 
 ---
 
+## 🛒 Fonctions clés pour acheteurs
+
+### **Ce que vous obtenez immédiatement**
+- **Boucleur 4 pistes + 8 scènes** pour structurer un set complet
+- **Effets MIDI temps réel** (transpose, scale, vélocité, routage)
+- **8 ports MIDI** (4 USB device + 4 DIN) pour intégrer tout le parc
+- **Compatibilité totale DAW** via USB MIDI class-compliant
+- **Projets sur SD** pour sauvegarde et transport
+
+### **Ce que cela remplace**
+- Ordinateur portable + interface MIDI/audio
+- Matériel de routage et de looping séparés
+- Multiples contrôleurs externes pour la scène
+
+---
+
+## 🧩 Modules & FX (résumé)
+
+- **Looper** : 4 pistes, 8 scènes, overdub, quantize, undo/redo
+- **Routeur MIDI** : matrice 8×8, filtres de canaux
+- **LiveFX** : transpose, gammes, vélocité, humanizer, randomizer, arpeggiator
+- **AINSER64** : 64 entrées analogiques (pédales, potars, capteurs)
+- **SRIO DIN/DOUT** : 128 boutons + 128 LED
+
+---
+
+## ✨ Mini‑scénarios (pour se projeter)
+
+- **Live solo** : tu poses 4 pistes, tu passes de scène en scène au pied, et tu gardes les mains sur l’instrument.
+- **Studio** : tu routes USB ↔ DIN sans te battre avec des câbles, et tu forces la gamme pour éviter les fausses notes « artistiques ».
+- **Expression** : souffle → CC11, avec courbe sur mesure pour une dynamique vraiment musicale.
+
+---
+
 ## 📊 Caractéristiques Techniques Détaillées
 
 ### **Performance Système**
