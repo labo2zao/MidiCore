@@ -221,6 +221,7 @@ VEL_ON=0..127
 VEL_OFF=0..127
 INVERT=0|1
 ENABLED=0|1
+LCD_TEXT="text" # Optional: Display text on LCD/OLED when button is pressed
 ```
 
 ### Configuration Keys
@@ -234,6 +235,7 @@ ENABLED=0|1
 | `VEL_OFF` or `VELOFF` | Integer | 0-127 | Velocity for Note Off (0 = note-off with vel 0) |
 | `INVERT` | Boolean | 0-1 | Invert polarity (1 = active-high) |
 | `ENABLED` or `ENABLE` | Boolean | 0-1 | Enable this channel (1 = enabled) |
+| `LCD_TEXT` or `LCD` | String | Text (max 64 chars) | Optional text to display on LCD/OLED when pressed |
 
 ### Example Configuration
 
@@ -241,27 +243,30 @@ ENABLED=0|1
 # DIN mapping config for button matrix and footswitches
 
 [CH0]
-# First button sends Note C3 on channel 1
+# First button sends Note C3 on channel 1 with LCD feedback
 TYPE=NOTE
 CHAN=0
 NUMBER=48
 VEL_ON=100
 VEL_OFF=0
+LCD_TEXT="Note C3 Pressed"
 ENABLED=1
 
 [CH1]
-# Second button acts as CC64 (sustain) toggle
+# Second button acts as CC64 (sustain) toggle with LCD text
 TYPE=CC
 CHAN=0
 NUMBER=64
+LCD_TEXT="Sustain ON/OFF"
 INVERT=0
 ENABLED=1
 
 [CH2]
-# Footswitch 1: sustain pedal (active-high)
+# Footswitch 1: sustain pedal (active-high) with visual feedback
 TYPE=CC
 CHAN=0
 NUMBER=64
+LCD_TEXT="Sustain Pedal"
 INVERT=1
 ENABLED=1
 
@@ -270,16 +275,18 @@ ENABLED=1
 TYPE=CC
 CHAN=0
 NUMBER=67
+LCD_TEXT="Soft Pedal"
 INVERT=1
 ENABLED=1
 
 [CH16]
-# Drum pad: snare with velocity layers
+# Drum pad: snare with velocity layers and display feedback
 TYPE=NOTE
 CHAN=9         # MIDI Channel 10 (drums)
 NUMBER=38      # Snare drum
 VEL_ON=110
 VEL_OFF=0
+LCD_TEXT="Snare Hit!"
 ENABLED=1
 ```
 

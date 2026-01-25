@@ -221,6 +221,7 @@ VEL_ON=0..127
 VEL_OFF=0..127
 INVERT=0|1
 ENABLED=0|1
+LCD_TEXT="texte" # Optionnel: Affiche le texte sur LCD/OLED lors de l'appui
 ```
 
 ### Clés de Configuration
@@ -234,6 +235,7 @@ ENABLED=0|1
 | `VEL_OFF` ou `VELOFF` | Entier | 0-127 | Vélocité pour Note Off (0 = note-off avec vel 0) |
 | `INVERT` | Booléen | 0-1 | Inverse la polarité (1 = actif-haut) |
 | `ENABLED` ou `ENABLE` | Booléen | 0-1 | Active ce canal (1 = activé) |
+| `LCD_TEXT` ou `LCD` | Chaîne | Texte (max 64 car.) | Texte optionnel à afficher sur LCD/OLED lors de l'appui |
 
 ### Exemple de Configuration
 
@@ -241,27 +243,30 @@ ENABLED=0|1
 # Configuration de mapping DIN pour matrice de boutons et pédales
 
 [CH0]
-# Premier bouton envoie Note C3 sur canal 1
+# Premier bouton envoie Note C3 sur canal 1 avec feedback LCD
 TYPE=NOTE
 CHAN=0
 NUMBER=48
 VEL_ON=100
 VEL_OFF=0
+LCD_TEXT="Note C3 Appuyée"
 ENABLED=1
 
 [CH1]
-# Deuxième bouton agit comme CC64 (sustain) toggle
+# Deuxième bouton agit comme CC64 (sustain) toggle avec texte LCD
 TYPE=CC
 CHAN=0
 NUMBER=64
+LCD_TEXT="Sustain ON/OFF"
 INVERT=0
 ENABLED=1
 
 [CH2]
-# Pédale 1 : pédale sustain (actif-haut)
+# Pédale 1 : pédale sustain (actif-haut) avec feedback visuel
 TYPE=CC
 CHAN=0
 NUMBER=64
+LCD_TEXT="Pédale Sustain"
 INVERT=1
 ENABLED=1
 
@@ -270,16 +275,18 @@ ENABLED=1
 TYPE=CC
 CHAN=0
 NUMBER=67
+LCD_TEXT="Pédale Douce"
 INVERT=1
 ENABLED=1
 
 [CH16]
-# Pad de batterie : caisse claire avec couches de vélocité
+# Pad de batterie : caisse claire avec couches de vélocité et affichage
 TYPE=NOTE
 CHAN=9         # Canal MIDI 10 (batterie)
 NUMBER=38      # Caisse claire
 VEL_ON=110
 VEL_OFF=0
+LCD_TEXT="Frappe Caisse!"
 ENABLED=1
 ```
 
