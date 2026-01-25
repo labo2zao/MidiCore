@@ -13,6 +13,8 @@
 
 #pragma once
 
+#include <stdint.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -24,6 +26,11 @@ extern "C" {
 /** @brief Enable AINSER64 analog input module (MCP3208 + 74HC4051) */
 #ifndef MODULE_ENABLE_AINSER64
 #define MODULE_ENABLE_AINSER64 1
+#endif
+
+/** @brief AINSER64 LED mode: 0=simple toggle (low memory), 1=PWM breathing (MIOS32-style) */
+#ifndef AINSER64_LED_MODE_PWM
+#define AINSER64_LED_MODE_PWM 1
 #endif
 
 /** @brief Enable SRIO module (74HC165/595 shift register I/O) */
@@ -62,12 +69,12 @@ extern "C" {
 
 /** @brief Enable USB Device MIDI */
 #ifndef MODULE_ENABLE_USB_MIDI
-#define MODULE_ENABLE_USB_MIDI 0  // Disabled by default (requires USB config)
+#define MODULE_ENABLE_USB_MIDI 1  // Disabled by default (requires USB config)
 #endif
 
-/** @brief Enable USB Host MIDI */
+/** @brief Enable USB Host MIDI - MIOS32-style dual-mode configuration */
 #ifndef MODULE_ENABLE_USBH_MIDI
-#define MODULE_ENABLE_USBH_MIDI 0  // Disabled by default (requires USB config)
+#define MODULE_ENABLE_USBH_MIDI 0  /* Disable Host for now - testing Device only */  // Enabled for MIOS32-style dual Host/Device support
 #endif
 
 // =============================================================================
@@ -84,6 +91,16 @@ extern "C" {
 #define MODULE_ENABLE_LOOPER 1
 #endif
 
+/** @brief Enable LFO service (Low Frequency Oscillator for modulation) */
+#ifndef MODULE_ENABLE_LFO
+#define MODULE_ENABLE_LFO 1
+#endif
+
+/** @brief Enable Humanizer service (MIDI humanization/groove) */
+#ifndef MODULE_ENABLE_HUMANIZER
+#define MODULE_ENABLE_HUMANIZER 1
+#endif
+
 /** @brief Enable Patch management (SD card patch loading/saving) */
 #ifndef MODULE_ENABLE_PATCH
 #define MODULE_ENABLE_PATCH 1
@@ -97,6 +114,26 @@ extern "C" {
 /** @brief Enable UI service (user interface, pages, menus) */
 #ifndef MODULE_ENABLE_UI
 #define MODULE_ENABLE_UI 1
+#endif
+
+/** @brief Enable UI Song Mode page */
+#ifndef MODULE_ENABLE_UI_PAGE_SONG
+#define MODULE_ENABLE_UI_PAGE_SONG 1
+#endif
+
+/** @brief Enable UI MIDI Monitor page */
+#ifndef MODULE_ENABLE_UI_PAGE_MIDI_MONITOR
+#define MODULE_ENABLE_UI_PAGE_MIDI_MONITOR 1
+#endif
+
+/** @brief Enable UI SysEx page */
+#ifndef MODULE_ENABLE_UI_PAGE_SYSEX
+#define MODULE_ENABLE_UI_PAGE_SYSEX 1
+#endif
+
+/** @brief Enable UI Config Editor page */
+#ifndef MODULE_ENABLE_UI_PAGE_CONFIG
+#define MODULE_ENABLE_UI_PAGE_CONFIG 1
 #endif
 
 /** @brief Enable Expression pedal/pressure service */
@@ -117,6 +154,36 @@ extern "C" {
 /** @brief Enable Humanize service (timing/velocity randomization) */
 #ifndef MODULE_ENABLE_HUMANIZE
 #define MODULE_ENABLE_HUMANIZE 1
+#endif
+
+/** @brief Enable LiveFX module (transpose, velocity scale, force-to-scale) */
+#ifndef MODULE_ENABLE_LIVEFX
+#define MODULE_ENABLE_LIVEFX 1
+#endif
+
+/** @brief Enable Scale module (musical scale quantization) */
+#ifndef MODULE_ENABLE_SCALE
+#define MODULE_ENABLE_SCALE 1
+#endif
+
+/** @brief Enable Router Hooks (LiveFX/Monitor integration) */
+#ifndef MODULE_ENABLE_ROUTER_HOOKS
+#define MODULE_ENABLE_ROUTER_HOOKS 1
+#endif
+
+/** @brief Enable Rhythm Trainer (pedagogical timing practice tool) */
+#ifndef MODULE_ENABLE_RHYTHM_TRAINER
+#define MODULE_ENABLE_RHYTHM_TRAINER 1
+#endif
+
+/** @brief Enable Metronome (synchronized click track) */
+#ifndef MODULE_ENABLE_METRONOME
+#define MODULE_ENABLE_METRONOME 1
+#endif
+
+/** @brief Enable Config I/O (SD card configuration file read/write) */
+#ifndef MODULE_ENABLE_CONFIG_IO
+#define MODULE_ENABLE_CONFIG_IO 1
 #endif
 
 /** @brief Enable Zones configuration (keyboard split/layers) */
@@ -182,15 +249,24 @@ extern "C" {
 #define MODULE_ENABLE_MIDI_DIN_DEBUG 0  // Disabled by default
 #endif
 
-/** @brief Enable Looper self-test */
-#ifndef MODULE_ENABLE_LOOPER_SELFTEST
-#define MODULE_ENABLE_LOOPER_SELFTEST 0  // Disabled by default
+/** @brief Enable USB MIDI debug output via UART
+ * 
+ * When enabled, outputs detailed USB enumeration and descriptor information
+ * to UART for troubleshooting USB device issues.
+ * 
+ * To enable:
+ * 1. Set this to 1, OR
+ * 2. Uncomment #define USBD_MIDI_DEBUG in USB_DEVICE/Class/MIDI/Inc/usbd_midi_debug.h
+ * 
+ * Requires: printf redirected to UART
+ * Output: USB setup requests, descriptor dumps, enumeration state
+ * Usage: See Docs/USB_DEBUG_UART_QUICKSTART.md
+ */
+#ifndef MODULE_ENABLE_USB_MIDI_DEBUG
+#define MODULE_ENABLE_USB_MIDI_DEBUG 0  // Disabled by default (verbose UART output)
 #endif
 
-/** @brief Enable DIN self-test */
-#ifndef MODULE_ENABLE_DIN_SELFTEST
-#define MODULE_ENABLE_DIN_SELFTEST 0  // Disabled by default
-#endif
+
 
 // =============================================================================
 // CONFIGURATION VALIDATION

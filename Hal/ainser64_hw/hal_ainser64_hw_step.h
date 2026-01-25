@@ -26,10 +26,17 @@ int32_t hal_ainser64_init(void);
 // - module/bank: currently only 0 is supported in this project (single CS line).
 // - step: 0..7 (mux address)
 // - out8: receives 8 raw 12-bit values (0..4095), one per MCP3208 channel.
+// 
+// IMPORTANT: Call this function continuously without delays between steps to maintain
+// stable ADC readings. Delays between steps can cause discontinuous values and noise.
+// This matches MIOS32 behavior where all channels are scanned in rapid succession.
+// The LED will also exhibit smooth PWM breathing when scanned continuously.
+//
 // Returns 0 on success.
 int32_t hal_ainser64_read_bank_step(uint8_t module, uint8_t step, uint16_t out8[8]);
 
 // Optional: enable/disable LINK LED modulation (default: enabled).
+// The LED uses MIOS32-style PWM breathing effect that requires continuous scanning.
 void hal_ainser64_set_link_led_enable(uint8_t enable);
 
 // Optional: set the mux step->connector mapping.

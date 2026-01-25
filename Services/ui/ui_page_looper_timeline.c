@@ -67,25 +67,105 @@ static void draw_cursor(uint32_t base, uint32_t span) {
   }
 }
 
+static void draw_loop_region(uint32_t base, uint32_t span) {
+  uint32_t L = loop_len();
+  if (L == 0) return;
+  
+  // Draw loop start marker (left edge)
+  uint32_t start_x = tick_to_x(0, base, span);
+  if (start_x != 0xFFFFFFFFu && start_x < 256) {
+    // Vertical line for loop start
+    ui_gfx_rect((int)start_x, 10, 2, 54, 10);
+    // Small triangle at top
+    ui_gfx_rect((int)start_x, 8, 4, 2, 10);
+  }
+  
+  // Draw loop end marker (right edge)
+  uint32_t end_x = tick_to_x(L - 1, base, span);
+  if (end_x != 0xFFFFFFFFu && end_x < 256) {
+    // Vertical line for loop end
+    ui_gfx_rect((int)end_x, 10, 2, 54, 10);
+    // Small triangle at top
+    ui_gfx_rect((int)end_x - 3, 8, 4, 2, 10);
+  }
+  
+  // Draw loop region shading if both markers visible
+  if (start_x != 0xFFFFFFFFu && end_x != 0xFFFFFFFFu && 
+      start_x < 256 && end_x < 256 && end_x > start_x) {
+    // Subtle horizontal lines to show loop region
+    for (int y = 10; y < 64; y += 8) {
+      for (int x = (int)start_x; x < (int)end_x && x < 256; x += 4) {
+        ui_gfx_rect(x, y, 1, 1, 3);
+      }
+    }
+  }
+}
+
+static void draw_playhead(uint32_t base, uint32_t span) {
+  // Get real-time playhead position from looper
+  looper_state_t state = looper_get_state(g_track);
+  if (state != LOOPER_STATE_PLAY && state != LOOPER_STATE_OVERDUB && state != LOOPER_STATE_REC) {
+    return; // Only show playhead during playback
+  }
+  
+  uint32_t playhead_tick = looper_get_cursor_position(g_track);
+  uint32_t x = tick_to_x(playhead_tick, base, span);
+  
+  if (x != 0xFFFFFFFFu && x < 256) {
+    // Draw bright playhead line (different from edit cursor)
+    ui_gfx_rect((int)x, 10, 2, 54, 15);
+    // Draw playhead triangle at top
+    if (x >= 2) ui_gfx_rect((int)x - 2, 10, 2, 2, 15);
+    if (x + 2 < 256) ui_gfx_rect((int)x + 2, 10, 2, 2, 15);
+  }
+}
+
 static void draw_events(uint32_t base, uint32_t span) {
   for (uint32_t i=0; i<snap_n; i++) {
     if (!is_note_on(&snap[i])) continue;
     uint32_t x = tick_to_x(snap[i].tick, base, span);
     if (x == 0xFFFFFFFFu) continue;
     int y = note_to_y(snap[i].b1);
-    uint8_t g = (i == g_sel_idx) ? 15 : 9;
-    ui_gfx_rect((int)x, y, 2, 2, g);
+    
+    // LoopA-style: Show velocity through brightness
+    uint8_t vel = snap[i].b2;
+    uint8_t g;
+    if (i == g_sel_idx) {
+      g = 15; // Selected event is brightest
+    } else {
+      // Map velocity to brightness (6-12 range)
+      g = 6 + ((uint32_t)vel * 6) / 127;
+    }
+    
+    // LoopA-style: Larger event markers (3x3 instead of 2x2)
+    ui_gfx_fill_rect((int)x-1, y-1, 3, 3, g);
+    
+    // Add border to selected events
+    if (i == g_sel_idx) {
+      ui_gfx_rect((int)x-1, y-1, 3, 3, 15);
+    }
   }
 }
 
 static void draw_header(void) {
   char line[64];
   looper_transport_t tp; looper_get_transport(&tp);
-  snprintf(line, sizeof(line), "TL T%u  BPM:%u  Z:%u  %s",
+  looper_state_t state = looper_get_state(g_track);
+  uint32_t L = loop_len();
+  uint32_t loop_bars = L / (96 * tp.ts_num / (tp.ts_den / 4));
+  
+  const char* state_str = (state == LOOPER_STATE_PLAY) ? "PLAY" :
+                          (state == LOOPER_STATE_REC) ? "REC" :
+                          (state == LOOPER_STATE_OVERDUB) ? "OVDUB" : 
+                          g_in_edit ? "EDIT" : "NAV";
+  
+  // Use 8×8 font for header
+  ui_gfx_set_font(UI_FONT_8X8);
+  snprintf(line, sizeof(line), "TIME T%u BPM:%u Z:%u L:%ub %s",
            (unsigned)(g_track+1), (unsigned)tp.bpm, (unsigned)g_zoom,
-           g_in_edit ? "EDIT" : "NAV");
+           (unsigned)loop_bars, state_str);
   ui_gfx_text(0, 0, line, 15);
-  ui_gfx_rect(0, 9, 256, 1, 4);
+  ui_gfx_hline(0, 11, 256, 8);
 }
 
 static void apply_zoom(void) {
@@ -94,10 +174,11 @@ static void apply_zoom(void) {
 }
 
 static void draw_footer(void) {
+  ui_gfx_set_font(UI_FONT_5X7);
   if (!g_in_edit) {
-    ui_gfx_text(0, 56, "ENC:scroll  B1:trk  B2:zoom  B3:sel  B4:edit", 8);
+    ui_gfx_text(0, 56, "ENC:scroll B1:trk B2:zoom B3:sel B4:edit", 10);
   } else {
-    ui_gfx_text(0, 56, "ENC:chg  B3:field  B4:apply  B2:cancel", 8);
+    ui_gfx_text(0, 56, "ENC:chg B3:field B4:apply B2:cancel", 10);
   }
 }
 
@@ -134,8 +215,10 @@ void ui_page_looper_timeline_render(uint32_t now_ms) {
     ui_gfx_rect(x, 10, 1, 54, 2);
   }
 
+  draw_loop_region(base, span);  // Draw loop bounds first
   draw_events(base, span);
-  draw_cursor(base, span);
+  draw_playhead(base, span);     // Draw playhead on top
+  draw_cursor(base, span);       // Draw edit cursor last
 
   // selected event info
   if (snap_n) {

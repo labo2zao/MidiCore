@@ -75,10 +75,15 @@
 
 #if MODULE_ENABLE_PRESSURE
 #include "Services/pressure/pressure_i2c.h"
+#include "App/i2c_scan.h"
 #endif
 
 #if MODULE_ENABLE_HUMANIZE
 #include "Services/humanize/humanize.h"
+#endif
+
+#if MODULE_ENABLE_LFO
+#include "Services/lfo/lfo.h"
 #endif
 
 #include "App/ain_midi_task.h"
@@ -99,10 +104,6 @@
 #endif
 
 #include "App/midi_io_task.h"
-
-#if MODULE_ENABLE_LOOPER_SELFTEST
-#include "App/looper_selftest.h"
-#endif
 
 #include "cmsis_os2.h"
 #include <string.h>
@@ -232,6 +233,12 @@ void app_init_and_start(void)
   looper_init();
 #endif
 
+#if MODULE_ENABLE_LFO
+  lfo_init();
+#endif
+
+// Note: humanize_init() is already called earlier in the init sequence (line ~204)
+
 #if MODULE_ENABLE_UI
   ui_init();
 #endif
@@ -296,10 +303,6 @@ void app_init_and_start(void)
 #endif
 
   app_start_midi_io_task();
-
-#if MODULE_ENABLE_LOOPER_SELFTEST
-  app_start_looper_selftest();
-#endif
 }
 
 static void AinTask(void *argument)

@@ -24,10 +24,14 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "Config/module_config.h"  // MUST be first to define MODULE_ENABLE_* macros
 #include "App/app_entry.h"
+#include "Config/oled_pins.h"
 
+#include "App/tests/test_debug.h"  // For TEST_DEBUG_UART_BAUD configuration
 #include "App/tests/app_test_din_midi.h"
 #include "App/tests/app_test_ainser_midi.h"
+#include "App/tests/module_tests.h"
 #include "Services/usb_host_midi/usb_host_midi.h"
 /* USER CODE END Includes */
 
@@ -150,9 +154,13 @@ int main(void)
   MX_CAN1_Init();
   MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
-
+#if MODULE_ENABLE_USB_MIDI
+  MX_USB_DEVICE_Init();
+  extern void usb_midi_init(void);
+  usb_midi_init();
+#endif
   /* USER CODE END 2 */
-
+  //while(1) { HAL_Delay(1000); } // STOP ICI
   /* Init scheduler */
   osKernelInitialize();
 
@@ -647,7 +655,22 @@ static void MX_USART2_UART_Init(void)
 
   /* USER CODE END USART2_Init 1 */
   huart2.Instance = USART2;
-  huart2.Init.BaudRate = 31250;
+  
+  /* USER CODE BEGIN USART2_BaudRate */
+  // UART2 baud rate: Use TEST_DEBUG_UART_BAUD if test_debug.h is included,
+  // otherwise default to 31250 (MIDI)
+  // This ensures UART2 is at 115200 when any test using dbg_print() is active
+  #ifdef TEST_DEBUG_UART_BAUD
+    #if TEST_DEBUG_UART_PORT == 1
+      huart2.Init.BaudRate = TEST_DEBUG_UART_BAUD;  // Use configured debug baud rate (typically 115200)
+    #else
+      huart2.Init.BaudRate = 31250;   // UART2 used for MIDI, not debug
+    #endif
+  #else
+    huart2.Init.BaudRate = 31250;   // Default MIDI baud rate for production
+  #endif
+  /* USER CODE END USART2_BaudRate */
+  
   huart2.Init.WordLength = UART_WORDLENGTH_8B;
   huart2.Init.StopBits = UART_STOPBITS_1;
   huart2.Init.Parity = UART_PARITY_NONE;
@@ -742,11 +765,11 @@ static void MX_GPIO_Init(void)
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOC, BANK_A_Pin|BANK_B_Pin|BANK_C_Pin|AIN_CS_Pin
-                          |OLED_DC_Pin|OLED_RST_Pin|GPIO_PIN_7|GPIO_PIN_8
-                          |GPIO_PIN_9|GPIO_PIN_11, GPIO_PIN_RESET);
+                          |OLED_SCL_Pin|GPIO_PIN_7|GPIO_PIN_8
+                          |GPIO_PIN_9|OLED_SDA_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, MIOS_SPI0_RC1_Pin|OLED_CS_Pin|MIOS_SPI2_RC2_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, MIOS_SPI0_RC1_Pin|SRIO_DOUT_RCLK_Pin|MIOS_SPI2_RC2_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOD, MIOS_SPI1_RC2_Pin|MIOS_SPI0_RC2_Pin|GREEN_LED_Pin|ORANGE_LED_Pin
@@ -754,7 +777,7 @@ static void MX_GPIO_Init(void)
                           |MUX_S2_Pin|GPIO_PIN_6|GPIO_PIN_7, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8|SRIO_RC1_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, OLED_DC_Pin|SRIO_RC1_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(SRIO_RC2_GPIO_Port, SRIO_RC2_Pin, GPIO_PIN_RESET);
@@ -778,14 +801,12 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
   /*Configure GPIO pins : BANK_A_Pin BANK_B_Pin BANK_C_Pin AIN_CS_Pin
-                           OLED_DC_Pin OLED_RST_Pin PC7 PC8
-                           PC9 PC11 */
+                           OLED_SCL_Pin PC7 PC9 OLED_SDA_Pin */
   GPIO_InitStruct.Pin = BANK_A_Pin|BANK_B_Pin|BANK_C_Pin|AIN_CS_Pin
-                          |OLED_DC_Pin|OLED_RST_Pin|GPIO_PIN_7|GPIO_PIN_8
-                          |GPIO_PIN_9|GPIO_PIN_11;
+                          |OLED_SCL_Pin|GPIO_PIN_7|GPIO_PIN_9|OLED_SDA_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;  // Fast speed for OLED communication
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
   /*Configure GPIO pin : User_Button_Pin */
@@ -794,8 +815,8 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(User_Button_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : MIOS_SPI0_RC1_Pin OLED_CS_Pin MIOS_SPI2_RC2_Pin */
-  GPIO_InitStruct.Pin = MIOS_SPI0_RC1_Pin|OLED_CS_Pin|MIOS_SPI2_RC2_Pin;
+  /*Configure GPIO pins : MIOS_SPI0_RC1_Pin SRIO_DOUT_RCLK_Pin MIOS_SPI2_RC2_Pin */
+  GPIO_InitStruct.Pin = MIOS_SPI0_RC1_Pin|SRIO_DOUT_RCLK_Pin|MIOS_SPI2_RC2_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -820,11 +841,11 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Alternate = GPIO_AF8_USART6;
   HAL_GPIO_Init(MIDI3_OUT_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PA8 SRIO_RC1_Pin */
-  GPIO_InitStruct.Pin = GPIO_PIN_8|SRIO_RC1_Pin;
+  /*Configure GPIO pins : OLED_DC_Pin SRIO_RC1_Pin */
+  GPIO_InitStruct.Pin = OLED_DC_Pin|SRIO_RC1_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;  // Fast speed for OLED DC signal
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pin : SRIO_RC2_Pin */
@@ -845,30 +866,43 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN Header_StartDefaultTask */
 /**
-  * @brief  Function implementing the defaultTask thread.
-  * @param  argument: Not used
-  * @retval None
-  */
+ * @brief  Main production task implementing the defaultTask thread.
+ * 
+ * This is the definitive production entry point for MidiCore.
+ * It initializes USB Host MIDI and starts the main application.
+ * 
+ * For module testing, define MODULE_TEST_xxx at compile time to run
+ * specific module tests instead of the full application.
+ * 
+ * @param  argument: Not used
+ * @retval None
+ */
 /* USER CODE END Header_StartDefaultTask */
 void StartDefaultTask(void *argument)
 {
-  /* init code for USB_HOST */
-  MX_USB_HOST_Init();
   /* USER CODE BEGIN 5 */
-  // Init layer for USB Host MIDI wrapper (no-op if USBH MIDI absent)
+  
+  /* init code for USB_HOST - only if enabled */
+#if MODULE_ENABLE_USBH_MIDI
+  MX_USB_HOST_Init();
+  // Init USB Host MIDI wrapper
   usb_host_midi_init();
-#if defined(APP_TEST_DIN_MIDI)
-  // Module test in defaultTask: DIN -> MIDI (UART/USBH)
-  // NOTE: app_test_din_midi_run_forever() does not return.
-  app_test_din_midi_run_forever();
-#elif defined(APP_TEST_AINSER_MIDI)
-  // Module test in defaultTask: AINSER64 -> MIDI CC (UART/USBH)
-  // NOTE: app_test_ainser_midi_run_forever() does not return.
-  app_test_ainser_midi_run_forever();
-#else
+#endif
+  
+  // Check if a module test was selected at compile time
+  module_test_t selected_test = module_tests_get_compile_time_selection();
+  
+  if (selected_test != MODULE_TEST_NONE_ID) {
+    // TEST MODE: Run specific module test
+    // This allows testing modules in isolation
+    module_tests_init();
+    module_tests_run(selected_test);
+    // Note: most tests run forever and don't return
+  }
+  
+  // PRODUCTION MODE: Run full application
   // Project entrypoint (kept in App/ to survive CubeMX regen)
   app_entry_start();
-#endif
 
   /* Infinite loop */
   for(;;)

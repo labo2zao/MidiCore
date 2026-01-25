@@ -155,7 +155,7 @@ static int send_sysex(uint8_t out_node, const uint8_t* data, size_t len) {
   if (!data || len == 0) return -1;
 
   if (out_node == ROUTER_NODE_USB_OUT) {
-    usb_midi_send_sysex(data, len);
+    usb_midi_send_sysex(data, len, 0);  // Send on cable 0
     return 0;
   }
 

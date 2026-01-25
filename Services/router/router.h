@@ -43,6 +43,10 @@ const char* router_get_label(uint8_t in_node, uint8_t out_node);
 // Process an incoming message from node 'in_node' and route to all enabled outputs.
 void router_process(uint8_t in_node, const router_msg_t* msg);
 
+// Optional hooks (weak symbols, can be overridden)
+void router_tap_hook(uint8_t in_node, const router_msg_t* msg);
+void router_transform_hook(uint8_t out_node, router_msg_t* msg);
+
 #ifdef __cplusplus
 }
 #endif

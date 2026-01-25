@@ -1,24 +1,22 @@
 #include "Hal/spi_bus.h"
 #include "Config/sd_pins.h"
-#include "Config/oled_pins.h"
 #include "Config/ainser64_pins.h"
+// Note: OLED no longer uses hardware SPI (uses software SPI instead)
 
 static osMutexId_t g_spi1_mutex;
-static osMutexId_t g_spi2_mutex;
 static osMutexId_t g_spi3_mutex;
 
-// Safe defaults (tune later)
+// Safe defaults (tuned to match MIOS32)
+// AINSER: MIOS32 uses prescaler 64 @ 120 MHz = 1.875 MHz (max 2 MHz per MCP3208 datasheet)
+// For STM32F407 @ 168 MHz: prescaler 64 gives 168/64 = 2.625 MHz (still within MCP3208 spec)
 static uint32_t presc_sd   = SPI_BAUDRATEPRESCALER_4;
-static uint32_t presc_ain  = SPI_BAUDRATEPRESCALER_8;
-static uint32_t presc_oled = SPI_BAUDRATEPRESCALER_8;
+static uint32_t presc_ain  = SPI_BAUDRATEPRESCALER_64;
 
 static void cs_high(spibus_dev_t dev) {
   if (dev == SPIBUS_DEV_SD)
     HAL_GPIO_WritePin(SD_CS_GPIO_Port, SD_CS_Pin, GPIO_PIN_SET);
   else if (dev == SPIBUS_DEV_AIN)
     HAL_GPIO_WritePin(AIN_CS_PORT, AIN_CS_PIN, GPIO_PIN_SET);
-  else
-    HAL_GPIO_WritePin(OLED_CS_GPIO_Port, OLED_CS_Pin, GPIO_PIN_SET);
 }
 
 static void cs_low(spibus_dev_t dev) {
@@ -26,14 +24,11 @@ static void cs_low(spibus_dev_t dev) {
     HAL_GPIO_WritePin(SD_CS_GPIO_Port, SD_CS_Pin, GPIO_PIN_RESET);
   else if (dev == SPIBUS_DEV_AIN)
     HAL_GPIO_WritePin(AIN_CS_PORT, AIN_CS_PIN, GPIO_PIN_RESET);
-  else
-    HAL_GPIO_WritePin(OLED_CS_GPIO_Port, OLED_CS_Pin, GPIO_PIN_RESET);
 }
 
 static SPI_HandleTypeDef* dev_spi(spibus_dev_t dev) {
   switch (dev) {
     case SPIBUS_DEV_SD:   return &hspi1;
-    case SPIBUS_DEV_OLED: return &hspi2;
     case SPIBUS_DEV_AIN:  return &hspi3;
     default:              return &hspi1;
   }
@@ -41,15 +36,14 @@ static SPI_HandleTypeDef* dev_spi(spibus_dev_t dev) {
 
 static osMutexId_t dev_mutex(spibus_dev_t dev) {
   switch (dev) {
-    case SPIBUS_DEV_OLED: return g_spi2_mutex;
     case SPIBUS_DEV_AIN:  return g_spi3_mutex;
     default:              return g_spi1_mutex;
   }
 }
+
 static uint32_t dev_presc(spibus_dev_t dev) {
   if (dev == SPIBUS_DEV_SD) return presc_sd;
-  if (dev == SPIBUS_DEV_AIN) return presc_ain;
-  return presc_oled;
+  return presc_ain;
 }
 
 static void spi_set_prescaler(SPI_HandleTypeDef* hspi, uint32_t prescaler) {
@@ -61,12 +55,11 @@ static void spi_set_prescaler(SPI_HandleTypeDef* hspi, uint32_t prescaler) {
 void spibus_init(void) {
   const osMutexAttr_t attr = { .name = "spibus" };
   g_spi1_mutex = osMutexNew(&attr);
-  g_spi2_mutex = osMutexNew(&attr);
   g_spi3_mutex = osMutexNew(&attr);
 
   cs_high(SPIBUS_DEV_SD);
   cs_high(SPIBUS_DEV_AIN);
-  cs_high(SPIBUS_DEV_OLED);
+  // Note: OLED uses software SPI (bit-bang), not managed by spibus
 }
 
 HAL_StatusTypeDef spibus_begin(spibus_dev_t dev) {

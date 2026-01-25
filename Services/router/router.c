@@ -7,6 +7,11 @@ __attribute__((weak)) void router_tap_hook(uint8_t in_node, const router_msg_t* 
   (void)in_node; (void)msg;
 }
 
+// Optional transform hook (e.g., LiveFX, MIDI Monitor). Weak so it can be implemented elsewhere.
+__attribute__((weak)) void router_transform_hook(uint8_t out_node, router_msg_t* msg) {
+  (void)out_node; (void)msg;
+}
+
 
 #ifndef ROUTER_LABEL_MAX
 #define ROUTER_LABEL_MAX 16
@@ -101,6 +106,13 @@ void router_process(uint8_t in_node, const router_msg_t* msg) {
   for (uint8_t out=0; out<ROUTER_NUM_NODES; out++) {
     if (!snap[out].enabled) continue;
     if (chan_voice && ((snap[out].chmask & bit) == 0)) continue;
-    (void)g_send(out, msg);
+    
+    // Create a copy of the message for potential transformation
+    router_msg_t transformed_msg = *msg;
+    
+    // Call transform hook (weak, can be implemented elsewhere for LiveFX, etc.)
+    router_transform_hook(out, &transformed_msg);
+    
+    (void)g_send(out, &transformed_msg);
   }
 }

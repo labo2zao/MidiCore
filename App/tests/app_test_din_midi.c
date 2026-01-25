@@ -30,11 +30,14 @@
 #define APP_TEST_MIDI_USE_USBH 1
 #endif
 
+#ifdef SRIO_ENABLE
 static uint8_t din_prev[SRIO_DIN_BYTES];
+#endif
 
 static void app_test_din_output_cb(DIN_MapType type, uint8_t channel,
                                    uint8_t number, uint8_t value)
 {
+#ifdef SRIO_ENABLE
   if (type == DIN_MAP_TYPE_NOTE) {
     if (value) {
       midi_router_note_on(MIDI_ROUTER_SRC_DIN, channel, number, value);
@@ -44,6 +47,12 @@ static void app_test_din_output_cb(DIN_MapType type, uint8_t channel,
   } else if (type == DIN_MAP_TYPE_CC) {
     midi_router_cc(MIDI_ROUTER_SRC_DIN, channel, number, value);
   }
+#else
+  (void)type;
+  (void)channel;
+  (void)number;
+  (void)value;
+#endif
 }
 
 void app_test_din_midi_run_forever(void)

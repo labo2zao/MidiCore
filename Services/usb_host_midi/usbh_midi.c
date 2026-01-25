@@ -284,6 +284,34 @@ int USBH_MIDI_SendBytes(USBH_HandleTypeDef *phost, const uint8_t *data, uint16_t
 }
 
 /**
+ * USBH_MIDI_Recv - Wrapper for USBH_MIDI_Read to match expected API signature
+ * Returns 0 on success, writes number of bytes received to *out_used
+ */
+int USBH_MIDI_Recv(USBH_HandleTypeDef *phost, uint8_t *out, uint16_t out_len, uint16_t *out_used)
+{
+  if (out_used == NULL) return -1;
+  
+  int bytes = USBH_MIDI_Read(phost, out, out_len);
+  if (bytes < 0) {
+    *out_used = 0;
+    return -1;
+  }
+  
+  *out_used = (uint16_t)bytes;
+  return 0;  // 0 = success
+}
+
+/**
+ * USBH_MIDI_Send - Wrapper for USBH_MIDI_SendBytes to match expected API signature
+ * Returns 0 on success
+ */
+int USBH_MIDI_Send(USBH_HandleTypeDef *phost, const uint8_t *data, uint16_t len)
+{
+  int result = USBH_MIDI_SendBytes(phost, data, len);
+  return (result > 0) ? 0 : result;  // 0 = success, negative = error
+}
+
+/**
  * Convenience for short MIDI messages (len=1..3).
  * This wraps into 4-byte USB MIDI event packet.
  *

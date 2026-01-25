@@ -1,3 +1,20 @@
+/**
+ * @file din_selftest.c
+ * @brief DEPRECATED: Legacy DIN test - use MODULE_TEST_SRIO instead
+ * 
+ * This file contains the old DIN self-test which has been superseded by
+ * the comprehensive MODULE_TEST_SRIO test in App/tests/module_tests.c
+ * 
+ * The new test provides:
+ * - Full button press/release detection
+ * - Debounce support (MIOS32-compatible)
+ * - Comprehensive diagnostics
+ * - Pin mapping verification
+ * 
+ * This legacy code is kept for reference only.
+ * To use the new test, set: MODULE_TEST_SRIO=1
+ */
+
 #include "App/din_selftest.h"
 
 #include "Hal/uart_midi/hal_uart_midi.h"
@@ -48,10 +65,6 @@ void din_selftest_run(void)
     .dout_bytes = SRIO_DOUT_BYTES,
   };
   srio_init(&scfg);
-#else
-  uart_puts("[DIN] ERROR: SRIO_ENABLE not defined at compile time.\r\n");
-  for(;;) osDelay(1000);
-#endif
 
   uint8_t din[SRIO_DIN_BYTES];
 
@@ -69,4 +82,8 @@ void din_selftest_run(void)
     }
     osDelay(50);
   }
+#else
+  uart_puts("[DIN] ERROR: SRIO_ENABLE not defined at compile time.\r\n");
+  for(;;) osDelay(1000);
+#endif
 }
