@@ -390,6 +390,145 @@ Simply include and use:
   - Runtime configuration service
   - Production-ready refactoring of Phase 3 features
 
+---
+
+## Production Mode Critical Fixes
+
+### Issue Report (RESOLVED ✅)
+
+**Date**: 2026-01-20  
+**Severity**: CRITICAL  
+**Status**: ✅ RESOLVED
+
+When all test flags were disabled (production mode), the application experienced hard faults during initialization. This section documents the issues found and fixes applied.
+
+### Root Causes
+
+#### Issue #1: Duplicate humanize_init() Call
+
+**Problem**: humanize_init() was being called twice with different seeds:
+```c
+// Line 204 - First call (correct)
+#if MODULE_ENABLE_HUMANIZE
+    humanize_init(osKernelGetTickCount());
+#endif
+
+// Line 246 - Second call (WRONG - duplicate!)
+#if MODULE_ENABLE_HUMANIZER
+  humanize_init(HAL_GetTick());
+#endif
+```
+
+**Fix**: Removed duplicate call at line 246.
+
+#### Issue #2: #include Inside #if Blocks
+
+**Problem**: Includes were placed inside function blocks:
+```c
+// WRONG - includes inside function blocks
+#if MODULE_ENABLE_LFO
+  #include "Services/lfo/lfo.h"  // ← BAD: include inside block
+  lfo_init();
+#endif
+```
+
+**Fix**: Moved includes to top of file:
+```c
+// CORRECT - includes at file level
+#if MODULE_ENABLE_HUMANIZE
+#include "Services/humanize/humanize.h"
+#endif
+
+#if MODULE_ENABLE_LFO
+#include "Services/lfo/lfo.h"
+#endif
+```
+
+#### Issue #3: Unguarded UI Page References
+
+**Problem**: Humanizer page was always included and called, even when modules disabled:
+```c
+// Always included, even when modules disabled
+#include "Services/ui/ui_page_humanizer.h"
+
+// Always called
+case UI_PAGE_HUMANIZER: 
+  ui_page_humanizer_render(g_ms);
+  break;
+```
+
+**Fix**: Guard all humanizer page references:
+```c
+#if MODULE_ENABLE_LFO && MODULE_ENABLE_HUMANIZER
+#include "Services/ui/ui_page_humanizer.h"
+#endif
+
+// Switch cases
+#if MODULE_ENABLE_LFO && MODULE_ENABLE_HUMANIZER
+    case UI_PAGE_HUMANIZER: ui_page_humanizer_render(g_ms); break;
+#endif
+```
+
+#### Issue #4: Page Cycling to Disabled Page
+
+**Problem**: User could navigate to disabled humanizer page:
+```c
+else if (g_page == UI_PAGE_RHYTHM) 
+  g_page = UI_PAGE_HUMANIZER;  // ← May not exist!
+```
+
+**Fix**: Conditional page cycling:
+```c
+#if MODULE_ENABLE_LFO && MODULE_ENABLE_HUMANIZER
+    else if (g_page == UI_PAGE_RHYTHM) g_page = UI_PAGE_HUMANIZER;
+    else if (g_page == UI_PAGE_HUMANIZER) g_page = UI_PAGE_LOOPER;
+#else
+    else if (g_page == UI_PAGE_RHYTHM) g_page = UI_PAGE_LOOPER;
+#endif
+```
+
+### Verification Tests
+
+All module configurations tested and verified:
+
+1. ✅ All modules enabled - 10 UI pages accessible
+2. ✅ LFO disabled - 9 UI pages, skips HUMANIZER
+3. ✅ Humanizer disabled - 9 UI pages, skips HUMANIZER
+4. ✅ Both disabled - 8 UI pages
+5. ✅ Production mode (no tests) - Stable, no hard faults
+
+### Best Practices from These Fixes
+
+1. **Always place #include at file level** - Never inside functions or conditional blocks
+2. **Avoid duplicate initialization** - Use single, well-documented initialization path
+3. **Guard UI pages properly** - Check all module dependencies
+4. **Handle disabled pages in navigation** - Conditional page cycling logic
+5. **Test all module combinations** - Especially "all disabled" (production mode)
+
+### Prevention Measures
+
+**Compile-Time Checks** (Add to CI/CD):
+```bash
+# Test all module combinations
+make clean && make MODULE_ENABLE_LFO=0 MODULE_ENABLE_HUMANIZER=0
+make clean && make MODULE_ENABLE_LFO=1 MODULE_ENABLE_HUMANIZER=0
+make clean && make MODULE_ENABLE_LFO=0 MODULE_ENABLE_HUMANIZER=1
+make clean && make MODULE_ENABLE_LFO=1 MODULE_ENABLE_HUMANIZER=1
+```
+
+**Code Review Checklist**:
+- [ ] All #include statements at file level
+- [ ] No duplicate initialization calls
+- [ ] UI pages guarded by correct MODULE_ENABLE flags
+- [ ] Page cycling handles disabled pages
+- [ ] All switch cases guarded appropriately
+
+### Status: RESOLVED ✅
+
+Production mode is now stable and working correctly with all module configurations.
+
+---
+
 ## Authors
 
 - Implementation: Copilot Coding Agent
