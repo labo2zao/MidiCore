@@ -99,6 +99,8 @@ static quick_save_slot_t g_quick_save_slots[NUM_QUICK_SAVE_SLOTS];
 typedef struct {
   uint8_t recording;
   uint8_t playback_enabled;
+  uint8_t muted;              // Feature 2: Automation mute
+  uint8_t soloed;             // Feature 2: Automation solo
   uint32_t event_count;
   uint32_t playback_idx;  // Current playback position in events array
   looper_automation_event_t events[LOOPER_AUTOMATION_MAX_EVENTS];
@@ -137,6 +139,28 @@ typedef struct {
 } scene_chain_t;
 
 static scene_chain_t g_scene_chains[LOOPER_SCENES];
+
+// Feature 3: Loop Length Constraints (per track)
+static uint16_t g_length_constraints[LOOPER_TRACKS] = {0}; // 0 = no constraint
+
+// Feature 4: Track Linking (bitfield for linked pairs)
+static uint8_t g_track_links[LOOPER_TRACKS] = {0}; // Bitmask of linked tracks
+
+// Feature 5: Scene State Snapshots (lightweight state storage)
+#define NUM_SCENE_SNAPSHOTS 16
+
+typedef struct {
+  uint8_t used;
+  looper_state_t track_states[LOOPER_TRACKS];
+  uint8_t track_muted[LOOPER_TRACKS];
+  uint8_t track_solo[LOOPER_TRACKS];
+  uint8_t automation_muted[LOOPER_TRACKS];
+  uint8_t automation_soloed[LOOPER_TRACKS];
+  uint16_t loop_beats[LOOPER_TRACKS];
+  uint8_t current_scene;
+} scene_snapshot_t;
+
+static scene_snapshot_t g_scene_snapshots[NUM_SCENE_SNAPSHOTS];
 
 // Forward declarations for automation functions
 // Record CC automation event during looper recording
@@ -363,6 +387,20 @@ void looper_set_state(uint8_t track, looper_state_t st) {
       if (len < LOOPER_PPQN) len = LOOPER_PPQN;
       t->loop_len_ticks = len;
     }
+    
+    // Feature 3: Apply length constraint if set
+    if (g_length_constraints[track] > 0) {
+      uint32_t ticks_per_beat = (LOOPER_PPQN * 4) / g_tp.ts_den;
+      uint32_t constrained_ticks = g_length_constraints[track] * ticks_per_beat;
+      if (t->loop_len_ticks < constrained_ticks) {
+        t->loop_len_ticks = constrained_ticks;
+      } else if (t->loop_len_ticks > constrained_ticks) {
+        // Truncate or wrap to constraint
+        t->loop_len_ticks = constrained_ticks;
+      }
+      t->loop_beats = g_length_constraints[track];
+    }
+    
     sort_events(t);
     t->play_tick = 0;
     t->next_idx = 0;
@@ -372,11 +410,16 @@ void looper_set_state(uint8_t track, looper_state_t st) {
     t->play_tick = 0;
     t->next_idx = 0;
     memset(t->active_notes, 0, sizeof(t->active_notes));
-  } else if (st == LOOPER_STATE_OVERDUB) {
+  } else if (st == LOOPER_STATE_OVERDUB || st == LOOPER_STATE_OVERDUB_CC_ONLY || 
+             st == LOOPER_STATE_OVERDUB_NOTES_ONLY) {
     if (ensure_loop_len(t) == 0) st = LOOPER_STATE_STOP;
   }
 
   t->st = st;
+  
+  // Feature 4: Propagate state change to linked tracks
+  propagate_state_to_linked_tracks(track, st);
+  
   if (g_mutex) osMutexRelease(g_mutex);
 }
 
@@ -402,8 +445,9 @@ void looper_on_router_msg(uint8_t in_node, const router_msg_t* msg) {
     // Check if track is in a recording state
     uint8_t is_recording = (t->st == LOOPER_STATE_REC || t->st == LOOPER_STATE_OVERDUB);
     uint8_t is_cc_only_mode = (t->st == LOOPER_STATE_OVERDUB_CC_ONLY);
+    uint8_t is_notes_only_mode = (t->st == LOOPER_STATE_OVERDUB_NOTES_ONLY);
     
-    if (!is_recording && !is_cc_only_mode) continue;
+    if (!is_recording && !is_cc_only_mode && !is_notes_only_mode) continue;
     
     // In CC-only mode, only record CC messages to automation layer
     if (is_cc_only_mode) {
@@ -419,7 +463,15 @@ void looper_on_router_msg(uint8_t in_node, const router_msg_t* msg) {
       continue;  // Skip recording to main event buffer
     }
     
-    // Normal recording mode (REC/OVERDUB) - record all events
+    // In Notes-only mode, only record non-CC messages to main event buffer
+    if (is_notes_only_mode) {
+      if ((status & 0xF0) == 0xB0) {
+        continue;  // Skip CC messages in notes-only mode
+      }
+      // Fall through to record notes and other MIDI messages
+    }
+    
+    // Normal recording mode (REC/OVERDUB/NOTES_ONLY) - record events
     if (t->count >= LOOPER_MAX_EVENTS) continue;
 
     uint32_t tick = (t->st == LOOPER_STATE_REC) ? t->write_tick : t->play_tick;
@@ -520,11 +572,12 @@ void looper_tick_1ms(void) {
       if (t->write_tick > 0x7FFFFFFFu) t->write_tick = 0x7FFFFFFFu;
     }
 
-    if (t->st == LOOPER_STATE_PLAY || t->st == LOOPER_STATE_OVERDUB || t->st == LOOPER_STATE_OVERDUB_CC_ONLY) {
+    if (t->st == LOOPER_STATE_PLAY || t->st == LOOPER_STATE_OVERDUB || 
+        t->st == LOOPER_STATE_OVERDUB_CC_ONLY || t->st == LOOPER_STATE_OVERDUB_NOTES_ONLY) {
       if (t->loop_len_ticks == 0) continue;
 
       for (uint32_t k=0; k<adv; k++) {
-        // In CC-only mode, still play back existing MIDI events
+        // In CC-only or Notes-only mode, still play back existing MIDI events
         emit_due_events(t, tr);
         
         // Process automation playback
@@ -3503,6 +3556,20 @@ static void looper_automation_process_playback(uint8_t track) {
   if (g_automation[track].event_count == 0) return;
   if (g_tr[track].st != LOOPER_STATE_PLAY && g_tr[track].st != LOOPER_STATE_OVERDUB) return;
   
+  // Feature 2: Check automation mute/solo state
+  if (g_automation[track].muted) return;  // Muted - don't play automation
+  
+  // Check if any track is soloed
+  uint8_t any_soloed = 0;
+  for (uint8_t i = 0; i < LOOPER_TRACKS; i++) {
+    if (g_automation[i].soloed) {
+      any_soloed = 1;
+      break;
+    }
+  }
+  // If something is soloed and this track is not, skip playback
+  if (any_soloed && !g_automation[track].soloed) return;
+  
   uint32_t current_tick = g_tr[track].play_tick;
   
   // Handle loop wraparound - reset playback index to beginning
@@ -3540,3 +3607,205 @@ static void looper_automation_process_playback(uint8_t track) {
 
 
 
+
+// ========================================================================
+// Feature 2: Automation Layer Mute/Solo
+// ========================================================================
+
+void looper_automation_set_mute(uint8_t track, uint8_t muted) {
+  if (track >= LOOPER_TRACKS) return;
+  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  g_automation[track].muted = muted ? 1 : 0;
+  if (g_mutex) osMutexRelease(g_mutex);
+}
+
+uint8_t looper_automation_is_muted(uint8_t track) {
+  if (track >= LOOPER_TRACKS) return 0;
+  return g_automation[track].muted;
+}
+
+void looper_automation_set_solo(uint8_t track, uint8_t solo) {
+  if (track >= LOOPER_TRACKS) return;
+  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  g_automation[track].soloed = solo ? 1 : 0;
+  if (g_mutex) osMutexRelease(g_mutex);
+}
+
+uint8_t looper_automation_is_soloed(uint8_t track) {
+  if (track >= LOOPER_TRACKS) return 0;
+  return g_automation[track].soloed;
+}
+
+// ========================================================================
+// Feature 3: Loop Length Constraints
+// ========================================================================
+
+void looper_set_length_constraint(uint8_t track, uint16_t beats) {
+  if (track >= LOOPER_TRACKS) return;
+  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  g_length_constraints[track] = beats;
+  if (g_mutex) osMutexRelease(g_mutex);
+}
+
+uint16_t looper_get_length_constraint(uint8_t track) {
+  if (track >= LOOPER_TRACKS) return 0;
+  return g_length_constraints[track];
+}
+
+void looper_quantize_loop_length(uint8_t track) {
+  if (track >= LOOPER_TRACKS) return;
+  
+  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  
+  looper_track_t* t = &g_tr[track];
+  uint16_t current_beats = t->loop_beats;
+  
+  // Quantize to nearest standard musical duration: 1, 2, 4, 8, 16, 32 beats
+  const uint16_t quantize_values[] = {1, 2, 4, 8, 16, 32};
+  uint16_t closest = quantize_values[0];
+  uint16_t min_diff = 0xFFFF;
+  
+  for (uint8_t i = 0; i < sizeof(quantize_values) / sizeof(quantize_values[0]); i++) {
+    uint16_t diff = (current_beats > quantize_values[i]) ? 
+                    (current_beats - quantize_values[i]) : 
+                    (quantize_values[i] - current_beats);
+    if (diff < min_diff) {
+      min_diff = diff;
+      closest = quantize_values[i];
+    }
+  }
+  
+  // Apply the quantized length
+  looper_set_loop_beats(track, closest);
+  
+  if (g_mutex) osMutexRelease(g_mutex);
+}
+
+// ========================================================================
+// Feature 4: Track Link/Group
+// ========================================================================
+
+void looper_link_tracks(uint8_t track1, uint8_t track2, uint8_t linked) {
+  if (track1 >= LOOPER_TRACKS || track2 >= LOOPER_TRACKS) return;
+  if (track1 == track2) return;  // Can't link track to itself
+  
+  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  
+  if (linked) {
+    g_track_links[track1] |= (1 << track2);
+    g_track_links[track2] |= (1 << track1);
+  } else {
+    g_track_links[track1] &= ~(1 << track2);
+    g_track_links[track2] &= ~(1 << track1);
+  }
+  
+  if (g_mutex) osMutexRelease(g_mutex);
+}
+
+uint8_t looper_are_tracks_linked(uint8_t track1, uint8_t track2) {
+  if (track1 >= LOOPER_TRACKS || track2 >= LOOPER_TRACKS) return 0;
+  if (track1 == track2) return 0;
+  
+  return (g_track_links[track1] & (1 << track2)) ? 1 : 0;
+}
+
+void looper_clear_all_track_links(void) {
+  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  for (uint8_t i = 0; i < LOOPER_TRACKS; i++) {
+    g_track_links[i] = 0;
+  }
+  if (g_mutex) osMutexRelease(g_mutex);
+}
+
+// Helper function to propagate state changes to linked tracks
+static void propagate_state_to_linked_tracks(uint8_t track, looper_state_t state) {
+  if (track >= LOOPER_TRACKS) return;
+  
+  // Check which tracks are linked to this one
+  uint8_t links = g_track_links[track];
+  for (uint8_t i = 0; i < LOOPER_TRACKS; i++) {
+    if (i == track) continue;
+    if (links & (1 << i)) {
+      // Don't propagate again if already in that state (prevent loops)
+      if (g_tr[i].st != state) {
+        g_tr[i].st = state;
+        if (state == LOOPER_STATE_PLAY || state == LOOPER_STATE_OVERDUB) {
+          g_tr[i].play_tick = 0;
+          g_tr[i].next_idx = 0;
+        }
+      }
+    }
+  }
+}
+
+// ========================================================================
+// Feature 5: Scene Snapshot (Lightweight State Management)
+// ========================================================================
+
+int looper_save_scene_state(uint8_t slot) {
+  if (slot >= NUM_SCENE_SNAPSHOTS) return -1;
+  
+  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  
+  scene_snapshot_t* snap = &g_scene_snapshots[slot];
+  snap->used = 1;
+  snap->current_scene = g_current_scene;
+  
+  for (uint8_t tr = 0; tr < LOOPER_TRACKS; tr++) {
+    snap->track_states[tr] = g_tr[tr].st;
+    snap->track_muted[tr] = g_track_muted[tr];
+    snap->track_solo[tr] = g_track_solo[tr];
+    snap->automation_muted[tr] = g_automation[tr].muted;
+    snap->automation_soloed[tr] = g_automation[tr].soloed;
+    snap->loop_beats[tr] = g_tr[tr].loop_beats;
+  }
+  
+  if (g_mutex) osMutexRelease(g_mutex);
+  return 0;
+}
+
+int looper_recall_scene_state(uint8_t slot) {
+  if (slot >= NUM_SCENE_SNAPSHOTS) return -1;
+  if (!g_scene_snapshots[slot].used) return -1;
+  
+  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  
+  scene_snapshot_t* snap = &g_scene_snapshots[slot];
+  g_current_scene = snap->current_scene;
+  
+  for (uint8_t tr = 0; tr < LOOPER_TRACKS; tr++) {
+    // Stop all tracks first to prevent glitches
+    if (g_tr[tr].st != LOOPER_STATE_STOP) {
+      send_all_note_off(&g_tr[tr]);
+    }
+    
+    g_tr[tr].st = snap->track_states[tr];
+    g_track_muted[tr] = snap->track_muted[tr];
+    g_track_solo[tr] = snap->track_solo[tr];
+    g_automation[tr].muted = snap->automation_muted[tr];
+    g_automation[tr].soloed = snap->automation_soloed[tr];
+    
+    // Reset playback position if starting playback
+    if (snap->track_states[tr] == LOOPER_STATE_PLAY || 
+        snap->track_states[tr] == LOOPER_STATE_OVERDUB) {
+      g_tr[tr].play_tick = 0;
+      g_tr[tr].next_idx = 0;
+    }
+  }
+  
+  if (g_mutex) osMutexRelease(g_mutex);
+  return 0;
+}
+
+uint8_t looper_scene_state_is_saved(uint8_t slot) {
+  if (slot >= NUM_SCENE_SNAPSHOTS) return 0;
+  return g_scene_snapshots[slot].used;
+}
+
+void looper_clear_scene_state(uint8_t slot) {
+  if (slot >= NUM_SCENE_SNAPSHOTS) return;
+  
+  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  g_scene_snapshots[slot].used = 0;
+  if (g_mutex) osMutexRelease(g_mutex);
+}
