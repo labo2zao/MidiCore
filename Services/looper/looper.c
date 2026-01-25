@@ -1671,8 +1671,10 @@ typedef struct {
   uint8_t count;          // Number of valid states
 } undo_stack_t;
 
-// Place undo stacks in CCMRAM to save regular RAM
-static undo_stack_t undo_stacks[LOOPER_TRACKS] __attribute__((section(".ccmram")));
+// Moved to regular RAM to free CCMRAM space while keeping depth=5
+// With depth=5, undo_stacks are ~99KB which exceeds 64KB CCMRAM
+// Moving to RAM allows g_tr and g_automation to stay in CCMRAM for hot-path performance
+static undo_stack_t undo_stacks[LOOPER_TRACKS];
 
 /**
  * @brief Save current track state to undo history
