@@ -1,6 +1,5 @@
-
 /Release
 /.settings
 /*.zip
 /Debug
-!/Release/MidiCore.map
+!/Debug/*.map
