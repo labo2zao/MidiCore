@@ -90,7 +90,19 @@ typedef enum {
   LOOPER_QUANT_OFF = 0,
   LOOPER_QUANT_1_16,
   LOOPER_QUANT_1_8,
-  LOOPER_QUANT_1_4
+  LOOPER_QUANT_1_4,
+  // Triplet modes (3 notes per beat division)
+  LOOPER_QUANT_1_8T,      // 1/8 triplet (3 per quarter note)
+  LOOPER_QUANT_1_16T,     // 1/16 triplet (6 per quarter note)
+  LOOPER_QUANT_1_32T,     // 1/32 triplet (12 per quarter note)
+  // Quintuplet modes (5 notes per beat division)
+  LOOPER_QUANT_1_8Q,      // 1/8 quintuplet (5 per 2 quarter notes)
+  LOOPER_QUANT_1_16Q,     // 1/16 quintuplet (5 per quarter note)
+  LOOPER_QUANT_1_32Q,     // 1/32 quintuplet (10 per quarter note)
+  // Dotted note modes (uneven rhythms)
+  LOOPER_QUANT_1_4_DOT,   // Dotted quarter (1.5x quarter note)
+  LOOPER_QUANT_1_8_DOT,   // Dotted eighth (1.5x eighth note)
+  LOOPER_QUANT_1_16_DOT   // Dotted sixteenth (1.5x sixteenth note)
 } looper_quant_t;
 
 typedef struct {

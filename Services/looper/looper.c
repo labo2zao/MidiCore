@@ -189,6 +189,31 @@ static inline uint32_t quant_step_ticks(looper_quant_t q) {
   if (q == LOOPER_QUANT_1_16) return (uint32_t)LOOPER_PPQN >> 2u;
   if (q == LOOPER_QUANT_1_8)  return (uint32_t)LOOPER_PPQN >> 1u;
   if (q == LOOPER_QUANT_1_4)  return (uint32_t)LOOPER_PPQN;
+  
+  // Triplet modes (3 notes per beat division)
+  // PPQN / 3 = 1/8 triplet (3 per quarter note)
+  if (q == LOOPER_QUANT_1_8T)  return (uint32_t)LOOPER_PPQN / 3u;
+  // PPQN / 6 = 1/16 triplet (6 per quarter note)
+  if (q == LOOPER_QUANT_1_16T) return (uint32_t)LOOPER_PPQN / 6u;
+  // PPQN / 12 = 1/32 triplet (12 per quarter note)
+  if (q == LOOPER_QUANT_1_32T) return (uint32_t)LOOPER_PPQN / 12u;
+  
+  // Quintuplet modes (5 notes per beat division)
+  // PPQN * 2 / 5 = 1/8 quintuplet (5 per 2 quarter notes)
+  if (q == LOOPER_QUANT_1_8Q)  return ((uint32_t)LOOPER_PPQN * 2u) / 5u;
+  // PPQN / 5 = 1/16 quintuplet (5 per quarter note)
+  if (q == LOOPER_QUANT_1_16Q) return (uint32_t)LOOPER_PPQN / 5u;
+  // PPQN / 10 = 1/32 quintuplet (10 per quarter note)
+  if (q == LOOPER_QUANT_1_32Q) return (uint32_t)LOOPER_PPQN / 10u;
+  
+  // Dotted note modes (uneven rhythms - 1.5x the base note value)
+  // PPQN * 3 / 2 = dotted quarter (1.5x quarter note)
+  if (q == LOOPER_QUANT_1_4_DOT)  return ((uint32_t)LOOPER_PPQN * 3u) >> 1u;
+  // PPQN * 3 / 4 = dotted eighth (1.5x eighth note)
+  if (q == LOOPER_QUANT_1_8_DOT)  return ((uint32_t)LOOPER_PPQN * 3u) >> 2u;
+  // PPQN * 3 / 8 = dotted sixteenth (1.5x sixteenth note)
+  if (q == LOOPER_QUANT_1_16_DOT) return ((uint32_t)LOOPER_PPQN * 3u) >> 3u;
+  
   return 0; // LOOPER_QUANT_OFF or default
 }
 
