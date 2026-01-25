@@ -211,7 +211,7 @@ static inline uint32_t quant_step_ticks(looper_quant_t q) {
   // Sextuplet modes (6 notes per beat division) - jazz phrases
   // PPQN * 2 / 6 = 1/8 sextuplet (6 per 2 quarter notes)
   if (q == LOOPER_QUANT_1_8S)  return ((uint32_t)LOOPER_PPQN * 2u) / 6u;
-  // PPQN / 6 = 1/16 sextuplet (6 per quarter note, equivalent to 1/16T)
+  // PPQN / 6 = 1/16 sextuplet (6 per quarter note, math equivalent to 1/16T but different musical feel)
   if (q == LOOPER_QUANT_1_16S) return (uint32_t)LOOPER_PPQN / 6u;
   
   // Septuplet modes (7 notes per beat division) - jazz runs
