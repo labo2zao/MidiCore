@@ -11,7 +11,7 @@ Finalize MidiCore for production with all modules functional, complete UI, SCS c
 | RAM Optimization | ✅ Done | 119KB/128KB, 9KB bootloader headroom |
 | CCMRAM Allocation | ✅ Done | 57KB/64KB (g_tr, fb, active, g_automation) |
 | CCMRAM Clock | ✅ Done | Enabled in SystemInit() |
-| OLED Init | ✅ Done | Using oled_init_newhaven() production init |
+| OLED Init | ✅ Done | Using oled_init_newhaven() production init (oled_init() for tests only) |
 
 ### ✅ HARDWARE MODULES (All Enabled)
 | Module | Config | Status | Notes |
@@ -19,7 +19,7 @@ Finalize MidiCore for production with all modules functional, complete UI, SCS c
 | AINSER64 | `MODULE_ENABLE_AINSER64=1` | ✅ Enabled | 64 analog Hall sensors (MCP3208 + 74HC4051) |
 | SRIO | `MODULE_ENABLE_SRIO=1` | ✅ Enabled | 74HC165/595 shift register I/O |
 | SPI Bus | `MODULE_ENABLE_SPI_BUS=1` | ✅ Enabled | Shared resource management |
-| OLED | `MODULE_ENABLE_OLED=1` | ✅ Enabled | SSD1322 display, production init |
+| OLED | `MODULE_ENABLE_OLED=1` | ✅ Enabled | SSD1322 display, oled_init_newhaven() in production |
 
 ### ✅ MIDI MODULES (All Enabled)
 | Module | Config | Status | Notes |
@@ -86,8 +86,12 @@ Finalize MidiCore for production with all modules functional, complete UI, SCS c
 ### Phase 1: Core Infrastructure ✅ COMPLETE
 - [x] Memory optimization (RAM 119KB/128KB, CCMRAM 57KB/64KB)
 - [x] CCMRAM clock enabled in SystemInit()
-- [x] Production OLED init (oled_init_newhaven)
+- [x] Production OLED init (oled_init_newhaven) - oled_init() kept for MODULE_TEST_OLED only
 - [x] All module enables verified in module_config.h
+
+**Note**: OLED has two init functions:
+- `oled_init_newhaven()` - Production (LoopA NHD-3.12 init sequence) used in app_init.c
+- `oled_init()` - Test/Debug (simple MIOS32 init) used in MODULE_TEST_OLED only
 
 ### Phase 2: Module Initialization 🔄 IN PROGRESS
 - [ ] Verify all modules initialize in app_init.c
