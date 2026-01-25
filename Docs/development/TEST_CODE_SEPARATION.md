@@ -66,7 +66,7 @@ void test_function(void) {
 
 | File | Function | Status | Guard | Notes |
 |------|----------|--------|-------|-------|
-| `ui_page_oled_test.c/h` | OLED test page | ⚠️ TODO | Need `#ifdef MODULE_TEST_OLED` | Entire UI page for testing |
+| `ui_page_oled_test.c/h` | OLED test page | ✅ DONE | `#ifdef MODULE_TEST_OLED` | Entire UI page for testing |
 | `ui.c` | Test page integration | ⚠️ TODO | Need conditional in page array | Don't register test pages |
 
 ### ✅ Test Directory `/App/tests/`
@@ -89,12 +89,12 @@ All files in `/App/tests/` are test-only and should NOT be compiled in productio
 - [ ] Guard `din_selftest.c/h` with `#ifdef MODULE_TEST_DIN_SELFTEST`
 - [ ] Conditionally exclude from `app_init.c`
 
-### Phase 2: OLED Test Functions (Priority 2)
-- [ ] Guard `oled_test_*()` declarations in `oled_ssd1322.h`
-- [ ] Guard `oled_test_*()` implementations in `oled_ssd1322.c`
-- [ ] Guard `oled_init()` and `oled_init_progressive()` (keep declarations visible but mark deprecated)
-- [ ] Guard `ui_page_oled_test.c/h` entirely
-- [ ] Remove test page registration from `ui.c` when `MODULE_TEST_OLED` not defined
+### Phase 2: OLED Test Functions (Priority 2) ✅ COMPLETE
+- ✅ Guard `oled_test_*()` declarations in `oled_ssd1322.h`
+- ✅ Guard `oled_test_*()` implementations in `oled_ssd1322.c`
+- ✅ Guard `oled_init()` and `oled_init_progressive()` (test init functions)
+- ✅ Guard `ui_page_oled_test.c/h` entirely
+- ⚠️ Remove test page registration from `ui.c` when `MODULE_TEST_OLED` not defined (TODO)
 
 ### Phase 3: Service Layer Debug Functions (Priority 3)
 - [ ] Scan and guard debug functions in `ain.h/ain.c`
