@@ -13,7 +13,12 @@
  * 
  * This legacy code is kept for reference only.
  * To use the new test, set: MODULE_TEST_SRIO=1
+ * 
+ * PRODUCTION NOTE: This file is NOT compiled in production builds.
+ * It is only included when MODULE_TEST_DIN_SELFTEST is explicitly enabled.
  */
+
+#ifdef MODULE_TEST_DIN_SELFTEST
 
 #include "App/din_selftest.h"
 
@@ -87,3 +92,5 @@ void din_selftest_run(void)
   for(;;) osDelay(1000);
 #endif
 }
+
+#endif // MODULE_TEST_DIN_SELFTEST
