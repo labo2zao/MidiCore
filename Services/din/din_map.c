@@ -10,14 +10,27 @@
   #define DM_HAS_FATFS 0
 #endif
 
+#if __has_include("Services/ui/ui.h")
+  #include "Services/ui/ui.h"
+  #define DM_HAS_UI 1
+#else
+  #define DM_HAS_UI 0
+#endif
+
 #define DIN_MAP_NUM_CHANNELS 64
+#define DIN_MAP_LCD_TEXT_MAX 64
 
 static DIN_MapEntry s_din_map[DIN_MAP_NUM_CHANNELS];
 static DIN_MapOutputFn s_out_cb = 0;
 
+// Static storage for LCD text strings (one per channel)
+static char s_lcd_text_storage[DIN_MAP_NUM_CHANNELS][DIN_MAP_LCD_TEXT_MAX];
+
 // defaults: all enabled, active-low, NOTE, ch1, base_note+idx, vel_on=100
 void din_map_init_defaults(uint8_t base_note) {
   memset(s_din_map, 0, sizeof(s_din_map));
+  memset(s_lcd_text_storage, 0, sizeof(s_lcd_text_storage));
+  
   for (uint8_t i = 0; i < DIN_MAP_NUM_CHANNELS; ++i) {
     DIN_MapEntry *e = &s_din_map[i];
     e->enabled = 1;
@@ -27,6 +40,7 @@ void din_map_init_defaults(uint8_t base_note) {
     e->number  = (uint8_t)(base_note + i);
     e->vel_on  = 100;
     e->vel_off = 0;
+    e->lcd_text = NULL;  // No LCD text by default
   }
 }
 
@@ -40,7 +54,6 @@ void din_map_set_output_cb(DIN_MapOutputFn cb) {
 
 void din_map_process_event(uint8_t index, uint8_t pressed) {
   if (index >= DIN_MAP_NUM_CHANNELS) return;
-  if (!s_out_cb) return;
 
   DIN_MapEntry *e = &s_din_map[index];
   if (!e->enabled) return;
@@ -50,15 +63,25 @@ void din_map_process_event(uint8_t index, uint8_t pressed) {
     state = state ? 0u : 1u;
   }
 
-  if (e->type == DIN_MAP_TYPE_NOTE) {
-    if (state) {
-      s_out_cb(DIN_MAP_TYPE_NOTE, e->channel, e->number, e->vel_on);
-    } else {
-      s_out_cb(DIN_MAP_TYPE_NOTE, e->channel, e->number, e->vel_off);
+  // Display LCD text on button press if configured
+#if DM_HAS_UI
+  if (state && e->lcd_text && e->lcd_text[0]) {
+    ui_set_status_line(e->lcd_text);
+  }
+#endif
+
+  // Send MIDI event if callback is set
+  if (s_out_cb) {
+    if (e->type == DIN_MAP_TYPE_NOTE) {
+      if (state) {
+        s_out_cb(DIN_MAP_TYPE_NOTE, e->channel, e->number, e->vel_on);
+      } else {
+        s_out_cb(DIN_MAP_TYPE_NOTE, e->channel, e->number, e->vel_off);
+      }
+    } else if (e->type == DIN_MAP_TYPE_CC) {
+      uint8_t val = state ? 127u : 0u;
+      s_out_cb(DIN_MAP_TYPE_CC, e->channel, e->number, val);
     }
-  } else if (e->type == DIN_MAP_TYPE_CC) {
-    uint8_t val = state ? 127u : 0u;
-    s_out_cb(DIN_MAP_TYPE_CC, e->channel, e->number, val);
   }
 }
 
@@ -86,6 +109,23 @@ static int dm_keyeq(const char* a, const char* b) {
 static uint8_t dm_u8(const char* s) {
   if (!s) return 0;
   return (uint8_t)strtoul(s, 0, 0);
+}
+
+// Helper to remove quotes from string values
+static void dm_unquote(char* s) {
+  if (!s || !s[0]) return;
+  size_t len = strlen(s);
+  
+  // Remove leading quote
+  if (s[0] == '"' || s[0] == '\'') {
+    memmove(s, s + 1, len);
+    len--;
+  }
+  
+  // Remove trailing quote
+  if (len > 0 && (s[len-1] == '"' || s[len-1] == '\'')) {
+    s[len-1] = 0;
+  }
 }
 
 #endif // DM_HAS_FATFS
@@ -162,6 +202,16 @@ int din_map_load_sd(const char* path) {
       e->invert = dm_u8(v) ? 1u : 0u;
     } else if (dm_keyeq(k, "ENABLED") || dm_keyeq(k, "ENABLE")) {
       e->enabled = dm_u8(v) ? 1u : 0u;
+    } else if (dm_keyeq(k, "LCD_TEXT") || dm_keyeq(k, "LCD")) {
+      // Store LCD text in static storage
+      dm_unquote(v);  // Remove quotes if present
+      if (v[0]) {
+        strncpy(s_lcd_text_storage[cur], v, DIN_MAP_LCD_TEXT_MAX - 1);
+        s_lcd_text_storage[cur][DIN_MAP_LCD_TEXT_MAX - 1] = 0;
+        e->lcd_text = s_lcd_text_storage[cur];
+      } else {
+        e->lcd_text = NULL;
+      }
     }
   }
 

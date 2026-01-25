@@ -20,6 +20,7 @@ typedef struct {
   uint8_t     vel_on;     // velocity for Note On
   uint8_t     vel_off;    // velocity for Note Off (0 = note-off with vel 0)
   uint8_t     reserved;
+  char*       lcd_text;   // Optional LCD text to display on button press (NULL = no text)
 } DIN_MapEntry;
 
 // Callback prototype: called on logical DIN events interpreted as MIDI.
