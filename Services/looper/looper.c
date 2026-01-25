@@ -106,8 +106,9 @@ typedef struct {
   looper_automation_event_t events[LOOPER_AUTOMATION_MAX_EVENTS];
 } looper_automation_t;
 
-// Place automation in CCMRAM to save regular RAM
-static looper_automation_t g_automation[LOOPER_TRACKS] __attribute__((section(".ccmram")));
+// Moved to regular RAM to balance CCMRAM usage and allow larger undo stack
+// This frees 8KB in CCMRAM for undo stacks
+static looper_automation_t g_automation[LOOPER_TRACKS];
 
 static uint32_t g_ticks_per_ms_q16 = 0;
 static uint32_t g_acc_q16 = 0;
@@ -2128,6 +2129,7 @@ uint8_t looper_is_external_clock_active(void) {
 #if LOOPER_ENABLE_TRACK_CLIPBOARD
 // Track clipboard - only compiled when enabled (~4KB)
 // Allows copying and pasting individual track data during testing
+// Moved to regular RAM to free CCMRAM for undo stacks and track data
 static struct {
   uint8_t valid;  // 1 if clipboard has data
   uint32_t count;
@@ -2135,13 +2137,14 @@ static struct {
   uint16_t loop_beats;
   looper_quant_t quant;
   looper_evt_t events[LOOPER_MAX_EVENTS];
-} track_clipboard __attribute__((section(".ccmram"))) = {0};
+} track_clipboard = {0};
 #endif // LOOPER_ENABLE_TRACK_CLIPBOARD
 
 #if LOOPER_ENABLE_SCENE_CLIPBOARD
 // Scene clipboard - only compiled when enabled (~16KB)
 // Allows copying and pasting entire scenes (4 tracks) during testing
 // Can be disabled with LOOPER_ENABLE_SCENE_CLIPBOARD=0 to save 16KB
+// Moved to regular RAM to free CCMRAM for undo stacks and track data
 static struct {
   uint8_t valid;  // 1 if clipboard has data
   struct {
@@ -2151,7 +2154,7 @@ static struct {
     uint16_t loop_beats;
     looper_evt_t events[LOOPER_MAX_EVENTS];
   } tracks[LOOPER_TRACKS];
-} scene_clipboard __attribute__((section(".ccmram"))) = {0};
+} scene_clipboard = {0};
 #endif // LOOPER_ENABLE_SCENE_CLIPBOARD
 
 #if LOOPER_ENABLE_TRACK_CLIPBOARD

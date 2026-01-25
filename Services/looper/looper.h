@@ -9,23 +9,26 @@ extern "C" {
 #define LOOPER_TRACKS 4
 
 // Undo/Redo configuration
-// Memory usage: ~(DEPTH * 2060 bytes + 3) per track
+// Memory usage per undo_stack_t: ~20.5KB with DEPTH=1
 // 
-// With CCMRAM optimization (FreeRTOS heap in RAM, OLED FB in RAM):
-// - Production (no tests): Depth 5 = ~41KB for 4 tracks
-// - Test mode: Depth 2 = ~17KB (to fit clipboards ~20KB)
+// CCMRAM Optimization Strategy (PR #54):
+// - Moved clipboards to RAM (saves 20KB CCMRAM)
+// - Moved g_automation to RAM (saves 8KB CCMRAM) 
+// - Kept g_tr[4] in CCMRAM (25KB) - hot path, no DMA needed
+// - Kept undo_stacks in CCMRAM for fast access
 //
-// CCMRAM allocation with depth=5:
-//   g_tr[4]: 17KB + automation: 4KB + undo: 41KB = 62KB / 64KB ✅
+// CCMRAM allocation with DEPTH=1:
+//   g_tr[4]: 25KB + undo_stacks[4]: 33KB = 58KB / 64KB ✅ (6KB free)
+//
+// RAM allocation:
+//   g_automation[4]: 8KB
+//   clipboards (if enabled): 20KB  
+//   Other data: ~varies
 //
 #ifndef LOOPER_UNDO_STACK_DEPTH
-#ifdef MODULE_TEST_LOOPER
-  // Test mode: Reduced to fit clipboards (~20KB) in CCMRAM
-  #define LOOPER_UNDO_STACK_DEPTH 2
-#else
-  // Production mode: Maximum undo levels that fit in CCMRAM
-  #define LOOPER_UNDO_STACK_DEPTH 5
-#endif
+  // Set to 1 level to fit comfortably in CCMRAM (64KB limit)
+  // Can be overridden at compile time if more memory optimizations are made
+  #define LOOPER_UNDO_STACK_DEPTH 1
 #endif
 
 // Clipboard feature configuration (only available in test mode)
