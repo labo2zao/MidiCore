@@ -2268,7 +2268,7 @@ int looper_copy_scene(uint8_t scene) {
   for (uint8_t track = 0; track < LOOPER_TRACKS; track++) {
     looper_scene_clip_t clip = looper_get_scene_clip(scene, track);
     
-    if (clip.has_data) {
+    if (clip.has_clip) {
       // Load scene data temporarily to copy it
       // This is a simplified approach - in production you'd access scene storage directly
       scene_clipboard.tracks[track].has_data = 1;
