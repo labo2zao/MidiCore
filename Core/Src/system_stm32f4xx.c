@@ -170,6 +170,13 @@ void SystemInit(void)
   #if (__FPU_PRESENT == 1) && (__FPU_USED == 1)
     SCB->CPACR |= ((3UL << 10*2)|(3UL << 11*2));  /* set CP10 and CP11 Full Access */
   #endif
+  
+  /* Enable CCMRAM clock - CRITICAL when using CCMRAM variables!
+   * Must be enabled BEFORE the startup code zeros the .ccmram section.
+   * Without this, any access to CCMRAM (0x10000000) will cause HardFault.
+   * CCMRAM is on AHB1 bus and requires explicit clock enable on STM32F407.
+   */
+  RCC->AHB1ENR |= RCC_AHB1ENR_CCMDATARAMEN;
 
 #if defined (DATA_IN_ExtSRAM) || defined (DATA_IN_ExtSDRAM)
   SystemInit_ExtMemCtl(); 
