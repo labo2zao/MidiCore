@@ -314,6 +314,25 @@ looper_quant_t looper_get_quant(uint8_t track) {
   return g_tr[track].quant;
 }
 
+const char* looper_get_quant_name(looper_quant_t q) {
+  switch (q) {
+    case LOOPER_QUANT_OFF:       return "OFF";
+    case LOOPER_QUANT_1_16:      return "1/16";
+    case LOOPER_QUANT_1_8:       return "1/8";
+    case LOOPER_QUANT_1_4:       return "1/4";
+    case LOOPER_QUANT_1_8T:      return "1/8T";
+    case LOOPER_QUANT_1_16T:     return "1/16T";
+    case LOOPER_QUANT_1_32T:     return "1/32T";
+    case LOOPER_QUANT_1_8Q:      return "1/8Q";
+    case LOOPER_QUANT_1_16Q:     return "1/16Q";
+    case LOOPER_QUANT_1_32Q:     return "1/32Q";
+    case LOOPER_QUANT_1_4_DOT:   return "1/4.";
+    case LOOPER_QUANT_1_8_DOT:   return "1/8.";
+    case LOOPER_QUANT_1_16_DOT:  return "1/16.";
+    default:                     return "?";
+  }
+}
+
 // Track Mute/Solo Controls
 void looper_set_track_muted(uint8_t track, uint8_t muted) {
   if (track >= LOOPER_TRACKS) return;

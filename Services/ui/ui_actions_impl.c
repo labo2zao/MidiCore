@@ -44,7 +44,7 @@ void ui_quantize(void) {
   else if (p == UI_PAGE_LOOPER_PR) tr = ui_page_looper_pianoroll_get_track();
 
   looper_quant_t q = looper_get_quant(tr);
-  q = (looper_quant_t)((q + 1) % 4);
+  q = (looper_quant_t)((q + 1) % LOOPER_QUANT_COUNT);
   looper_set_quant(tr, q);
 }
 

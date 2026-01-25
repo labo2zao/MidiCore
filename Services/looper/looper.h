@@ -102,7 +102,8 @@ typedef enum {
   // Dotted note modes (uneven rhythms)
   LOOPER_QUANT_1_4_DOT,   // Dotted quarter (1.5x quarter note)
   LOOPER_QUANT_1_8_DOT,   // Dotted eighth (1.5x eighth note)
-  LOOPER_QUANT_1_16_DOT   // Dotted sixteenth (1.5x sixteenth note)
+  LOOPER_QUANT_1_16_DOT,  // Dotted sixteenth (1.5x sixteenth note)
+  LOOPER_QUANT_COUNT      // Total number of quantization modes
 } looper_quant_t;
 
 typedef struct {
@@ -131,6 +132,13 @@ uint16_t looper_get_loop_beats(uint8_t track);
 
 void looper_set_quant(uint8_t track, looper_quant_t q);
 looper_quant_t looper_get_quant(uint8_t track);
+
+/**
+ * @brief Get human-readable name for quantization mode
+ * @param q Quantization mode
+ * @return String representation of the quantization mode
+ */
+const char* looper_get_quant_name(looper_quant_t q);
 
 // Track Mute/Solo Controls
 void looper_set_track_muted(uint8_t track, uint8_t muted);

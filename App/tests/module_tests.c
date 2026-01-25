@@ -2426,12 +2426,13 @@ void module_test_looper_run(void)
   // Phase 4: Quantization Test
   dbg_print("[Phase 4] Testing Quantization Modes...\r\n");
   
-  const char* quant_names[] = {"OFF", "1/16", "1/8", "1/4"};
-  for (uint8_t q = LOOPER_QUANT_OFF; q <= LOOPER_QUANT_1_4; q++) {
+  // Test all quantization modes
+  for (uint8_t q = LOOPER_QUANT_OFF; q < LOOPER_QUANT_COUNT; q++) {
     looper_set_quant(test_track, (looper_quant_t)q);
     looper_quant_t current = looper_get_quant(test_track);
     dbg_printf("  ✓ Quantization set to: %s (read back: %s)\r\n", 
-               quant_names[q], quant_names[current]);
+               looper_get_quant_name((looper_quant_t)q), 
+               looper_get_quant_name(current));
   }
   
   // Reset to 1/16
