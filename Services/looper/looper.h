@@ -140,6 +140,13 @@ looper_quant_t looper_get_quant(uint8_t track);
  */
 const char* looper_get_quant_name(looper_quant_t q);
 
+/**
+ * @brief Get quantization step size in ticks
+ * @param q Quantization mode
+ * @return Number of ticks per quantization step (0 for OFF)
+ */
+uint32_t looper_get_quant_step_ticks(looper_quant_t q);
+
 // Track Mute/Solo Controls
 void looper_set_track_muted(uint8_t track, uint8_t muted);
 uint8_t looper_is_track_muted(uint8_t track);

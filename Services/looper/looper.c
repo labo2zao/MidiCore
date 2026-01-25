@@ -333,6 +333,10 @@ const char* looper_get_quant_name(looper_quant_t q) {
   }
 }
 
+uint32_t looper_get_quant_step_ticks(looper_quant_t q) {
+  return quant_step_ticks(q);
+}
+
 // Track Mute/Solo Controls
 void looper_set_track_muted(uint8_t track, uint8_t muted) {
   if (track >= LOOPER_TRACKS) return;
