@@ -5,10 +5,11 @@
 #include <string.h>
 
 // Framebuffer: flat array compatible with MidiCore UI (256×64 pixels, 4-bit grayscale)
-// Size: OLED_W * OLED_H / 2 = 256 * 64 / 2 = 8192 bytes
+// Size: OLED_W * OLED_H / 2 = 256 * 64 / 2 = 8192 bytes (8 KB)
 // Layout: 64 rows × 128 bytes per row (each byte = 2 pixels)
-// Moved to regular RAM to free CCMRAM for looper data structures
-static uint8_t fb[OLED_W * OLED_H / 2];
+// Placed in CCMRAM for fast access and to free regular RAM
+// CCMRAM allocation: g_tr(17KB) + OLED_fb(8KB) + active(24KB) = 49KB / 64KB ✅
+static uint8_t fb[OLED_W * OLED_H / 2] __attribute__((section(".ccmram")));
 
 // Software SPI bit-bang implementation (MIOS32 compatible)
 // CS is hardwired to GND, so no CS control needed
