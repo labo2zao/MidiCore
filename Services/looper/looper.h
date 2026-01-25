@@ -9,10 +9,41 @@ extern "C" {
 #define LOOPER_TRACKS 4
 
 // Undo/Redo configuration
-// Can be reduced to save memory (e.g., 5 levels = ~120KB, 3 levels = ~72KB)
-// Default: 10 levels (~240KB total for 4 tracks)
+// Memory usage: ~(DEPTH * 2060 bytes + 3) per track
+// 
+// With CCMRAM optimization (FreeRTOS heap in RAM, OLED FB in RAM):
+// - Production (no tests): Depth 5 = ~41KB for 4 tracks
+// - Test mode: Depth 2 = ~17KB (to fit clipboards ~20KB)
+//
+// CCMRAM allocation with depth=5:
+//   g_tr[4]: 17KB + automation: 4KB + undo: 41KB = 62KB / 64KB ✅
+//
 #ifndef LOOPER_UNDO_STACK_DEPTH
-#define LOOPER_UNDO_STACK_DEPTH 10
+#ifdef MODULE_TEST_LOOPER
+  // Test mode: Reduced to fit clipboards (~20KB) in CCMRAM
+  #define LOOPER_UNDO_STACK_DEPTH 2
+#else
+  // Production mode: Maximum undo levels that fit in CCMRAM
+  #define LOOPER_UNDO_STACK_DEPTH 5
+#endif
+#endif
+
+// Clipboard feature configuration (only available in test mode)
+// Allows independent control of track vs scene clipboard features
+// - LOOPER_ENABLE_TRACK_CLIPBOARD: Track copy/paste (~4KB)
+// - LOOPER_ENABLE_SCENE_CLIPBOARD: Scene copy/paste (~16KB)
+// If MODULE_TEST_LOOPER is not defined, clipboards are always disabled
+#ifdef MODULE_TEST_LOOPER
+  #ifndef LOOPER_ENABLE_TRACK_CLIPBOARD
+    #define LOOPER_ENABLE_TRACK_CLIPBOARD 1  // Default: enabled in test mode
+  #endif
+  #ifndef LOOPER_ENABLE_SCENE_CLIPBOARD
+    #define LOOPER_ENABLE_SCENE_CLIPBOARD 1  // Default: enabled in test mode
+  #endif
+#else
+  // Production mode: clipboards always disabled
+  #define LOOPER_ENABLE_TRACK_CLIPBOARD 0
+  #define LOOPER_ENABLE_SCENE_CLIPBOARD 0
 #endif
 
 // Quick-Save Compression (optional, reduces storage by ~40-60%)
@@ -33,11 +64,26 @@ extern "C" {
  * - Invalid parameters return default/error values
  */
 
+/**
+ * @brief Looper states for each track
+ * 
+ * - LOOPER_STATE_STOP: Track stopped, no playback
+ * - LOOPER_STATE_REC: Initial recording of notes and CC
+ * - LOOPER_STATE_PLAY: Playback only
+ * - LOOPER_STATE_OVERDUB: Add more notes/CC to existing loop
+ * - LOOPER_STATE_OVERDUB_CC_ONLY: Re-record CC automation only while notes keep looping
+ *   (enables re-recording CC automation layer without affecting MIDI notes)
+ * - LOOPER_STATE_OVERDUB_NOTES_ONLY: Re-record MIDI notes only while CC automation keeps looping
+ *   (enables re-recording melody without affecting CC automation)
+ */
+
 typedef enum {
   LOOPER_STATE_STOP = 0,
   LOOPER_STATE_REC,
   LOOPER_STATE_PLAY,
-  LOOPER_STATE_OVERDUB
+  LOOPER_STATE_OVERDUB,
+  LOOPER_STATE_OVERDUB_CC_ONLY,    // Re-record only CC automation while notes keep looping
+  LOOPER_STATE_OVERDUB_NOTES_ONLY  // Re-record only notes while CC automation keeps looping
 } looper_state_t;
 
 typedef enum {
@@ -1175,6 +1221,137 @@ uint32_t looper_automation_export_events(uint8_t track,
 int looper_automation_add_event(uint8_t track, uint32_t tick, 
                                   uint8_t cc_num, uint8_t cc_value, 
                                   uint8_t channel);
+
+/**
+ * @brief Set automation layer mute state
+ * @param track Track index (0-3)
+ * @param muted 1 to mute CC automation, 0 to unmute
+ * 
+ * When muted, CC automation events will not be played back during loop playback.
+ * The main MIDI notes continue playing normally. Useful for A/B testing automation.
+ */
+void looper_automation_set_mute(uint8_t track, uint8_t muted);
+
+/**
+ * @brief Get automation layer mute state
+ * @param track Track index (0-3)
+ * @return 1 if muted, 0 if not muted
+ */
+uint8_t looper_automation_is_muted(uint8_t track);
+
+/**
+ * @brief Set automation layer solo state
+ * @param track Track index (0-3)
+ * @param solo 1 to solo CC automation, 0 to unsolo
+ * 
+ * When soloed, only the CC automation layer plays back (notes are muted).
+ * Useful for isolating and testing automation without the melodic content.
+ */
+void looper_automation_set_solo(uint8_t track, uint8_t solo);
+
+/**
+ * @brief Get automation layer solo state
+ * @param track Track index (0-3)
+ * @return 1 if soloed, 0 if not soloed
+ */
+uint8_t looper_automation_is_soloed(uint8_t track);
+
+// ---- Loop Length Constraints ----
+
+/**
+ * @brief Set loop length constraint for a track
+ * @param track Track index (0-3)
+ * @param beats Constrained loop length in beats (0 = no constraint, 1/2/4/8/16/32)
+ * 
+ * When set, forces the loop to be exactly the specified length. When recording
+ * reaches this length, it automatically stops or loops. Prevents accidental
+ * timing drift. Set to 0 to disable constraint (free-form recording).
+ */
+void looper_set_length_constraint(uint8_t track, uint16_t beats);
+
+/**
+ * @brief Get loop length constraint for a track
+ * @param track Track index (0-3)
+ * @return Constrained loop length in beats (0 = no constraint)
+ */
+uint16_t looper_get_length_constraint(uint8_t track);
+
+/**
+ * @brief Auto-quantize loop length to nearest musical value
+ * @param track Track index (0-3)
+ * 
+ * Automatically adjusts the current loop length to the nearest standard musical
+ * duration (1, 2, 4, 8, 16, or 32 beats). Prevents timing drift and ensures
+ * loops align with musical structure.
+ */
+void looper_quantize_loop_length(uint8_t track);
+
+// ---- Track Link/Group ----
+
+/**
+ * @brief Link two tracks for synchronized playback
+ * @param track1 First track index (0-3)
+ * @param track2 Second track index (0-3)
+ * @param linked 1 to link tracks, 0 to unlink
+ * 
+ * When tracks are linked, they start and stop together. Useful for layered
+ * parts that must stay synchronized (e.g., bass + drums, melody + harmony).
+ * State changes on either track affect both.
+ */
+void looper_link_tracks(uint8_t track1, uint8_t track2, uint8_t linked);
+
+/**
+ * @brief Check if two tracks are linked
+ * @param track1 First track index (0-3)
+ * @param track2 Second track index (0-3)
+ * @return 1 if tracks are linked, 0 if not linked
+ */
+uint8_t looper_are_tracks_linked(uint8_t track1, uint8_t track2);
+
+/**
+ * @brief Clear all track links
+ * 
+ * Unlinks all tracks, restoring independent operation.
+ */
+void looper_clear_all_track_links(void);
+
+// ---- Scene Snapshot (Lightweight State Management) ----
+
+/**
+ * @brief Save current scene state to a snapshot slot
+ * @param slot Snapshot slot number (0-15)
+ * @return 0 on success, -1 on error
+ * 
+ * Saves only track states (play/stop/rec), mute/solo settings, and basic
+ * configuration. Does NOT save full track data (unlike clipboards).
+ * Uses minimal RAM (~100 bytes vs 16KB for full clipboard).
+ * Useful for storing arrangement variations and performance presets.
+ */
+int looper_save_scene_state(uint8_t slot);
+
+/**
+ * @brief Recall scene state from a snapshot slot
+ * @param slot Snapshot slot number (0-15)
+ * @return 0 on success, -1 on error (slot empty)
+ * 
+ * Restores track states, mute/solo settings, and configuration.
+ * Track audio content remains unchanged. Allows quick arrangement switching
+ * during performance without loading full clips.
+ */
+int looper_recall_scene_state(uint8_t slot);
+
+/**
+ * @brief Check if a scene state slot contains data
+ * @param slot Snapshot slot number (0-15)
+ * @return 1 if slot is used, 0 if empty
+ */
+uint8_t looper_scene_state_is_saved(uint8_t slot);
+
+/**
+ * @brief Clear a scene state snapshot slot
+ * @param slot Snapshot slot number (0-15)
+ */
+void looper_clear_scene_state(uint8_t slot);
 
 // ---- Quick-Save System ----
 
