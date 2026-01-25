@@ -310,6 +310,23 @@ extern "C" {
 #define MODULE_ENABLE_USB_MIDI_DEBUG 0  // Disabled by default (verbose UART output)
 #endif
 
+/** @brief Enable OLED SSD1322 test functions and test page
+ * 
+ * When enabled, compiles OLED test functions for hardware verification:
+ * - oled_init() - Simple MIOS32 test init
+ * - oled_init_progressive() - Step-by-step debug init
+ * - oled_test_*() - Test patterns (checkerboard, gradients, etc.)
+ * - ui_page_oled_test - Complete OLED test UI page
+ * 
+ * Production builds should use MODULE_TEST_OLED=0 (saves ~4KB Flash).
+ * Test builds set MODULE_TEST_OLED=1 to enable all test functions.
+ * 
+ * Note: Production always uses oled_init_newhaven() regardless of this setting.
+ */
+#ifndef MODULE_TEST_OLED
+#define MODULE_TEST_OLED 0  // Disabled by default in production (saves ~4KB Flash)
+#endif
+
 
 
 // =============================================================================
