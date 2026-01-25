@@ -369,6 +369,21 @@ extern "C" {
 #endif
 #endif
 
+/** @brief Select OLED test to run at startup
+ * 
+ * To run OLED hardware test:
+ * 1. Set PRODUCTION_MODE=0 (enable dev/test mode)
+ * 2. Set MODULE_TEST_OLED=1 (enable OLED test code)
+ * 3. Set MODULE_TEST_OLED_SSD1322=1 (select OLED test to run)
+ * 4. Rebuild and flash
+ * 
+ * This will make StartDefaultTask() run the OLED test instead of the main app.
+ * The test displays patterns and allows interactive testing with the UI.
+ */
+#ifndef MODULE_TEST_OLED_SSD1322
+#define MODULE_TEST_OLED_SSD1322 0  // Set to 1 to run OLED test at startup
+#endif
+
 
 
 // =============================================================================
