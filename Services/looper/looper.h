@@ -14,17 +14,19 @@ extern "C" {
 // CCMRAM Optimization Strategy (Final):
 // - Moved g_automation to RAM (8KB) to free CCMRAM space
 // - Kept g_tr[4] in CCMRAM (25KB) - hot recording/playback path
-// - Kept undo_stacks in CCMRAM with depth=2 (33KB)
+// - Kept undo_stacks in CCMRAM with depth=1 (33KB)
 //
-// Memory allocation with depth=2:
+// Memory allocation with depth=1:
 //   CCMRAM: g_tr (25KB) + undo (33KB) = 58KB / 64KB ✅ (6KB free)
-//   RAM: g_automation (8KB) + other (~30KB) = ~38KB / 128KB ✅
+//   RAM: g_automation (8KB) + UI pianoroll (53KB) + other (~40KB) = ~101KB / 128KB ✅
 //
-// Depth=2 provides reasonable undo capability while fitting in memory limits.
+// Depth=1 provides one undo level while fitting in memory limits.
+// Increase to depth=2 if you disable pianoroll UI (saves 53KB RAM).
 //
 #ifndef LOOPER_UNDO_STACK_DEPTH
-  // Set to 2 levels to fit in CCMRAM (64KB limit)
-  #define LOOPER_UNDO_STACK_DEPTH 2
+  // Set to 1 level to fit in CCMRAM (64KB limit)
+  // Can be increased if pianoroll UI is disabled
+  #define LOOPER_UNDO_STACK_DEPTH 1
 #endif
 
 // Clipboard feature configuration (only available in test mode)
