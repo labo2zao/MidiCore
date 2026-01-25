@@ -137,11 +137,12 @@ extern "C" {
 #endif
 
 /** @brief Enable UI Looper Pianoroll page
- *  Note: Pianoroll uses significant RAM (~37KB). Disable to save memory.
- *  When disabled, saves: ~37KB RAM (24KB active map + 9KB events + 4KB notes)
+ *  Note: Pianoroll is the main accordion UI page and must be enabled.
+ *  Uses 24KB in CCMRAM for active note map + ~13KB stack for event buffers.
+ *  Memory placement: active[16][128] in CCMRAM to preserve RAM.
  */
 #ifndef MODULE_ENABLE_UI_PAGE_PIANOROLL
-#define MODULE_ENABLE_UI_PAGE_PIANOROLL 0  // Disabled by default (high RAM usage)
+#define MODULE_ENABLE_UI_PAGE_PIANOROLL 1  // Enabled by default (main accordion page)
 #endif
 
 /** @brief Enable Expression pedal/pressure service */
