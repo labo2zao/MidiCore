@@ -95,10 +95,17 @@ typedef enum {
   LOOPER_QUANT_1_8T,      // 1/8 triplet (3 per quarter note)
   LOOPER_QUANT_1_16T,     // 1/16 triplet (6 per quarter note)
   LOOPER_QUANT_1_32T,     // 1/32 triplet (12 per quarter note)
+  LOOPER_QUANT_1_2T,      // Half-note triplet (3 per 2 quarter notes) - jazz ballads
   // Quintuplet modes (5 notes per beat division)
   LOOPER_QUANT_1_8Q,      // 1/8 quintuplet (5 per 2 quarter notes)
   LOOPER_QUANT_1_16Q,     // 1/16 quintuplet (5 per quarter note)
   LOOPER_QUANT_1_32Q,     // 1/32 quintuplet (10 per quarter note)
+  // Sextuplet modes (6 notes per beat division) - jazz phrases
+  LOOPER_QUANT_1_8S,      // 1/8 sextuplet (6 per 2 quarter notes)
+  LOOPER_QUANT_1_16S,     // 1/16 sextuplet (6 per quarter note, same as 1/16T)
+  // Septuplet modes (7 notes per beat division) - jazz runs
+  LOOPER_QUANT_1_8SEPT,   // 1/8 septuplet (7 per 2 quarter notes)
+  LOOPER_QUANT_1_16SEPT,  // 1/16 septuplet (7 per quarter note)
   // Dotted note modes (uneven rhythms)
   LOOPER_QUANT_1_4_DOT,   // Dotted quarter (1.5x quarter note)
   LOOPER_QUANT_1_8_DOT,   // Dotted eighth (1.5x eighth note)
