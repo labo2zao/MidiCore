@@ -67,6 +67,7 @@ static uint32_t notes_n = 0;
 
 // simple active map for pairing within one loop
 typedef struct { uint32_t on_idx; uint32_t start; uint8_t vel; uint8_t valid; } active_t;
+// Large array (32KB) - only used in pianoroll UI
 static active_t active[16][128];
 
 static uint8_t is_note_on(const looper_event_view_t* e) {

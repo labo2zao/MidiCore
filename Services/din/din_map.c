@@ -17,19 +17,29 @@
   #define DM_HAS_UI 0
 #endif
 
+// Optional: LCD text storage for button labels (8KB RAM)
+// Can be disabled for memory-constrained builds (accordion production)
+#ifndef MODULE_ENABLE_DIN_LCD_TEXT
+  #define MODULE_ENABLE_DIN_LCD_TEXT 0  // Disabled by default to save 8KB RAM
+#endif
+
 #define DIN_MAP_NUM_CHANNELS 64
 #define DIN_MAP_LCD_TEXT_MAX 64
 
 static DIN_MapEntry s_din_map[DIN_MAP_NUM_CHANNELS];
 static DIN_MapOutputFn s_out_cb = 0;
 
-// Static storage for LCD text strings (one per channel)
+#if MODULE_ENABLE_DIN_LCD_TEXT
+// Static storage for LCD text strings (one per channel) - 8KB
 static char s_lcd_text_storage[DIN_MAP_NUM_CHANNELS][DIN_MAP_LCD_TEXT_MAX];
+#endif
 
 // defaults: all enabled, active-low, NOTE, ch1, base_note+idx, vel_on=100
 void din_map_init_defaults(uint8_t base_note) {
   memset(s_din_map, 0, sizeof(s_din_map));
+#if MODULE_ENABLE_DIN_LCD_TEXT
   memset(s_lcd_text_storage, 0, sizeof(s_lcd_text_storage));
+#endif
   
   for (uint8_t i = 0; i < DIN_MAP_NUM_CHANNELS; ++i) {
     DIN_MapEntry *e = &s_din_map[i];
@@ -203,7 +213,8 @@ int din_map_load_sd(const char* path) {
     } else if (dm_keyeq(k, "ENABLED") || dm_keyeq(k, "ENABLE")) {
       e->enabled = dm_u8(v) ? 1u : 0u;
     } else if (dm_keyeq(k, "LCD_TEXT") || dm_keyeq(k, "LCD")) {
-      // Store LCD text in static storage
+#if MODULE_ENABLE_DIN_LCD_TEXT
+      // Store LCD text in static storage (only if feature enabled)
       dm_unquote(v);  // Remove quotes if present
       if (v[0]) {
         strncpy(s_lcd_text_storage[cur], v, DIN_MAP_LCD_TEXT_MAX - 1);
@@ -212,6 +223,10 @@ int din_map_load_sd(const char* path) {
       } else {
         e->lcd_text = NULL;
       }
+#else
+      // LCD text feature disabled - ignore this setting
+      e->lcd_text = NULL;
+#endif
     }
   }
 

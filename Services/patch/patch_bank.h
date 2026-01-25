@@ -6,7 +6,7 @@ extern "C" {
 #endif
 
 #ifndef PATCH_BANK_MAX_PATCHES
-#define PATCH_BANK_MAX_PATCHES 32
+#define PATCH_BANK_MAX_PATCHES 12  // Configurable: 12 banks sufficient for accordion (was 32, saves ~2.5 KB)
 #endif
 
 typedef struct {

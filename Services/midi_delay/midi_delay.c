@@ -3,6 +3,10 @@
  * @brief MIDI delay/echo implementation
  */
 
+#include "Config/module_config.h"
+
+#if MODULE_ENABLE_MIDI_DELAY_FX
+
 #include "Services/midi_delay/midi_delay.h"
 #include <string.h>
 
@@ -280,3 +284,5 @@ const char* midi_delay_get_division_name(midi_delay_division_t division) {
 void midi_delay_set_output_callback(midi_delay_output_cb_t callback) {
     g_output_callback = callback;
 }
+
+#endif // MODULE_ENABLE_MIDI_DELAY_FX

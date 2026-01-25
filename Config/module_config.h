@@ -181,6 +181,14 @@ extern "C" {
 #define MODULE_ENABLE_METRONOME 1
 #endif
 
+/** @brief Enable MIDI Delay FX (tempo-synced echo/delay effect)
+ *  Note: Most synths have built-in delay effects. Disable to save 3KB RAM.
+ *  When disabled, saves: ~3KB RAM (64 events × 12 bytes × 4 tracks)
+ */
+#ifndef MODULE_ENABLE_MIDI_DELAY_FX
+#define MODULE_ENABLE_MIDI_DELAY_FX 0  // Disabled by default (most synths have delay)
+#endif
+
 /** @brief Enable Config I/O (SD card configuration file read/write) */
 #ifndef MODULE_ENABLE_CONFIG_IO
 #define MODULE_ENABLE_CONFIG_IO 1

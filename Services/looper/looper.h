@@ -6,24 +6,50 @@
 extern "C" {
 #endif
 
-#define LOOPER_TRACKS 4
+// Number of looper tracks (configurable for memory optimization)
+// Each track consumes ~16KB (g_tr + undo_stacks + g_automation)
+// Options: 2 tracks (saves 32KB) or 4 tracks (default)
+#ifndef LOOPER_TRACKS
+  #define LOOPER_TRACKS 4  // Default: 4 tracks for full polyphony
+#endif
 
 // Undo/Redo configuration
-// Memory usage: ~(DEPTH * 2060 bytes + 3) per track
+// Memory usage per undo_stack_t: varies by depth
 // 
-// With CCMRAM optimization (FreeRTOS heap in RAM, OLED FB in RAM):
-// - Production (no tests): Depth 5 = ~41KB for 4 tracks
-// - Test mode: Depth 2 = ~17KB (to fit clipboards ~20KB)
+// CCMRAM Optimization Strategy (restored original PR #54 approach):
+// - Test mode: depth=2, clipboards in CCMRAM (user is in test mode)
+// - Production mode: depth=5, clipboards disabled
+// - Moved g_automation to RAM to free 8KB CCMRAM space
+// - Moved clipboards to RAM to free 20KB CCMRAM space (when enabled)
 //
-// CCMRAM allocation with depth=5:
-//   g_tr[4]: 17KB + automation: 4KB + undo: 41KB = 62KB / 64KB ✅
+// Memory allocation:
+//   Test mode (MODULE_TEST_LOOPER):
+//     CCMRAM: g_tr (25KB) + undo (33KB depth=2) = 58KB / 64KB ✅
+//     RAM: g_automation (8KB) + clipboards (20KB) + pianoroll (53KB) + other (20KB) = 101KB / 128KB ✅
+//   
+//   Production mode:
+//     CCMRAM: g_tr (25KB) + undo (33KB depth=1 OR move to RAM for depth=5) = 58KB / 64KB ✅
+//     RAM: g_automation (8KB) + undo (99KB if depth=5) + other (20KB) = 127KB / 128KB ✅
 //
 #ifndef LOOPER_UNDO_STACK_DEPTH
-#ifdef MODULE_TEST_LOOPER
-  // Test mode: Reduced to fit clipboards (~20KB) in CCMRAM
+// Check if ANY test mode is active (must match looper.c memory placement logic)
+#if defined(MODULE_TEST_LOOPER) || defined(MODULE_TEST_OLED_SSD1322) || defined(MODULE_TEST_ALL) || \
+    defined(MODULE_TEST_UI) || defined(MODULE_TEST_GDB_DEBUG) || defined(MODULE_TEST_AINSER64) || \
+    defined(MODULE_TEST_SRIO) || defined(MODULE_TEST_SRIO_DOUT) || defined(MODULE_TEST_MIDI_DIN) || \
+    defined(MODULE_TEST_ROUTER) || defined(MODULE_TEST_LFO) || defined(MODULE_TEST_HUMANIZER) || \
+    defined(MODULE_TEST_UI_PAGE_SONG) || defined(MODULE_TEST_UI_PAGE_MIDI_MONITOR) || \
+    defined(MODULE_TEST_UI_PAGE_SYSEX) || defined(MODULE_TEST_UI_PAGE_CONFIG) || \
+    defined(MODULE_TEST_UI_PAGE_LIVEFX) || defined(MODULE_TEST_UI_PAGE_RHYTHM) || \
+    defined(MODULE_TEST_UI_PAGE_HUMANIZER) || defined(MODULE_TEST_PATCH_SD) || \
+    defined(MODULE_TEST_PRESSURE) || defined(MODULE_TEST_BREATH) || \
+    defined(MODULE_TEST_USB_HOST_MIDI) || defined(MODULE_TEST_USB_DEVICE_MIDI) || \
+    defined(MODULE_TEST_FOOTSWITCH) || defined(APP_TEST_DIN_MIDI)
+  // Test mode: Depth 2 to keep undo_stacks small for CCMRAM placement
+  // Test modes have additional allocations, so we reduce undo depth and keep in CCMRAM
   #define LOOPER_UNDO_STACK_DEPTH 2
 #else
-  // Production mode: Maximum undo levels that fit in CCMRAM
+  // Production mode: Depth 5 (user requirement - maintained from PR #54)
+  // Undo stacks placed in RAM (too large for CCMRAM with depth=5)
   #define LOOPER_UNDO_STACK_DEPTH 5
 #endif
 #endif
@@ -32,13 +58,23 @@ extern "C" {
 // Allows independent control of track vs scene clipboard features
 // - LOOPER_ENABLE_TRACK_CLIPBOARD: Track copy/paste (~4KB)
 // - LOOPER_ENABLE_SCENE_CLIPBOARD: Scene copy/paste (~16KB)
-// If MODULE_TEST_LOOPER is not defined, clipboards are always disabled
-#ifdef MODULE_TEST_LOOPER
+// If no test mode is defined, clipboards are always disabled
+#if defined(MODULE_TEST_LOOPER) || defined(MODULE_TEST_OLED_SSD1322) || defined(MODULE_TEST_ALL) || \
+    defined(MODULE_TEST_UI) || defined(MODULE_TEST_GDB_DEBUG) || defined(MODULE_TEST_AINSER64) || \
+    defined(MODULE_TEST_SRIO) || defined(MODULE_TEST_SRIO_DOUT) || defined(MODULE_TEST_MIDI_DIN) || \
+    defined(MODULE_TEST_ROUTER) || defined(MODULE_TEST_LFO) || defined(MODULE_TEST_HUMANIZER) || \
+    defined(MODULE_TEST_UI_PAGE_SONG) || defined(MODULE_TEST_UI_PAGE_MIDI_MONITOR) || \
+    defined(MODULE_TEST_UI_PAGE_SYSEX) || defined(MODULE_TEST_UI_PAGE_CONFIG) || \
+    defined(MODULE_TEST_UI_PAGE_LIVEFX) || defined(MODULE_TEST_UI_PAGE_RHYTHM) || \
+    defined(MODULE_TEST_UI_PAGE_HUMANIZER) || defined(MODULE_TEST_PATCH_SD) || \
+    defined(MODULE_TEST_PRESSURE) || defined(MODULE_TEST_BREATH) || \
+    defined(MODULE_TEST_USB_HOST_MIDI) || defined(MODULE_TEST_USB_DEVICE_MIDI) || \
+    defined(MODULE_TEST_FOOTSWITCH) || defined(APP_TEST_DIN_MIDI)
   #ifndef LOOPER_ENABLE_TRACK_CLIPBOARD
-    #define LOOPER_ENABLE_TRACK_CLIPBOARD 1  // Default: enabled in test mode
+    #define LOOPER_ENABLE_TRACK_CLIPBOARD 0  // Default: disabled to save RAM (~4KB)
   #endif
   #ifndef LOOPER_ENABLE_SCENE_CLIPBOARD
-    #define LOOPER_ENABLE_SCENE_CLIPBOARD 1  // Default: enabled in test mode
+    #define LOOPER_ENABLE_SCENE_CLIPBOARD 0  // Default: disabled to save RAM (~16KB)
   #endif
 #else
   // Production mode: clipboards always disabled
@@ -221,7 +257,12 @@ int looper_edit_event(uint8_t track, uint32_t idx, uint32_t new_tick,
 int looper_add_event(uint8_t track, uint32_t tick, uint8_t len, uint8_t b0, uint8_t b1, uint8_t b2);
 
 // ---- Song Mode / Scene Management ----
-#define LOOPER_SCENES 8
+// Number of scene slots (configurable for memory optimization)
+// Each scene uses minimal memory (~32 bytes per track)
+// Options: 4 scenes (minimal) or 6 scenes (default) or 8 scenes (full)
+#ifndef LOOPER_SCENES
+  #define LOOPER_SCENES 6  // Default: 6 scenes, adequate for live performance
+#endif
 
 typedef struct {
   uint8_t has_clip;       // 1 if this scene has a clip recorded
