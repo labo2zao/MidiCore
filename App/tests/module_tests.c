@@ -7561,7 +7561,15 @@ int module_test_oled_ssd1322_run(void)
   
   return 0;
 #else
+  dbg_print("Step 3: SKIPPED (MODULE_TEST_OLED=0 - UI test page not compiled)\r\n\r\n");
+  dbg_print("=== OLED Test Complete ===\r\n");
+  dbg_print("Test functions disabled in production mode.\r\n");
+  dbg_print("Set MODULE_TEST_OLED=1 to enable full OLED test suite.\r\n");
+  return 0;
+#endif // MODULE_TEST_OLED
+  
+#else
   dbg_print("OLED is not enabled in module_config.h\r\n");
   return -1;
-#endif
+#endif // MODULE_ENABLE_OLED
 }
