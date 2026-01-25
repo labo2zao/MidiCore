@@ -48,7 +48,7 @@ uint8_t bootloader_protocol_checksum(const uint8_t* data, uint32_t len) {
 
 static void send_sysex_message(const uint8_t* data, uint32_t len) {
 #if BOOTLOADER_HAS_USB_MIDI
-  usb_midi_send_sysex(data, len);
+  usb_midi_send_sysex(data, len, 0);
 #else
   // If USB MIDI not available, messages are dropped
   (void)data;

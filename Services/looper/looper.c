@@ -168,6 +168,8 @@ static void looper_automation_record_cc_internal(uint8_t track, uint8_t cc_num,
                                                   uint8_t cc_value, uint8_t channel);
 // Process automation playback during looper tick
 static void looper_automation_process_playback(uint8_t track);
+// Propagate state changes to linked tracks
+static void propagate_state_to_linked_tracks(uint8_t track, looper_state_t state);
 
 static void update_rate(void) {
   uint32_t bpm = g_tp.bpm;
