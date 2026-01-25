@@ -31,8 +31,9 @@ extern "C" {
   // Test mode: Depth 2 fits in CCMRAM without clipboards there
   #define LOOPER_UNDO_STACK_DEPTH 2
 #else
-  // Production mode: Can use depth 5 if undo in RAM, or depth 1 if in CCMRAM
-  #define LOOPER_UNDO_STACK_DEPTH 5
+  // Production mode: Depth 3 (balanced for memory constraints)
+  // Depth 5 would require 96KB RAM, depth 3 uses 64KB
+  #define LOOPER_UNDO_STACK_DEPTH 3
 #endif
 #endif
 
@@ -195,7 +196,7 @@ int looper_edit_event(uint8_t track, uint32_t idx, uint32_t new_tick,
 int looper_add_event(uint8_t track, uint32_t tick, uint8_t len, uint8_t b0, uint8_t b1, uint8_t b2);
 
 // ---- Song Mode / Scene Management ----
-#define LOOPER_SCENES 8
+#define LOOPER_SCENES 6  // Reduced from 8 to save memory
 
 typedef struct {
   uint8_t has_clip;       // 1 if this scene has a clip recorded
