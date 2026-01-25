@@ -66,10 +66,10 @@ KEY2=value2     # Multiple keys per section
 
 ### AINSER Map Format (`ainser_map.ngc`)
 
-**Important:** Don't confuse `[CHn]` (hardware input channel index) with `CHAN=` (MIDI channel number).
+**Important:** Don't confuse `[CHn]` (hardware event index) with `CHAN=` (MIDI channel number).
 
 ```ini
-[CHn]                  # n = 0..63 (hardware input channel index)
+[CHn]                  # n = 0..63 (AINSER event index - sensor identifier)
 CC=0..127              # MIDI CC number
 CHAN=0..15             # MIDI channel (0 = MIDI Channel 1)
 CURVE=0|1|2            # 0=LINEAR, 1=EXPO, 2=LOG (or LIN/EXPO/LOG)
@@ -95,10 +95,10 @@ ENABLED=1
 
 ### DIN Map Format (`din_map.ngc`)
 
-**Important:** Don't confuse `[CHn]` (hardware input channel index) with `CHAN=` (MIDI channel number).
+**Important:** Don't confuse `[CHn]` (hardware event index) with `CHAN=` (MIDI channel number).
 
 ```ini
-[CHn]                  # n = 0..63 (hardware input channel index)
+[CHn]                  # n = 0..63 (DIN event index - button identifier)
 TYPE=NOTE|CC|0|1|2     # Event type: NOTE, CC, or numeric
 CHAN=0..15             # MIDI channel (0 = MIDI Channel 1)
 NUMBER=0..127          # Note number or CC number

@@ -305,13 +305,13 @@ THRESHOLD=0x0A  # Hex pour lisibilité
 ### Terminologie Importante
 
 **Ne pas confondre `[CHn]` avec `CHAN=` :**
-- `[CHn]` = En-tête de section pour l'indice de **canal d'entrée matériel** (ex : `[CH0]`, `[CH16]`)
-- `CHAN=` = Clé de configuration pour le numéro de **canal MIDI** (0-15 = canaux MIDI 1-16)
+- `[CHn]` = En-tête de section pour **l'indice d'événement matériel** (ex : `[CH0]`, `[CH16]`) - identifie quelle entrée
+- `CHAN=` = Clé de configuration pour le numéro de **canal MIDI** (0-15) - définit le canal MIDI de sortie
 
 ### Commandes de Mapping AINSER
 
 ```ini
-[CHn]                   # n = 0..63 (indice de canal d'entrée matériel)
+[CHn]                   # n = 0..63 (indice d'événement AINSER - identifiant capteur)
 CC=0..127               # Numéro CC MIDI
 CHAN=0..15              # Canal MIDI (0 = canal MIDI 1)
 CURVE=LINEAR|EXPO|LOG   # Courbe de réponse (ou 0|1|2)
@@ -339,7 +339,7 @@ ENABLED=1
 ### Commandes de Mapping DIN
 
 ```ini
-[CHn]                   # n = 0..63 (indice de canal d'entrée matériel)
+[CHn]                   # n = 0..63 (indice d'événement DIN - identifiant bouton)
 TYPE=NOTE|CC|0|1|2      # Type d'événement
 CHAN=0..15              # Canal MIDI (0 = canal MIDI 1)
 NUMBER=0..127           # Numéro de note ou CC

@@ -206,14 +206,14 @@ Emplacement par défaut : `0:/cfg/din_map.ngc`
 ### Syntaxe
 
 **Important :** Ne pas confondre `[CHn]` avec `CHAN=` :
-- `[CHn]` = En-tête de section pour l'indice de **canal d'entrée** matériel (0-63)
-- `CHAN=` = Clé de configuration pour le numéro de **canal MIDI** (0-15)
+- `[CHn]` = En-tête de section pour **l'indice d'événement DIN** (0-63) - identifie quel bouton/switch
+- `CHAN=` = Clé de configuration pour le numéro de **canal MIDI** (0-15) - définit le canal MIDI de sortie
 
 ```ini
 # Les commentaires commencent par # ou ;
 # Seuls les canaux listés remplacent les valeurs par défaut compilées
 
-[CHn]           # n = 0..63 indice de canal d'entrée DIN logique
+[CHn]           # n = 0..63 indice d'événement DIN (identifiant bouton/switch)
 TYPE=NOTE|CC|0|1|2
 CHAN=0..15      # 0 = MIDI ch1
 NUMBER=0..127   # Numéro de note ou CC

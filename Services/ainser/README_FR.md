@@ -192,14 +192,14 @@ Emplacement par défaut : `0:/cfg/ainser_map.ngc`
 ### Syntaxe
 
 **Important :** Ne pas confondre `[CHn]` avec `CHAN=` :
-- `[CHn]` = En-tête de section pour l'indice de **canal d'entrée** matériel (0-63)
-- `CHAN=` = Clé de configuration pour le numéro de **canal MIDI** (0-15)
+- `[CHn]` = En-tête de section pour **l'indice d'événement AINSER** (0-63) - identifie quel capteur/potentiomètre
+- `CHAN=` = Clé de configuration pour le numéro de **canal MIDI** (0-15) - définit le canal MIDI de sortie
 
 ```ini
 # Les commentaires commencent par # ou ;
 # Seuls les canaux listés ici remplacent les valeurs par défaut compilées
 
-[CHn]          # n = 0..63 indice de canal d'entrée AINSER logique
+[CHn]          # n = 0..63 indice d'événement AINSER (identifiant capteur)
 CC=numéro      # 0..127
 CHAN=numéro    # Canal MIDI 0..15 (0 = ch1)
 CURVE=0|1|2    # 0=linéaire, 1=expo, 2=log (ou LIN/EXPO/LOG)
