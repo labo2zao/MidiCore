@@ -191,11 +191,15 @@ Default location: `0:/cfg/ainser_map.ngc`
 
 ### Syntax
 
+**Important:** Don't confuse `[CHn]` with `CHAN=`:
+- `[CHn]` = Section header for hardware **input channel** index (0-63)
+- `CHAN=` = Configuration key for **MIDI channel** number (0-15)
+
 ```ini
 # Comments start with # or ;
 # Only channels listed here override compiled defaults
 
-[CHn]          # n = 0..63 logical AINSER index
+[CHn]          # n = 0..63 logical AINSER input channel index
 CC=number      # 0..127
 CHAN=number    # MIDI channel 0..15 (0 = ch1)
 CURVE=0|1|2    # 0=linear, 1=expo, 2=log (or LIN/EXPO/LOG)

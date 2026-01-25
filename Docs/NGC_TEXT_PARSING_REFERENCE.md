@@ -302,12 +302,18 @@ THRESHOLD=0x0A  # Hex for readability
 
 ## Module-Specific Commands
 
+### Important Terminology
+
+**Don't confuse `[CHn]` with `CHAN=`:**
+- `[CHn]` = Section header for **hardware input channel** index (e.g., `[CH0]`, `[CH16]`)
+- `CHAN=` = Configuration key for **MIDI channel** number (0-15 = MIDI channels 1-16)
+
 ### AINSER Mapping Commands
 
 ```ini
-[CHn]                   # n = 0..63
+[CHn]                   # n = 0..63 (hardware input channel index)
 CC=0..127               # MIDI CC number
-CHAN=0..15              # MIDI channel
+CHAN=0..15              # MIDI channel (0 = MIDI channel 1)
 CURVE=LINEAR|EXPO|LOG   # Response curve (or 0|1|2)
 INVERT=0|1              # Invert polarity
 MIN=0..4095             # ADC minimum (12-bit)
@@ -333,9 +339,9 @@ ENABLED=1
 ### DIN Mapping Commands
 
 ```ini
-[CHn]                   # n = 0..63
+[CHn]                   # n = 0..63 (hardware input channel index)
 TYPE=NOTE|CC|0|1|2      # Event type
-CHAN=0..15              # MIDI channel
+CHAN=0..15              # MIDI channel (0 = MIDI channel 1)
 NUMBER=0..127           # Note or CC number
 VEL_ON=0..127           # Note On velocity
 VEL_OFF=0..127          # Note Off velocity

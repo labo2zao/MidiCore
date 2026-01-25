@@ -66,10 +66,12 @@ KEY2=value2     # Multiple keys per section
 
 ### AINSER Map Format (`ainser_map.ngc`)
 
+**Important:** Don't confuse `[CHn]` (hardware input channel index) with `CHAN=` (MIDI channel number).
+
 ```ini
-[CHn]                  # n = 0..63 (AINSER channel index)
+[CHn]                  # n = 0..63 (hardware input channel index)
 CC=0..127              # MIDI CC number
-CHAN=0..15             # MIDI channel (0 = Channel 1)
+CHAN=0..15             # MIDI channel (0 = MIDI Channel 1)
 CURVE=0|1|2            # 0=LINEAR, 1=EXPO, 2=LOG (or LIN/EXPO/LOG)
 INVERT=0|1             # 0=normal, 1=inverted
 MIN=0..4095            # 12-bit ADC minimum threshold
@@ -93,10 +95,12 @@ ENABLED=1
 
 ### DIN Map Format (`din_map.ngc`)
 
+**Important:** Don't confuse `[CHn]` (hardware input channel index) with `CHAN=` (MIDI channel number).
+
 ```ini
-[CHn]                  # n = 0..63 (DIN channel index)
+[CHn]                  # n = 0..63 (hardware input channel index)
 TYPE=NOTE|CC|0|1|2     # Event type: NOTE, CC, or numeric
-CHAN=0..15             # MIDI channel (0 = Channel 1)
+CHAN=0..15             # MIDI channel (0 = MIDI Channel 1)
 NUMBER=0..127          # Note number or CC number
 VEL_ON=0..127          # Note On velocity or CC value when pressed
 VEL_OFF=0..127         # Note Off velocity
