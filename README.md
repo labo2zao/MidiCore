@@ -1,5 +1,7 @@
 # MidiCore
 
+> **📚 Documentation has been reorganized!** All documentation is now organized in the [Docs/](Docs/) folder. See [Docs/README.md](Docs/README.md) for the complete documentation index, or [Docs/DOCUMENTATION_REORGANIZATION.md](Docs/DOCUMENTATION_REORGANIZATION.md) for details about the reorganization.
+
 # MidiCore
 
 MidiCore is a modular MIDI firmware for STM32 microcontrollers, inspired by the MIOS32 ecosystem. It provides a comprehensive platform for building advanced MIDI devices with features like USB MIDI, analog input processing, looping/sequencing, and more.

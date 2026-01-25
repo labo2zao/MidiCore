@@ -1,5 +1,7 @@
 # MidiCore Documentation
 
+> **✨ Documentation has been recently reorganized!** All documentation files have been consolidated and organized into this folder structure. See [DOCUMENTATION_REORGANIZATION.md](DOCUMENTATION_REORGANIZATION.md) for details about what was moved and where.
+
 Complete documentation for the MidiCore MIDI controller system.
 
 ## 📚 Documentation Structure
