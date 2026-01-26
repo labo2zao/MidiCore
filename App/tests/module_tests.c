@@ -1984,6 +1984,8 @@ void module_test_router_run(void)
   msg.b1 = 60;    // C4
   msg.b2 = 100;   // Velocity 100
   dbg_printf("  Sending: Note On C4 (60) vel=100 ch=1 from DIN IN1\r\n");
+  dbg_printf("  [MIDI Mon] >> IN:DIN_IN1 | Status:0x%02X Data:[0x%02X 0x%02X] | Type:Note On | Ch:%d | Note:%d(C4) | Vel:%d\r\n",
+             msg.b0, msg.b1, msg.b2, (msg.b0 & 0x0F) + 1, msg.b1, msg.b2);
   router_process(ROUTER_NODE_DIN_IN1, &msg);
   dbg_print("  → Should route to: DIN OUT1, USB PORT0\r\n");
   osDelay(200);
@@ -1993,6 +1995,8 @@ void module_test_router_run(void)
   msg.b0 = 0x80;  // Note Off, channel 1
   msg.b2 = 0;     // Velocity 0
   dbg_printf("  Sending: Note Off C4 (60) ch=1 from DIN IN1\r\n");
+  dbg_printf("  [MIDI Mon] >> IN:DIN_IN1 | Status:0x%02X Data:[0x%02X 0x%02X] | Type:Note Off | Ch:%d | Note:%d(C4) | Vel:%d\r\n",
+             msg.b0, msg.b1, msg.b2, (msg.b0 & 0x0F) + 1, msg.b1, msg.b2);
   router_process(ROUTER_NODE_DIN_IN1, &msg);
   dbg_print("  → Should route to: DIN OUT1, USB PORT0\r\n");
   osDelay(200);
@@ -2003,6 +2007,8 @@ void module_test_router_run(void)
   msg.b1 = 7;     // Volume
   msg.b2 = 127;   // Max
   dbg_printf("  Sending: CC#7 (Volume)=127 ch=1 from USB PORT0\r\n");
+  dbg_printf("  [MIDI Mon] >> IN:USB_PORT0 | Status:0x%02X Data:[0x%02X 0x%02X] | Type:CC | Ch:%d | CC#:%d(Volume) | Value:%d\r\n",
+             msg.b0, msg.b1, msg.b2, (msg.b0 & 0x0F) + 1, msg.b1, msg.b2);
   router_process(ROUTER_NODE_USB_PORT0, &msg);
   dbg_print("  → Should route to: DIN OUT2\r\n");
   osDelay(200);
@@ -2013,6 +2019,8 @@ void module_test_router_run(void)
   msg.b0 = 0xC0;  // PC, channel 1
   msg.b1 = 42;    // Program 42
   dbg_printf("  Sending: PC=42 ch=1 from DIN IN1\r\n");
+  dbg_printf("  [MIDI Mon] >> IN:DIN_IN1 | Status:0x%02X Data:[0x%02X] | Type:Prog Change | Ch:%d | Program:%d\r\n",
+             msg.b0, msg.b1, (msg.b0 & 0x0F) + 1, msg.b1);
   router_process(ROUTER_NODE_DIN_IN1, &msg);
   dbg_print("  → Should route to: DIN OUT1, USB PORT0\r\n");
   osDelay(200);
@@ -2023,6 +2031,8 @@ void module_test_router_run(void)
   msg.b0 = 0xD0;  // Channel Pressure, channel 1
   msg.b1 = 80;    // Pressure value
   dbg_printf("  Sending: Aftertouch=80 ch=1 from DIN IN1\r\n");
+  dbg_printf("  [MIDI Mon] >> IN:DIN_IN1 | Status:0x%02X Data:[0x%02X] | Type:Ch Pressure | Ch:%d | Value:%d\r\n",
+             msg.b0, msg.b1, (msg.b0 & 0x0F) + 1, msg.b1);
   router_process(ROUTER_NODE_DIN_IN1, &msg);
   dbg_print("  → Should route to: DIN OUT1, USB PORT0\r\n");
   osDelay(200);
@@ -2034,6 +2044,9 @@ void module_test_router_run(void)
   msg.b1 = 0x00;  // LSB
   msg.b2 = 0x40;  // MSB (center)
   dbg_printf("  Sending: Pitch Bend=0x2000 (center) ch=1 from DIN IN1\r\n");
+  uint16_t bend_value = (msg.b2 << 7) | msg.b1;
+  dbg_printf("  [MIDI Mon] >> IN:DIN_IN1 | Status:0x%02X Data:[0x%02X 0x%02X] | Type:Pitch Bend | Ch:%d | Value:0x%04X(%d)\r\n",
+             msg.b0, msg.b1, msg.b2, (msg.b0 & 0x0F) + 1, bend_value, bend_value);
   router_process(ROUTER_NODE_DIN_IN1, &msg);
   dbg_print("  → Should route to: DIN OUT1, USB PORT0\r\n");
   osDelay(200);
@@ -2066,12 +2079,16 @@ void module_test_router_run(void)
   msg.b0 = 0x90;  // Note On, channel 1
   msg.b1 = 64;    // E4
   msg.b2 = 90;    // Velocity
+  dbg_printf("  [MIDI Mon] >> IN:DIN_IN2 | Status:0x%02X Data:[0x%02X 0x%02X] | Type:Note On | Ch:%d | Note:%d(E4) | Vel:%d\r\n",
+             msg.b0, msg.b1, msg.b2, (msg.b0 & 0x0F) + 1, msg.b1, msg.b2);
   router_process(ROUTER_NODE_DIN_IN2, &msg);
   dbg_print("  → Note should appear on all 3 outputs\r\n");
   osDelay(200);
   
   msg.b0 = 0x80;  // Note Off
   msg.b2 = 0;
+  dbg_printf("  [MIDI Mon] >> IN:DIN_IN2 | Status:0x%02X Data:[0x%02X 0x%02X] | Type:Note Off | Ch:%d | Note:%d(E4) | Vel:%d\r\n",
+             msg.b0, msg.b1, msg.b2, (msg.b0 & 0x0F) + 1, msg.b1, msg.b2);
   router_process(ROUTER_NODE_DIN_IN2, &msg);
   osDelay(200);
   
@@ -2094,12 +2111,16 @@ void module_test_router_run(void)
   msg.b0 = 0x90;
   msg.b1 = 67;    // G4
   msg.b2 = 80;
+  dbg_printf("  [MIDI Mon] >> IN:DIN_IN1 | Status:0x%02X Data:[0x%02X 0x%02X] | Type:Note On | Ch:%d | Note:%d(G4) | Vel:%d\r\n",
+             msg.b0, msg.b1, msg.b2, (msg.b0 & 0x0F) + 1, msg.b1, msg.b2);
   router_process(ROUTER_NODE_DIN_IN1, &msg);
   dbg_print("  → Should route to DIN OUT1 only (USB disabled)\r\n");
   osDelay(200);
   
   msg.b0 = 0x80;
   msg.b2 = 0;
+  dbg_printf("  [MIDI Mon] >> IN:DIN_IN1 | Status:0x%02X Data:[0x%02X 0x%02X] | Type:Note Off | Ch:%d | Note:%d(G4) | Vel:%d\r\n",
+             msg.b0, msg.b1, msg.b2, (msg.b0 & 0x0F) + 1, msg.b1, msg.b2);
   router_process(ROUTER_NODE_DIN_IN1, &msg);
   osDelay(200);
   
@@ -2111,12 +2132,16 @@ void module_test_router_run(void)
   msg.b0 = 0x90;
   msg.b1 = 69;    // A4
   msg.b2 = 85;
+  dbg_printf("  [MIDI Mon] >> IN:DIN_IN1 | Status:0x%02X Data:[0x%02X 0x%02X] | Type:Note On | Ch:%d | Note:%d(A4) | Vel:%d\r\n",
+             msg.b0, msg.b1, msg.b2, (msg.b0 & 0x0F) + 1, msg.b1, msg.b2);
   router_process(ROUTER_NODE_DIN_IN1, &msg);
   dbg_print("  → Should route to both DIN OUT1 and USB PORT0\r\n");
   osDelay(200);
   
   msg.b0 = 0x80;
   msg.b2 = 0;
+  dbg_printf("  [MIDI Mon] >> IN:DIN_IN1 | Status:0x%02X Data:[0x%02X 0x%02X] | Type:Note Off | Ch:%d | Note:%d(A4) | Vel:%d\r\n",
+             msg.b0, msg.b1, msg.b2, (msg.b0 & 0x0F) + 1, msg.b1, msg.b2);
   router_process(ROUTER_NODE_DIN_IN1, &msg);
   osDelay(200);
   
@@ -2136,12 +2161,16 @@ void module_test_router_run(void)
   msg.b0 = 0x90;  // Ch 1
   msg.b1 = 72;
   msg.b2 = 95;
+  dbg_printf("    [MIDI Mon] >> IN:LOOPER | Status:0x%02X Data:[0x%02X 0x%02X] | Type:Note On | Ch:%d | Note:%d | Vel:%d\r\n",
+             msg.b0, msg.b1, msg.b2, (msg.b0 & 0x0F) + 1, msg.b1, msg.b2);
   router_process(ROUTER_NODE_LOOPER, &msg);
   dbg_print("    → Ch 1 Note: Should route to DIN OUT3 ✓\r\n");
   osDelay(200);
   
   // Test channel 2 (should be blocked)
   msg.b0 = 0x91;  // Ch 2
+  dbg_printf("    [MIDI Mon] >> IN:LOOPER | Status:0x%02X Data:[0x%02X 0x%02X] | Type:Note On | Ch:%d | Note:%d | Vel:%d\r\n",
+             msg.b0, msg.b1, msg.b2, (msg.b0 & 0x0F) + 1, msg.b1, msg.b2);
   router_process(ROUTER_NODE_LOOPER, &msg);
   dbg_print("    → Ch 2 Note: Should be BLOCKED ✓\r\n");
   osDelay(200);
@@ -2152,6 +2181,8 @@ void module_test_router_run(void)
     msg.b0 = 0x90 | ch;  // Ch 1-6
     msg.b1 = 60 + ch;
     msg.b2 = 80;
+    dbg_printf("    [MIDI Mon] >> IN:KEYS | Status:0x%02X Data:[0x%02X 0x%02X] | Type:Note On | Ch:%d | Note:%d | Vel:%d\r\n",
+               msg.b0, msg.b1, msg.b2, (msg.b0 & 0x0F) + 1, msg.b1, msg.b2);
     router_process(ROUTER_NODE_KEYS, &msg);
     
     if (ch < 4) {
