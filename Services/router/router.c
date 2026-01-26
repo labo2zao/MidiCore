@@ -123,6 +123,20 @@ void router_process(uint8_t in_node, const router_msg_t* msg) {
     if (!snap[out].enabled) continue;
     if (chan_voice && ((snap[out].chmask & bit) == 0)) continue;
     
+    // CRITICAL FIX: Prevent hardware loopback - don't route DIN_INx back to DIN_OUTx on SAME port
+    // Example: DIN_IN1 (node 0) should NOT route to DIN_OUT1 (node 4) to prevent feedback loops
+    // Cross-port routing still works: DIN_IN1 → DIN_OUT2 (for MIDI merge/split)
+    if (in_node >= ROUTER_NODE_DIN_IN1 && in_node <= ROUTER_NODE_DIN_IN4 &&
+        out >= ROUTER_NODE_DIN_OUT1 && out <= ROUTER_NODE_DIN_OUT4) {
+      uint8_t in_port = (uint8_t)(in_node - ROUTER_NODE_DIN_IN1);   // 0-3
+      uint8_t out_port = (uint8_t)(out - ROUTER_NODE_DIN_OUT1);     // 0-3
+      if (in_port == out_port) {
+        // Block same-port loopback: DIN_IN1→DIN_OUT1, DIN_IN2→DIN_OUT2, etc.
+        // This prevents infinite loops if hardware has MIDI cables connecting output back to input
+        continue;
+      }
+    }
+    
     // Create a copy of the message for potential transformation
     router_msg_t transformed_msg = *msg;
     

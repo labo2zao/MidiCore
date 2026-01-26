@@ -51,11 +51,11 @@ extern UART_HandleTypeDef huart5; // UART5
 static UART_HandleTypeDef* midi_uart_from_index(uint8_t idx)
 {
   // Map MIDI port index to UART handles (STM32F4 Discovery compatible)
-  // Note: MIOS32 uses software UART for DIN3, but we use USART1 here
+  // CRITICAL: Pin mapping must match actual hardware in stm32f4xx_hal_msp.c
   switch (idx) {
     case 0: return &huart2;   // USART2: PA2=TX,  PA3=RX   (DIN1) [MIOS32 UART1]
     case 1: return &huart3;   // USART3: PD8=TX,  PD9=RX   (DIN2) [MIOS32 UART2]
-    case 2: return &huart1;   // USART1: PA9=TX,  PA10=RX  (DIN3) [Can share with debug]
+    case 2: return &huart1;   // USART1: PA9=TX,  PB7=RX   (DIN3) [MIOS32 UART3] ← RX is PB7!
     case 3: return &huart5;   // UART5:  PC12=TX, PD2=RX   (DIN4) [MIOS32 UART4]
     default: return NULL;
   }
@@ -102,9 +102,10 @@ static void start_rx_it(int port)
 HAL_StatusTypeDef hal_uart_midi_init(void)
 {
   // Map MIDI ports directly to UART handles (MIOS32 port mapping - NEVER changes)
+  // CRITICAL: Pin mapping verified against stm32f4xx_hal_msp.c HAL_UART_MspInit()
   // Port 0 (DIN1) = USART2 PA2/PA3   [MIOS32 UART1]
   // Port 1 (DIN2) = USART3 PD8/PD9   [MIOS32 UART2]
-  // Port 2 (DIN3) = USART1 PA9/PA10  [MIOS32 UART3]
+  // Port 2 (DIN3) = USART1 PA9/PB7   [MIOS32 UART3] ← RX is PB7 per HAL_UART_MspInit!
   // Port 3 (DIN4) = UART5  PC12/PD2  [MIOS32 UART4]
   s_midi_uarts[0] = midi_uart_from_index(0); // Port 0 -> USART2 (DIN1)
   s_midi_uarts[1] = midi_uart_from_index(1); // Port 1 -> USART3 (DIN2)
