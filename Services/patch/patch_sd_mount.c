@@ -4,7 +4,8 @@
 #include "ff.h"
 #include <stdio.h>
 
-__attribute__((weak)) void MX_FATFS_Init(void) {}
+// Declare MX_FATFS_Init - defined in FATFS/App/fatfs.c
+extern void MX_FATFS_Init(void);
 
 static FATFS g_fs;
 
