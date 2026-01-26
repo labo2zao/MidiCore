@@ -165,9 +165,22 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef* huart)
   int p = port_from_handle(huart);
   if (p < 0) return;
 
-  // CRITICAL FIX: The rx_byte is stored at &s_rx[port].rx_byte, but HAL_UART_Receive_IT
-  // may have written to a different location if huart->pRxBuffPtr was not set correctly.
-  // Verify we're reading from the correct rx_byte buffer for THIS port.
+  // CRITICAL FIX: Only process RX callback if THIS UART instance actually triggered it.
+  // The HAL may be incorrectly calling the callback for a different UART instance than
+  // the one that received data. Verify that huart->Instance matches the expected UART.
+  //
+  // Root cause of DIN1/DIN2 coupling: The HAL UART driver's RxCpltCallback is being
+  // called for BOTH USART2 and USART3 when only one receives data. This is likely due to:
+  // 1. HAL sharing the callback function pointer between UART instances
+  // 2. IRQ priorities causing spurious callbacks
+  // 3. Race condition in HAL_UART_Receive_IT() setup
+  //
+  // Solution: Check huart->Instance pointer to ensure it matches s_midi_uarts[p]->Instance
+  if (huart->Instance != s_midi_uarts[p]->Instance) {
+    // Spurious callback - wrong UART triggered. Ignore.
+    return;
+  }
+
   midi_uart_rx_t* r = &s_rx[p];
   
   uint16_t next = ring_next(r->head);
