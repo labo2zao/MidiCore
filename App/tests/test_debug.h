@@ -39,24 +39,25 @@ extern "C" {
 /**
  * @brief UART port used for debug output (dbg_print)
  * 
- * MIOS32 UART Mapping (MIDI DIN ports - do NOT use for debug):
+ * STM32F4 Discovery UART Mapping:
  * 0 = USART2 - PA2/PA3   - MIDI DIN1 [MIOS32 UART1]
  * 1 = USART3 - PD8/PD9   - MIDI DIN2 [MIOS32 UART2]
- * 2 = USART6 - PC6/PC7   - MIDI DIN3 [MIOS32 UART3]
+ * 2 = USART1 - PA9/PA10  - MIDI DIN3 or Debug (shared)
  * 3 = UART5  - PC12/PD2  - MIDI DIN4 [MIOS32 UART4]
  * 
- * Available for Debug (not used by MIDI DIN):
- * 4 = USART1 - PA9/PA10  - **Recommended for test mode debug**
+ * **Test Mode Default: Port 2 (USART1/PA9-PA10) @ 115200 baud**
+ * This allows 3 MIDI DIN ports (0,1,3) @ 31250 baud
  * 
- * **Test Mode Default: Port 4 (USART1/PA9-PA10) @ 115200 baud**
- * This leaves all 4 MIDI DIN ports available @ 31250 baud
+ * **Recommended: Use OLED debug mirroring instead**
+ * Enable MODULE_ENABLE_OLED to get debug output on OLED display.
+ * This frees all 4 MIDI DIN ports for MIDI @ 31250 baud.
  * 
  * When a UART is configured as TEST_DEBUG_UART_PORT:
  * - It runs at 115200 baud for debug output
- * - All MIDI DIN ports run at 31250 baud for MIDI
+ * - All other MIDI DIN ports run at 31250 baud for MIDI
  */
 #ifndef TEST_DEBUG_UART_PORT
-#define TEST_DEBUG_UART_PORT 4  // USART1 (PA9/PA10) - Not used by MIDI DIN
+#define TEST_DEBUG_UART_PORT 2  // USART1 (PA9/PA10) - Can share with MIDI DIN3
 #endif
 
 /**

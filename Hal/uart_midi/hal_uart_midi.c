@@ -13,34 +13,34 @@
 
 // ---- Port mapping -----------------------------------------------------------
 // IMPORTANT:
-// MIOS32 Hardware Configuration (MIDIbox STM32F4):
-//   **Production Mode - All 4 MIDI DIN ports @ 31250 baud:**
+// STM32F4 Discovery Hardware Configuration:
+//   **Production Mode - MIDI DIN ports @ 31250 baud:**
 //   MIDI IN1:  PA3  (USART2 RX)   [MIOS32 UART1]
 //   MIDI OUT1: PA2  (USART2 TX)   [MIOS32 UART1]
 //   MIDI IN2:  PD9  (USART3 RX)   [MIOS32 UART2]
 //   MIDI OUT2: PD8  (USART3 TX)   [MIOS32 UART2]
-//   MIDI IN3:  PC7  (USART6 RX)   [MIOS32 UART3]
-//   MIDI OUT3: PC6  (USART6 TX)   [MIOS32 UART3]
+//   MIDI IN3:  PA10 (USART1 RX)   [Can share with debug]
+//   MIDI OUT3: PA9  (USART1 TX)   [Can share with debug]
 //   MIDI IN4:  PD2  (UART5 RX)    [MIOS32 UART4]
 //   MIDI OUT4: PC12 (UART5 TX)    [MIOS32 UART4]
 //
-// Port Mapping (matches MIOS32 mios32_uart.c):
+// Port Mapping (STM32F4 Discovery):
 //   Port 0 (DIN1) -> USART2 (huart2) PA2=TX,  PA3=RX   [MIOS32 UART1]
 //   Port 1 (DIN2) -> USART3 (huart3) PD8=TX,  PD9=RX   [MIOS32 UART2]
-//   Port 2 (DIN3) -> USART6 (huart6) PC6=TX,  PC7=RX   [MIOS32 UART3]
+//   Port 2 (DIN3) -> USART1 (huart1) PA9=TX,  PA10=RX  [Shared: MIDI or Debug]
 //   Port 3 (DIN4) -> UART5  (huart5) PC12=TX, PD2=RX   [MIOS32 UART4]
 //
-// Note: All 4 ports available in both test and production modes.
-//       Debug UART can be configured separately via TEST_DEBUG_UART_PORT.
+// Note: USART1 (Port 2) can be used for either MIDI DIN3 or debug UART.
+//       In test mode with OLED debug, all 4 MIDI ports are available.
 
 #ifndef MIDI_DIN_PORTS
 #define MIDI_DIN_PORTS 4
 #endif
 
+extern UART_HandleTypeDef huart1; // USART1
 extern UART_HandleTypeDef huart2; // USART2
 extern UART_HandleTypeDef huart3; // USART3
 extern UART_HandleTypeDef huart5; // UART5
-extern UART_HandleTypeDef huart6; // USART6
 
 #ifndef MIDI_DIN_PRIMARY_UART_PORT
 #ifdef TEST_MIDI_DIN_UART_PORT
@@ -52,11 +52,12 @@ extern UART_HandleTypeDef huart6; // USART6
 
 static UART_HandleTypeDef* midi_uart_from_index(uint8_t idx)
 {
-  // Map MIDI port index to UART handles (matches MIOS32 exactly)
+  // Map MIDI port index to UART handles (STM32F4 Discovery compatible)
+  // Note: MIOS32 uses software UART for DIN3, but we use USART1 here
   switch (idx) {
     case 0: return &huart2;   // USART2: PA2=TX,  PA3=RX   (DIN1) [MIOS32 UART1]
     case 1: return &huart3;   // USART3: PD8=TX,  PD9=RX   (DIN2) [MIOS32 UART2]
-    case 2: return &huart6;   // USART6: PC6=TX,  PC7=RX   (DIN3) [MIOS32 UART3]
+    case 2: return &huart1;   // USART1: PA9=TX,  PA10=RX  (DIN3) [Can share with debug]
     case 3: return &huart5;   // UART5:  PC12=TX, PD2=RX   (DIN4) [MIOS32 UART4]
     default: return NULL;
   }
