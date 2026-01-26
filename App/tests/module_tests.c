@@ -105,6 +105,7 @@ static void dbg_print_srio_pinout(void)
 
 #if MODULE_ENABLE_MIDI_DIN
 #include "Services/midi/midi_din.h"
+#include "Services/midi_monitor/midi_monitor.h"  // MIDI Monitor service
 #endif
 
 #if MODULE_ENABLE_ROUTER
@@ -1038,6 +1039,16 @@ void module_test_midi_din_run(void)
   dbg_print("Initializing MIDI DIN service...");
   midi_din_init();
   dbg_print(" OK\r\n");
+  
+  // Initialize MIDI Monitor (new dedicated service for message inspection)
+  dbg_print("Initializing MIDI Monitor...");
+  midi_monitor_init();
+  midi_monitor_set_enabled(1);
+  midi_monitor_set_uart_output(1);  // Enable real-time UART output
+  dbg_print(" OK\r\n");
+  dbg_print("  ✓ MIDI Monitor: Enabled with UART output\r\n");
+  dbg_print("  ✓ All MIDI messages will be displayed in real-time\r\n");
+  dbg_print("\r\n");
   
 #if MODULE_ENABLE_ROUTER
   // Initialize Router for MIDI routing
