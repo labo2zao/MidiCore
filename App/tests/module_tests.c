@@ -1939,6 +1939,19 @@ void module_test_router_run(void)
   osDelay(100);
   
 #if MODULE_ENABLE_ROUTER
+  // Initialize MIDI DIN hardware to receive incoming messages
+  dbg_print("Initializing MIDI DIN hardware... ");
+#if MODULE_ENABLE_MIDI_DIN
+  midi_din_init();
+  dbg_print("OK\r\n");
+  dbg_print("  • DIN IN1: USART1 RX (PA10) @ 31250 baud\r\n");
+  dbg_print("  • DIN OUT1: USART1 TX (PA9) @ 31250 baud\r\n");
+  dbg_print("\r\n");
+#else
+  dbg_print("SKIPPED (MODULE_ENABLE_MIDI_DIN not defined)\r\n");
+  dbg_print("\r\n");
+#endif
+  
   // Initialize MIDI Monitor for real-time message visibility
   dbg_print("Initializing MIDI Monitor... ");
   midi_monitor_init();
