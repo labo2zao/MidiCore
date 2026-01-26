@@ -207,75 +207,82 @@ DSTATUS sd_spi_initialize(void)
   }
   
   spibus_end(SPIBUS_DEV_SD);  // Release mutex
-  osDelay(1);  // Let card settle
-  
-  // Now select card and start initialization
+  // Now select card and start initialization  
   spibus_begin(SPIBUS_DEV_SD);
   
-  // Enter idle state
-  if (sd_send_cmd(SD_CMD0, 0) != 1) {
-    sd_status = STA_NOINIT;
-    spibus_end(SPIBUS_DEV_SD);
-    return sd_status;
-  }
-  
-  // Check SD version
-  if (sd_send_cmd(SD_CMD8, 0x1AA) == 1) {
-    // SDv2+
-    for (n = 0; n < 4; n++) {
-      ocr[n] = spi_transfer_byte( 0xFF);
-    }
-    
-    // Check if voltage range is compatible
-    if (ocr[2] == 0x01 && ocr[3] == 0xAA) {
-      // Wait for card to exit idle state (ACMD41 with HCS bit)
-      for (tmr = 1000; tmr; tmr--) {
-        // Send CMD55 first, then CMD41 (not with 0x80 flag - already sent CMD55)
-        if (sd_send_cmd(SD_CMD55, 0) <= 1 && 
-            sd_send_cmd(SD_CMD41, 1UL << 30) == 0) break;
+  // Enter idle state (CMD0) - must return 0x01
+  if (sd_send_cmd(SD_CMD0, 0) == 1) {
+    // Check SD card version with CMD8
+    if (sd_send_cmd(SD_CMD8, 0x1AA) == 1) {
+      // SDv2 or later - read R7 response (4 bytes)
+      for (n = 0; n < 4; n++) {
+        ocr[n] = spi_transfer_byte(0xFF);
+      }
+      
+      // Check voltage range and check pattern
+      if (ocr[2] == 0x01 && ocr[3] == 0xAA) {
+        // Voltage compatible - initialize with ACMD41
+        for (tmr = 1000; tmr; tmr--) {
+          // ACMD41 with HCS bit set for SDHC support
+          if (sd_send_cmd(SD_CMD55, 0) <= 1 && 
+              sd_send_cmd(SD_CMD41, 1UL << 30) == 0) {
+            break;  // Card exited idle state
+          }
+          osDelay(1);
+        }
+        
+        // Check CCS bit in OCR to determine SDHC/SDXC
+        if (tmr && sd_send_cmd(SD_CMD58, 0) == 0) {
+          for (n = 0; n < 4; n++) {
+            ocr[n] = spi_transfer_byte(0xFF);
+          }
+          // CCS bit (bit 30) indicates High Capacity card
+          ty = (ocr[0] & 0x40) ? SD_TYPE_SDHC : SD_TYPE_SDV2;
+        }
+      }
+    } else {
+      // SDv1 or MMC - CMD8 not supported
+      // Try ACMD41 to determine if it's SD or MMC
+      if (sd_send_cmd(SD_CMD55, 0) <= 1 && 
+          sd_send_cmd(SD_CMD41, 0) <= 1) {
+        // SD card version 1
+        ty = SD_TYPE_SDV1;
+        cmd = SD_CMD41;
+      } else {
+        // MMC card
+        ty = SD_TYPE_MMC;
+        cmd = SD_CMD1;
+      }
+      
+      // Wait for card to exit idle state
+      for (tmr = 1000; tmr && cmd; tmr--) {
+        if (ty == SD_TYPE_SDV1) {
+          // SDv1: need CMD55 before CMD41
+          if (sd_send_cmd(SD_CMD55, 0) <= 1 && 
+              sd_send_cmd(cmd, 0) == 0) break;
+        } else {
+          // MMC: just CMD1
+          if (sd_send_cmd(cmd, 0) == 0) break;
+        }
         osDelay(1);
       }
       
-      // Check CCS bit in OCR
-      if (tmr && sd_send_cmd(SD_CMD58, 0) == 0) {
-        for (n = 0; n < 4; n++) {
-          ocr[n] = spi_transfer_byte( 0xFF);
-        }
-        sd_card_type = (ocr[0] & 0x40) ? SD_TYPE_SDHC : SD_TYPE_SDV2;
+      // Set block length to 512 bytes for SDv1/MMC
+      if (!tmr || sd_send_cmd(SD_CMD16, 512) != 0) {
+        ty = SD_TYPE_UNKNOWN;
       }
-    }
-  } else {
-    // SDv1 or MMC
-    // Send CMD55 then CMD41 to check if it's SDv1
-    if (sd_send_cmd(SD_CMD55, 0) <= 1 && 
-        sd_send_cmd(SD_CMD41, 0) <= 1) {
-      // SDv1
-      sd_card_type = SD_TYPE_SDV1;
-      cmd = SD_CMD41;  // Use CMD41 in loop (send CMD55 each iteration)
-    } else {
-      // Not SD card
-      sd_card_type = SD_TYPE_UNKNOWN;
-      cmd = 0;
-    }
-    
-    // Wait for card to exit idle state
-    for (tmr = 1000; tmr && cmd; tmr--) {
-      // For SDv1, send CMD55 then CMD41
-      if (sd_send_cmd(SD_CMD55, 0) <= 1 && sd_send_cmd(cmd, 0) == 0) break;
-      osDelay(1);
-    }
-    
-    // Set block length to 512 for SDv1
-    if (!tmr || sd_send_cmd(SD_CMD16, 512) != 0) {
-      sd_card_type = SD_TYPE_UNKNOWN;
     }
   }
   
+  // Release SPI bus
   spibus_end(SPIBUS_DEV_SD);
+  
+  // Store card type
+  sd_card_type = ty;
   
   if (sd_card_type != SD_TYPE_UNKNOWN) {
     sd_status = 0;  // Clear STA_NOINIT flag
-    // Switch to fast SPI speed for data operations
+    // Switch to fast SPI speed for data operations (42 MHz)
     spibus_set_sd_speed_fast();
   } else {
     sd_status = STA_NOINIT;
