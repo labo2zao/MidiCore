@@ -436,6 +436,11 @@ DRESULT sd_spi_read(BYTE *buff, DWORD sector, UINT count)
     }
   }
   
+  // CRITICAL: Send 8 dummy clocks before deasserting CS
+  // This ensures card completes internal processing
+  // MIOS32 pattern - required for reliable operation at full speed
+  spi_transfer_byte(0xFF);
+  
   spibus_end(SPIBUS_DEV_SD);
   
   return count ? RES_ERROR : RES_OK;
@@ -509,6 +514,11 @@ DRESULT sd_spi_write(const BYTE *buff, DWORD sector, UINT count)
       }
     }
   }
+  
+  // CRITICAL: Send 8 dummy clocks before deasserting CS
+  // This ensures card completes internal processing
+  // MIOS32 pattern - required for reliable operation at full speed
+  spi_transfer_byte(0xFF);
   
   spibus_end(SPIBUS_DEV_SD);
   
