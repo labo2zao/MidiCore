@@ -3,17 +3,22 @@
  * @brief MIOS32-compatible debug output for module tests
  * 
  * This module provides debug print functions compatible with MIOS32 hardware.
- * It allows configuration of which UART is used for debug output vs MIDI DIN.
  * 
- * MIOS32 Hardware Compatibility:
- * - UART1 (USART1): Typically MIDI OUT1
- * - UART2 (USART2): Typically MIDI OUT2 or Debug
- * - UART3 (USART3): Typically MIDI OUT3
- * - UART5 (UART5):  Typically MIDI OUT4
+ * **Test Mode Debug Configuration:**
+ * - Debug UART: USART3 (PD8/PD9) @ 115200 baud (default TEST_DEBUG_UART_PORT=1)
+ * - All other UARTs available for MIDI @ 31250 baud
+ * - Baud rate automatically configured by test_debug_init()
  * 
- * Configuration:
- * Define TEST_DEBUG_UART_PORT to select debug output UART (0-3)
- * Define TEST_MIDI_DIN_UART_PORT to select MIDI DIN UART (0-3)
+ * **OLED Debug Mode (when MODULE_ENABLE_OLED active):**
+ * - Debug output goes to OLED display (no UART required)
+ * - All 4 MIDI DIN ports available for MIDI @ 31250 baud
+ * - Call dbg_mirror_update() periodically to refresh OLED
+ * 
+ * **Production Mode - All 4 MIDI DIN ports @ 31250 baud:**
+ * - Port 0 (DIN1): USART2 PA2=TX,  PA3=RX  @ 31250 baud
+ * - Port 1 (DIN2): USART1 PA9=TX,  PA10=RX @ 31250 baud
+ * - Port 2 (DIN3): USART3 PD8=TX,  PD9=RX  @ 31250 baud
+ * - Port 3 (DIN4): UART5  PC12=TX, PD2=RX  @ 31250 baud
  */
 
 #ifndef TEST_DEBUG_H
@@ -35,15 +40,21 @@ extern "C" {
  * @brief UART port used for debug output (dbg_print)
  * 
  * MIOS32 UART Mapping:
- * 0 = UART1 (USART1) - PA9/PA10  - MIDI OUT1/IN1
- * 1 = UART2 (USART2) - PA2/PA3   - MIDI OUT2/IN2 (recommended for debug)
- * 2 = UART3 (USART3) - PB10/PB11 - MIDI OUT3/IN3
- * 3 = UART5 (UART5)  - PC12/PD2  - MIDI OUT4/IN4
+ * 0 = USART2 - PA2/PA3   - MIDI DIN1 (production) or Debug (if selected)
+ * 1 = USART3 - PD8/PD9   - MIDI DIN2 (production) or Debug (recommended for test mode)
+ * 2 = USART1 - PA9/PA10  - MIDI DIN3 (production) or Debug (if selected)
+ * 3 = UART5  - PC12/PD2  - MIDI DIN4
  * 
- * Default: UART2 (port 1) for debug output
+ * **Test Mode Default: Port 1 (USART3/PD8-PD9) @ 115200 baud**
+ * This frees all other UARTs for MIDI @ 31250 baud
+ * 
+ * When a UART is configured as TEST_DEBUG_UART_PORT:
+ * - It runs at 115200 baud for debug output
+ * - It's NOT available for MIDI DIN
+ * All other UARTs run at 31250 baud for MIDI
  */
 #ifndef TEST_DEBUG_UART_PORT
-#define TEST_DEBUG_UART_PORT 1
+#define TEST_DEBUG_UART_PORT 1  // USART3 (PD8/PD9)
 #endif
 
 /**
@@ -80,16 +91,20 @@ extern "C" {
 // =============================================================================
 
 /**
- * @brief Initialize debug UART
+ * @brief Initialize debug output system
  * 
  * Call this before using dbg_print functions.
  * 
- * When MODULE_ENABLE_OLED is active, this function automatically:
- * - Initializes OLED debug mirroring
- * - Enables OLED mirroring so GDB debug output appears on OLED screen
- * - All dbg_print() and dbg_printf() calls will be mirrored to OLED
+ * **Test Mode with OLED (MODULE_ENABLE_OLED active):**
+ * - Automatically initializes OLED debug mirroring
+ * - Enables OLED as PRIMARY debug output (no UART debug)
+ * - All dbg_print() and dbg_printf() calls go to OLED only
+ * - All 4 MIDI DIN ports remain available for MIDI @ 31250 baud
+ * - Call dbg_mirror_update() periodically (e.g. every 100ms) to refresh display
  * 
- * To see output on OLED, call dbg_mirror_update() periodically (e.g. every 100ms).
+ * **Test Mode without OLED:**
+ * - Uses configured UART for debug @ 115200 baud
+ * - MIDI DIN ports still available on other UARTs
  * 
  * @return 0 on success, negative on error
  */
@@ -251,23 +266,24 @@ void gdb_ptin_SPI_Pinout(const char* label,
 /**
  * @brief Update OLED mirror display (if enabled)
  * 
- * Call periodically (e.g. every 100ms) to refresh OLED with mirrored debug output.
+ * Call periodically (e.g. every 100ms) to refresh OLED with debug output.
  * 
- * When MODULE_ENABLE_OLED is active:
- * - OLED mirroring is automatically enabled by test_debug_init()
- * - All dbg_print() and dbg_printf() output is captured
- * - Call this function periodically to refresh the OLED screen
- * 
- * Example usage in test loop:
+ * **Test Mode with OLED (recommended pattern):**
  * @code
- *   test_debug_init();  // Auto-enables OLED mirror
+ *   test_debug_init();  // Auto-enables OLED as primary debug output
  *   
  *   while (1) {
  *     dbg_printf("Value: %d\n", sensor_value);
  *     osDelay(100);
- *     dbg_mirror_update();  // Refresh OLED every 100ms
+ *     dbg_mirror_update();  // Refresh OLED every 100ms - REQUIRED!
  *   }
  * @endcode
+ * 
+ * When MODULE_ENABLE_OLED is active:
+ * - OLED mirroring is automatically enabled by test_debug_init()
+ * - All dbg_print() and dbg_printf() output is captured
+ * - NO UART debug output (all 4 MIDI ports available for MIDI)
+ * - THIS FUNCTION MUST BE CALLED to see output on OLED
  */
 void dbg_mirror_update(void);
 

@@ -23,12 +23,14 @@ extern UART_HandleTypeDef huart5;
 
 static UART_HandleTypeDef* get_debug_uart_handle(void)
 {
+  // Map TEST_DEBUG_UART_PORT to actual UART handles
+  // Port 0 = USART2, Port 1 = USART3, Port 2 = USART1, Port 3 = UART5
   switch (TEST_DEBUG_UART_PORT) {
-    case 0: return &huart1;
-    case 1: return &huart2;
-    case 2: return &huart3;
-    case 3: return &huart5;
-    default: return &huart2; // Default to UART2
+    case 0: return &huart2;  // USART2 PA2/PA3
+    case 1: return &huart3;  // USART3 PD8/PD9
+    case 2: return &huart1;  // USART1 PA9/PA10
+    case 3: return &huart5;  // UART5  PC12/PD2
+    default: return &huart3; // Default to USART3
   }
 }
 
@@ -38,9 +40,24 @@ static UART_HandleTypeDef* get_debug_uart_handle(void)
 
 int test_debug_init(void)
 {
-  // UART is already initialized in main.c by CubeMX
-  // Just verify the handle is ready
+  // UART handles are initialized in main.c by CubeMX
+  // We need to reconfigure the debug UART to 115200 baud
+  // (CubeMX initializes all UARTs to 31250 for MIDI by default)
+  
   UART_HandleTypeDef* huart = get_debug_uart_handle();
+  
+  // Reconfigure debug UART to 115200 baud (from default 31250 MIDI baud)
+  if (huart->Init.BaudRate != TEST_DEBUG_UART_BAUD) {
+    HAL_UART_DeInit(huart);
+    huart->Init.BaudRate = TEST_DEBUG_UART_BAUD;  // 115200 for debug
+    huart->Init.WordLength = UART_WORDLENGTH_8B;
+    huart->Init.StopBits = UART_STOPBITS_1;
+    huart->Init.Parity = UART_PARITY_NONE;
+    huart->Init.Mode = UART_MODE_TX_RX;
+    huart->Init.HwFlowCtl = UART_HWCONTROL_NONE;
+    huart->Init.OverSampling = UART_OVERSAMPLING_16;
+    HAL_UART_Init(huart);
+  }
   
 #if MODULE_ENABLE_OLED && MODULE_ENABLE_UI
   // Automatically initialize and enable OLED debug mirroring when OLED is active
@@ -48,10 +65,7 @@ int test_debug_init(void)
   oled_mirror_set_enabled(1);
 #endif
   
-  if (huart->gState == HAL_UART_STATE_READY) {
-    return 0; // Success
-  }
-  return 0; // Return success anyway - UART might be in other states but still usable
+  return 0; // Success
 }
 
 // =============================================================================
@@ -60,24 +74,35 @@ int test_debug_init(void)
 
 void dbg_putc(char c)
 {
+#if !(MODULE_ENABLE_OLED && MODULE_ENABLE_UI)
+  // Only use UART debug when OLED is not available
   UART_HandleTypeDef* huart = get_debug_uart_handle();
   HAL_UART_Transmit(huart, (uint8_t*)&c, 1, 100);
+#endif
+  
+  // Always mirror to OLED if enabled (primary debug output in test mode)
+  if (oled_mirror_is_enabled()) {
+    char str[2] = {c, '\0'};
+    oled_mirror_print(str);
+  }
 }
 
 void dbg_print(const char* str)
 {
   if (!str) return;
   
-  UART_HandleTypeDef* huart = get_debug_uart_handle();
-  // Send entire string at once for better performance
   size_t len = strlen(str);
-  if (len > 0) {
-    HAL_UART_Transmit(huart, (const uint8_t*)str, len, 1000);
-    
-    // Mirror to OLED if enabled
-    if (oled_mirror_is_enabled()) {
-      oled_mirror_print(str);
-    }
+  if (len == 0) return;
+  
+#if !(MODULE_ENABLE_OLED && MODULE_ENABLE_UI)
+  // Only use UART debug when OLED is not available
+  UART_HandleTypeDef* huart = get_debug_uart_handle();
+  HAL_UART_Transmit(huart, (const uint8_t*)str, len, 1000);
+#endif
+  
+  // Always mirror to OLED if enabled (primary debug output in test mode)
+  if (oled_mirror_is_enabled()) {
+    oled_mirror_print(str);
   }
 }
 
