@@ -87,6 +87,7 @@ static const char* spi_instance_name(SPI_HandleTypeDef* hspi)
 
 static void dbg_print_srio_pinout(void)
 {
+#ifdef SRIO_ENABLE
   dbg_print("SRIO Pinout:\r\n");
   dbg_printf("  SPI Instance: %s\r\n", spi_instance_name(SRIO_SPI_HANDLE));
 #ifdef MIOS_SPI1_SCK_GPIO_Port
@@ -100,6 +101,9 @@ static void dbg_print_srio_pinout(void)
 #endif
   dbg_print_gpio_pin("DIN /PL (RC2)", SRIO_DIN_PL_PORT, SRIO_DIN_PL_PIN);
   dbg_print_gpio_pin("DOUT RCLK (RC1)", SRIO_DOUT_RCLK_PORT, SRIO_DOUT_RCLK_PIN);
+#else
+  dbg_print("SRIO Pinout: (SRIO_ENABLE not defined)\r\n");
+#endif
 }
 #endif
 
