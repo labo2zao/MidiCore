@@ -12,10 +12,11 @@
 #include <stdarg.h>
 
 // External UART handles from main.c
-extern UART_HandleTypeDef huart1;
-extern UART_HandleTypeDef huart2;
-extern UART_HandleTypeDef huart3;
-extern UART_HandleTypeDef huart5;
+extern UART_HandleTypeDef huart1; // USART1 - Used for debug (PA9/PA10)
+extern UART_HandleTypeDef huart2; // USART2 - MIDI DIN1 (PA2/PA3)
+extern UART_HandleTypeDef huart3; // USART3 - MIDI DIN2 (PD8/PD9)
+extern UART_HandleTypeDef huart5; // UART5  - MIDI DIN4 (PC12/PD2)
+extern UART_HandleTypeDef huart6; // USART6 - MIDI DIN3 (PC6/PC7)
 
 // =============================================================================
 // UART HANDLE SELECTION
@@ -24,13 +25,15 @@ extern UART_HandleTypeDef huart5;
 static UART_HandleTypeDef* get_debug_uart_handle(void)
 {
   // Map TEST_DEBUG_UART_PORT to actual UART handles
-  // Port 0 = USART2, Port 1 = USART3, Port 2 = USART1, Port 3 = UART5
+  // MIDI DIN ports (0-3): USART2, USART3, USART6, UART5
+  // Debug port (4): USART1 (not used by MIDI DIN)
   switch (TEST_DEBUG_UART_PORT) {
-    case 0: return &huart2;  // USART2 PA2/PA3
-    case 1: return &huart3;  // USART3 PD8/PD9
-    case 2: return &huart1;  // USART1 PA9/PA10
-    case 3: return &huart5;  // UART5  PC12/PD2
-    default: return &huart3; // Default to USART3
+    case 0: return &huart2;  // USART2 PA2/PA3   [MIDI DIN1 - MIOS32 UART1]
+    case 1: return &huart3;  // USART3 PD8/PD9   [MIDI DIN2 - MIOS32 UART2]
+    case 2: return &huart6;  // USART6 PC6/PC7   [MIDI DIN3 - MIOS32 UART3] 
+    case 3: return &huart5;  // UART5  PC12/PD2  [MIDI DIN4 - MIOS32 UART4]
+    case 4: return &huart1;  // USART1 PA9/PA10  [Debug - not used by MIDI DIN]
+    default: return &huart1; // Default to USART1 for debug
   }
 }
 

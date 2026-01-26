@@ -5,8 +5,8 @@
  * This module provides debug print functions compatible with MIOS32 hardware.
  * 
  * **Test Mode Debug Configuration:**
- * - Debug UART: USART3 (PD8/PD9) @ 115200 baud (default TEST_DEBUG_UART_PORT=1)
- * - All other UARTs available for MIDI @ 31250 baud
+ * - Debug UART: USART1 (PA9/PA10) @ 115200 baud (default TEST_DEBUG_UART_PORT=2)
+ * - All 4 MIDI DIN ports available for MIDI @ 31250 baud
  * - Baud rate automatically configured by test_debug_init()
  * 
  * **OLED Debug Mode (when MODULE_ENABLE_OLED active):**
@@ -15,10 +15,10 @@
  * - Call dbg_mirror_update() periodically to refresh OLED
  * 
  * **Production Mode - All 4 MIDI DIN ports @ 31250 baud:**
- * - Port 0 (DIN1): USART2 PA2=TX,  PA3=RX  @ 31250 baud
- * - Port 1 (DIN2): USART1 PA9=TX,  PA10=RX @ 31250 baud
- * - Port 2 (DIN3): USART3 PD8=TX,  PD9=RX  @ 31250 baud
- * - Port 3 (DIN4): UART5  PC12=TX, PD2=RX  @ 31250 baud
+ * - Port 0 (DIN1): USART2 PA2=TX,  PA3=RX   @ 31250 baud [MIOS32 UART1]
+ * - Port 1 (DIN2): USART3 PD8=TX,  PD9=RX   @ 31250 baud [MIOS32 UART2]
+ * - Port 2 (DIN3): USART6 PC6=TX,  PC7=RX   @ 31250 baud [MIOS32 UART3]
+ * - Port 3 (DIN4): UART5  PC12=TX, PD2=RX   @ 31250 baud [MIOS32 UART4]
  */
 
 #ifndef TEST_DEBUG_H
@@ -39,22 +39,24 @@ extern "C" {
 /**
  * @brief UART port used for debug output (dbg_print)
  * 
- * MIOS32 UART Mapping:
- * 0 = USART2 - PA2/PA3   - MIDI DIN1 (production) or Debug (if selected)
- * 1 = USART3 - PD8/PD9   - MIDI DIN2 (production) or Debug (recommended for test mode)
- * 2 = USART1 - PA9/PA10  - MIDI DIN3 (production) or Debug (if selected)
- * 3 = UART5  - PC12/PD2  - MIDI DIN4
+ * MIOS32 UART Mapping (MIDI DIN ports - do NOT use for debug):
+ * 0 = USART2 - PA2/PA3   - MIDI DIN1 [MIOS32 UART1]
+ * 1 = USART3 - PD8/PD9   - MIDI DIN2 [MIOS32 UART2]
+ * 2 = USART6 - PC6/PC7   - MIDI DIN3 [MIOS32 UART3]
+ * 3 = UART5  - PC12/PD2  - MIDI DIN4 [MIOS32 UART4]
  * 
- * **Test Mode Default: Port 1 (USART3/PD8-PD9) @ 115200 baud**
- * This frees all other UARTs for MIDI @ 31250 baud
+ * Available for Debug (not used by MIDI DIN):
+ * 4 = USART1 - PA9/PA10  - **Recommended for test mode debug**
+ * 
+ * **Test Mode Default: Port 4 (USART1/PA9-PA10) @ 115200 baud**
+ * This leaves all 4 MIDI DIN ports available @ 31250 baud
  * 
  * When a UART is configured as TEST_DEBUG_UART_PORT:
  * - It runs at 115200 baud for debug output
- * - It's NOT available for MIDI DIN
- * All other UARTs run at 31250 baud for MIDI
+ * - All MIDI DIN ports run at 31250 baud for MIDI
  */
 #ifndef TEST_DEBUG_UART_PORT
-#define TEST_DEBUG_UART_PORT 1  // USART3 (PD8/PD9)
+#define TEST_DEBUG_UART_PORT 4  // USART1 (PA9/PA10) - Not used by MIDI DIN
 #endif
 
 /**
