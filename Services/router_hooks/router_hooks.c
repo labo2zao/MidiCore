@@ -62,8 +62,8 @@ void router_tap_hook(uint8_t in_node, const router_msg_t* msg) {
     if (msg->data && msg->len > 0) {
       ui_sysex_capture(msg->data, msg->len);
       
-      // Capture full SysEx in MIDI monitor service
-      midi_monitor_capture_sysex(in_node, msg->data, msg->len, g_timestamp_ms);
+      // Capture full SysEx in MIDI monitor service (before routing decision)
+      midi_monitor_capture_sysex(in_node, msg->data, msg->len, g_timestamp_ms, 0);
       
       // Also show in UI MIDI Monitor page (first few bytes for backward compat)
       uint8_t preview[3] = {0xF0, 0, 0};
@@ -72,7 +72,7 @@ void router_tap_hook(uint8_t in_node, const router_msg_t* msg) {
         preview[1] = msg->data[1];
         preview[2] = (msg->len >= 3) ? msg->data[2] : 0;
       }
-      ui_midi_monitor_capture(in_node, preview, preview_len, g_timestamp_ms);
+      ui_midi_monitor_capture(in_node, preview, preview_len, g_timestamp_ms, 0);
     }
   } else {
     // Standard MIDI message
@@ -82,9 +82,11 @@ void router_tap_hook(uint8_t in_node, const router_msg_t* msg) {
     data[1] = msg->b1;
     data[2] = msg->b2;
     
-    // Capture in both MIDI monitor service and UI page
-    midi_monitor_capture_short(in_node, data, len, g_timestamp_ms);
-    ui_midi_monitor_capture(in_node, data, len, g_timestamp_ms);
+    // Capture in MIDI monitor service (before routing decision)
+    midi_monitor_capture_short(in_node, data, len, g_timestamp_ms, 0);
+    
+    // Also forward to UI page MIDI monitor
+    ui_midi_monitor_capture(in_node, data, len, g_timestamp_ms, 0);
   }
 }
 

@@ -3,11 +3,31 @@
  * @brief MIDI Monitor Service Implementation
  * 
  * Inspired by MIOS32 MIDI Monitor functionality.
+ * Includes built-in OLED mirroring support for production and test modes.
  */
 
 #include "midi_monitor.h"
 #include "Services/router/router.h"
 #include "App/tests/test_debug.h"
+#include "Config/module_config.h"
+
+// OLED mirroring support
+#if MODULE_ENABLE_OLED && MODULE_ENABLE_UI
+  #if defined(MODULE_TEST_MODE) || defined(MODULE_TEST_MIDI_DIN) || defined(MODULE_TEST_ROUTER)
+    // Test mode: Use test OLED mirror
+    #include "App/tests/test_oled_mirror.h"
+    #define MIDI_MON_HAS_OLED_MIRROR 1
+    #define MIDI_MON_USE_TEST_MIRROR 1
+  #else
+    // Production mode: Mirror to UI pages via label system
+    // TODO: Implement UI label mirroring when UI label system is ready
+    #define MIDI_MON_HAS_OLED_MIRROR 0
+    #define MIDI_MON_USE_TEST_MIRROR 0
+  #endif
+#else
+  #define MIDI_MON_HAS_OLED_MIRROR 0
+  #define MIDI_MON_USE_TEST_MIRROR 0
+#endif
 
 #include <stdio.h>
 #include <string.h>
@@ -23,6 +43,11 @@ static volatile uint8_t buffer_full = 0;
 
 static midi_monitor_stats_t stats;
 static midi_monitor_config_t config;
+
+#if MIDI_MON_HAS_OLED_MIRROR
+static uint8_t oled_mirror_enabled = 0;
+static uint8_t oled_mirror_initialized = 0;
+#endif
 
 // Ensure buffer size is power of 2 for efficient wrapping
 _Static_assert((MIDI_MONITOR_BUFFER_SIZE & (MIDI_MONITOR_BUFFER_SIZE - 1)) == 0,
@@ -109,6 +134,23 @@ static void print_to_uart(uint8_t node, const uint8_t* data, uint8_t len, uint32
     dbg_printf("... (%u bytes)", len);
   }
   dbg_printf("\r\n");
+
+#if MIDI_MON_HAS_OLED_MIRROR
+  // Mirror to OLED if enabled
+  if (oled_mirror_enabled && oled_mirror_initialized) {
+#if MIDI_MON_USE_TEST_MIRROR
+    // Test mode: Use test_oled_mirror
+    char oled_line[128];
+    snprintf(oled_line, sizeof(oled_line), "[%lu] %s >> %s %s", 
+             timestamp_ms, node_name, msg_decode, route_flag);
+    oled_mirror_print(oled_line);
+#else
+    // Production mode: Mirror to UI label system
+    // TODO: Call UI label update function when implemented
+    // ui_label_set_text("midi_monitor", oled_line);
+#endif
+  }
+#endif
 }
 
 // ============================================================================
@@ -132,6 +174,20 @@ void midi_monitor_init(void)
   config.show_sysex = 1;
   config.show_realtime = 1;
   config.uart_output = MIDI_MONITOR_ENABLE_UART_OUTPUT;
+
+#if MIDI_MON_HAS_OLED_MIRROR
+  // Auto-initialize and enable OLED mirroring when OLED is active
+#if MIDI_MON_USE_TEST_MIRROR
+  oled_mirror_init();
+  oled_mirror_set_enabled(1);
+  oled_mirror_initialized = 1;
+  oled_mirror_enabled = 1;
+#else
+  // Production mode: OLED mirror controlled by UI
+  oled_mirror_initialized = 1;
+  oled_mirror_enabled = 1;  // Can be controlled via midi_monitor_set_oled_output()
+#endif
+#endif
 }
 
 void midi_monitor_capture_short(uint8_t node, const uint8_t* data, uint8_t len, uint32_t timestamp_ms, uint8_t is_routed)
@@ -288,6 +344,44 @@ void midi_monitor_set_uart_output(uint8_t enabled)
 {
   config.uart_output = enabled ? 1 : 0;
 }
+
+#if MIDI_MON_HAS_OLED_MIRROR
+/**
+ * @brief Enable/disable OLED mirroring
+ * @param enabled 1 = enabled, 0 = disabled
+ */
+void midi_monitor_set_oled_output(uint8_t enabled)
+{
+  oled_mirror_enabled = enabled ? 1 : 0;
+}
+
+/**
+ * @brief Check if OLED mirroring is enabled
+ * @return 1 if enabled, 0 if disabled
+ */
+uint8_t midi_monitor_get_oled_output(void)
+{
+  return oled_mirror_enabled;
+}
+
+/**
+ * @brief Update OLED display (call periodically in production mode)
+ * In test mode, this is handled automatically by test_oled_mirror
+ * In production mode, call this every 100ms or so to refresh UI
+ */
+void midi_monitor_update_oled(void)
+{
+#if MIDI_MON_USE_TEST_MIRROR
+  if (oled_mirror_enabled && oled_mirror_initialized) {
+    oled_mirror_update();
+  }
+#else
+  // Production mode: Trigger UI label refresh
+  // TODO: Call UI update function when implemented
+  // ui_label_update("midi_monitor");
+#endif
+}
+#endif
 
 int midi_monitor_decode_message(const uint8_t* data, uint8_t len, char* out, size_t out_size)
 {

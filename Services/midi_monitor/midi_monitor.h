@@ -183,6 +183,29 @@ void midi_monitor_set_enabled(uint8_t enabled);
 void midi_monitor_set_uart_output(uint8_t enabled);
 
 /**
+ * @brief Enable/disable OLED mirroring (if OLED module is active)
+ * @param enabled 1 = enabled, 0 = disabled
+ * @note In test mode, uses test_oled_mirror. In production mode, uses UI labels.
+ * @note Only available when MODULE_ENABLE_OLED && MODULE_ENABLE_UI
+ */
+void midi_monitor_set_oled_output(uint8_t enabled);
+
+/**
+ * @brief Check if OLED mirroring is enabled
+ * @return 1 if enabled, 0 if disabled
+ * @note Only available when MODULE_ENABLE_OLED && MODULE_ENABLE_UI
+ */
+uint8_t midi_monitor_get_oled_output(void);
+
+/**
+ * @brief Update OLED display (call periodically in production mode)
+ * @note In test mode, this is handled automatically
+ * @note In production mode, call every 100ms or so to refresh UI
+ * @note Only available when MODULE_ENABLE_OLED && MODULE_ENABLE_UI
+ */
+void midi_monitor_update_oled(void);
+
+/**
  * @brief Decode MIDI message to human-readable string
  * @param data MIDI message bytes
  * @param len Message length
