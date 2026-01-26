@@ -180,7 +180,7 @@ static int sd_write_datablock(const BYTE *buff, BYTE token)
  */
 DSTATUS sd_spi_initialize(void)
 {
-  uint8_t cmd, n, ocr[4];
+  uint8_t cmd, n, ocr[4], ty;
   uint16_t tmr;
   
   // Initialize SPI bus for SD card (if not already done - safe to call multiple times)
@@ -424,7 +424,7 @@ DRESULT sd_spi_ioctl(BYTE cmd, void *buff)
       if (sd_send_cmd(SD_CMD9, 0) == 0 && sd_read_datablock(csd, 16)) {
         if ((csd[0] >> 6) == 1) {
           // CSD v2.0 (SDHC)
-          cs = ((DWORD)(csd[9] & 0x3F) << 16) | ((DWORD)csd[10] << 8) | csd[11] + 1;
+          cs = ((DWORD)(csd[9] & 0x3F) << 16) | ((DWORD)csd[10] << 8) | (csd[11] + 1);
           *(DWORD*)buff = cs << 10;
         } else {
           // CSD v1.0 (SD)
