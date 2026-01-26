@@ -316,7 +316,15 @@ DSTATUS sd_spi_initialize(void)
       spi_transfer_byte(0xFF);
     }
     
-    // Verify card is still responding after speed switch
+    // Release bus briefly to deselect card (CS HIGH)
+    spibus_end(SPIBUS_DEV_SD);
+    
+    // Small delay to let card stabilize after speed switch
+    osDelay(10);
+    
+    // Reselect card and verify it's still responding
+    spibus_begin(SPIBUS_DEV_SD);
+    
     // Send CMD13 (SEND_STATUS) to check if card is ready
     if (sd_send_cmd(SD_CMD13, 0) == 0) {
       sd_status = 0;  // Clear STA_NOINIT flag - card is ready
