@@ -295,7 +295,6 @@ DSTATUS sd_spi_initialize(void)
   sd_card_type = ty;
   
   if (sd_card_type != SD_TYPE_UNKNOWN) {
-    sd_status = 0;  // Clear STA_NOINIT flag
     // Switch to fast SPI speed for data operations (42 MHz)
     spibus_set_sd_speed_fast();
     
@@ -304,6 +303,17 @@ DSTATUS sd_spi_initialize(void)
     spibus_begin(SPIBUS_DEV_SD);
     for (n = 0; n < 10; n++) {
       spi_transfer_byte(0xFF);
+    }
+    spibus_end(SPIBUS_DEV_SD);
+    
+    // Verify card is still responding after speed switch
+    // Send CMD13 (SEND_STATUS) to check if card is ready
+    spibus_begin(SPIBUS_DEV_SD);
+    if (sd_send_cmd(SD_CMD13, 0) == 0) {
+      sd_status = 0;  // Clear STA_NOINIT flag - card is ready
+    } else {
+      sd_status = STA_NOINIT;  // Card not responding after speed switch
+      sd_card_type = SD_TYPE_UNKNOWN;
     }
     spibus_end(SPIBUS_DEV_SD);
   } else {
