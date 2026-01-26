@@ -5,6 +5,7 @@
 
 #include "App/tests/test_debug.h"
 #include "App/tests/test_oled_mirror.h"
+#include "Config/module_config.h"
 #include "main.h"
 #include <string.h>
 #include <stdio.h>
@@ -40,6 +41,13 @@ int test_debug_init(void)
   // UART is already initialized in main.c by CubeMX
   // Just verify the handle is ready
   UART_HandleTypeDef* huart = get_debug_uart_handle();
+  
+#if MODULE_ENABLE_OLED && MODULE_ENABLE_UI
+  // Automatically initialize and enable OLED debug mirroring when OLED is active
+  oled_mirror_init();
+  oled_mirror_set_enabled(1);
+#endif
+  
   if (huart->gState == HAL_UART_STATE_READY) {
     return 0; // Success
   }
@@ -387,9 +395,20 @@ void gdb_ptin_SPI_Pinout(const char* label,
 // OLED MIRROR SUPPORT
 // =============================================================================
 
+/**
+ * @brief Update OLED mirror display
+ * 
+ * Call this periodically (e.g. every 100ms) to refresh the OLED screen
+ * with mirrored debug output.
+ * 
+ * Note: OLED mirroring is automatically enabled when MODULE_ENABLE_OLED
+ * is active and test_debug_init() is called.
+ */
 void dbg_mirror_update(void)
 {
+#if MODULE_ENABLE_OLED && MODULE_ENABLE_UI
   if (oled_mirror_is_enabled()) {
     oled_mirror_update();
   }
+#endif
 }

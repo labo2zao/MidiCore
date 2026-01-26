@@ -81,7 +81,16 @@ extern "C" {
 
 /**
  * @brief Initialize debug UART
- * Call this before using dbg_print functions
+ * 
+ * Call this before using dbg_print functions.
+ * 
+ * When MODULE_ENABLE_OLED is active, this function automatically:
+ * - Initializes OLED debug mirroring
+ * - Enables OLED mirroring so GDB debug output appears on OLED screen
+ * - All dbg_print() and dbg_printf() calls will be mirrored to OLED
+ * 
+ * To see output on OLED, call dbg_mirror_update() periodically (e.g. every 100ms).
+ * 
  * @return 0 on success, negative on error
  */
 int test_debug_init(void);
@@ -241,7 +250,24 @@ void gdb_ptin_SPI_Pinout(const char* label,
 
 /**
  * @brief Update OLED mirror display (if enabled)
- * Call periodically to refresh OLED with mirrored debug output
+ * 
+ * Call periodically (e.g. every 100ms) to refresh OLED with mirrored debug output.
+ * 
+ * When MODULE_ENABLE_OLED is active:
+ * - OLED mirroring is automatically enabled by test_debug_init()
+ * - All dbg_print() and dbg_printf() output is captured
+ * - Call this function periodically to refresh the OLED screen
+ * 
+ * Example usage in test loop:
+ * @code
+ *   test_debug_init();  // Auto-enables OLED mirror
+ *   
+ *   while (1) {
+ *     dbg_printf("Value: %d\n", sensor_value);
+ *     osDelay(100);
+ *     dbg_mirror_update();  // Refresh OLED every 100ms
+ *   }
+ * @endcode
  */
 void dbg_mirror_update(void);
 
