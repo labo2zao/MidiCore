@@ -101,15 +101,19 @@ static void start_rx_it(int port)
 
 HAL_StatusTypeDef hal_uart_midi_init(void)
 {
-  // Map MIDI ports to UART handles
-  // Port 0 (DIN1) uses MIDI_DIN_PRIMARY_UART_PORT index (default: 0 = USART1/PA9-PA10)
-  s_midi_uarts[0] = midi_uart_from_index(MIDI_DIN_PRIMARY_UART_PORT);
-  s_midi_uarts[1] = midi_uart_from_index(1); // Port 1 -> USART3/PD8-PD9
-  s_midi_uarts[2] = midi_uart_from_index(2); // Port 2 -> UART5/PC12-PD2
-  s_midi_uarts[3] = midi_uart_from_index(3); // Port 3 -> Not configured
+  // Map MIDI ports directly to UART handles (MIOS32 port mapping - NEVER changes)
+  // Port 0 (DIN1) = USART2 PA2/PA3   [MIOS32 UART1]
+  // Port 1 (DIN2) = USART3 PD8/PD9   [MIOS32 UART2]
+  // Port 2 (DIN3) = USART1 PA9/PA10  [MIOS32 UART3]
+  // Port 3 (DIN4) = UART5  PC12/PD2  [MIOS32 UART4]
+  s_midi_uarts[0] = midi_uart_from_index(0); // Port 0 -> USART2 (DIN1)
+  s_midi_uarts[1] = midi_uart_from_index(1); // Port 1 -> USART3 (DIN2)
+  s_midi_uarts[2] = midi_uart_from_index(2); // Port 2 -> USART1 (DIN3)
+  s_midi_uarts[3] = midi_uart_from_index(3); // Port 3 -> UART5 (DIN4)
 
   memset(s_rx, 0, sizeof(s_rx));
 
+  // Start interrupt-driven RX for all ports
   for (int p = 0; p < MIDI_DIN_PORTS; ++p) {
     start_rx_it(p);
   }

@@ -11,6 +11,10 @@
 #include <stdio.h>
 #include <stdarg.h>
 
+#if MODULE_ENABLE_OLED
+#include "Hal/oled_ssd1322/oled_ssd1322.h"  // For oled_init_newhaven()
+#endif
+
 // External UART handles from main.c
 extern UART_HandleTypeDef huart1; // USART1 - MIDI DIN3 (PA9/PA10) or Debug in test mode
 extern UART_HandleTypeDef huart2; // USART2 - MIDI DIN1 (PA2/PA3)
@@ -63,17 +67,20 @@ int test_debug_init(void)
 #if MODULE_ENABLE_OLED
   // Always initialize OLED for debug mirroring (enabled by default)
   // This provides visual feedback even if UART debug is not connected
-  extern void oled_init_newhaven(void);  // Production-grade Newhaven init
   
-  // Initialize OLED hardware (production-grade NHD-3.12-25664 init)
+  dbg_print("Initializing OLED hardware (NHD-3.12-25664)...\r\n");
+  
+  // Initialize OLED hardware (production-grade Newhaven NHD-3.12-25664 init)
   oled_init_newhaven();
+  
+  dbg_print("OLED hardware initialized, enabling debug mirroring...\r\n");
   
   // Initialize OLED mirroring subsystem for debug output
   oled_mirror_init();
   oled_mirror_set_enabled(1);  // Enable by default for better user experience
   
   // Verify OLED is operational by outputting a test message
-  dbg_print("OLED debug mirroring initialized\r\n");
+  dbg_print("OLED debug mirroring enabled and ready\r\n");
 #else
   // OLED not compiled in - debug output only via UART
   dbg_print("OLED disabled (MODULE_ENABLE_OLED=0), using UART debug only\r\n");
