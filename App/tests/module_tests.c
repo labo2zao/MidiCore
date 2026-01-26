@@ -5807,6 +5807,12 @@ int module_test_patch_sd_run(void)
   int test_passed = 0;
   int test_failed = 0;
   
+  // Initialize SPI bus (if not already done)
+  dbg_print("Ensuring SPI bus is initialized...\r\n");
+  spibus_init();
+  dbg_print("SPI bus ready\r\n\r\n");
+  osDelay(100);
+  
   // ========================================
   // TEST 1: SD Card Mount/Unmount
   // ========================================
