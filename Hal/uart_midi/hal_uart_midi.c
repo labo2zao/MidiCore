@@ -14,22 +14,23 @@
 // ---- Port mapping -----------------------------------------------------------
 // IMPORTANT:
 // MIOS32 Hardware Configuration (MIDIbox STM32F4):
-//   MIDI IN1:  PA3 (USART2 RX)
-//   MIDI OUT1: PA2 (USART2 TX)
-//   MIDI IN2:  PD9 (USART3 RX)
-//   MIDI OUT2: PD8 (USART3 TX)
-//   MIDI IN3:  PB7
-//   MIDI OUT3: PC6
-//   MIDI IN4:  PB2
-//   MIDI OUT4: PC12 (UART5 TX)
+//   Debug UART: PA2/PA3 (USART2) @ 115200 baud in test mode
 //
-// USART1 (PA9/PA10) is used for GDB/debug output @ 115200 baud in test mode.
-// In production mode, USART2 operates at 31250 baud for MIDI.
+//   MIDI IN1:  PA9  (USART1 RX)
+//   MIDI OUT1: PA10 (USART1 TX)
+//   MIDI IN2:  PD9  (USART3 RX)
+//   MIDI OUT2: PD8  (USART3 TX)
+//   MIDI IN3:  PD2  (UART5 RX)
+//   MIDI OUT3: PC12 (UART5 TX)
+//   MIDI IN4:  PB7
+//   MIDI OUT4: PC6
 //
 // Port Mapping:
-//   Port 0 (DIN1, primary) -> USART2 (huart2) PA2=TX, PA3=RX  [MIDI OUT1/IN1]
-//   Port 1 (DIN2)          -> USART3 (huart3) PD8=TX, PD9=RX  [MIDI OUT2/IN2]
-//   Port 2 (DIN3)          -> UART5  (huart5) PC12=TX, PD2=RX [MIDI OUT3/IN3]
+//   Port 0 (DIN1, primary) -> USART1 (huart1) PA10=TX, PA9=RX   [MIDI OUT1/IN1]
+//   Port 1 (DIN2)          -> USART3 (huart3) PD8=TX,  PD9=RX   [MIDI OUT2/IN2]
+//   Port 2 (DIN3)          -> UART5  (huart5) PC12=TX, PD2=RX   [MIDI OUT3/IN3]
+//
+// Note: USART2 (PA2/PA3) is used for debug output @ 115200 in test mode
 
 #ifndef MIDI_DIN_PORTS
 #define MIDI_DIN_PORTS 4
@@ -44,16 +45,16 @@ extern UART_HandleTypeDef huart5; // UART5
 #ifdef TEST_MIDI_DIN_UART_PORT
 #define MIDI_DIN_PRIMARY_UART_PORT TEST_MIDI_DIN_UART_PORT
 #else
-#define MIDI_DIN_PRIMARY_UART_PORT 0  // Default to Port 0 (USART2/PA2-PA3)
+#define MIDI_DIN_PRIMARY_UART_PORT 0  // Default to Port 0 (USART1/PA9-PA10)
 #endif
 #endif
 
 static UART_HandleTypeDef* midi_uart_from_index(uint8_t idx)
 {
   switch (idx) {
-    case 0: return &huart2;   // USART2: PA2=TX, PA3=RX (MIDI Port 0 - MIOS32 DIN1)
-    case 1: return &huart3;   // USART3: PD8=TX, PD9=RX (MIDI Port 1 - MIOS32 DIN2)
-    case 2: return &huart5;   // UART5: PC12=TX, PD2=RX (MIDI Port 2 - MIOS32 DIN3)
+    case 0: return &huart1;   // USART1: PA10=TX, PA9=RX  (MIDI Port 0 - DIN1)
+    case 1: return &huart3;   // USART3: PD8=TX,  PD9=RX  (MIDI Port 1 - DIN2)
+    case 2: return &huart5;   // UART5:  PC12=TX, PD2=RX  (MIDI Port 2 - DIN3)
     case 3: return NULL;      // Port 3 not configured (DIN4 would need additional UART)
     default: return NULL;
   }
@@ -100,7 +101,7 @@ static void start_rx_it(int port)
 HAL_StatusTypeDef hal_uart_midi_init(void)
 {
   // Map MIDI ports to UART handles
-  // Port 0 (DIN1) uses MIDI_DIN_PRIMARY_UART_PORT index (default: 0 = USART2/PA2-PA3)
+  // Port 0 (DIN1) uses MIDI_DIN_PRIMARY_UART_PORT index (default: 0 = USART1/PA9-PA10)
   s_midi_uarts[0] = midi_uart_from_index(MIDI_DIN_PRIMARY_UART_PORT);
   s_midi_uarts[1] = midi_uart_from_index(1); // Port 1 -> USART3/PD8-PD9
   s_midi_uarts[2] = midi_uart_from_index(2); // Port 2 -> UART5/PC12-PD2
