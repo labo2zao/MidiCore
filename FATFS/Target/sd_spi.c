@@ -54,11 +54,12 @@ static uint8_t sd_wait_ready(uint32_t timeout_ms)
   uint8_t res;
   uint32_t start_tick = HAL_GetTick();
   
+  // MIOS32 pattern: Poll continuously without artificial delays
+  // The SPI transfer itself provides sufficient spacing between polls
+  // At 42MHz SPI, each spi_transfer_byte takes ~190ns which is adequate
   do {
     res = spi_transfer_byte(0xFF);
     if (res == 0xFF) return res;
-    // Use short busy wait instead of osDelay for better responsiveness
-    for (volatile uint32_t i = 0; i < 1000; i++);
   } while ((HAL_GetTick() - start_tick) < timeout_ms);
   
   return 0;  // Timeout
