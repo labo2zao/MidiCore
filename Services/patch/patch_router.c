@@ -102,8 +102,10 @@ static uint16_t parse_chmask_list(const char* s) {
       uint8_t a=0,b=0;
       trim(token); trim(dots+2);
       if (parse_u8(token,&a) && parse_u8(dots+2,&b)) {
-        if (a<1) a=1; if (a>16) a=16;
-        if (b<1) b=1; if (b>16) b=16;
+        if (a<1) a=1;
+        if (a>16) a=16;
+        if (b<1) b=1;
+        if (b>16) b=16;
         uint8_t lo=a<=b?a:b, hi=a<=b?b:a;
         for (uint8_t ch=lo; ch<=hi; ch++) mask |= (uint16_t)(1u<<(ch-1));
       }

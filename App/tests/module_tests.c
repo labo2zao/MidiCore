@@ -5920,6 +5920,15 @@ int module_test_patch_sd_run(void)
       dbg_print("[PASS] Loaded default config from firmware (RAM)\r\n");
       config_loaded = 1;
       test_passed++;
+      
+      // Save default config to SD card as "default.ngc"
+      dbg_print("       Saving default config to SD card...\r\n");
+      result = patch_save("0:/default.ngc");
+      if (result == 0) {
+        dbg_print("[PASS] Created default.ngc on SD card\r\n");
+      } else {
+        dbg_print("[WARN] Could not save default.ngc (SD write-protected?)\r\n");
+      }
     } else {
       dbg_print("[FAIL] Could not load default config\r\n");
       test_failed++;
