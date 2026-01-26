@@ -296,19 +296,18 @@ DSTATUS sd_spi_initialize(void)
   
   if (sd_card_type != SD_TYPE_UNKNOWN) {
     // Switch to fast SPI speed for data operations (42 MHz)
+    // IMPORTANT: Must acquire bus BEFORE changing speed to ensure safe reconfiguration
+    spibus_begin(SPIBUS_DEV_SD);
     spibus_set_sd_speed_fast();
     
     // CRITICAL: Send dummy clocks after speed switch
-    // Card needs time to adjust to new clock rate
-    spibus_begin(SPIBUS_DEV_SD);
+    // Card needs time to adjust to new clock rate (80 clock cycles per SD spec)
     for (n = 0; n < 10; n++) {
       spi_transfer_byte(0xFF);
     }
-    spibus_end(SPIBUS_DEV_SD);
     
     // Verify card is still responding after speed switch
     // Send CMD13 (SEND_STATUS) to check if card is ready
-    spibus_begin(SPIBUS_DEV_SD);
     if (sd_send_cmd(SD_CMD13, 0) == 0) {
       sd_status = 0;  // Clear STA_NOINIT flag - card is ready
     } else {
