@@ -1939,6 +1939,26 @@ void module_test_router_run(void)
   osDelay(100);
   
 #if MODULE_ENABLE_ROUTER
+  // Initialize MIDI Monitor for real-time message visibility
+  dbg_print("Initializing MIDI Monitor... ");
+  midi_monitor_init();
+  
+  // Configure to monitor ALL ports and ALL channels
+  midi_monitor_config_t mon_cfg;
+  midi_monitor_get_config(&mon_cfg);
+  mon_cfg.enabled = 1;
+  mon_cfg.filter_node = 0xFF;         // ALL nodes (not filtered by port)
+  mon_cfg.filter_channel = 0xFF;      // ALL channels (1-16)
+  mon_cfg.filter_msg_type = MIDI_MON_MSG_ALL;  // ALL message types
+  mon_cfg.show_sysex = 1;             // Include SysEx
+  mon_cfg.show_realtime = 1;          // Include Clock/Start/Stop
+  mon_cfg.uart_output = 1;            // Real-time UART output
+  midi_monitor_set_config(&mon_cfg);
+  dbg_print("OK\r\n");
+  dbg_print("  • Monitoring: ALL ports, ALL channels\r\n");
+  dbg_print("  • Output: Real-time UART messages with routing status\r\n");
+  dbg_print("\r\n");
+  
   dbg_print_test_header("MIDI Router Module Test - Comprehensive");
   
   dbg_print("This test validates the complete MIDI routing matrix:\r\n");
