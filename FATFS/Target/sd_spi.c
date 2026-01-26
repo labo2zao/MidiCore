@@ -298,6 +298,14 @@ DSTATUS sd_spi_initialize(void)
     sd_status = 0;  // Clear STA_NOINIT flag
     // Switch to fast SPI speed for data operations (42 MHz)
     spibus_set_sd_speed_fast();
+    
+    // CRITICAL: Send dummy clocks after speed switch
+    // Card needs time to adjust to new clock rate
+    spibus_begin(SPIBUS_DEV_SD);
+    for (n = 0; n < 10; n++) {
+      spi_transfer_byte(0xFF);
+    }
+    spibus_end(SPIBUS_DEV_SD);
   } else {
     sd_status = STA_NOINIT;
   }
