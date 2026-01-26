@@ -149,11 +149,6 @@ int main(void)
   MX_USART1_UART_Init();
   MX_USART2_UART_Init();
   MX_SPI2_Init();
-  
-  /* Initialize SPI bus abstraction layer before FatFs/SD card */
-  extern void spibus_init(void);
-  spibus_init();
-  
   MX_FATFS_Init();
   MX_ADC1_Init();
   MX_CAN1_Init();
@@ -176,6 +171,14 @@ int main(void)
   
   /* Init scheduler */
   osKernelInitialize();
+  
+  /* USER CODE BEGIN RTOS_MUTEX */
+  /* Initialize SPI bus abstraction layer AFTER FreeRTOS kernel init
+   * (requires osMutexNew which needs FreeRTOS running)
+   */
+  extern void spibus_init(void);
+  spibus_init();
+  /* USER CODE END RTOS_MUTEX */
 
   /* USER CODE BEGIN RTOS_MUTEX */
   /* add mutexes, ... */
