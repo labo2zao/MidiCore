@@ -99,15 +99,15 @@ static void print_to_uart(uint8_t node, const uint8_t* data, uint8_t len, uint32
   midi_monitor_decode_message(data, len, msg_decode, sizeof(msg_decode));
 
   // Format: [timestamp] NODE >> Message | Raw bytes
-  log_printf("[%lu] %s >> %s | ", timestamp_ms, node_name, msg_decode);
+  log_printf("MIDI", "[%lu] %s >> %s | ", timestamp_ms, node_name, msg_decode);
   
   for (uint8_t i = 0; i < len && i < 16; i++) {
-    log_printf("%02X ", data[i]);
+    log_printf("MIDI", "%02X ", data[i]);
   }
   if (len > 16) {
-    log_printf("... (%u bytes)", len);
+    log_printf("MIDI", "... (%u bytes)", len);
   }
-  log_printf("\r\n");
+  log_printf("MIDI", "\r\n");
 }
 
 // ============================================================================
