@@ -5836,6 +5836,53 @@ int module_test_patch_sd_run(void)
   osDelay(200);
   
   // ========================================
+  // TEST 1B: SD Card Directory Listing
+  // ========================================
+  dbg_print("TEST 1B: SD Card Directory Listing\r\n");
+  dbg_print("--------------------------------------\r\n");
+  
+  DIR dir;
+  FILINFO fno;
+  FRESULT fr = f_opendir(&dir, "0:/");
+  
+  if (fr == FR_OK) {
+    dbg_print("Root directory contents:\r\n");
+    int file_count = 0;
+    int dir_count = 0;
+    
+    while (1) {
+      fr = f_readdir(&dir, &fno);
+      if (fr != FR_OK || fno.fname[0] == 0) break;  // End of directory
+      
+      if (fno.fattrib & AM_DIR) {
+        // Directory
+        dbg_printf("  [DIR]  %s\r\n", fno.fname);
+        dir_count++;
+      } else {
+        // File - show name and size
+        dbg_printf("  [FILE] %-20s %8lu bytes\r\n", fno.fname, (unsigned long)fno.fsize);
+        file_count++;
+      }
+    }
+    f_closedir(&dir);
+    
+    dbg_printf("\r\nTotal: %d files, %d directories\r\n", file_count, dir_count);
+    
+    if (file_count == 0 && dir_count == 0) {
+      dbg_print("[INFO] SD card is empty\r\n");
+    } else {
+      dbg_print("[PASS] Directory listing complete\r\n");
+      test_passed++;
+    }
+  } else {
+    dbg_printf("[FAIL] Could not open root directory (FR=%d)\r\n", fr);
+    test_failed++;
+  }
+  
+  dbg_print("\r\n");
+  osDelay(200);
+  
+  // ========================================
   // TEST 2: SD Card Configuration Load
   // ========================================
   dbg_print("TEST 2: Config File Loading\r\n");
