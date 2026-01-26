@@ -5994,10 +5994,11 @@ int module_test_patch_sd_run(void)
   dbg_printf("[DEBUG] Disk status before write: 0x%02X (0x00=OK, 0x01=NOINIT, 0x04=PROTECT)\r\n", disk_st);
   
   // DEBUG: Try a simple direct write test first
-  dbg_print("[DEBUG] Testing direct f_open/f_write...\r\n");
+  // NOTE: FatFs configured with _USE_LFN=0, so only 8.3 filenames allowed
+  dbg_print("[DEBUG] Testing direct f_open/f_write (8.3 filename format)...\r\n");
   FIL test_file;
-  FRESULT fr_test = f_open(&test_file, "0:/debug_test.txt", FA_CREATE_ALWAYS | FA_WRITE);
-  dbg_printf("[DEBUG] f_open result = %d (0=FR_OK, 8=FR_DENIED, 19=FR_WRITE_PROTECTED)\r\n", fr_test);
+  FRESULT fr_test = f_open(&test_file, "0:/TEST.TXT", FA_CREATE_ALWAYS | FA_WRITE);
+  dbg_printf("[DEBUG] f_open result = %d (0=FR_OK, 6=FR_INVALID_NAME, 8=FR_DENIED, 19=FR_WRITE_PROTECTED)\r\n", fr_test);
   if (fr_test == FR_OK) {
     UINT bw;
     const char* test_data = "TEST";
