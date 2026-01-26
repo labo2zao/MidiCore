@@ -16,6 +16,7 @@
 #include <stdlib.h>
 #include <stdio.h>  // for snprintf
 #include "ff.h"     // for FatFs types: DIR, FILINFO, FRESULT, etc.
+#include "diskio.h" // for DSTATUS, disk_status
 
 // UI framework for framebuffer-based testing
 #include "Services/ui/ui_page_oled_test.h"
@@ -5995,13 +5996,13 @@ int module_test_patch_sd_run(void)
   // DEBUG: Try a simple direct write test first
   dbg_print("[DEBUG] Testing direct f_open/f_write...\r\n");
   FIL test_file;
-  FRESULT fr = f_open(&test_file, "0:/debug_test.txt", FA_CREATE_ALWAYS | FA_WRITE);
-  dbg_printf("[DEBUG] f_open result = %d (0=FR_OK, 8=FR_DENIED, 19=FR_WRITE_PROTECTED)\r\n", fr);
-  if (fr == FR_OK) {
+  FRESULT fr_test = f_open(&test_file, "0:/debug_test.txt", FA_CREATE_ALWAYS | FA_WRITE);
+  dbg_printf("[DEBUG] f_open result = %d (0=FR_OK, 8=FR_DENIED, 19=FR_WRITE_PROTECTED)\r\n", fr_test);
+  if (fr_test == FR_OK) {
     UINT bw;
     const char* test_data = "TEST";
-    fr = f_write(&test_file, test_data, 4, &bw);
-    dbg_printf("[DEBUG] f_write result = %d, wrote %u bytes\r\n", fr, bw);
+    fr_test = f_write(&test_file, test_data, 4, &bw);
+    dbg_printf("[DEBUG] f_write result = %d, wrote %u bytes\r\n", fr_test, bw);
     f_close(&test_file);
     dbg_print("[DEBUG] Direct write test completed\r\n");
   } else {
