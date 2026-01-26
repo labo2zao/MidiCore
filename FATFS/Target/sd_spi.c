@@ -52,13 +52,14 @@ static uint8_t spi_transfer_byte(uint8_t data)
 static uint8_t sd_wait_ready(uint32_t timeout_ms)
 {
   uint8_t res;
-  uint32_t start_tick = osKernelGetTickCount();
+  uint32_t start_tick = HAL_GetTick();
   
   do {
     res = spi_transfer_byte(0xFF);
     if (res == 0xFF) return res;
-    osDelay(1);
-  } while ((osKernelGetTickCount() - start_tick) < timeout_ms);
+    // Use short busy wait instead of osDelay for better responsiveness
+    for (volatile uint32_t i = 0; i < 1000; i++);
+  } while ((HAL_GetTick() - start_tick) < timeout_ms);
   
   return 0;  // Timeout
 }
@@ -209,7 +210,8 @@ DSTATUS sd_spi_initialize(void)
   spibus_begin(SPIBUS_DEV_SD);
   spibus_end(SPIBUS_DEV_SD);  // Release immediately - CS is now HIGH
   
-  osDelay(10);  // Wait for card power-up
+  // Wait for card power-up (busy wait to avoid FreeRTOS dependency)
+  HAL_Delay(10);
   
   // Send 80 dummy clocks (10 bytes of 0xFF) with CS HIGH
   // Need to acquire bus but NOT assert CS
@@ -246,7 +248,7 @@ DSTATUS sd_spi_initialize(void)
               sd_send_cmd(SD_CMD41, 1UL << 30) == 0) {
             break;  // Card exited idle state
           }
-          osDelay(1);
+          HAL_Delay(1);  // Use HAL_Delay instead of osDelay for initialization
         }
         
         // Check CCS bit in OCR to determine SDHC/SDXC
@@ -282,7 +284,7 @@ DSTATUS sd_spi_initialize(void)
           // MMC: just CMD1
           if (sd_send_cmd(cmd, 0) == 0) break;
         }
-        osDelay(1);
+        HAL_Delay(1);  // Use HAL_Delay instead of osDelay for initialization
       }
       
       // Set block length to 512 bytes for SDv1/MMC (SDHC already fixed at 512)
@@ -320,7 +322,7 @@ DSTATUS sd_spi_initialize(void)
     spibus_end(SPIBUS_DEV_SD);
     
     // Small delay to let card stabilize after speed switch
-    osDelay(10);
+    HAL_Delay(10);  // Use HAL_Delay to avoid FreeRTOS dependency
     
     // Reselect card and verify it's still responding
     spibus_begin(SPIBUS_DEV_SD);
@@ -360,6 +362,8 @@ DRESULT sd_spi_read(BYTE *buff, DWORD sector, UINT count)
 {
   uint8_t cmd_res;
   
+  // Safety checks
+  if (!buff) return RES_PARERR;  // NULL pointer check
   if (sd_status & STA_NOINIT) return RES_NOTRDY;
   if (!count) return RES_PARERR;
   
