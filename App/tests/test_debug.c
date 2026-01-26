@@ -73,23 +73,27 @@ int test_debug_init(void)
   // Initialize OLED hardware (production-grade Newhaven NHD-3.12-25664 init)
   oled_init_newhaven();
   
-  dbg_print("OLED hardware initialized, drawing test pattern (MIOS32 method)...\r\n");
+  dbg_print("OLED hardware initialized, initializing text display...\r\n");
   
-  // CRITICAL FIX: Use the SAME method as the working OLED test
-  // The oled_test functions write DIRECTLY to OLED using cmd()/data()
-  // This bypasses the framebuffer and proves SPI/display are working
-  oled_test_mios32_pattern();
-  
-  dbg_print("MIOS32 test pattern drawn (should show gradient + white), waiting 2 sec...\r\n");
-  osDelay(2000);
-  
-  // Now initialize mirroring (which uses framebuffer method)
-  dbg_print("Initializing OLED mirroring subsystem...\r\n");
+  // Initialize mirroring (framebuffer-based text display)
   oled_mirror_init();
-  oled_mirror_set_enabled(1);  // Enable by default for better user experience
+  oled_mirror_set_enabled(1);  // Enable for text output
   
-  // Verify OLED is operational by outputting a test message
-  dbg_print("OLED debug mirroring enabled and ready\r\n");
+  dbg_print("OLED mirroring initialized, printing test text...\r\n");
+  
+  // Print test text directly to OLED
+  oled_mirror_print("*** MidiCore OLED Test ***\r\n");
+  oled_mirror_print("Hardware: STM32F407VGT6\r\n");
+  oled_mirror_print("Display: NHD-3.12-25664\r\n");
+  oled_mirror_print("Status: READY\r\n");
+  oled_mirror_print("Debug output active...\r\n");
+  oled_mirror_print("\r\n");
+  oled_mirror_print("You should see this text!\r\n");
+  
+  // Update the display to show the text
+  dbg_mirror_update();
+  
+  dbg_print("OLED test text displayed, debug mirroring ready\r\n");
 #else
   // OLED not compiled in - debug output only via UART
   dbg_print("OLED disabled (MODULE_ENABLE_OLED=0), using UART debug only\r\n");
