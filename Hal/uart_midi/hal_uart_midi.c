@@ -19,19 +19,20 @@
 //   MIDI OUT1: PA2  (USART2 TX)   [MIOS32 UART1]
 //   MIDI IN2:  PD9  (USART3 RX)   [MIOS32 UART2]
 //   MIDI OUT2: PD8  (USART3 TX)   [MIOS32 UART2]
-//   MIDI IN3:  PA10 (USART1 RX)   [Can share with debug]
-//   MIDI OUT3: PA9  (USART1 TX)   [Can share with debug]
-//   MIDI IN4:  PD2  (UART5 RX)    [MIOS32 UART4]
-//   MIDI OUT4: PC12 (UART5 TX)    [MIOS32 UART4]
+//   MIDI IN3:  PA10 (USART1 RX)   [NOTE: PA9/PA10 used for USB OTG on STM32F4 Discovery]
+//   MIDI OUT3: PA9  (USART1 TX)   [NOTE: PA9/PA10 used for USB OTG on STM32F4 Discovery]
+//   MIDI IN4:  PD2  (UART5 RX)    [MIOS32 UART4 - Can share with debug]
+//   MIDI OUT4: PC12 (UART5 TX)    [MIOS32 UART4 - Can share with debug]
 //
 // Port Mapping (STM32F4 Discovery):
 //   Port 0 (DIN1) -> USART2 (huart2) PA2=TX,  PA3=RX   [MIOS32 UART1]
 //   Port 1 (DIN2) -> USART3 (huart3) PD8=TX,  PD9=RX   [MIOS32 UART2]
-//   Port 2 (DIN3) -> USART1 (huart1) PA9=TX,  PA10=RX  [Shared: MIDI or Debug]
-//   Port 3 (DIN4) -> UART5  (huart5) PC12=TX, PD2=RX   [MIOS32 UART4]
+//   Port 2 (DIN3) -> USART1 (huart1) PA9=TX,  PA10=RX  [USB OTG - not available for test mode]
+//   Port 3 (DIN4) -> UART5  (huart5) PC12=TX, PD2=RX   [MIOS32 UART4 - Shared: MIDI or Debug]
 //
-// Note: USART1 (Port 2) can be used for either MIDI DIN3 or debug UART.
-//       In test mode with OLED debug, all 4 MIDI ports are available.
+// Note: UART5 (Port 3) can be used for either MIDI DIN4 or debug UART in test mode.
+//       PA9/PA10 (USART1) is used for USB OTG on STM32F4 Discovery.
+//       In test mode with OLED debug, all MIDI ports are available.
 
 #ifndef MIDI_DIN_PORTS
 #define MIDI_DIN_PORTS 4

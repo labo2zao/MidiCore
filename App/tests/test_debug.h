@@ -5,19 +5,21 @@
  * This module provides debug print functions compatible with MIOS32 hardware.
  * 
  * **Test Mode Debug Configuration:**
- * - Debug UART: USART1 (PA9/PA10) @ 115200 baud (default TEST_DEBUG_UART_PORT=2)
- * - All 4 MIDI DIN ports available for MIDI @ 31250 baud
+ * - Debug UART: UART5 (PC12/PD2) @ 115200 baud (default TEST_DEBUG_UART_PORT=3)
+ * - 2 MIDI DIN ports available for MIDI @ 31250 baud (DIN1, DIN2)
+ * - PA9/PA10 (USART1) reserved for USB OTG
  * - Baud rate automatically configured by test_debug_init()
  * 
- * **OLED Debug Mode (when MODULE_ENABLE_OLED active):**
+ * **OLED Debug Mode (when MODULE_ENABLE_OLED active - RECOMMENDED):**
  * - Debug output goes to OLED display (no UART required)
- * - All 4 MIDI DIN ports available for MIDI @ 31250 baud
+ * - 3 MIDI DIN ports available for MIDI @ 31250 baud (DIN1, DIN2, DIN4)
+ * - PA9/PA10 (USART1) reserved for USB OTG
  * - Call dbg_mirror_update() periodically to refresh OLED
  * 
- * **Production Mode - All 4 MIDI DIN ports @ 31250 baud:**
+ * **Production Mode - 3 MIDI DIN ports @ 31250 baud:**
  * - Port 0 (DIN1): USART2 PA2=TX,  PA3=RX   @ 31250 baud [MIOS32 UART1]
  * - Port 1 (DIN2): USART3 PD8=TX,  PD9=RX   @ 31250 baud [MIOS32 UART2]
- * - Port 2 (DIN3): USART6 PC6=TX,  PC7=RX   @ 31250 baud [MIOS32 UART3]
+ * - Port 2 (DIN3): Reserved for USB OTG (PA9/PA10)
  * - Port 3 (DIN4): UART5  PC12=TX, PD2=RX   @ 31250 baud [MIOS32 UART4]
  */
 
@@ -42,11 +44,11 @@ extern "C" {
  * STM32F4 Discovery UART Mapping:
  * 0 = USART2 - PA2/PA3   - MIDI DIN1 [MIOS32 UART1]
  * 1 = USART3 - PD8/PD9   - MIDI DIN2 [MIOS32 UART2]
- * 2 = USART1 - PA9/PA10  - MIDI DIN3 or Debug (shared)
- * 3 = UART5  - PC12/PD2  - MIDI DIN4 [MIOS32 UART4]
+ * 2 = USART1 - PA9/PA10  - USB OTG (not available for MIDI/debug)
+ * 3 = UART5  - PC12/PD2  - MIDI DIN4 or Debug (shared) [MIOS32 UART4]
  * 
- * **Test Mode Default: Port 2 (USART1/PA9-PA10) @ 115200 baud**
- * This allows 3 MIDI DIN ports (0,1,3) @ 31250 baud
+ * **Test Mode Default: Port 3 (UART5/PC12-PD2) @ 115200 baud**
+ * This allows 2 MIDI DIN ports (0,1) @ 31250 baud
  * 
  * **Recommended: Use OLED debug mirroring instead**
  * Enable MODULE_ENABLE_OLED to get debug output on OLED display.
@@ -57,7 +59,7 @@ extern "C" {
  * - All other MIDI DIN ports run at 31250 baud for MIDI
  */
 #ifndef TEST_DEBUG_UART_PORT
-#define TEST_DEBUG_UART_PORT 2  // USART1 (PA9/PA10) - Can share with MIDI DIN3
+#define TEST_DEBUG_UART_PORT 3  // UART5 (PC12/PD2) - Can share with MIDI DIN4 (PA9/PA10 used for USB OTG)
 #endif
 
 /**
