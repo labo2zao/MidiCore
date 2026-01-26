@@ -111,6 +111,13 @@ static uint8_t sd_send_cmd(uint8_t cmd, uint32_t arg)
     res = spi_transfer_byte( 0xFF);
   } while ((res & 0x80) && --n);
   
+  // For most commands, send a dummy byte after response
+  // This ensures proper timing and card readiness (MIOS32 pattern)
+  // Skip for CMD12 (stop transmission) and CMD0 (initial reset)
+  if (cmd != SD_CMD0 && cmd != SD_CMD12) {
+    spi_transfer_byte(0xFF);
+  }
+  
   return res;
 }
 
@@ -309,6 +316,8 @@ DSTATUS sd_spi_status(void)
  */
 DRESULT sd_spi_read(BYTE *buff, DWORD sector, UINT count)
 {
+  uint8_t cmd_res;
+  
   if (sd_status & STA_NOINIT) return RES_NOTRDY;
   if (!count) return RES_PARERR;
   
@@ -319,16 +328,21 @@ DRESULT sd_spi_read(BYTE *buff, DWORD sector, UINT count)
   
   spibus_begin(SPIBUS_DEV_SD);
   
+  // Send dummy byte to ensure card is ready (MIOS32 pattern)
+  spi_transfer_byte(0xFF);
+  
   if (count == 1) {
     // Single block read
-    if (sd_send_cmd(SD_CMD17, sector) == 0) {
+    cmd_res = sd_send_cmd(SD_CMD17, sector);
+    if (cmd_res == 0) {
       if (sd_read_datablock(buff, 512)) {
         count = 0;
       }
     }
   } else {
     // Multiple block read
-    if (sd_send_cmd(SD_CMD18, sector) == 0) {
+    cmd_res = sd_send_cmd(SD_CMD18, sector);
+    if (cmd_res == 0) {
       do {
         if (!sd_read_datablock(buff, 512)) break;
         buff += 512;
@@ -338,6 +352,9 @@ DRESULT sd_spi_read(BYTE *buff, DWORD sector, UINT count)
       sd_send_cmd(SD_CMD12, 0);
     }
   }
+  
+  // Deselect with dummy byte (MIOS32 pattern)
+  spi_transfer_byte(0xFF);
   
   spibus_end(SPIBUS_DEV_SD);
   
