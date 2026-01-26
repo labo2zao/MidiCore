@@ -112,10 +112,10 @@ static uint8_t sd_send_cmd(uint8_t cmd, uint32_t arg)
   } while ((res & 0x80) && --n);
   
   // For most commands, send a dummy byte after response for timing (MIOS32 pattern)
-  // CRITICAL: Do NOT send dummy byte after CMD17/CMD18 (read commands)
-  // The card must remain selected and we must immediately poll for data token
-  // Skip for: CMD0 (initial reset), CMD12 (stop), CMD17/CMD18 (read)
-  if (cmd != SD_CMD0 && cmd != SD_CMD12 && cmd != SD_CMD17 && cmd != SD_CMD18) {
+  // Skip dummy byte only for: CMD0 (initial reset), CMD12 (stop during multi-block)
+  // NOTE: Even CMD17/CMD18 get one dummy byte after response in MIOS32
+  // This provides NCR timing before data token polling begins
+  if (cmd != SD_CMD0 && cmd != SD_CMD12) {
     spi_transfer_byte(0xFF);
   }
   
@@ -334,9 +334,6 @@ DRESULT sd_spi_read(BYTE *buff, DWORD sector, UINT count)
   }
   
   spibus_begin(SPIBUS_DEV_SD);
-  
-  // CRITICAL: No dummy byte here! MIOS32 sends CMD17 directly after CS LOW
-  // The dummy byte was interrupting the command-to-data-token sequence
   
   if (count == 1) {
     // Single block read
