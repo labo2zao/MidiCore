@@ -64,10 +64,19 @@ int test_debug_init(void)
   // Always initialize OLED for debug mirroring (enabled by default)
   // This provides visual feedback even if UART debug is not connected
   extern void oled_init_newhaven(void);  // Production-grade Newhaven init
-  oled_init_newhaven();  // Initialize OLED hardware first
   
-  oled_mirror_init();       // Initialize OLED mirroring subsystem
+  // Initialize OLED hardware (production-grade NHD-3.12-25664 init)
+  oled_init_newhaven();
+  
+  // Initialize OLED mirroring subsystem for debug output
+  oled_mirror_init();
   oled_mirror_set_enabled(1);  // Enable by default for better user experience
+  
+  // Verify OLED is operational by outputting a test message
+  dbg_print("OLED debug mirroring initialized\r\n");
+#else
+  // OLED not compiled in - debug output only via UART
+  dbg_print("OLED disabled (MODULE_ENABLE_OLED=0), using UART debug only\r\n");
 #endif
   
   return 0; // Success

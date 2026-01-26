@@ -2437,6 +2437,11 @@ void module_test_router_run(void)
     // Poll for incoming MIDI bytes from DIN IN1-4
     midi_din_tick();
 #endif
+
+#if MODULE_ENABLE_OLED
+    // Update OLED debug mirror display (100ms auto-throttle inside)
+    dbg_mirror_update();
+#endif
     
     osDelay(10);  // 10ms for responsive MIDI input polling (reduces latency)
     tick_counter++;

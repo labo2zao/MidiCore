@@ -12,27 +12,24 @@
 #include "main.h" // UART handle declarations
 
 // ---- Port mapping -----------------------------------------------------------
-// IMPORTANT:
-// STM32F4 Discovery Hardware Configuration:
-//   **Production Mode - MIDI DIN ports @ 31250 baud:**
-//   MIDI IN1:  PA3  (USART2 RX)   [MIOS32 UART1]
-//   MIDI OUT1: PA2  (USART2 TX)   [MIOS32 UART1]
-//   MIDI IN2:  PD9  (USART3 RX)   [MIOS32 UART2]
-//   MIDI OUT2: PD8  (USART3 TX)   [MIOS32 UART2]
-//   MIDI IN3:  PA10 (USART1 RX)   [NOTE: PA9/PA10 used for USB OTG on STM32F4 Discovery]
-//   MIDI OUT3: PA9  (USART1 TX)   [NOTE: PA9/PA10 used for USB OTG on STM32F4 Discovery]
-//   MIDI IN4:  PD2  (UART5 RX)    [MIOS32 UART4 - Can share with debug]
-//   MIDI OUT4: PC12 (UART5 TX)    [MIOS32 UART4 - Can share with debug]
+// MIOS32 HARDWARE CONFIGURATION (NEVER CHANGES):
 //
-// Port Mapping (STM32F4 Discovery):
-//   Port 0 (DIN1) -> USART2 (huart2) PA2=TX,  PA3=RX   [MIOS32 UART1]
-//   Port 1 (DIN2) -> USART3 (huart3) PD8=TX,  PD9=RX   [MIOS32 UART2]
-//   Port 2 (DIN3) -> USART1 (huart1) PA9=TX,  PA10=RX  [USB OTG - not available for test mode]
-//   Port 3 (DIN4) -> UART5  (huart5) PC12=TX, PD2=RX   [MIOS32 UART4 - Shared: MIDI or Debug]
+//   PRODUCTION MODE - All 4 MIDI DIN ports @ 31250 baud + USB OTG:
+//     Port 0 (DIN1) = USART2 PA2/PA3   [MIOS32 UART1]
+//     Port 1 (DIN2) = USART3 PD8/PD9   [MIOS32 UART2]
+//     Port 2 (DIN3) = USART1 PA9/PA10  [MIOS32 UART3 - NOTE: Pins also used for USB OTG]
+//     Port 3 (DIN4) = UART5  PC12/PD2  [MIOS32 UART4]
+//     USB OTG       = PA9/PA10 (shared with USART1, but both can coexist)
 //
-// Note: UART5 (Port 3) can be used for either MIDI DIN4 or debug UART in test mode.
-//       PA9/PA10 (USART1) is used for USB OTG on STM32F4 Discovery.
-//       In test mode with OLED debug, all MIDI ports are available.
+//   TEST MODE - 3 MIDI DIN ports + 1 Debug UART @ 115200 baud + USB OTG:
+//     Port 0 (DIN1)  = USART2 PA2/PA3   @ 31250 baud [MIOS32 UART1]
+//     Port 1 (DIN2)  = USART3 PD8/PD9   @ 31250 baud [MIOS32 UART2]
+//     Port 2 (DIN3)  = USART1 PA9/PA10  @ 31250 baud [MIOS32 UART3]
+//     Port 3 (DIN4)  = UART5  PC12/PD2  @ 115200 baud [Debug UART - temporarily not MIDI]
+//     USB OTG        = PA9/PA10 (shared with USART1)
+//
+// In test mode, test_debug_init() reconfigures UART5 from 31250→115200 baud for debug output.
+// The MIOS32 port mapping itself NEVER changes - only the baud rate of one port changes in test mode.
 
 #ifndef MIDI_DIN_PORTS
 #define MIDI_DIN_PORTS 4
