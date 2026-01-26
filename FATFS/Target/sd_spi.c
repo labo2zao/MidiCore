@@ -112,10 +112,12 @@ static uint8_t sd_send_cmd(uint8_t cmd, uint32_t arg)
   } while ((res & 0x80) && --n);
   
   // For most commands, send a dummy byte after response for timing (MIOS32 pattern)
-  // Skip dummy byte only for: CMD0 (initial reset), CMD12 (stop during multi-block)
-  // NOTE: Even CMD17/CMD18 get one dummy byte after response in MIOS32
-  // This provides NCR timing before data token polling begins
-  if (cmd != SD_CMD0 && cmd != SD_CMD12) {
+  // Skip dummy byte for:
+  //  - CMD0 (initial reset)
+  //  - CMD12 (stop during multi-block)
+  //  - CMD13 (SEND_STATUS - need immediate status read)
+  // NOTE: CMD17/CMD18 get one dummy byte after response for NCR timing
+  if (cmd != SD_CMD0 && cmd != SD_CMD12 && cmd != SD_CMD13) {
     spi_transfer_byte(0xFF);
   }
   
