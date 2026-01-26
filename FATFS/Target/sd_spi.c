@@ -135,9 +135,19 @@ static int sd_read_datablock(uint8_t *buff, uint32_t btr)
 {
   uint8_t token;
   uint32_t i;
+  uint8_t temp_byte;
   
-  // Safety check
+  // Safety check - validate buffer pointer and size
   if (!buff || btr != 512) return 0;
+  
+  // Additional safety: check if buffer is in valid RAM range
+  // STM32F407: RAM is 0x20000000-0x2001FFFF (128KB)
+  //            CCMRAM is 0x10000000-0x1000FFFF (64KB)
+  uint32_t buff_addr = (uint32_t)buff;
+  if (!((buff_addr >= 0x20000000 && buff_addr < 0x20020000) ||
+        (buff_addr >= 0x10000000 && buff_addr < 0x10010000))) {
+    return 0;  // Buffer not in valid RAM
+  }
   
   // Wait for data packet (start token 0xFE)
   // MIOS32 pattern: poll continuously for up to 65536 iterations
@@ -151,9 +161,10 @@ static int sd_read_datablock(uint8_t *buff, uint32_t btr)
   if (token != 0xFE) return 0;  // Invalid token or timeout
   
   // Read data block byte-by-byte to avoid potential DMA/buffer issues
-  // CRITICAL: Use byte-by-byte read for compatibility
+  // CRITICAL: Use temp variable first to ensure safe write
   for (i = 0; i < btr; i++) {
-    buff[i] = spi_transfer_byte(0xFF);
+    temp_byte = spi_transfer_byte(0xFF);
+    buff[i] = temp_byte;  // Write through temp to avoid optimizer issues
   }
   
   // Read (and ignore) CRC
