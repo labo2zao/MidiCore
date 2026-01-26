@@ -220,8 +220,9 @@ DSTATUS sd_spi_initialize(void)
     if (ocr[2] == 0x01 && ocr[3] == 0xAA) {
       // Wait for card to exit idle state (ACMD41 with HCS bit)
       for (tmr = 1000; tmr; tmr--) {
-        if (sd_send_cmd(SD_CMD55 | 0x80, 0) <= 1 && 
-            sd_send_cmd(SD_CMD41 | 0x80, 1UL << 30) == 0) break;
+        // Send CMD55 first, then CMD41 (not with 0x80 flag - already sent CMD55)
+        if (sd_send_cmd(SD_CMD55, 0) <= 1 && 
+            sd_send_cmd(SD_CMD41, 1UL << 30) == 0) break;
         osDelay(1);
       }
       
@@ -235,11 +236,12 @@ DSTATUS sd_spi_initialize(void)
     }
   } else {
     // SDv1 or MMC
-    if (sd_send_cmd(SD_CMD55 | 0x80, 0) <= 1 && 
-        sd_send_cmd(SD_CMD41 | 0x80, 0) <= 1) {
+    // Send CMD55 then CMD41 to check if it's SDv1
+    if (sd_send_cmd(SD_CMD55, 0) <= 1 && 
+        sd_send_cmd(SD_CMD41, 0) <= 1) {
       // SDv1
       sd_card_type = SD_TYPE_SDV1;
-      cmd = SD_CMD41 | 0x80;
+      cmd = SD_CMD41;  // Use CMD41 in loop (send CMD55 each iteration)
     } else {
       // Not SD card
       sd_card_type = SD_TYPE_UNKNOWN;
@@ -248,7 +250,8 @@ DSTATUS sd_spi_initialize(void)
     
     // Wait for card to exit idle state
     for (tmr = 1000; tmr && cmd; tmr--) {
-      if (sd_send_cmd(cmd, 0) == 0) break;
+      // For SDv1, send CMD55 then CMD41
+      if (sd_send_cmd(SD_CMD55, 0) <= 1 && sd_send_cmd(cmd, 0) == 0) break;
       osDelay(1);
     }
     

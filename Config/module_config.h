@@ -38,6 +38,14 @@ extern "C" {
 #define MODULE_ENABLE_SRIO 1
 #endif
 
+/** @brief SRIO DOUT LED polarity configuration
+ * Set to 0 if LEDs are ACTIVE HIGH (1=ON, 0=OFF)
+ * Set to 1 if LEDs are ACTIVE LOW  (0=ON, 1=OFF) - MIOS32 default
+ */
+#ifndef SRIO_DOUT_LED_ACTIVE_LOW
+#define SRIO_DOUT_LED_ACTIVE_LOW 1
+#endif
+
 /** @brief Enable SPI bus shared resource management */
 #ifndef MODULE_ENABLE_SPI_BUS
 #define MODULE_ENABLE_SPI_BUS 1
