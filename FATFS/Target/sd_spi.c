@@ -187,22 +187,28 @@ static int sd_write_datablock(const BYTE *buff, BYTE token)
 {
   uint8_t resp;
   
+  // Wait for card to be ready before sending token
   if (sd_wait_ready(SD_TIMEOUT_MS) != 0xFF) return 0;
   
   // Send token
-  spi_transfer_byte( token);
+  spi_transfer_byte(token);
   
   if (token != 0xFD) {  // Not stop token
-    // Send data block
+    // Send data block (512 bytes)
     spibus_tx(SPIBUS_DEV_SD, buff, 512, 500);
     
-    // Send dummy CRC
-    spi_transfer_byte( 0xFF);
-    spi_transfer_byte( 0xFF);
+    // Send dummy CRC (2 bytes)
+    spi_transfer_byte(0xFF);
+    spi_transfer_byte(0xFF);
     
-    // Receive data response
-    resp = spi_transfer_byte( 0xFF);
+    // Receive data response (wait for non-0xFF byte)
+    resp = spi_transfer_byte(0xFF);
     if ((resp & 0x1F) != 0x05) return 0;  // Data rejected
+    
+    // CRITICAL: Wait for card to finish writing (becomes ready again)
+    // Card will be busy (0x00) during flash write, then return 0xFF when done
+    // This matches MIOS32 pattern and is required for reliable SD card writes
+    if (sd_wait_ready(SD_TIMEOUT_MS) != 0xFF) return 0;
   }
   
   return 1;
