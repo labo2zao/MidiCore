@@ -111,10 +111,14 @@ void srio_init(const srio_config_t* cfg) {
   g_debounce_time = 0;
   g_debounce_ctr = 0;
 
-  // clear chains
-  static uint8_t din[SRIO_DIN_BYTES];
-  static uint8_t din_buffer[SRIO_DIN_BYTES];
-  static uint8_t din_changed[SRIO_DIN_BYTES];
+  // clear chains - use maximum size for static buffers
+  // SRIO_DIN_BYTES is defined in srio_user_config.h when SRIO_ENABLE is set
+  #ifndef SRIO_MAX_DIN_BYTES
+  #define SRIO_MAX_DIN_BYTES 16  // Maximum DIN chain size (128 inputs)
+  #endif
+  static uint8_t din[SRIO_MAX_DIN_BYTES];
+  static uint8_t din_buffer[SRIO_MAX_DIN_BYTES];
+  static uint8_t din_changed[SRIO_MAX_DIN_BYTES];
   g_din = din;
   g_din_buffer = din_buffer;
   g_din_changed = din_changed;
