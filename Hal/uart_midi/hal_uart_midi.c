@@ -163,25 +163,35 @@ uint32_t hal_uart_midi_rx_drops(uint8_t port)
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef* huart)
 {
-  int p = port_from_handle(huart);
-  if (p < 0) return;
-
-  // CRITICAL FIX: Only process RX callback if THIS UART instance actually triggered it.
-  // The HAL may be incorrectly calling the callback for a different UART instance than
-  // the one that received data. Verify that huart->Instance matches the expected UART.
+  // CRITICAL FIX: Find port by matching UART INSTANCE (peripheral base address), not pointer!
+  // 
+  // Root cause of DIN1/DIN2 coupling: port_from_handle() compares huart POINTER addresses,
+  // but the HAL may use different huart pointer values for callbacks vs init, causing
+  // port_from_handle() to return the wrong port index (or -1).
   //
-  // Root cause of DIN1/DIN2 coupling: The HAL UART driver's RxCpltCallback is being
-  // called for BOTH USART2 and USART3 when only one receives data. This is likely due to:
-  // 1. HAL sharing the callback function pointer between UART instances
-  // 2. IRQ priorities causing spurious callbacks
-  // 3. Race condition in HAL_UART_Receive_IT() setup
+  // The bug: When USART2 receives a byte:
+  //   1. HAL calls HAL_UART_RxCpltCallback(&huart2_callback_instance)
+  //   2. port_from_handle() compares huart2_callback_instance against s_midi_uarts[] pointers
+  //   3. If pointers don't match (HAL aliasing), returns wrong port or -1
+  //   4. Or if pointer accidentally matches s_midi_uarts[1] (USART3), stores byte in wrong port!
   //
-  // Solution: Check huart->Instance pointer to ensure it matches s_midi_uarts[p]->Instance
-  if (huart->Instance != s_midi_uarts[p]->Instance) {
-    // Spurious callback - wrong UART triggered. Ignore.
+  // Solution: Match by huart->Instance (USART1, USART2, USART3, UART5 peripheral addresses)
+  // which uniquely identifies the hardware peripheral regardless of huart pointer value.
+  
+  int p = -1;
+  for (int i = 0; i < MIDI_DIN_PORTS; ++i) {
+    if (s_midi_uarts[i] && s_midi_uarts[i]->Instance == huart->Instance) {
+      p = i;
+      break;
+    }
+  }
+  
+  if (p < 0) {
+    // Unknown UART peripheral - should never happen
     return;
   }
 
+  // Store received byte in ring buffer for the CORRECT port
   midi_uart_rx_t* r = &s_rx[p];
   
   uint16_t next = ring_next(r->head);
@@ -192,6 +202,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef* huart)
     r->head = next;
   }
 
+  // Restart interrupt reception for this specific port
   start_rx_it(p);
 }
 
