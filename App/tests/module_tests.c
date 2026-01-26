@@ -2456,14 +2456,13 @@ void module_test_router_run(void)
       dbg_print("============================================================\r\n");
       dbg_printf("Active Routes:    %d\r\n", active_routes);
       dbg_printf("MIDI Messages:    %lu total, %lu dropped\r\n", 
-                 (unsigned long)stats.total_events, 
-                 (unsigned long)stats.dropped_events);
-      dbg_printf("  Notes:          %lu\r\n", (unsigned long)stats.note_events);
-      dbg_printf("  CC:             %lu\r\n", (unsigned long)stats.cc_events);
-      dbg_printf("  Pitch Bend:     %lu\r\n", (unsigned long)stats.pitch_bend_events);
-      dbg_printf("  Program Change: %lu\r\n", (unsigned long)stats.program_change_events);
-      dbg_printf("  SysEx:          %lu\r\n", (unsigned long)stats.sysex_events);
-      dbg_printf("  Realtime:       %lu\r\n", (unsigned long)stats.realtime_events);
+                 (unsigned long)stats.total_messages, 
+                 (unsigned long)stats.dropped_messages);
+      dbg_printf("  Note On:        %lu\r\n", (unsigned long)stats.note_on_count);
+      dbg_printf("  Note Off:       %lu\r\n", (unsigned long)stats.note_off_count);
+      dbg_printf("  CC:             %lu\r\n", (unsigned long)stats.cc_count);
+      dbg_printf("  SysEx:          %lu\r\n", (unsigned long)stats.sysex_count);
+      dbg_printf("  Realtime:       %lu\r\n", (unsigned long)stats.realtime_count);
       dbg_print("============================================================\r\n");
       dbg_print("\r\n");
       dbg_print("[Monitoring] Continuing to listen for MIDI messages...\r\n");
