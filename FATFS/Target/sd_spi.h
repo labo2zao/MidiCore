@@ -19,6 +19,7 @@ extern "C" {
 
 // SD Card Commands
 #define SD_CMD0    0   // GO_IDLE_STATE
+#define SD_CMD1    1   // SEND_OP_COND (MMC)
 #define SD_CMD8    8   // SEND_IF_COND
 #define SD_CMD9    9   // SEND_CSD
 #define SD_CMD10   10  // SEND_CID
@@ -35,9 +36,11 @@ extern "C" {
 
 // SD Card Types
 #define SD_TYPE_UNKNOWN  0
-#define SD_TYPE_SDV1     1  // SD Ver 1.x
-#define SD_TYPE_SDV2     2  // SD Ver 2.0+
-#define SD_TYPE_SDHC     3  // SD High Capacity
+#define SD_TYPE_MMC      1  // MMC
+#define SD_TYPE_SDV1     2  // SD Ver 1.x  
+#define SD_TYPE_SDV2     3  // SD Ver 2.0+ (SDSC)
+#define SD_TYPE_SDHC     4  // SD High Capacity
+#define SD_TYPE_SD       SD_TYPE_SDV1  // Alias for SDv1
 
 // Function prototypes
 DSTATUS sd_spi_initialize(void);
