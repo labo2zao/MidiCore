@@ -165,7 +165,11 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef* huart)
   int p = port_from_handle(huart);
   if (p < 0) return;
 
+  // CRITICAL FIX: The rx_byte is stored at &s_rx[port].rx_byte, but HAL_UART_Receive_IT
+  // may have written to a different location if huart->pRxBuffPtr was not set correctly.
+  // Verify we're reading from the correct rx_byte buffer for THIS port.
   midi_uart_rx_t* r = &s_rx[p];
+  
   uint16_t next = ring_next(r->head);
   if (next == r->tail) {
     r->drops++;

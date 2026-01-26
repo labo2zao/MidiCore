@@ -78,9 +78,18 @@ int test_debug_init(void)
   // CRITICAL: Clear framebuffer and flush to display to wake up the screen
   // Without this, the display stays black even though it's initialized
   oled_clear();
+  dbg_print("Framebuffer cleared, flushing to display GRAM...\r\n");
   oled_flush();
   
-  dbg_print("OLED display cleared and flushed, enabling debug mirroring...\r\n");
+  // Add visible test pattern to verify OLED is actually working
+  dbg_print("OLED flushed, drawing test pattern (horizontal lines)...\r\n");
+  uint8_t* fb = oled_framebuffer();
+  // Draw horizontal white lines every 8 rows to make display obviously visible
+  for (int row = 0; row < 64; row += 8) {
+    memset(&fb[row * 128], 0xFF, 128);
+  }
+  oled_flush();
+  dbg_print("Test pattern drawn and flushed, enabling debug mirroring...\r\n");
   
   // Initialize OLED mirroring subsystem for debug output
   oled_mirror_init();
