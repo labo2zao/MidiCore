@@ -77,11 +77,13 @@ typedef struct {
  * @brief MIDI Monitor statistics
  */
 typedef struct {
-  uint32_t total_messages;    // Total messages captured
-  uint32_t dropped_messages;  // Messages dropped due to buffer full
+  uint32_t total_messages;       // Total messages captured
+  uint32_t dropped_messages;     // Messages dropped due to buffer full
   uint32_t note_on_count;
   uint32_t note_off_count;
   uint32_t cc_count;
+  uint32_t pitch_bend_count;
+  uint32_t program_change_count;
   uint32_t sysex_count;
   uint32_t realtime_count;
 } midi_monitor_stats_t;

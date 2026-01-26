@@ -212,6 +212,10 @@ void midi_monitor_capture_short(uint8_t node, const uint8_t* data, uint8_t len, 
       stats.note_off_count++;
     } else if (msg_type == 0xB0) {
       stats.cc_count++;
+    } else if (msg_type == 0xE0) {
+      stats.pitch_bend_count++;
+    } else if (msg_type == 0xC0) {
+      stats.program_change_count++;
     } else if (status >= 0xF8) {
       stats.realtime_count++;
     }

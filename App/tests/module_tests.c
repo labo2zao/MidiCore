@@ -2429,7 +2429,12 @@ void module_test_router_run(void)
   uint32_t last_status_ms = osKernelGetTickCount();
   
   for (;;) {
-    osDelay(100);  // 100ms update rate for responsive monitoring
+#if MODULE_ENABLE_MIDI_DIN
+    // Poll for incoming MIDI bytes from DIN IN1-4
+    midi_din_tick();
+#endif
+    
+    osDelay(10);  // 10ms for responsive MIDI input polling (reduces latency)
     tick_counter++;
     
     uint32_t now_ms = osKernelGetTickCount();
@@ -2461,6 +2466,8 @@ void module_test_router_run(void)
       dbg_printf("  Note On:        %lu\r\n", (unsigned long)stats.note_on_count);
       dbg_printf("  Note Off:       %lu\r\n", (unsigned long)stats.note_off_count);
       dbg_printf("  CC:             %lu\r\n", (unsigned long)stats.cc_count);
+      dbg_printf("  Pitch Bend:     %lu\r\n", (unsigned long)stats.pitch_bend_count);
+      dbg_printf("  Program Change: %lu\r\n", (unsigned long)stats.program_change_count);
       dbg_printf("  SysEx:          %lu\r\n", (unsigned long)stats.sysex_count);
       dbg_printf("  Realtime:       %lu\r\n", (unsigned long)stats.realtime_count);
       dbg_print("============================================================\r\n");
