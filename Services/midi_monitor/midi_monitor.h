@@ -21,6 +21,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <stddef.h>  // For size_t
 
 #ifdef __cplusplus
 extern "C" {
