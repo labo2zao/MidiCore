@@ -15,6 +15,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>  // for snprintf
+#include "ff.h"     // for FatFs types: DIR, FILINFO, FRESULT, etc.
 
 // UI framework for framebuffer-based testing
 #include "Services/ui/ui_page_oled_test.h"
