@@ -55,6 +55,7 @@
 
 #if MODULE_ENABLE_BOOT_REASON
 #include "Services/system/boot_reason.h"
+#include "App/tests/test_debug.h"
 #endif
 
 #if MODULE_ENABLE_LOG
@@ -256,7 +257,7 @@ void app_init_and_start(void)
 #if MODULE_ENABLE_LOG
   log_init();
 #if MODULE_ENABLE_BOOT_REASON
-  log_printf("BOOT", "reason=%d", (int)boot_reason_get());
+  dbg_printf("BOOT: reason=%d\r\n", (int)boot_reason_get());
 #endif
 #endif
 
