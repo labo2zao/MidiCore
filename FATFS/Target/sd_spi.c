@@ -14,6 +14,7 @@
 
 #include "sd_spi.h"
 #include "Hal/spi_bus.h"
+#include "Config/sd_pins.h"
 #include "cmsis_os.h"
 #include <string.h>
 
@@ -182,21 +183,30 @@ DSTATUS sd_spi_initialize(void)
   uint8_t cmd, n, ocr[4];
   uint16_t tmr;
   
-  // Initialize SPI bus for SD card
+  // Initialize SPI bus for SD card (if not already done - safe to call multiple times)
   spibus_init();
   
-  // Send 80 dummy clocks with CS high to initialize card
-  // Must send with CS deselected (HIGH)
-  spibus_end(SPIBUS_DEV_SD);  // Ensure CS is high
-  osDelay(10);  // Small delay for card power-up
+  // SD card initialization requires 74+ clock cycles with CS HIGH before first command
+  // This allows the card to complete its power-up sequence
   
-  // Send dummy clocks without CS assertion (need to transmit without using spibus_begin)
-  // Temporarily acquire SPI bus access
+  // Acquire SPI bus, but keep CS high
+  spibus_begin(SPIBUS_DEV_SD);
+  spibus_end(SPIBUS_DEV_SD);  // Release immediately - CS is now HIGH
+  
+  osDelay(10);  // Wait for card power-up
+  
+  // Send 80 dummy clocks (10 bytes of 0xFF) with CS HIGH
+  // Need to acquire bus but NOT assert CS
+  spibus_begin(SPIBUS_DEV_SD);  // Acquire mutex and set prescaler
+  // Manually set CS high (override spibus_begin which sets it low)
+  HAL_GPIO_WritePin(SD_CS_GPIO_Port, SD_CS_Pin, GPIO_PIN_SET);
+  
   for (n = 0; n < 10; n++) {
     uint8_t dummy = 0xFF;
     spibus_tx(SPIBUS_DEV_SD, &dummy, 1, 100);
   }
   
+  spibus_end(SPIBUS_DEV_SD);  // Release mutex
   osDelay(1);  // Let card settle
   
   // Now select card and start initialization
