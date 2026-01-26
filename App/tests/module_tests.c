@@ -1863,10 +1863,19 @@ void module_test_midi_din_run(void)
  */
 void module_test_router_run(void)
 {
-  // Early UART verification
-  dbg_print("\r\n");
+  // Ensure UART debug is initialized
+  test_debug_init();
+  osDelay(500);  // Give UART time to stabilize
+  
+  // Early UART verification with multiple attempts
+  for (int i = 0; i < 3; i++) {
+    dbg_print("\r\n");
+    osDelay(50);
+  }
+  
   dbg_print("==============================================\r\n");
   dbg_print("UART Debug Verification: OK\r\n");
+  dbg_print("Router Test Starting...\r\n");
   dbg_print("==============================================\r\n");
   dbg_print("\r\n");
   osDelay(100);
