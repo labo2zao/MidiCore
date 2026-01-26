@@ -1,6 +1,6 @@
 #include "Services/patch/patch_sd_mount.h"
 #include "Services/fs/sd_guard.h"
-#include "Services/log/log.h"
+#include "App/tests/test_debug.h"
 #include "ff.h"
 #include <stdio.h>
 
@@ -41,7 +41,7 @@ int patch_sd_mount_init(void) {
   FRESULT fr = f_mount(&g_fs, "0:", 1);
   
   if (fr != FR_OK) {
-    log_printf("SD", "f_mount failed: %s", get_fresult_str(fr));
+    dbg_printf("SD: f_mount failed: %s\r\n", get_fresult_str(fr));
     return -1;
   }
   
@@ -53,6 +53,6 @@ int patch_sd_mount_retry(uint8_t attempts) {
   for (uint8_t i=0;i<attempts;i++) {
     if (patch_sd_mount_init() == 0) return 0;
   }
-  log_printf("SD", "mount fail after %d attempts", attempts); 
+  dbg_printf("SD: mount fail after %d attempts\r\n", attempts); 
   return -1;
 }
