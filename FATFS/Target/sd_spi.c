@@ -203,8 +203,18 @@ static int sd_write_datablock(const BYTE *buff, BYTE token)
     spi_transfer_byte(0xFF);
     
     // Receive data response (wait for non-0xFF byte)
-    resp = spi_transfer_byte(0xFF);
-    if ((resp & 0x1F) != 0x05) return 0;  // Data rejected
+    // CRITICAL: Card may take several clock cycles to respond
+    // Poll until we get a non-0xFF response (MIOS32 pattern)
+    uint16_t timeout = 0xFFFF;
+    do {
+      resp = spi_transfer_byte(0xFF);
+      if ((resp & 0x80) == 0) break;  // Got response (bit 7 = 0)
+    } while (--timeout);
+    
+    if (timeout == 0 || (resp & 0x1F) != 0x05) {
+      dbg_printf("[SD_WRITE_DBG] Data response error: resp=0x%02X, timeout=%u\r\n", resp, timeout);
+      return 0;  // Data rejected or timeout
+    }
     
     // CRITICAL: Wait for card to finish writing (becomes ready again)
     // Card will be busy (0x00) during flash write, then return 0xFF when done
@@ -457,14 +467,46 @@ DRESULT sd_spi_write(const BYTE *buff, DWORD sector, UINT count)
 {
   uint8_t cmd_res;
   
-  if (sd_status & STA_NOINIT) return RES_NOTRDY;
-  if (!count) return RES_PARERR;
-  if (sd_status & STA_PROTECT) return RES_WRPRT;
+  // DEBUG output
+  extern void dbg_printf(const char* format, ...);
+  dbg_printf("[SD_WRITE_DBG] Called: sector=%lu, count=%u, status=0x%02X\r\n", sector, count, sd_status);
+  
+  if (sd_status & STA_NOINIT) {
+    dbg_printf("[SD_WRITE_DBG] FAIL: Card not initialized (STA_NOINIT)\r\n");
+    return RES_NOTRDY;
+  }
+  if (!count) {
+    dbg_printf("[SD_WRITE_DBG] FAIL: Invalid count (RES_PARERR)\r\n");
+    return RES_PARERR;
+  }
+  if (sd_status & STA_PROTECT) {
+    dbg_printf("[SD_WRITE_DBG] FAIL: Card write protected (STA_PROTECT)\r\n");
+    return RES_WRPRT;
+  }
+  
+  // DEBUG output
+  extern void dbg_printf(const char* format, ...);
+  dbg_printf("[SD_WRITE_DBG] Called: sector=%lu, count=%u, status=0x%02X\r\n", sector, count, sd_status);
+  
+  if (sd_status & STA_NOINIT) {
+    dbg_printf("[SD_WRITE_DBG] FAIL: Card not initialized (STA_NOINIT)\r\n");
+    return RES_NOTRDY;
+  }
+  if (!count) {
+    dbg_printf("[SD_WRITE_DBG] FAIL: Invalid count (RES_PARERR)\r\n");
+    return RES_PARERR;
+  }
+  if (sd_status & STA_PROTECT) {
+    dbg_printf("[SD_WRITE_DBG] FAIL: Card write protected (STA_PROTECT)\r\n");
+    return RES_WRPRT;
+  }
   
   // Convert LBA to byte address for non-SDHC cards
   if (sd_card_type != SD_TYPE_SDHC) {
     sector *= 512;
   }
+  
+  dbg_printf("[SD_WRITE_DBG] Starting write: adjusted_sector=%lu, card_type=%u\r\n", sector, sd_card_type);
   
   spibus_begin(SPIBUS_DEV_SD);
   
@@ -475,14 +517,22 @@ DRESULT sd_spi_write(const BYTE *buff, DWORD sector, UINT count)
   if (count == 1) {
     // Single block write - MIOS32 pattern
     // CMD24: WRITE_BLOCK
+    dbg_printf("[SD_WRITE_DBG] Single block: sending CMD24...\r\n");
     cmd_res = sd_send_cmd(SD_CMD24, sector);
+    dbg_printf("[SD_WRITE_DBG] CMD24 response: 0x%02X (0x00=OK)\r\n", cmd_res);
     if (cmd_res == 0) {
       // CMD24 accepted, add small delay before data block (MIOS32 timing)
       spi_transfer_byte(0xFF);
       // Now send data block
+      dbg_printf("[SD_WRITE_DBG] Sending data block...\r\n");
       if (sd_write_datablock(buff, 0xFE)) {
+        dbg_printf("[SD_WRITE_DBG] Data block sent successfully\r\n");
         count = 0;  // Success
+      } else {
+        dbg_printf("[SD_WRITE_DBG] FAIL: Data block send failed\r\n");
       }
+    } else {
+      dbg_printf("[SD_WRITE_DBG] FAIL: CMD24 rejected\r\n");
     }
   } else {
     // Multiple block write - MIOS32 pattern

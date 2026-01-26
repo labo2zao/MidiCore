@@ -5988,6 +5988,26 @@ int module_test_patch_sd_run(void)
   dbg_print("TEST 4: Config File Saving\r\n");
   dbg_print("--------------------------------------\r\n");
   
+  // DEBUG: Check disk status before write operations
+  DSTATUS disk_st = disk_status(0);
+  dbg_printf("[DEBUG] Disk status before write: 0x%02X (0x00=OK, 0x01=NOINIT, 0x04=PROTECT)\r\n", disk_st);
+  
+  // DEBUG: Try a simple direct write test first
+  dbg_print("[DEBUG] Testing direct f_open/f_write...\r\n");
+  FIL test_file;
+  FRESULT fr = f_open(&test_file, "0:/debug_test.txt", FA_CREATE_ALWAYS | FA_WRITE);
+  dbg_printf("[DEBUG] f_open result = %d (0=FR_OK, 8=FR_DENIED, 19=FR_WRITE_PROTECTED)\r\n", fr);
+  if (fr == FR_OK) {
+    UINT bw;
+    const char* test_data = "TEST";
+    fr = f_write(&test_file, test_data, 4, &bw);
+    dbg_printf("[DEBUG] f_write result = %d, wrote %u bytes\r\n", fr, bw);
+    f_close(&test_file);
+    dbg_print("[DEBUG] Direct write test completed\r\n");
+  } else {
+    dbg_print("[DEBUG] Direct write test FAILED at f_open\r\n");
+  }
+  
   // Set some test parameters
   const char* TEST_VALUE_1 = "123";
   const char* TEST_VALUE_2 = "456";
@@ -5996,7 +6016,9 @@ int module_test_patch_sd_run(void)
   
   // Save to a test file
   const char* test_config = "0:/test_config.ngc";
+  dbg_printf("[DEBUG] Calling patch_save('%s')...\r\n", test_config);
   result = patch_save(test_config);
+  dbg_printf("[DEBUG] patch_save returned %d\r\n", result);
   if (result == 0) {
     dbg_printf("[PASS] Config saved to %s\r\n", test_config);
     test_passed++;
