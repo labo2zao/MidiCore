@@ -92,6 +92,22 @@ void router_process(uint8_t in_node, const router_msg_t* msg) {
 
   if (!msg || in_node >= ROUTER_NUM_NODES) return;
   if (!g_send) return;
+  
+  // Filter MIOS Studio bootloader protocol SysEx messages (F0 00 00 7E 32/40 ...)
+  // These are sent automatically by MIOS Studio and can interfere with normal operation
+  if (msg->type == ROUTER_MSG_SYSEX && msg->data && msg->len >= 5) {
+    // Check for MIOS32/Bootloader manufacturer ID: F0 00 00 7E
+    if (msg->data[0] == 0xF0 && msg->data[1] == 0x00 && 
+        msg->data[2] == 0x00 && msg->data[3] == 0x7E) {
+      // Check device ID byte
+      uint8_t device_id = msg->data[4];
+      // 0x32 = MIOS32 query/response, 0x40 = Bootloader protocol
+      if (device_id == 0x32 || device_id == 0x40) {
+        // Block these messages from routing (they're only for bootloader/debug)
+        return;
+      }
+    }
+  }
 
   uint8_t status = msg->b0;
   uint8_t chan_voice = is_channel_voice(status);
