@@ -2401,37 +2401,73 @@ void module_test_router_run(void)
   dbg_print("Router test completed successfully!\r\n");
   dbg_print("\r\n");
   dbg_print("============================================================\r\n");
-  dbg_print("CONTINUOUS MONITORING MODE\r\n");
+  dbg_print("CONTINUOUS MIDI MONITORING MODE\r\n");
   dbg_print("============================================================\r\n");
-  dbg_print("Router is now active and processing MIDI.\r\n");
-  dbg_print("Send MIDI to any configured input to test routing.\r\n");
+  dbg_print("Router is active and monitoring ALL MIDI traffic.\r\n");
   dbg_print("\r\n");
-  dbg_print("Test with:\r\n");
-  dbg_print("  • DIN MIDI IN1-4 → Routes to configured outputs\r\n");
-  dbg_print("  • USB MIDI → Routes to DIN OUT2\r\n");
-  dbg_print("  • MIDI Monitor software to see routed messages\r\n");
+  dbg_print("Real-time MIDI Monitor Output:\r\n");
+  dbg_print("  • Displays incoming MIDI messages from DIN IN1-4\r\n");
+  dbg_print("  • Shows routing status: [ROUTED] or [FILTERED]\r\n");
+  dbg_print("  • Decodes message types (Note On/Off, CC, PC, PB, SysEx)\r\n");
+  dbg_print("  • Includes timestamps and raw hex bytes\r\n");
+  dbg_print("\r\n");
+  dbg_print("Send MIDI from your DAW/keyboard to DIN IN1 to see it here!\r\n");
   dbg_print("\r\n");
   dbg_print("Press Ctrl+C in debugger to stop\r\n");
   dbg_print("============================================================\r\n");
   dbg_print("\r\n");
   
-  // Continuous operation - process any incoming MIDI
+  // Full MIDI monitoring - continuously display incoming messages
+  // The MIDI Monitor service (initialized above) automatically captures
+  // all messages via router_tap_hook and displays them in real-time
+  // via dbg_printf() to UART2 debug console
+  
+  dbg_print("[Monitoring] Listening for MIDI messages...\r\n");
+  dbg_print("\r\n");
+  
   uint32_t tick_counter = 0;
+  uint32_t last_status_ms = osKernelGetTickCount();
+  
   for (;;) {
-    osDelay(1000);
+    osDelay(100);  // 100ms update rate for responsive monitoring
     tick_counter++;
     
-    // Periodic status update every 30 seconds
-    if (tick_counter % 30 == 0) {
-      // Recalculate active route count
+    uint32_t now_ms = osKernelGetTickCount();
+    
+    // Periodic status update every 60 seconds
+    if (now_ms - last_status_ms >= 60000) {
+      last_status_ms = now_ms;
+      
+      // Get routing statistics
       uint8_t active_routes = 0;
       for (uint8_t in = 0; in < ROUTER_NUM_NODES; in++) {
         for (uint8_t out = 0; out < ROUTER_NUM_NODES; out++) {
           if (router_get_route(in, out)) active_routes++;
         }
       }
-      dbg_printf("[%u min] Router running, %d active routes\r\n", 
-                 (unsigned int)(tick_counter / 60), active_routes);
+      
+      // Get MIDI monitor statistics
+      midi_monitor_stats_t stats;
+      midi_monitor_get_stats(&stats);
+      
+      dbg_print("\r\n");
+      dbg_print("============================================================\r\n");
+      dbg_printf("[Status Update - %u min uptime]\r\n", (unsigned int)(tick_counter / 600));
+      dbg_print("============================================================\r\n");
+      dbg_printf("Active Routes:    %d\r\n", active_routes);
+      dbg_printf("MIDI Messages:    %lu total, %lu dropped\r\n", 
+                 (unsigned long)stats.total_events, 
+                 (unsigned long)stats.dropped_events);
+      dbg_printf("  Notes:          %lu\r\n", (unsigned long)stats.note_events);
+      dbg_printf("  CC:             %lu\r\n", (unsigned long)stats.cc_events);
+      dbg_printf("  Pitch Bend:     %lu\r\n", (unsigned long)stats.pitch_bend_events);
+      dbg_printf("  Program Change: %lu\r\n", (unsigned long)stats.program_change_events);
+      dbg_printf("  SysEx:          %lu\r\n", (unsigned long)stats.sysex_events);
+      dbg_printf("  Realtime:       %lu\r\n", (unsigned long)stats.realtime_events);
+      dbg_print("============================================================\r\n");
+      dbg_print("\r\n");
+      dbg_print("[Monitoring] Continuing to listen for MIDI messages...\r\n");
+      dbg_print("\r\n");
     }
   }
   
