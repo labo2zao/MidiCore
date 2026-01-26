@@ -130,22 +130,27 @@ static uint8_t sd_send_cmd(uint8_t cmd, uint32_t arg)
 static int sd_read_datablock(uint8_t *buff, uint32_t btr)
 {
   uint8_t token;
-  uint32_t timeout = 50000;  // High timeout count for slow cards (up to 100ms per SD spec)
+  uint32_t i;
   
   // Wait for data packet (start token 0xFE)
+  // MIOS32 pattern: poll continuously for up to 65536 iterations
   // SD spec allows up to 100ms for card to respond with data token
-  // Don't use osDelay here - just poll continuously for better timing
-  do {
+  for (i = 0; i < 65536; ++i) {
     token = spi_transfer_byte(0xFF);
-  } while ((token == 0xFF) && --timeout);
+    if (token != 0xFF)
+      break;
+  }
   
   if (token != 0xFE) return 0;  // Invalid token or timeout
   
   // Read data block
   spibus_rx(SPIBUS_DEV_SD, buff, btr, 500);
   
-  // Discard CRC (2 bytes)
+  // Read (and ignore) CRC
   spi_transfer_byte(0xFF);
+  spi_transfer_byte(0xFF);
+  
+  // Required for clocking (MIOS32 pattern - see spec)
   spi_transfer_byte(0xFF);
   
   return 1;
@@ -351,11 +356,11 @@ DRESULT sd_spi_read(BYTE *buff, DWORD sector, UINT count)
       
       // Stop transmission
       sd_send_cmd(SD_CMD12, 0);
+      
+      // Required for clocking after stop (MIOS32 pattern)
+      spi_transfer_byte(0xFF);
     }
   }
-  
-  // Deselect with dummy byte (MIOS32 pattern)
-  spi_transfer_byte(0xFF);
   
   spibus_end(SPIBUS_DEV_SD);
   
