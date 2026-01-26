@@ -143,8 +143,16 @@ static void process_byte(uint8_t port, uint8_t b)
       // End of SysEx, flush remaining and reset.
       dispatch_sysex_chunk(port, c->sysex_buf, c->sysex_len, 1);
       sysex_reset(c);
+    } else if (b >= 0x80) {
+      // Unexpected status byte during SysEx - abort and process new status
+      // This handles malformed SysEx that's missing F7 terminator
+      dispatch_sysex_chunk(port, c->sysex_buf, c->sysex_len, 1);
+      sysex_reset(c);
+      // Fall through to process this status byte
+    } else {
+      // Normal SysEx data byte
+      return;
     }
-    return;
   }
 
   if (b & 0x80) {
@@ -156,6 +164,14 @@ static void process_byte(uint8_t port, uint8_t b)
       sysex_reset(c);
       c->in_sysex = 1;
       sysex_push_byte(port, c, b);
+      return;
+    }
+
+    if (exp == 0) {
+      // Unknown/invalid status byte - ignore and reset parser state
+      c->idx = 0;
+      c->expected = 0;
+      c->running_status = 0;
       return;
     }
 
@@ -190,6 +206,16 @@ static void process_byte(uint8_t port, uint8_t b)
       c->msg[0] = c->running_status;
       c->idx = 1;
       c->expected = midi_expected_len(c->running_status);
+      
+      // Safety check: ensure expected length is valid
+      if (c->expected == 0 || c->expected > 3) {
+        // Invalid running status - clear and ignore
+        c->running_status = 0;
+        c->idx = 0;
+        c->expected = 0;
+        c->stats.rx_stray_data++;
+        return;
+      }
     } else {
       // Stray data byte: ignore
       c->stats.rx_stray_data++;

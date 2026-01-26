@@ -1047,13 +1047,15 @@ void module_test_midi_din_run(void)
   
   // Configure routing: UART MIDI Port 0 (DIN IN1 → DIN OUT1)
   // This test uses UART MIDI IN/OUT Port 0, which maps to:
-  //   - DIN IN1  = ROUTER_NODE_DIN_IN1  (node 0) = USART2 RX
-  //   - DIN OUT1 = ROUTER_NODE_DIN_OUT1 (node 4) = USART2 TX
+  //   - DIN IN1  = ROUTER_NODE_DIN_IN1  (node 0) = USART1 RX (PA10)
+  //   - DIN OUT1 = ROUTER_NODE_DIN_OUT1 (node 4) = USART1 TX (PA9)
   // See Config/router_config.h for complete node mapping
+  // Note: USART2 is reserved for GDB debug output (115200 baud)
   router_set_route(ROUTER_NODE_DIN_IN1, ROUTER_NODE_DIN_OUT1, 1);  // Enable IN1→OUT1
   router_set_chanmask(ROUTER_NODE_DIN_IN1, ROUTER_NODE_DIN_OUT1, ROUTER_CHMASK_ALL);  // All 16 channels
   dbg_print("Router configured: UART MIDI Port 0 (DIN IN1 → DIN OUT1)\r\n");
-  dbg_print("  Hardware: USART2 (PA2=TX, PA3=RX)\r\n");
+  dbg_print("  Hardware: USART1 (PA9=TX, PA10=RX) @ 31250 baud\r\n");
+  dbg_print("  Note: USART2 reserved for GDB debug @ 115200 baud\r\n");
 #endif
 
 #if MODULE_ENABLE_LIVEFX
@@ -1095,7 +1097,7 @@ void module_test_midi_din_run(void)
   dbg_print("\r\n");
   
   dbg_print("Features:\r\n");
-  dbg_print("  1. MIDI I/O: UART MIDI Port 0 (DIN IN1 → DIN OUT1, USART2)\r\n");
+  dbg_print("  1. MIDI I/O: UART MIDI Port 0 (DIN IN1 → DIN OUT1, USART1 PA9/PA10)\r\n");
 #if MODULE_ENABLE_LIVEFX
   dbg_print("  2. LiveFX: Transpose, velocity scale, force-to-scale\r\n");
   dbg_print("  3. MIDI Learn: Map CC messages to LiveFX parameters\r\n");

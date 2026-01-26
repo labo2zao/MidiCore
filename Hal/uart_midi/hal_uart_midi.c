@@ -13,24 +13,21 @@
 
 // ---- Port mapping -----------------------------------------------------------
 // IMPORTANT:
-// In this project, USART1 is used as the debug UART (115200). Do NOT map a MIDI
-// DIN port to USART1, or you'll get no MIDI events.
+// In this project, USART2 is used as the debug UART (GDB/115200).
+// USART1 is configured for MIDI (31250 baud).
 //
 // We map DIN ports to the UARTs that are configured at 31250 in Core/Src/main.c.
 //
-// Convention (match MIOS32):
+// Convention (match user hardware):
 //   - DIN1 is the primary DIN port
 //   - DIN1 corresponds to Port 0
 //
-// MIOS32 STM32F4 backend uses (see mios32/STM32F4xx/mios32_uart.c):
-//   UART0 = USART2 (PA2/PA3)
-//   UART1 = USART3 (PD8/PD9)
-//   UART3 = UART5  (PC12/PD2)
+// User Configuration:
+//   Port 0 (DIN1, primary) -> USART1 (huart1) PA9=TX, PA10=RX  [MIDI OUT1/IN1]
+//   Port 1 (DIN2)          -> USART3 (huart3) PD8/PD9          [MIDI OUT2/IN2]
+//   Port 2 (DIN3)          -> UART5  (huart5) PC12/PD2         [MIDI OUT3/IN3]
 //
-// Therefore we map:
-//   Port 0 (DIN1, primary) -> USART2 (huart2)  [MIOS32 UART0]
-//   Port 1 (DIN2)          -> USART3 (huart3)  [MIOS32 UART1]
-//   Port 2 (DIN3)          -> UART5  (huart5)  [MIOS32 UART3]
+// Note: USART2 is reserved for debug (GDB/UART monitor)
 
 #ifndef MIDI_DIN_PORTS
 #define MIDI_DIN_PORTS 4
@@ -45,17 +42,17 @@ extern UART_HandleTypeDef huart5; // UART5
 #ifdef TEST_MIDI_DIN_UART_PORT
 #define MIDI_DIN_PRIMARY_UART_PORT TEST_MIDI_DIN_UART_PORT
 #else
-#define MIDI_DIN_PRIMARY_UART_PORT 1
+#define MIDI_DIN_PRIMARY_UART_PORT 0  // Default to USART1 (Port 0 = Index 0)
 #endif
 #endif
 
 static UART_HandleTypeDef* midi_uart_from_index(uint8_t idx)
 {
   switch (idx) {
-    case 0: return &huart1;
-    case 1: return &huart2;
-    case 2: return &huart3;
-    case 3: return &huart5;
+    case 0: return &huart1;   // USART1: PA9=TX, PA10=RX (MIDI Port 0)
+    case 1: return &huart3;   // USART3: PD8/PD9 (MIDI Port 1)
+    case 2: return &huart5;   // UART5: PC12/PD2 (MIDI Port 2)
+    case 3: return NULL;      // Port 3 not configured
     default: return NULL;
   }
 }
@@ -100,10 +97,12 @@ static void start_rx_it(int port)
 
 HAL_StatusTypeDef hal_uart_midi_init(void)
 {
+  // Map MIDI ports to UART handles
+  // Port 0 (DIN1) uses MIDI_DIN_PRIMARY_UART_PORT index (default: 0 = USART1)
   s_midi_uarts[0] = midi_uart_from_index(MIDI_DIN_PRIMARY_UART_PORT);
-  s_midi_uarts[1] = &huart3; // Port 1 -> DIN2 [MIOS32 UART1]
-  s_midi_uarts[2] = &huart5; // Port 2 -> DIN3 [MIOS32 UART3]
-  s_midi_uarts[3] = NULL;
+  s_midi_uarts[1] = midi_uart_from_index(1); // Port 1 -> USART3
+  s_midi_uarts[2] = midi_uart_from_index(2); // Port 2 -> UART5
+  s_midi_uarts[3] = midi_uart_from_index(3); // Port 3 -> Not configured
 
   memset(s_rx, 0, sizeof(s_rx));
 
