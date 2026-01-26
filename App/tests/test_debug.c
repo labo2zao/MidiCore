@@ -73,7 +73,14 @@ int test_debug_init(void)
   // Initialize OLED hardware (production-grade Newhaven NHD-3.12-25664 init)
   oled_init_newhaven();
   
-  dbg_print("OLED hardware initialized, enabling debug mirroring...\r\n");
+  dbg_print("OLED hardware initialized, clearing display...\r\n");
+  
+  // CRITICAL: Clear framebuffer and flush to display to wake up the screen
+  // Without this, the display stays black even though it's initialized
+  oled_clear();
+  oled_flush();
+  
+  dbg_print("OLED display cleared and flushed, enabling debug mirroring...\r\n");
   
   // Initialize OLED mirroring subsystem for debug output
   oled_mirror_init();
