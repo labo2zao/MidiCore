@@ -449,6 +449,8 @@ DRESULT sd_spi_read(BYTE *buff, DWORD sector, UINT count)
  */
 DRESULT sd_spi_write(const BYTE *buff, DWORD sector, UINT count)
 {
+  uint8_t cmd_res;
+  
   if (sd_status & STA_NOINIT) return RES_NOTRDY;
   if (!count) return RES_PARERR;
   if (sd_status & STA_PROTECT) return RES_WRPRT;
@@ -461,26 +463,35 @@ DRESULT sd_spi_write(const BYTE *buff, DWORD sector, UINT count)
   spibus_begin(SPIBUS_DEV_SD);
   
   if (count == 1) {
-    // Single block write
-    if (sd_send_cmd(SD_CMD24, sector) == 0) {
+    // Single block write - MIOS32 pattern
+    // CMD24: WRITE_BLOCK
+    cmd_res = sd_send_cmd(SD_CMD24, sector);
+    if (cmd_res == 0) {
+      // CMD24 accepted, now send data block
       if (sd_write_datablock(buff, 0xFE)) {
-        count = 0;
+        count = 0;  // Success
       }
     }
   } else {
-    // Multiple block write
-    if (sd_card_type != SD_TYPE_UNKNOWN && sd_send_cmd(SD_CMD55 | 0x80, 0) <= 1 &&
-        sd_send_cmd(23, count) == 0) {  // ACMD23 - pre-erase
-      // Send write multiple command
-      if (sd_send_cmd(SD_CMD25, sector) == 0) {
-        do {
-          if (!sd_write_datablock(buff, 0xFC)) break;
-          buff += 512;
-        } while (--count);
-        
-        // Send stop token
-        if (!sd_write_datablock(0, 0xFD)) {
-          count = 1;
+    // Multiple block write - MIOS32 pattern
+    // First send ACMD23 to set number of blocks to pre-erase
+    if (sd_card_type != SD_TYPE_UNKNOWN) {
+      // Send CMD55 to indicate next command is application-specific
+      if (sd_send_cmd(SD_CMD55, 0) <= 1) {
+        // Send ACMD23 (SET_WR_BLK_ERASE_COUNT) - pre-erase blocks
+        if (sd_send_cmd(SD_CMD23, count) == 0) {
+          // Now send CMD25 (WRITE_MULTIPLE_BLOCK)
+          if (sd_send_cmd(SD_CMD25, sector) == 0) {
+            do {
+              if (!sd_write_datablock(buff, 0xFC)) break;  // Multi-block token
+              buff += 512;
+            } while (--count);
+            
+            // Send stop transmission token
+            if (!sd_write_datablock(0, 0xFD)) {
+              count = 1;  // Error
+            }
+          }
         }
       }
     }
