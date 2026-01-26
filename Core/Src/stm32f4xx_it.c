@@ -244,4 +244,44 @@ void OTG_FS_IRQHandler(void)
 
 /* USER CODE BEGIN 1 */
 
+// UART interrupt handlers for MIDI DIN reception
+// These must be defined to enable interrupt-driven MIDI input
+
+extern UART_HandleTypeDef huart1; // USART1
+extern UART_HandleTypeDef huart2; // USART2
+extern UART_HandleTypeDef huart3; // USART3
+extern UART_HandleTypeDef huart5; // UART5
+
+/**
+  * @brief This function handles USART1 global interrupt (MIDI DIN3 / USB OTG shared)
+  */
+void USART1_IRQHandler(void)
+{
+  HAL_UART_IRQHandler(&huart1);
+}
+
+/**
+  * @brief This function handles USART2 global interrupt (MIDI DIN1 - Primary)
+  */
+void USART2_IRQHandler(void)
+{
+  HAL_UART_IRQHandler(&huart2);
+}
+
+/**
+  * @brief This function handles USART3 global interrupt (MIDI DIN2)
+  */
+void USART3_IRQHandler(void)
+{
+  HAL_UART_IRQHandler(&huart3);
+}
+
+/**
+  * @brief This function handles UART5 global interrupt (MIDI DIN4)
+  */
+void UART5_IRQHandler(void)
+{
+  HAL_UART_IRQHandler(&huart5);
+}
+
 /* USER CODE END 1 */

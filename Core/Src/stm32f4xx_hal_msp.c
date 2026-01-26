@@ -615,7 +615,9 @@ void HAL_UART_MspInit(UART_HandleTypeDef* huart)
     HAL_GPIO_Init(MIDI4_IN_GPIO_Port, &GPIO_InitStruct);
 
     /* USER CODE BEGIN UART5_MspInit 1 */
-
+    // Enable UART5 interrupt for MIDI DIN reception (interrupt-driven RX)
+    HAL_NVIC_SetPriority(UART5_IRQn, 5, 0);
+    HAL_NVIC_EnableIRQ(UART5_IRQn);
     /* USER CODE END UART5_MspInit 1 */
   }
   else if(huart->Instance==USART1)
@@ -647,7 +649,9 @@ void HAL_UART_MspInit(UART_HandleTypeDef* huart)
     HAL_GPIO_Init(MIDI3_IN_GPIO_Port, &GPIO_InitStruct);
 
     /* USER CODE BEGIN USART1_MspInit 1 */
-
+    // Enable USART1 interrupt for MIDI DIN reception (interrupt-driven RX)
+    HAL_NVIC_SetPriority(USART1_IRQn, 5, 0);
+    HAL_NVIC_EnableIRQ(USART1_IRQn);
     /* USER CODE END USART1_MspInit 1 */
   }
   else if(huart->Instance==USART2)
@@ -671,7 +675,9 @@ void HAL_UART_MspInit(UART_HandleTypeDef* huart)
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
     /* USER CODE BEGIN USART2_MspInit 1 */
-
+    // Enable USART2 interrupt for MIDI DIN reception (interrupt-driven RX)
+    HAL_NVIC_SetPriority(USART2_IRQn, 5, 0);
+    HAL_NVIC_EnableIRQ(USART2_IRQn);
     /* USER CODE END USART2_MspInit 1 */
   }
   else if(huart->Instance==USART3)
@@ -714,7 +720,9 @@ void HAL_UART_MspInit(UART_HandleTypeDef* huart)
     __HAL_LINKDMA(huart,hdmarx,hdma_usart3_rx);
 
     /* USER CODE BEGIN USART3_MspInit 1 */
-
+    // Enable USART3 interrupt for MIDI DIN reception (interrupt-driven RX)
+    HAL_NVIC_SetPriority(USART3_IRQn, 5, 0);
+    HAL_NVIC_EnableIRQ(USART3_IRQn);
     /* USER CODE END USART3_MspInit 1 */
   }
 
