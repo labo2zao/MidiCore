@@ -462,12 +462,18 @@ DRESULT sd_spi_write(const BYTE *buff, DWORD sector, UINT count)
   
   spibus_begin(SPIBUS_DEV_SD);
   
+  // Small delay to ensure card is ready for write operation
+  // This matches MIOS32 timing and prevents issues at full speed
+  spi_transfer_byte(0xFF);
+  
   if (count == 1) {
     // Single block write - MIOS32 pattern
     // CMD24: WRITE_BLOCK
     cmd_res = sd_send_cmd(SD_CMD24, sector);
     if (cmd_res == 0) {
-      // CMD24 accepted, now send data block
+      // CMD24 accepted, add small delay before data block (MIOS32 timing)
+      spi_transfer_byte(0xFF);
+      // Now send data block
       if (sd_write_datablock(buff, 0xFE)) {
         count = 0;  // Success
       }
@@ -478,10 +484,16 @@ DRESULT sd_spi_write(const BYTE *buff, DWORD sector, UINT count)
     if (sd_card_type != SD_TYPE_UNKNOWN) {
       // Send CMD55 to indicate next command is application-specific
       if (sd_send_cmd(SD_CMD55, 0) <= 1) {
+        // Small delay between CMD55 and ACMD23 for card processing
+        spi_transfer_byte(0xFF);
         // Send ACMD23 (SET_WR_BLK_ERASE_COUNT) - pre-erase blocks
         if (sd_send_cmd(SD_CMD23, count) == 0) {
+          // Small delay between ACMD23 and CMD25 for card processing
+          spi_transfer_byte(0xFF);
           // Now send CMD25 (WRITE_MULTIPLE_BLOCK)
           if (sd_send_cmd(SD_CMD25, sector) == 0) {
+            // Small delay before first data block
+            spi_transfer_byte(0xFF);
             do {
               if (!sd_write_datablock(buff, 0xFC)) break;  // Multi-block token
               buff += 512;
