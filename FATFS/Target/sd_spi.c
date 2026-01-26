@@ -285,9 +285,15 @@ DSTATUS sd_spi_initialize(void)
         osDelay(1);
       }
       
-      // Set block length to 512 bytes for SDv1/MMC
-      if (!tmr || sd_send_cmd(SD_CMD16, 512) != 0) {
+      // Set block length to 512 bytes for SDv1/MMC (SDHC already fixed at 512)
+      // IMPORTANT: SDHC cards don't need/support CMD16 - they're always 512-byte blocks
+      if (!tmr) {
         ty = SD_TYPE_UNKNOWN;
+      } else if (ty != SD_TYPE_SDHC) {
+        // Only send CMD16 for SDv1/MMC cards
+        if (sd_send_cmd(SD_CMD16, 512) != 0) {
+          ty = SD_TYPE_UNKNOWN;
+        }
       }
     }
   }
