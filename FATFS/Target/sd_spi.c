@@ -202,13 +202,16 @@ static int sd_write_datablock(const BYTE *buff, BYTE token)
     spi_transfer_byte(0xFF);
     spi_transfer_byte(0xFF);
     
-    // Receive data response (wait for non-0xFF byte)
+    // Receive data response (wait for valid response byte)
     // CRITICAL: Card may take several clock cycles to respond
-    // Poll until we get a non-0xFF response (MIOS32 pattern)
+    // Wait for: NOT 0xFF (card idle) AND NOT 0x00 (card busy)
+    // Valid response has pattern xxx0xxx1 (bit 0 = 1, bit 7 = 0)
+    // MIOS32 pattern: Poll until valid data response received
     uint16_t timeout = 0xFFFF;
     do {
       resp = spi_transfer_byte(0xFF);
-      if ((resp & 0x80) == 0) break;  // Got response (bit 7 = 0)
+      // Check for valid data response: bit 0 must be 1, and not 0xFF
+      if (resp != 0xFF && resp != 0x00) break;  // Got valid response
     } while (--timeout);
     
     if (timeout == 0 || (resp & 0x1F) != 0x05) {
