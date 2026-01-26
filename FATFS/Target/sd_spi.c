@@ -419,6 +419,12 @@ DRESULT sd_spi_ioctl(BYTE cmd, void *buff)
       }
       break;
       
+    case GET_SECTOR_SIZE:
+      // Return sector size (always 512 for SD cards)
+      *(WORD*)buff = 512;
+      res = RES_OK;
+      break;
+      
     case GET_BLOCK_SIZE:
       // Get erase block size (in unit of sector)
       *(DWORD*)buff = 128;
