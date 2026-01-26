@@ -6,6 +6,7 @@
 #include "App/tests/module_tests.h"
 #include "App/tests/test_debug.h"
 #include "App/tests/test_config_runtime.h"
+#include "App/tests/test_oled_mirror.h"
 #include "Config/module_config.h"
 
 #include "cmsis_os2.h"
@@ -13,6 +14,7 @@
 #include <stdbool.h>
 #include <math.h>
 #include <stdlib.h>
+#include <stdio.h>  // for snprintf
 
 // UI framework for framebuffer-based testing
 #include "Services/ui/ui_page_oled_test.h"
@@ -390,7 +392,8 @@ int module_tests_run(module_test_t test)
       return module_test_oled_ssd1322_run();
       
     case MODULE_TEST_FOOTSWITCH_ID:
-      module_test_footswitch_run();
+      // Footswitch test not yet implemented
+      dbg_print("Footswitch test not yet implemented\r\n");
       break;
       
     case MODULE_TEST_ALL_ID:
