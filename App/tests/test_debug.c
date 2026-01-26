@@ -74,13 +74,11 @@ int test_debug_init(void)
 
 void dbg_putc(char c)
 {
-#if !(MODULE_ENABLE_OLED && MODULE_ENABLE_UI)
-  // Only use UART debug when OLED is not available
+  // Always output to UART debug
   UART_HandleTypeDef* huart = get_debug_uart_handle();
   HAL_UART_Transmit(huart, (uint8_t*)&c, 1, 100);
-#endif
   
-  // Always mirror to OLED if enabled (primary debug output in test mode)
+  // Also mirror to OLED if enabled (optional secondary output)
   if (oled_mirror_is_enabled()) {
     char str[2] = {c, '\0'};
     oled_mirror_print(str);
@@ -94,13 +92,11 @@ void dbg_print(const char* str)
   size_t len = strlen(str);
   if (len == 0) return;
   
-#if !(MODULE_ENABLE_OLED && MODULE_ENABLE_UI)
-  // Only use UART debug when OLED is not available
+  // Always output to UART debug
   UART_HandleTypeDef* huart = get_debug_uart_handle();
   HAL_UART_Transmit(huart, (const uint8_t*)str, len, 1000);
-#endif
   
-  // Always mirror to OLED if enabled (primary debug output in test mode)
+  // Also mirror to OLED if enabled (optional secondary output)
   if (oled_mirror_is_enabled()) {
     oled_mirror_print(str);
   }

@@ -95,16 +95,11 @@ extern "C" {
  * 
  * Call this before using dbg_print functions.
  * 
- * **Test Mode with OLED (MODULE_ENABLE_OLED active):**
- * - Automatically initializes OLED debug mirroring
- * - Enables OLED as PRIMARY debug output (no UART debug)
- * - All dbg_print() and dbg_printf() calls go to OLED only
- * - All 4 MIDI DIN ports remain available for MIDI @ 31250 baud
- * - Call dbg_mirror_update() periodically (e.g. every 100ms) to refresh display
- * 
- * **Test Mode without OLED:**
- * - Uses configured UART for debug @ 115200 baud
- * - MIDI DIN ports still available on other UARTs
+ * **Behavior:**
+ * - Reconfigures TEST_DEBUG_UART_PORT to 115200 baud for debug output
+ * - All other UARTs remain at 31250 baud for MIDI
+ * - If MODULE_ENABLE_OLED is active, also mirrors output to OLED display
+ * - UART debug is ALWAYS active (OLED is optional secondary output)
  * 
  * @return 0 on success, negative on error
  */
@@ -268,22 +263,14 @@ void gdb_ptin_SPI_Pinout(const char* label,
  * 
  * Call periodically (e.g. every 100ms) to refresh OLED with debug output.
  * 
- * **Test Mode with OLED (recommended pattern):**
- * @code
- *   test_debug_init();  // Auto-enables OLED as primary debug output
- *   
- *   while (1) {
- *     dbg_printf("Value: %d\n", sensor_value);
- *     osDelay(100);
- *     dbg_mirror_update();  // Refresh OLED every 100ms - REQUIRED!
- *   }
- * @endcode
- * 
  * When MODULE_ENABLE_OLED is active:
  * - OLED mirroring is automatically enabled by test_debug_init()
- * - All dbg_print() and dbg_printf() output is captured
- * - NO UART debug output (all 4 MIDI ports available for MIDI)
- * - THIS FUNCTION MUST BE CALLED to see output on OLED
+ * - Debug output appears on BOTH UART and OLED
+ * - Call this function periodically to refresh OLED display
+ * 
+ * When MODULE_ENABLE_OLED is NOT active:
+ * - This function does nothing
+ * - Debug output only appears on UART
  */
 void dbg_mirror_update(void);
 
