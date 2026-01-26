@@ -73,25 +73,18 @@ int test_debug_init(void)
   // Initialize OLED hardware (production-grade Newhaven NHD-3.12-25664 init)
   oled_init_newhaven();
   
-  dbg_print("OLED hardware initialized, clearing display...\r\n");
+  dbg_print("OLED hardware initialized, drawing test pattern (MIOS32 method)...\r\n");
   
-  // CRITICAL: Clear framebuffer and flush to display to wake up the screen
-  // Without this, the display stays black even though it's initialized
-  oled_clear();
-  dbg_print("Framebuffer cleared, flushing to display GRAM...\r\n");
-  oled_flush();
+  // CRITICAL FIX: Use the SAME method as the working OLED test
+  // The oled_test functions write DIRECTLY to OLED using cmd()/data()
+  // This bypasses the framebuffer and proves SPI/display are working
+  oled_test_mios32_pattern();
   
-  // Add visible test pattern to verify OLED is actually working
-  dbg_print("OLED flushed, drawing test pattern (horizontal lines)...\r\n");
-  uint8_t* fb = oled_framebuffer();
-  // Draw horizontal white lines every 8 rows to make display obviously visible
-  for (int row = 0; row < 64; row += 8) {
-    memset(&fb[row * 128], 0xFF, 128);
-  }
-  oled_flush();
-  dbg_print("Test pattern drawn and flushed, enabling debug mirroring...\r\n");
+  dbg_print("MIOS32 test pattern drawn (should show gradient + white), waiting 2 sec...\r\n");
+  osDelay(2000);
   
-  // Initialize OLED mirroring subsystem for debug output
+  // Now initialize mirroring (which uses framebuffer method)
+  dbg_print("Initializing OLED mirroring subsystem...\r\n");
   oled_mirror_init();
   oled_mirror_set_enabled(1);  // Enable by default for better user experience
   
