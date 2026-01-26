@@ -6016,8 +6016,8 @@ int module_test_patch_sd_run(void)
   patch_set("TEST_PARAM_1", TEST_VALUE_1);
   patch_set("TEST_PARAM_2", TEST_VALUE_2);
   
-  // Save to a test file
-  const char* test_config = "0:/test_config.ngc";
+  // Save to a test file (8.3 format: max 8 chars + 3 char extension)
+  const char* test_config = "0:/TESTCFG.NGC";
   dbg_printf("[DEBUG] Calling patch_save('%s')...\r\n", test_config);
   result = patch_save(test_config);
   dbg_printf("[DEBUG] patch_save returned %d\r\n", result);
