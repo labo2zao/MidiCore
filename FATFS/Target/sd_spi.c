@@ -133,7 +133,7 @@ static int sd_read_datablock(uint8_t *buff, uint32_t btr)
   if (token != 0xFE) return 0;  // Invalid token
   
   // Read data block
-  spibus_receive(SPIBUS_DEV_SD, buff, btr);
+  spibus_rx(SPIBUS_DEV_SD, buff, btr, 500);
   
   // Discard CRC
   spi_transfer_byte( 0xFF);
@@ -159,7 +159,7 @@ static int sd_write_datablock(const BYTE *buff, BYTE token)
   
   if (token != 0xFD) {  // Not stop token
     // Send data block
-    spibus_transmit(SPIBUS_DEV_SD, buff, 512);
+    spibus_tx(SPIBUS_DEV_SD, buff, 512, 500);
     
     // Send dummy CRC
     spi_transfer_byte( 0xFF);
