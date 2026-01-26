@@ -69,6 +69,7 @@ typedef struct {
   uint8_t  len;              // Message length (1-3 for short messages, >3 for SysEx)
   uint8_t  data[16];         // MIDI bytes (up to 16 for partial SysEx display)
   uint8_t  is_sysex;         // 1 if this is a SysEx message
+  uint8_t  is_routed;        // 1 if message was routed, 0 if filtered/blocked
   uint16_t sysex_total_len;  // Total SysEx length if is_sysex=1
 } midi_monitor_event_t;
 
@@ -113,8 +114,9 @@ void midi_monitor_init(void);
  * @param data MIDI message bytes
  * @param len Message length (1-3)
  * @param timestamp_ms Timestamp in milliseconds
+ * @param is_routed 1 if message was routed, 0 if filtered/blocked
  */
-void midi_monitor_capture_short(uint8_t node, const uint8_t* data, uint8_t len, uint32_t timestamp_ms);
+void midi_monitor_capture_short(uint8_t node, const uint8_t* data, uint8_t len, uint32_t timestamp_ms, uint8_t is_routed);
 
 /**
  * @brief Capture a SysEx message
@@ -122,8 +124,9 @@ void midi_monitor_capture_short(uint8_t node, const uint8_t* data, uint8_t len, 
  * @param data SysEx data (including F0 and F7)
  * @param len Total SysEx length
  * @param timestamp_ms Timestamp in milliseconds
+ * @param is_routed 1 if message was routed, 0 if filtered/blocked
  */
-void midi_monitor_capture_sysex(uint8_t node, const uint8_t* data, uint16_t len, uint32_t timestamp_ms);
+void midi_monitor_capture_sysex(uint8_t node, const uint8_t* data, uint16_t len, uint32_t timestamp_ms, uint8_t is_routed);
 
 /**
  * @brief Get number of events in buffer

@@ -11,6 +11,8 @@
 
 #include "Hal/uart_midi/hal_uart_midi.h"
 #include "Services/router/router.h"
+#include "Services/midi_monitor/midi_monitor.h"
+#include "cmsis_os2.h"
 
 #ifndef MIDI_DIN_SYSEX_CHUNK_SIZE
 #define MIDI_DIN_SYSEX_CHUNK_SIZE 64

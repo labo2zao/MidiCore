@@ -88,7 +88,7 @@ static uint8_t message_passes_filter(uint8_t node, const uint8_t* data, uint8_t 
   return 1;
 }
 
-static void print_to_uart(uint8_t node, const uint8_t* data, uint8_t len, uint32_t timestamp_ms)
+static void print_to_uart(uint8_t node, const uint8_t* data, uint8_t len, uint32_t timestamp_ms, uint8_t is_routed)
 {
   if (!config.uart_output) return;
 
@@ -98,8 +98,9 @@ static void print_to_uart(uint8_t node, const uint8_t* data, uint8_t len, uint32
   midi_monitor_get_node_name(node, node_name, sizeof(node_name));
   midi_monitor_decode_message(data, len, msg_decode, sizeof(msg_decode));
 
-  // Format: [timestamp] NODE >> Message | Raw bytes
-  dbg_printf("[%lu] %s >> %s | ", timestamp_ms, node_name, msg_decode);
+  // Format: [timestamp] NODE >> Message [ROUTED/FILTERED] | Raw bytes
+  const char* route_flag = is_routed ? "[ROUTED]" : "[FILTERED]";
+  dbg_printf("[%lu] %s >> %s %s | ", timestamp_ms, node_name, msg_decode, route_flag);
   
   for (uint8_t i = 0; i < len && i < 16; i++) {
     dbg_printf("%02X ", data[i]);
@@ -133,7 +134,7 @@ void midi_monitor_init(void)
   config.uart_output = MIDI_MONITOR_ENABLE_UART_OUTPUT;
 }
 
-void midi_monitor_capture_short(uint8_t node, const uint8_t* data, uint8_t len, uint32_t timestamp_ms)
+void midi_monitor_capture_short(uint8_t node, const uint8_t* data, uint8_t len, uint32_t timestamp_ms, uint8_t is_routed)
 {
   if (!config.enabled || !data || len == 0 || len > 3)
     return;
@@ -160,8 +161,8 @@ void midi_monitor_capture_short(uint8_t node, const uint8_t* data, uint8_t len, 
     }
   }
 
-  // Print to UART if enabled
-  print_to_uart(node, data, len, timestamp_ms);
+  // Print to UART debug if enabled
+  print_to_uart(node, data, len, timestamp_ms, is_routed);
 
   // Add to circular buffer
   if (buffer_full) {
@@ -174,17 +175,17 @@ void midi_monitor_capture_short(uint8_t node, const uint8_t* data, uint8_t len, 
   event->node = node;
   event->len = len;
   event->is_sysex = 0;
+  event->is_routed = is_routed;
   event->sysex_total_len = 0;
-  
   memcpy(event->data, data, len);
-  
+
   event_head = buffer_next(event_head);
   if (event_head == event_tail) {
     buffer_full = 1;
   }
 }
 
-void midi_monitor_capture_sysex(uint8_t node, const uint8_t* data, uint16_t len, uint32_t timestamp_ms)
+void midi_monitor_capture_sysex(uint8_t node, const uint8_t* data, uint16_t len, uint32_t timestamp_ms, uint8_t is_routed)
 {
   if (!config.enabled || !data || len == 0)
     return;
@@ -202,7 +203,7 @@ void midi_monitor_capture_sysex(uint8_t node, const uint8_t* data, uint16_t len,
   stats.sysex_count++;
 
   // Print to UART if enabled (show first 16 bytes)
-  print_to_uart(node, data, (len > 16) ? 16 : (uint8_t)len, timestamp_ms);
+  print_to_uart(node, data, (len > 16) ? 16 : (uint8_t)len, timestamp_ms, is_routed);
 
   // Add to circular buffer (store first 16 bytes)
   if (buffer_full) {
@@ -215,6 +216,7 @@ void midi_monitor_capture_sysex(uint8_t node, const uint8_t* data, uint16_t len,
   event->node = node;
   event->len = (len > 16) ? 16 : (uint8_t)len;
   event->is_sysex = 1;
+  event->is_routed = is_routed;
   event->sysex_total_len = len;
   
   memcpy(event->data, data, event->len);

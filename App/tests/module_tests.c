@@ -2263,27 +2263,92 @@ void module_test_router_run(void)
   dbg_print("\r\n  ✓ Channel filtering validated\r\n");
   dbg_print("\r\n");
   
-  // Phase 8: Complete routing table display
+  // Phase 8: Complete routing table display (MIOS32-style)
   dbg_print("============================================================\r\n");
   dbg_print("[Phase 8] Final Routing Table\r\n");
   dbg_print("============================================================\r\n");
   
-  dbg_print("\r\nActive Routes Summary:\r\n");
-  dbg_print("  From       → To          Ch.Mask  Label\r\n");
-  dbg_print("  ----------------------------------------------------------\r\n");
+  // Helper function to get node name
+  const char* get_node_name(uint8_t node) {
+    switch(node) {
+      case ROUTER_NODE_DIN_IN1:  return "DIN_IN1 ";
+      case ROUTER_NODE_DIN_IN2:  return "DIN_IN2 ";
+      case ROUTER_NODE_DIN_IN3:  return "DIN_IN3 ";
+      case ROUTER_NODE_DIN_IN4:  return "DIN_IN4 ";
+      case ROUTER_NODE_DIN_OUT1: return "DIN_OUT1";
+      case ROUTER_NODE_DIN_OUT2: return "DIN_OUT2";
+      case ROUTER_NODE_DIN_OUT3: return "DIN_OUT3";
+      case ROUTER_NODE_DIN_OUT4: return "DIN_OUT4";
+      case ROUTER_NODE_USB_PORT0: return "USB_P0  ";
+      case ROUTER_NODE_USB_PORT1: return "USB_P1  ";
+      case ROUTER_NODE_USB_PORT2: return "USB_P2  ";
+      case ROUTER_NODE_USB_PORT3: return "USB_P3  ";
+      case ROUTER_NODE_USBH_IN:   return "USBH_IN ";
+      case ROUTER_NODE_USBH_OUT:  return "USBH_OUT";
+      case ROUTER_NODE_LOOPER:    return "LOOPER  ";
+      case ROUTER_NODE_KEYS:      return "KEYS    ";
+      default: return "UNKNOWN ";
+    }
+  }
+  
+  // Helper function to format channel mask as readable channel list
+  void format_channels(uint16_t chmask, char* buf, size_t buf_size) {
+    if (chmask == 0xFFFF) {
+      snprintf(buf, buf_size, "All (1-16)");
+      return;
+    }
+    if (chmask == 0) {
+      snprintf(buf, buf_size, "None");
+      return;
+    }
+    
+    // List individual channels
+    char* p = buf;
+    size_t remaining = buf_size;
+    int first = 1;
+    
+    for (int ch = 0; ch < 16; ch++) {
+      if (chmask & (1 << ch)) {
+        int written = snprintf(p, remaining, "%s%d", first ? "" : ",", ch + 1);
+        if (written > 0 && written < remaining) {
+          p += written;
+          remaining -= written;
+          first = 0;
+        }
+      }
+    }
+  }
+  
+  dbg_print("\r\nActive Routes (MIOS32-style):\r\n");
+  dbg_print("  In Port     Out Port    Channels      Label\r\n");
+  dbg_print("  ----------------------------------------------------------------\r\n");
   
   for (uint8_t in = 0; in < ROUTER_NUM_NODES; in++) {
     for (uint8_t out = 0; out < ROUTER_NUM_NODES; out++) {
       if (router_get_route(in, out)) {
         uint16_t chmask = router_get_chanmask(in, out);
         const char* label = router_get_label(in, out);
+        char ch_str[32];
         
-        dbg_printf("  Node %2d   → Node %2d   0x%04X  %s\r\n", 
-                   in, out, chmask, label ? label : "(no label)");
+        format_channels(chmask, ch_str, sizeof(ch_str));
+        
+        dbg_printf("  %s → %s  %-12s  %s\r\n", 
+                   get_node_name(in), 
+                   get_node_name(out), 
+                   ch_str,
+                   label ? label : "(no label)");
       }
     }
   }
   
+  dbg_print("\r\n");
+  dbg_print("Legend:\r\n");
+  dbg_print("  DIN_INx   = MIDI DIN Input ports (hardware UART)\r\n");
+  dbg_print("  DIN_OUTx  = MIDI DIN Output ports (hardware UART)\r\n");
+  dbg_print("  USB_Px    = USB Device MIDI ports (virtual cables)\r\n");
+  dbg_print("  USBH_x    = USB Host MIDI ports (OTG)\r\n");
+  dbg_print("  LOOPER    = Internal looper engine output\r\n");
+  dbg_print("  KEYS      = Custom keybed (AINSER/Hall sensors)\r\n");
   dbg_print("\r\n");
   
   // Test summary
