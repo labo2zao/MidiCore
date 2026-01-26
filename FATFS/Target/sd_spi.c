@@ -236,7 +236,9 @@ DSTATUS sd_spi_initialize(void)
       }
       
       // Check voltage range and check pattern
-      if (ocr[2] == 0x01 && ocr[3] == 0xAA) {
+      // R7 response format: [0]=reserved, [1]=voltage, [2]=pattern, [3]=reserved
+      // But actual bytes received: [0][1][2][3] where pattern=0xAA, voltage accepted=0x01
+      if (ocr[1] == 0x01 && ocr[2] == 0xAA) {
         // Voltage compatible - initialize with ACMD41
         for (tmr = 1000; tmr; tmr--) {
           // ACMD41 with HCS bit set for SDHC support
