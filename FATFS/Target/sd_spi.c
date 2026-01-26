@@ -128,13 +128,16 @@ static uint8_t sd_send_cmd(uint8_t cmd, uint32_t arg)
 /**
  * @brief Read a data block from SD card
  * @param buff Data buffer
- * @param btr Bytes to read (must be multiple of 4)
+ * @param btr Bytes to read (must be 512 for SD cards)
  * @retval 1 if success, 0 if failed
  */
 static int sd_read_datablock(uint8_t *buff, uint32_t btr)
 {
   uint8_t token;
   uint32_t i;
+  
+  // Safety check
+  if (!buff || btr != 512) return 0;
   
   // Wait for data packet (start token 0xFE)
   // MIOS32 pattern: poll continuously for up to 65536 iterations
@@ -147,8 +150,11 @@ static int sd_read_datablock(uint8_t *buff, uint32_t btr)
   
   if (token != 0xFE) return 0;  // Invalid token or timeout
   
-  // Read data block
-  spibus_rx(SPIBUS_DEV_SD, buff, btr, 500);
+  // Read data block byte-by-byte to avoid potential DMA/buffer issues
+  // CRITICAL: Use byte-by-byte read for compatibility
+  for (i = 0; i < btr; i++) {
+    buff[i] = spi_transfer_byte(0xFF);
+  }
   
   // Read (and ignore) CRC
   spi_transfer_byte(0xFF);
@@ -386,11 +392,19 @@ DRESULT sd_spi_read(BYTE *buff, DWORD sector, UINT count)
     }
   } else {
     // Multiple block read
+    // CRITICAL: Limit to reasonable size to prevent buffer overrun
+    if (count > 128) {
+      spibus_end(SPIBUS_DEV_SD);
+      return RES_PARERR;
+    }
+    
     cmd_res = sd_send_cmd(SD_CMD18, sector);
     if (cmd_res == 0) {
+      uint32_t blocks_read = 0;
       do {
         if (!sd_read_datablock(buff, 512)) break;
         buff += 512;
+        blocks_read++;
       } while (--count);
       
       // Stop transmission
@@ -398,6 +412,9 @@ DRESULT sd_spi_read(BYTE *buff, DWORD sector, UINT count)
       
       // Required for clocking after stop (MIOS32 pattern)
       spi_transfer_byte(0xFF);
+      
+      // Update count to reflect actual blocks read
+      count = blocks_read < count ? count - blocks_read : 0;
     }
   }
   
