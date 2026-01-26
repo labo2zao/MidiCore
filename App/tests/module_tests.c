@@ -1043,11 +1043,37 @@ void module_test_midi_din_run(void)
   // Initialize MIDI Monitor (new dedicated service for message inspection)
   dbg_print("Initializing MIDI Monitor...");
   midi_monitor_init();
-  midi_monitor_set_enabled(1);
-  midi_monitor_set_uart_output(1);  // Enable real-time UART output
+  
+  // Configure to monitor ALL ports and ALL channels
+  midi_monitor_config_t mon_cfg;
+  midi_monitor_get_config(&mon_cfg);
+  mon_cfg.enabled = 1;
+  mon_cfg.filter_node = 0xFF;        // 0xFF = ALL nodes (DIN, USB, internal)
+  mon_cfg.filter_channel = 0xFF;     // 0xFF = ALL channels (1-16)
+  mon_cfg.filter_msg_type = MIDI_MON_MSG_ALL;  // ALL message types
+  mon_cfg.show_sysex = 1;            // Show SysEx messages
+  mon_cfg.show_realtime = 1;         // Show realtime messages (Clock, Start, Stop, etc.)
+  mon_cfg.uart_output = 1;           // Enable real-time UART output
+  midi_monitor_set_config(&mon_cfg);
+  
   dbg_print(" OK\r\n");
-  dbg_print("  ✓ MIDI Monitor: Enabled with UART output\r\n");
-  dbg_print("  ✓ All MIDI messages will be displayed in real-time\r\n");
+  dbg_print("  ✓ MIDI Monitor: COMPREHENSIVE MODE ENABLED\r\n");
+  dbg_print("  ✓ Monitoring ALL ports:\r\n");
+  dbg_print("     - DIN IN1-4 (USART1, USART3, UART5)\r\n");
+  dbg_print("     - DIN OUT1-4 (all outputs)\r\n");
+  dbg_print("     - USB Device Ports 0-3 (4 virtual cables)\r\n");
+  dbg_print("     - USB Host IN/OUT\r\n");
+  dbg_print("     - Internal: Looper, Keys (AINSER/Hall)\r\n");
+  dbg_print("  ✓ Monitoring ALL channels: 1-16\r\n");
+  dbg_print("  ✓ Monitoring ALL message types:\r\n");
+  dbg_print("     - Notes (On/Off, Poly Pressure)\r\n");
+  dbg_print("     - Control Change (CC)\r\n");
+  dbg_print("     - Program Change, Channel Pressure\r\n");
+  dbg_print("     - Pitch Bend\r\n");
+  dbg_print("     - SysEx (shows first 16 bytes)\r\n");
+  dbg_print("     - Realtime (Clock, Start, Stop, Continue)\r\n");
+  dbg_print("     - System Common (MTC, Song Position)\r\n");
+  dbg_print("  ✓ Real-time UART output enabled\r\n");
   dbg_print("\r\n");
   
 #if MODULE_ENABLE_ROUTER
@@ -1127,6 +1153,21 @@ void module_test_midi_din_run(void)
 #else
   dbg_print("  2. LiveFX: DISABLED (enable MODULE_ENABLE_LIVEFX)\r\n");
 #endif
+  dbg_print("\r\n");
+  dbg_print("MIDI Monitor Output Format:\r\n");
+  dbg_print("  [timestamp_ms] NODE >> Decoded Message | Raw HEX bytes\r\n");
+  dbg_print("\r\n");
+  dbg_print("Example outputs:\r\n");
+  dbg_print("  [1234] DIN_IN1 >> NoteOn Ch:1 C4(60) Vel:100 | 90 3C 64\r\n");
+  dbg_print("  [1235] USB_P0  >> CC Ch:2 Modulation(1)=64 | B1 01 40\r\n");
+  dbg_print("  [1236] DIN_IN2 >> PitchBend Ch:1 Value:+2048 | E0 00 50\r\n");
+  dbg_print("  [1237] KEYS    >> NoteOff Ch:1 E4(64) Vel:0 | 80 40 00\r\n");
+  dbg_print("  [1238] LOOPER  >> ProgChange Ch:1 Prog:5 | C0 05\r\n");
+  dbg_print("  [1239] DIN_IN3 >> SysEx 19 bytes: F0 00 00 7E... | (first 16 shown)\r\n");
+  dbg_print("  [1240] USB_P1  >> Clock (0xF8) | F8\r\n");
+  dbg_print("  [1241] USBH_IN >> Start (0xFA) | FA\r\n");
+  dbg_print("\r\n");
+  dbg_print("Now monitoring... Send MIDI to any port to see real-time output!\r\n");
   dbg_print("\r\n");
   
 #if MODULE_ENABLE_LIVEFX
