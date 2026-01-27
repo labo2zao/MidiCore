@@ -11,6 +11,8 @@
 #include <string.h>
 
 #define ARP_PPQN 24  // Pulses per quarter note (MIDI standard)
+#define RANDOM_MULTIPLIER_A 13  // Prime number for pseudo-random calculation
+#define RANDOM_MULTIPLIER_B 7   // Prime number for pseudo-random calculation
 
 // Note buffer for arpeggiator
 typedef struct {
@@ -172,7 +174,7 @@ static uint8_t get_next_note(uint8_t* note, uint8_t* velocity) {
       
     case ARP_PATTERN_RANDOM:
       // Simple pseudo-random: use clock counter as seed
-      index = (clock_counter * 13 + current_step * 7) % note_count;
+      index = (clock_counter * RANDOM_MULTIPLIER_A + current_step * RANDOM_MULTIPLIER_B) % note_count;
       break;
       
     case ARP_PATTERN_AS_PLAYED:
@@ -193,10 +195,15 @@ static uint8_t get_next_note(uint8_t* note, uint8_t* velocity) {
  * Handles note triggering and gate timing.
  */
 void arp_on_clock_tick(void) {
-  if (!arp_enabled || note_count == 0) return;
+  if (!arp_enabled || note_count == 0 || rate_division == 0) return;
   
   clock_counter++;
+  
+  // Calculate clocks per step with bounds checking
   uint32_t clocks_per_step = ARP_PPQN / rate_division;
+  if (clocks_per_step == 0) {
+    clocks_per_step = 1;  // Minimum rate
+  }
   
   // Check if it's time for a new note
   if ((clock_counter % clocks_per_step) == 0) {
@@ -224,8 +231,11 @@ void arp_on_clock_tick(void) {
   }
   
   // Handle gate timing (note off before next note)
-  if (note_on_sent) {
+  if (note_on_sent && gate_length > 0) {
     uint32_t gate_ticks = (clocks_per_step * gate_length) / 100;
+    if (gate_ticks == 0) {
+      gate_ticks = 1;  // Minimum gate
+    }
     uint32_t elapsed = clock_counter - last_clock_tick;
     
     if (elapsed >= gate_ticks) {
