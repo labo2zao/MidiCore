@@ -52,18 +52,29 @@ USBD_ClassTypeDef USBD_CDC =
 /* USB CDC Device Configuration Descriptor */
 /* For composite device with MIDI, descriptors are built in usbd_desc.c */
 /* This is a standalone CDC descriptor for reference */
-__ALIGN_BEGIN static uint8_t USBD_CDC_CfgDesc[67] __ALIGN_END =
+#define USBD_CDC_CONFIG_DESC_SIZ  75U
+__ALIGN_BEGIN static uint8_t USBD_CDC_CfgDesc[USBD_CDC_CONFIG_DESC_SIZ] __ALIGN_END =
 {
   /* Configuration Descriptor */
   0x09,                                    /* bLength: Configuration Descriptor size */
   USB_DESC_TYPE_CONFIGURATION,             /* bDescriptorType: Configuration */
-  67,                                      /* wTotalLength */
-  0x00,
+  LOBYTE(USBD_CDC_CONFIG_DESC_SIZ),        /* wTotalLength */
+  HIBYTE(USBD_CDC_CONFIG_DESC_SIZ),
   0x02,                                    /* bNumInterfaces: 2 interfaces (Control + Data) */
   0x01,                                    /* bConfigurationValue: Configuration value */
   0x00,                                    /* iConfiguration: Index of string descriptor */
   0x80,                                    /* bmAttributes: Bus Powered */
   0xFA,                                    /* MaxPower 500 mA */
+
+  /* Interface Association Descriptor (IAD) */
+  0x08,                                    /* bLength */
+  0x0B,                                    /* bDescriptorType: IAD */
+  0x00,                                    /* bFirstInterface: Communication Interface */
+  0x02,                                    /* bInterfaceCount: 2 interfaces (CDC) */
+  CDC_COMMUNICATION_INTERFACE_CLASS,       /* bFunctionClass: CDC */
+  CDC_ABSTRACT_CONTROL_MODEL,              /* bFunctionSubClass: ACM */
+  CDC_PROTOCOL_COMMON_AT_COMMANDS,         /* bFunctionProtocol */
+  0x00,                                    /* iFunction */
   
   /*---------------------------------------------------------------------------*/
   /* Interface Descriptor 0: CDC Communication Interface */

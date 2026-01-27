@@ -20,9 +20,11 @@
 #include "stm32f4xx_hal.h"
 #include "Config/module_config.h"
 
-/* Enable USB composite device support when CDC is enabled */
-#if MODULE_ENABLE_USB_CDC
-#define USE_USBD_COMPOSITE     1
+/* CDC uses a custom composite class (usbd_composite) instead of the middleware
+ * composite builder. Keep USE_USBD_COMPOSITE undefined so the core routes all
+ * interface/endpoint requests through the single composite class. */
+#ifdef USE_USBD_COMPOSITE
+#undef USE_USBD_COMPOSITE
 #endif
 
 /*---------- -----------*/
