@@ -9,8 +9,12 @@
 #include "Services/patch/patch_sd_mount.h"
 #include "Services/midi/midi_router.h"
 #include "Services/usb_host_midi/usb_host_midi.h"
-
+#include "Services/cli/cli.h"
+#include "Services/cli/router_cli.h"
+#include "Services/ui/ui.h"
+#include "Hal/oled_ssd1322/oled_ssd1322.h"
 #include "Hal/uart_midi/hal_uart_midi.h"
+#include "App/tests/test_debug.h"
 
 #include <string.h>
 
@@ -58,20 +62,48 @@ static void app_test_din_output_cb(DIN_MapType type, uint8_t channel,
 void app_test_din_midi_run_forever(void)
 {
 #ifdef SRIO_ENABLE
+  // Initialize UART debug first
+  test_debug_init();
+  osDelay(100);
+  
+  dbg_print("\r\n==============================================\r\n");
+  dbg_print("DIN MIDI Test Mode\r\n");
+  dbg_print("==============================================\r\n\r\n");
+  
+  // Initialize OLED
+  dbg_print("Initializing OLED... ");
+  oled_init_newhaven();
+  ui_init();
+  dbg_print("OK\r\n");
+  
+  // Initialize CLI
+  dbg_print("Initializing CLI... ");
+  cli_init();
+  router_cli_register();
+  dbg_print("OK\r\n");
+  dbg_print("  Type 'help' for available commands\r\n");
+  dbg_print("  Type 'router matrix' to view routing\r\n\r\n");
+  
   // 0) SD + DIN mapping
+  dbg_print("Initializing SD and DIN mapping... ");
   if (patch_sd_mount_retry(3) == 0) {
     din_map_init_defaults((uint8_t)APP_TEST_MIDI_BASE_NOTE);
     din_map_set_output_cb(app_test_din_output_cb);
     (void)din_map_load_sd("0:/cfg/din_map.ngc");
+    dbg_print("OK (config loaded from SD)\r\n");
   } else {
     din_map_init_defaults((uint8_t)APP_TEST_MIDI_BASE_NOTE);
     din_map_set_output_cb(app_test_din_output_cb);
+    dbg_print("OK (using defaults)\r\n");
   }
 
   // 1) UART MIDI
+  dbg_print("Initializing UART MIDI... ");
   (void)hal_uart_midi_init();
+  dbg_print("OK\r\n");
 
   // 2) SRIO
+  dbg_print("Initializing SRIO... ");
   srio_config_t scfg = {
     .hspi              = SRIO_SPI_HANDLE,
     .din_pl_port       = SRIO_DIN_PL_PORT,
@@ -88,9 +120,21 @@ void app_test_din_midi_run_forever(void)
 
   memset(din_prev, 0xFF, sizeof(din_prev));
   (void)srio_read_din(din_prev);
+  dbg_print("OK\r\n\r\n");
+  
+  dbg_print("==============================================\r\n");
+  dbg_print("Test running. Press DIN buttons to send MIDI.\r\n");
+  dbg_print("Use CLI commands to control routing.\r\n");
+  dbg_print("==============================================\r\n\r\n");
 
-  // 3) Boucle principale
+  // 3) Main loop
   for (;;) {
+    // Process CLI commands
+    cli_task();
+    
+    // Update UI
+    ui_task();
+    
 #if APP_TEST_MIDI_USE_USBH
     usb_host_midi_task();
 #endif

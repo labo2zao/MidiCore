@@ -82,59 +82,6 @@ void ui_midi_monitor_capture(uint8_t node, const uint8_t* data, uint8_t len, uin
 }
 
 /**
- * @brief Decode MIDI message to human-readable string (compact, LoopA-style)
- */
-static void decode_midi_message(const uint8_t* data, uint8_t len, char* out, size_t out_size) {
-  if (len == 0) {
-    snprintf(out, out_size, "Empty");
-    return;
-  }
-  
-  uint8_t status = data[0];
-  uint8_t type = status & 0xF0;
-  uint8_t channel = (status & 0x0F) + 1;
-  
-  switch (type) {
-    case 0x80:  // Note Off
-      if (len >= 3) {
-        snprintf(out, out_size, "Off C%u N%u V%u", channel, data[1], data[2]);
-      }
-      break;
-    case 0x90:  // Note On
-      if (len >= 3) {
-        snprintf(out, out_size, "On  C%u N%u V%u", channel, data[1], data[2]);
-      }
-      break;
-    case 0xB0:  // Control Change
-      if (len >= 3) {
-        snprintf(out, out_size, "CC  C%u #%u=%u", channel, data[1], data[2]);
-      }
-      break;
-    case 0xC0:  // Program Change
-      if (len >= 2) {
-        snprintf(out, out_size, "PC  C%u P%u", channel, data[1]);
-      }
-      break;
-    case 0xE0:  // Pitch Bend
-      if (len >= 3) {
-        int bend = ((int)data[2] << 7) | data[1];
-        snprintf(out, out_size, "PB  C%u %+d", channel, bend - 8192);
-      }
-      break;
-    case 0xF0:  // System message
-      if (status == 0xF0) {
-        snprintf(out, out_size, "SysEx...");
-      } else {
-        snprintf(out, out_size, "Sys:0x%02X", status);
-      }
-      break;
-    default:
-      snprintf(out, out_size, "0x%02X", status);
-      break;
-  }
-}
-
-/**
  * @brief Render the MIDI monitor page
  */
 void ui_page_midi_monitor_render(uint32_t now_ms) {
