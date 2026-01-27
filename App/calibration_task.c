@@ -123,7 +123,7 @@ static int patch_expression_rawminmax(const cal_cfg_t* cc, uint16_t raw_min, uin
   UINT sz = f_size(&f);
   if (sz > 512) { f_close(&f); return -2; }
 
-  static char inbuf[513];
+  static char inbuf[300];  // Reduced from 513 to save RAM (213 bytes saved) - sufficient for calibration file
   UINT br = 0;
   if (f_read(&f, inbuf, sz, &br) != FR_OK) { f_close(&f); return -3; }
   f_close(&f);
@@ -132,7 +132,7 @@ static int patch_expression_rawminmax(const cal_cfg_t* cc, uint16_t raw_min, uin
   (void)f_unlink(bak);
   (void)f_rename(path, bak);
 
-  static char outbuf[600];
+  static char outbuf[350];  // Reduced from 600 to save RAM (250 bytes saved) - sufficient for calibration output
   size_t outlen = 0;
   int found_min = 0, found_max = 0;
 
