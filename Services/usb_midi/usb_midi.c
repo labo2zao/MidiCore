@@ -193,48 +193,101 @@ void usb_midi_send_packet(uint8_t cin, uint8_t b0, uint8_t b1, uint8_t b2) {
   }
 }
 
+/* CRITICAL FIX: Queue RX packet for deferred processing
+ * 
+ * This function is called from USB interrupt context. We MUST NOT do heavy processing
+ * here (router, MIOS32 queries, TX operations). Instead, queue the packet and return
+ * immediately. Processing happens in task context via usb_midi_process_rx_queue().
+ * 
+ * This fixes the freeze issue where MIOS32 query responses were being sent from
+ * RX interrupt, violating USB protocol and causing race conditions.
+ */
 void usb_midi_rx_packet(const uint8_t packet4[4]) {
-  /* Extract cable number (upper 4 bits) and CIN (lower 4 bits) - single operation */
-  const uint8_t header = packet4[0];
-  const uint8_t cable = header >> 4;
-  const uint8_t cin = header & 0x0F;
+  /* INTERRUPT CONTEXT - Keep this FAST! */
   
-  /* Fast cable validation and early return */
-  if (cable > 3) return;
+  /* Check if queue is full (should be rare with 16-deep queue) */
+  if (rx_queue_is_full()) {
+    /* Drop packet - queue overflow */
+    return;
+  }
   
-  /* Call debug hook if defined (after validation to reduce overhead) */
-  usb_midi_rx_debug_hook(packet4);
+  /* Copy packet to queue (4-byte copy is atomic on 32-bit CPU) */
+  rx_packet_t *pkt = &rx_queue[rx_queue_head];
+  pkt->packet[0] = packet4[0];
+  pkt->packet[1] = packet4[1];
+  pkt->packet[2] = packet4[2];
+  pkt->packet[3] = packet4[3];
   
-  /* Map cable 0-3 to USB_PORT0-3 nodes (like MIOS32's USB0-USB3) */
-  const uint8_t node = ROUTER_NODE_USB_PORT0 + cable;
+  /* Advance write pointer */
+  rx_queue_head = (rx_queue_head + 1) & (USB_MIDI_RX_QUEUE_SIZE - 1);
   
-  /* Handle SysEx messages (CIN 0x4-0x7) - optimized path */
-  if (cin >= 0x04 && cin <= 0x07) {
-    sysex_buffer_t* const buf = &sysex_buffers[cable];
-    const uint8_t num_bytes = cin_to_length[cin];
+  /* That's it! Processing happens in task context */
+}
+
+/* Process RX queue - MUST be called from task context (NOT interrupt!)
+ * 
+ * Call this from main loop or dedicated USB MIDI task. It processes all queued
+ * RX packets, assembles SysEx messages, handles MIOS32 queries, and routes to
+ * the MIDI router.
+ * 
+ * This function contains the actual processing logic that was previously in
+ * usb_midi_rx_packet() but is now properly deferred to task context.
+ */
+void usb_midi_process_rx_queue(void) {
+  /* TASK CONTEXT - Safe to do heavy processing and TX operations */
+  
+  /* Process all queued packets */
+  while (!rx_queue_is_empty()) {
+    /* Get next packet from queue */
+    rx_packet_t *pkt = &rx_queue[rx_queue_tail];
+    const uint8_t *packet4 = pkt->packet;
     
-    /* CIN 0x4: SysEx start or continue (3 bytes) */
-    if (cin == 0x04) {
-      /* If first byte is F0, start new SysEx */
-      if (packet4[1] == 0xF0) {
-        buf->pos = 0;
-        buf->active = 1;
-      }
+    /* Advance read pointer before processing (in case processing triggers more RX) */
+    rx_queue_tail = (rx_queue_tail + 1) & (USB_MIDI_RX_QUEUE_SIZE - 1);
+    
+    /* NOW do the actual processing (same logic as before, but in task context) */
+    
+    /* Extract cable number (upper 4 bits) and CIN (lower 4 bits) */
+    const uint8_t header = packet4[0];
+    const uint8_t cable = header >> 4;
+    const uint8_t cin = header & 0x0F;
+    
+    /* Fast cable validation */
+    if (cable > 3) continue;
+    
+    /* Call debug hook if defined */
+    usb_midi_rx_debug_hook(packet4);
+    
+    /* Map cable 0-3 to USB_PORT0-3 nodes (like MIOS32's USB0-USB3) */
+    const uint8_t node = ROUTER_NODE_USB_PORT0 + cable;
+    
+    /* Handle SysEx messages (CIN 0x4-0x7) - optimized path */
+    if (cin >= 0x04 && cin <= 0x07) {
+      sysex_buffer_t* const buf = &sysex_buffers[cable];
+      const uint8_t num_bytes = cin_to_length[cin];
       
-      /* Fast buffer copy if active and space available (unrolled for 3 bytes) */
-      if (buf->active) {
-        if (buf->pos + 3 <= USB_MIDI_SYSEX_BUFFER_SIZE) {
-          buf->buffer[buf->pos] = packet4[1];
-          buf->buffer[buf->pos + 1] = packet4[2];
-          buf->buffer[buf->pos + 2] = packet4[3];
-          buf->pos += 3;
-        } else {
-          /* Buffer overflow - discard this SysEx and reset */
+      /* CIN 0x4: SysEx start or continue (3 bytes) */
+      if (cin == 0x04) {
+        /* If first byte is F0, start new SysEx */
+        if (packet4[1] == 0xF0) {
           buf->pos = 0;
-          buf->active = 0;
+          buf->active = 1;
         }
-      }
-      return; /* Don't send yet - wait for end packet */
+        
+        /* Fast buffer copy if active and space available (unrolled for 3 bytes) */
+        if (buf->active) {
+          if (buf->pos + 3 <= USB_MIDI_SYSEX_BUFFER_SIZE) {
+            buf->buffer[buf->pos] = packet4[1];
+            buf->buffer[buf->pos + 1] = packet4[2];
+            buf->buffer[buf->pos + 2] = packet4[3];
+            buf->pos += 3;
+          } else {
+            /* Buffer overflow - discard this SysEx and reset */
+            buf->pos = 0;
+            buf->active = 0;
+          }
+        }
+        continue; /* Don't process yet - wait for end packet */
     }
     
     /* CIN 0x5: SysEx end with 1 byte (or single-byte System Common) */
@@ -270,7 +323,7 @@ void usb_midi_rx_packet(const uint8_t packet4[4]) {
         buf->pos = 0;
         buf->active = 0;
       }
-      return;
+      continue;
     }
     
     /* CIN 0x6: SysEx end with 2 bytes (or two-byte System Common) */
@@ -307,7 +360,7 @@ void usb_midi_rx_packet(const uint8_t packet4[4]) {
         buf->pos = 0;
         buf->active = 0;
       }
-      return;
+      continue;
     }
     
     /* CIN 0x7: SysEx end with 3 bytes */
@@ -345,7 +398,7 @@ void usb_midi_rx_packet(const uint8_t packet4[4]) {
         buf->pos = 0;
         buf->active = 0;
       }
-      return;
+      continue;
     }
   }
   
@@ -353,7 +406,7 @@ void usb_midi_rx_packet(const uint8_t packet4[4]) {
   const uint8_t msg_len = cin_to_length[cin];
   
   /* Fast rejection of invalid CINs */
-  if (msg_len == 0) return;
+  if (msg_len == 0) continue;
   
   /* Prepare message inline - optimized for common case (3-byte messages) */
   router_msg_t msg;
@@ -369,14 +422,15 @@ void usb_midi_rx_packet(const uint8_t packet4[4]) {
   } else if (msg_len == 2) {
     msg.type = ROUTER_MSG_2B;
     msg.b2 = 0;
-  } else { /* msg_len == 1 */
-    msg.type = ROUTER_MSG_1B;
-    msg.b1 = 0;
-    msg.b2 = 0;
-  }
-  
-  /* Send to router */
-  router_process(node, &msg);
+    } else { /* msg_len == 1 */
+      msg.type = ROUTER_MSG_1B;
+      msg.b1 = 0;
+      msg.b2 = 0;
+    }
+    
+    /* Send to router */
+    router_process(node, &msg);
+  } /* end while (!rx_queue_is_empty()) */
 }
 
 /* Callbacks */
