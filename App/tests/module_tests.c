@@ -2518,7 +2518,7 @@ void module_test_router_run(void)
           
         case 'c':  // Clear stats
         case 'C':
-          midi_monitor_clear_stats();
+          midi_monitor_reset_stats();
           dbg_print("\r\n[Statistics cleared]\r\n\r\n");
           break;
           
