@@ -1,7 +1,7 @@
 #include "App/calibration_task.h"
 #include "cmsis_os2.h"
 #include "Services/pressure/pressure_i2c.h"
-#include "Services/log/log.h"
+#include "App/tests/test_debug.h"
 #include "Services/expression/expression.h"
 #include <string.h>
 #include <stdlib.h>  // strtol
@@ -200,12 +200,12 @@ static void CalibrationTask(void* argument){
 
   const pressure_cfg_t* cur = pressure_get_cfg();
   if(!cur->enable || cur->type != PRESS_TYPE_XGZP6847D_24B){
-    log_printf("CAL", "Pressure sensor not enabled or not XGZP");
+    dbg_printf("CAL: Pressure sensor not enabled or not XGZP\r\n");
     osThreadExit();
     return;
   }
 
-  log_printf("CAL", "Start: keep bellows REST for %ums", (unsigned)cc.atm_ms);
+  dbg_printf("CAL: Start: keep bellows REST for %ums\r\n", (unsigned)cc.atm_ms);
 
   // Step1: measure atmospheric baseline (absolute Pa)
   int64_t acc=0;
@@ -221,7 +221,7 @@ static void CalibrationTask(void* argument){
     t += 10;
   }
   if(n==0){
-    log_printf("CAL","No samples for ATM0");
+    dbg_printf("CAL: No samples for ATM0\r\n");
     osThreadExit();
     return;
   }
@@ -232,7 +232,7 @@ static void CalibrationTask(void* argument){
   pcfg.atm0_pa = atm0;
   pressure_set_cfg(&pcfg);
 
-  log_printf("CAL","ATM0=%ld Pa, now do full PUSH/PULL for %ums", (long)atm0, (unsigned)cc.ext_ms);
+  dbg_printf("CAL: ATM0=%ld Pa, now do full PUSH/PULL for %ums\r\n", (long)atm0, (unsigned)cc.ext_ms);
 
   // Step2: capture extremes of signed pressure
   int32_t pmin =  2147483647;
@@ -249,7 +249,7 @@ static void CalibrationTask(void* argument){
   }
 
   if(pmin >= pmax){
-    log_printf("CAL","Invalid extremes pmin=%ld pmax=%ld", (long)pmin, (long)pmax);
+    dbg_printf("CAL: Invalid extremes pmin=%ld pmax=%ld\r\n", (long)pmin, (long)pmax);
     osThreadExit();
     return;
   }
@@ -272,7 +272,7 @@ static void CalibrationTask(void* argument){
   ec.raw_max = raw_max;
   expression_set_cfg(&ec);
   expression_runtime_reset();
-  log_printf("CAL","Hot reload: expression RAW_MIN=%u RAW_MAX=%u", (unsigned)raw_min, (unsigned)raw_max);
+  dbg_printf("CAL: Hot reload: expression RAW_MIN=%u RAW_MAX=%u\r\n", (unsigned)raw_min, (unsigned)raw_max);
 }
 
 // Persist
@@ -280,7 +280,7 @@ static void CalibrationTask(void* argument){
   int wrp = write_pressure_cfg(&cc, &pcfg);
   int wre = patch_expression_rawminmax(&cc, raw_min, raw_max);
 
-  log_printf("CAL","Saved: PMIN=%ld PMAX=%ld ATM0=%ld RAW_MIN=%u RAW_MAX=%u (wrp=%d wre=%d)",
+  dbg_printf("CAL: Saved: PMIN=%ld PMAX=%ld ATM0=%ld RAW_MIN=%u RAW_MAX=%u (wrp=%d wre=%d)\r\n",
              (long)pmin,(long)pmax,(long)atm0,(unsigned)raw_min,(unsigned)raw_max, wrp, wre);
 
   // Disable calibration after done by rewriting calibration.ngc quickly

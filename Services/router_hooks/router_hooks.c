@@ -6,6 +6,7 @@
 #include "Services/router_hooks/router_hooks.h"
 #include "Services/router/router.h"
 #include "Services/livefx/livefx.h"
+#include "Services/midi_monitor/midi_monitor.h"
 #include "Services/ui/ui_page_midi_monitor.h"
 #include "Services/ui/ui_page_sysex.h"
 #include "cmsis_os2.h"
@@ -55,20 +56,23 @@ void router_tap_hook(uint8_t in_node, const router_msg_t* msg) {
   looper_on_router_msg(in_node, msg);
   #endif
   
-  // Capture for MIDI Monitor
+  // Capture for MIDI Monitor service (new dedicated module)
   if (msg->type == ROUTER_MSG_SYSEX) {
-    // SysEx message - capture for SysEx viewer
+    // SysEx message - capture for SysEx viewer and MIDI monitor
     if (msg->data && msg->len > 0) {
       ui_sysex_capture(msg->data, msg->len);
       
-      // Also show in MIDI Monitor (first few bytes)
+      // Capture full SysEx in MIDI monitor service (before routing decision)
+      midi_monitor_capture_sysex(in_node, msg->data, msg->len, g_timestamp_ms, 0);
+      
+      // Also show in UI MIDI Monitor page (first few bytes for backward compat)
       uint8_t preview[3] = {0xF0, 0, 0};
       uint8_t preview_len = (msg->len >= 2) ? 3 : 1;
       if (msg->len >= 2) {
         preview[1] = msg->data[1];
         preview[2] = (msg->len >= 3) ? msg->data[2] : 0;
       }
-      ui_midi_monitor_capture(in_node, preview, preview_len, g_timestamp_ms);
+      ui_midi_monitor_capture(in_node, preview, preview_len, g_timestamp_ms, 0);
     }
   } else {
     // Standard MIDI message
@@ -78,7 +82,11 @@ void router_tap_hook(uint8_t in_node, const router_msg_t* msg) {
     data[1] = msg->b1;
     data[2] = msg->b2;
     
-    ui_midi_monitor_capture(in_node, data, len, g_timestamp_ms);
+    // Capture in MIDI monitor service (before routing decision)
+    midi_monitor_capture_short(in_node, data, len, g_timestamp_ms, 0);
+    
+    // Also forward to UI page MIDI monitor
+    ui_midi_monitor_capture(in_node, data, len, g_timestamp_ms, 0);
   }
 }
 

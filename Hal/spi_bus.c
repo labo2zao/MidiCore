@@ -7,10 +7,19 @@ static osMutexId_t g_spi1_mutex;
 static osMutexId_t g_spi3_mutex;
 
 // Safe defaults (tuned to match MIOS32)
+// SD Card: Use slow speed for initialization (400 kHz), then can switch to faster
+// For STM32F407 @ 168 MHz APB2:
+//   - Prescaler 256 = 168/256 = 656 kHz (safe for init)
+//   - Prescaler 4 = 168/4 = 42 MHz (fast mode after init)
 // AINSER: MIOS32 uses prescaler 64 @ 120 MHz = 1.875 MHz (max 2 MHz per MCP3208 datasheet)
 // For STM32F407 @ 168 MHz: prescaler 64 gives 168/64 = 2.625 MHz (still within MCP3208 spec)
-static uint32_t presc_sd   = SPI_BAUDRATEPRESCALER_4;
+static uint32_t presc_sd   = SPI_BAUDRATEPRESCALER_256;  // Start slow for SD init
 static uint32_t presc_ain  = SPI_BAUDRATEPRESCALER_64;
+
+// Function to change SD card speed after initialization
+void spibus_set_sd_speed_fast(void) {
+  presc_sd = SPI_BAUDRATEPRESCALER_4;  // 42 MHz for fast operations
+}
 
 static void cs_high(spibus_dev_t dev) {
   if (dev == SPIBUS_DEV_SD)

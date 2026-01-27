@@ -1,3 +1,10 @@
+// ============================================================================
+// OLED Test UI Page - Only compile when MODULE_TEST_OLED=1
+// Comprehensive OLED hardware testing and visual verification
+// NOT NEEDED FOR PRODUCTION
+// ============================================================================
+#ifdef MODULE_TEST_OLED
+
 #include "Services/ui/ui_page_oled_test.h"
 #include "Services/ui/ui_gfx.h"
 #include "Hal/oled_ssd1322/oled_ssd1322.h"
@@ -888,3 +895,5 @@ void ui_page_oled_test_on_encoder(int8_t delta) {
     auto_cycle_timer = 0;
   }
 }
+
+#endif // MODULE_TEST_OLED

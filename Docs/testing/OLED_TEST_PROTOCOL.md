@@ -9,6 +9,24 @@
 
 ## Test Environment Setup
 
+### ⚠️ IMPORTANT: OLED Initialization Functions
+
+**MidiCore has two OLED init functions**:
+
+1. **`oled_init_newhaven()`** - **PRODUCTION USE ONLY**
+   - Complete Newhaven NHD-3.12 initialization sequence from LoopA
+   - Used in `app_init.c` for production firmware
+   - Tested and validated for accordion hardware
+   - **This is the default for production builds**
+
+2. **`oled_init()`** - **TEST/DEBUG USE ONLY**
+   - Simple MIOS32-style test initialization
+   - Used in MODULE_TEST_OLED test mode only
+   - Suitable for quick hardware verification
+   - **NOT used in production mode**
+
+**For this test protocol**: The OLED test page uses `oled_init()` for quick verification. If testing production firmware, verify `oled_init_newhaven()` is called in `app_init.c` instead.
+
 ### Hardware Requirements
 - STM32F407VGT6 microcontroller with MidiCore firmware
 - SSD1322 OLED display (256×64 pixels, 4-bit grayscale)

@@ -12,25 +12,24 @@
 #include "main.h" // UART handle declarations
 
 // ---- Port mapping -----------------------------------------------------------
-// IMPORTANT:
-// In this project, USART1 is used as the debug UART (115200). Do NOT map a MIDI
-// DIN port to USART1, or you'll get no MIDI events.
+// MIOS32 HARDWARE CONFIGURATION (NEVER CHANGES):
 //
-// We map DIN ports to the UARTs that are configured at 31250 in Core/Src/main.c.
+//   PRODUCTION MODE - All 4 MIDI DIN ports @ 31250 baud + USB OTG:
+//     Port 0 (DIN1) = USART2 PA2/PA3   [MIOS32 UART1]
+//     Port 1 (DIN2) = USART3 PD8/PD9   [MIOS32 UART2]
+//     Port 2 (DIN3) = USART1 PA9/PA10  [MIOS32 UART3 - NOTE: Pins also used for USB OTG]
+//     Port 3 (DIN4) = UART5  PC12/PD2  [MIOS32 UART4]
+//     USB OTG       = PA9/PA10 (shared with USART1, but both can coexist)
 //
-// Convention (match MIOS32):
-//   - DIN1 is the primary DIN port
-//   - DIN1 corresponds to Port 0
+//   TEST MODE - 3 MIDI DIN ports + 1 Debug UART @ 115200 baud + USB OTG:
+//     Port 0 (DIN1)  = USART2 PA2/PA3   @ 31250 baud [MIOS32 UART1]
+//     Port 1 (DIN2)  = USART3 PD8/PD9   @ 31250 baud [MIOS32 UART2]
+//     Port 2 (DIN3)  = USART1 PA9/PA10  @ 31250 baud [MIOS32 UART3]
+//     Port 3 (DIN4)  = UART5  PC12/PD2  @ 115200 baud [Debug UART - temporarily not MIDI]
+//     USB OTG        = PA9/PA10 (shared with USART1)
 //
-// MIOS32 STM32F4 backend uses (see mios32/STM32F4xx/mios32_uart.c):
-//   UART0 = USART2 (PA2/PA3)
-//   UART1 = USART3 (PD8/PD9)
-//   UART3 = UART5  (PC12/PD2)
-//
-// Therefore we map:
-//   Port 0 (DIN1, primary) -> USART2 (huart2)  [MIOS32 UART0]
-//   Port 1 (DIN2)          -> USART3 (huart3)  [MIOS32 UART1]
-//   Port 2 (DIN3)          -> UART5  (huart5)  [MIOS32 UART3]
+// In test mode, test_debug_init() reconfigures UART5 from 31250→115200 baud for debug output.
+// The MIOS32 port mapping itself NEVER changes - only the baud rate of one port changes in test mode.
 
 #ifndef MIDI_DIN_PORTS
 #define MIDI_DIN_PORTS 4
@@ -45,17 +44,19 @@ extern UART_HandleTypeDef huart5; // UART5
 #ifdef TEST_MIDI_DIN_UART_PORT
 #define MIDI_DIN_PRIMARY_UART_PORT TEST_MIDI_DIN_UART_PORT
 #else
-#define MIDI_DIN_PRIMARY_UART_PORT 1
+#define MIDI_DIN_PRIMARY_UART_PORT 0  // Default to Port 0 (USART2/PA2-PA3 = DIN1)
 #endif
 #endif
 
 static UART_HandleTypeDef* midi_uart_from_index(uint8_t idx)
 {
+  // Map MIDI port index to UART handles (STM32F4 Discovery compatible)
+  // CRITICAL: Pin mapping must match actual hardware in stm32f4xx_hal_msp.c
   switch (idx) {
-    case 0: return &huart1;
-    case 1: return &huart2;
-    case 2: return &huart3;
-    case 3: return &huart5;
+    case 0: return &huart2;   // USART2: PA2=TX,  PA3=RX   (DIN1) [MIOS32 UART1]
+    case 1: return &huart3;   // USART3: PD8=TX,  PD9=RX   (DIN2) [MIOS32 UART2]
+    case 2: return &huart1;   // USART1: PA9=TX,  PB7=RX   (DIN3) [MIOS32 UART3] ← RX is PB7!
+    case 3: return &huart5;   // UART5:  PC12=TX, PD2=RX   (DIN4) [MIOS32 UART4]
     default: return NULL;
   }
 }
@@ -100,13 +101,20 @@ static void start_rx_it(int port)
 
 HAL_StatusTypeDef hal_uart_midi_init(void)
 {
-  s_midi_uarts[0] = midi_uart_from_index(MIDI_DIN_PRIMARY_UART_PORT);
-  s_midi_uarts[1] = &huart3; // Port 1 -> DIN2 [MIOS32 UART1]
-  s_midi_uarts[2] = &huart5; // Port 2 -> DIN3 [MIOS32 UART3]
-  s_midi_uarts[3] = NULL;
+  // Map MIDI ports directly to UART handles (MIOS32 port mapping - NEVER changes)
+  // CRITICAL: Pin mapping verified against stm32f4xx_hal_msp.c HAL_UART_MspInit()
+  // Port 0 (DIN1) = USART2 PA2/PA3   [MIOS32 UART1]
+  // Port 1 (DIN2) = USART3 PD8/PD9   [MIOS32 UART2]
+  // Port 2 (DIN3) = USART1 PA9/PB7   [MIOS32 UART3] ← RX is PB7 per HAL_UART_MspInit!
+  // Port 3 (DIN4) = UART5  PC12/PD2  [MIOS32 UART4]
+  s_midi_uarts[0] = midi_uart_from_index(0); // Port 0 -> USART2 (DIN1)
+  s_midi_uarts[1] = midi_uart_from_index(1); // Port 1 -> USART3 (DIN2)
+  s_midi_uarts[2] = midi_uart_from_index(2); // Port 2 -> USART1 (DIN3)
+  s_midi_uarts[3] = midi_uart_from_index(3); // Port 3 -> UART5 (DIN4)
 
   memset(s_rx, 0, sizeof(s_rx));
 
+  // Start interrupt-driven RX for all ports
   for (int p = 0; p < MIDI_DIN_PORTS; ++p) {
     start_rx_it(p);
   }
@@ -155,10 +163,37 @@ uint32_t hal_uart_midi_rx_drops(uint8_t port)
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef* huart)
 {
-  int p = port_from_handle(huart);
-  if (p < 0) return;
+  // CRITICAL FIX: Find port by matching UART INSTANCE (peripheral base address), not pointer!
+  // 
+  // Root cause of DIN1/DIN2 coupling: port_from_handle() compares huart POINTER addresses,
+  // but the HAL may use different huart pointer values for callbacks vs init, causing
+  // port_from_handle() to return the wrong port index (or -1).
+  //
+  // The bug: When USART2 receives a byte:
+  //   1. HAL calls HAL_UART_RxCpltCallback(&huart2_callback_instance)
+  //   2. port_from_handle() compares huart2_callback_instance against s_midi_uarts[] pointers
+  //   3. If pointers don't match (HAL aliasing), returns wrong port or -1
+  //   4. Or if pointer accidentally matches s_midi_uarts[1] (USART3), stores byte in wrong port!
+  //
+  // Solution: Match by huart->Instance (USART1, USART2, USART3, UART5 peripheral addresses)
+  // which uniquely identifies the hardware peripheral regardless of huart pointer value.
+  
+  int p = -1;
+  for (int i = 0; i < MIDI_DIN_PORTS; ++i) {
+    if (s_midi_uarts[i] && s_midi_uarts[i]->Instance == huart->Instance) {
+      p = i;
+      break;
+    }
+  }
+  
+  if (p < 0) {
+    // Unknown UART peripheral - should never happen
+    return;
+  }
 
+  // Store received byte in ring buffer for the CORRECT port
   midi_uart_rx_t* r = &s_rx[p];
+  
   uint16_t next = ring_next(r->head);
   if (next == r->tail) {
     r->drops++;
@@ -167,6 +202,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef* huart)
     r->head = next;
   }
 
+  // Restart interrupt reception for this specific port
   start_rx_it(p);
 }
 

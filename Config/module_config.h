@@ -38,6 +38,14 @@ extern "C" {
 #define MODULE_ENABLE_SRIO 1
 #endif
 
+/** @brief SRIO DOUT LED polarity configuration
+ * Set to 0 if LEDs are ACTIVE HIGH (1=ON, 0=OFF)
+ * Set to 1 if LEDs are ACTIVE LOW  (0=ON, 1=OFF) - MIOS32 default
+ */
+#ifndef SRIO_DOUT_LED_ACTIVE_LOW
+#define SRIO_DOUT_LED_ACTIVE_LOW 1
+#endif
+
 /** @brief Enable SPI bus shared resource management */
 #ifndef MODULE_ENABLE_SPI_BUS
 #define MODULE_ENABLE_SPI_BUS 1
@@ -134,6 +142,15 @@ extern "C" {
 /** @brief Enable UI Config Editor page */
 #ifndef MODULE_ENABLE_UI_PAGE_CONFIG
 #define MODULE_ENABLE_UI_PAGE_CONFIG 1
+#endif
+
+/** @brief Enable UI Looper Pianoroll page
+ *  Note: Pianoroll is the main accordion UI page and must be enabled.
+ *  Uses 24KB in CCMRAM for active note map + ~13KB stack for event buffers.
+ *  Memory placement: active[16][128] in CCMRAM to preserve RAM.
+ */
+#ifndef MODULE_ENABLE_UI_PAGE_PIANOROLL
+#define MODULE_ENABLE_UI_PAGE_PIANOROLL 1  // Enabled by default (main accordion page)
 #endif
 
 /** @brief Enable Expression pedal/pressure service */
@@ -271,17 +288,51 @@ extern "C" {
 #endif
 
 // =============================================================================
-// DEBUG/TEST MODULES
+// PRODUCTION / TEST MODE CONFIGURATION
+// =============================================================================
+
+/**
+ * @brief Production Mode - Final MidiCore build configuration
+ * 
+ * When PRODUCTION_MODE=1:
+ * - All production modules are enabled (MIDI, Router, OLED, Looper, etc.)
+ * - ALL test/debug code is excluded (saves ~25KB Flash)
+ * - Production-grade initialization (oled_init_newhaven, etc.)
+ * - Optimized binary for deployment
+ * 
+ * When PRODUCTION_MODE=0 (Development/Test):
+ * - Test modules can be individually enabled
+ * - Debug tasks available
+ * - Test UI pages compiled
+ * - Hardware verification tools available
+ * 
+ * This is the MASTER FLAG for production builds.
+ * Set to 1 for final MidiCore hex compilation.
+ */
+#ifndef PRODUCTION_MODE
+#define PRODUCTION_MODE 1  // Default: Production mode (final hex compilation)
+#endif
+
+// =============================================================================
+// DEBUG/TEST MODULES (Automatically disabled in PRODUCTION_MODE)
 // =============================================================================
 
 /** @brief Enable AIN raw debug task (UART output of ADC values) */
 #ifndef MODULE_ENABLE_AIN_RAW_DEBUG
-#define MODULE_ENABLE_AIN_RAW_DEBUG 0  // Disabled by default
+#if PRODUCTION_MODE
+#define MODULE_ENABLE_AIN_RAW_DEBUG 0  // Always disabled in production
+#else
+#define MODULE_ENABLE_AIN_RAW_DEBUG 0  // Disabled by default (can enable for testing)
+#endif
 #endif
 
 /** @brief Enable MIDI DIN debug monitoring */
 #ifndef MODULE_ENABLE_MIDI_DIN_DEBUG
-#define MODULE_ENABLE_MIDI_DIN_DEBUG 0  // Disabled by default
+#if PRODUCTION_MODE
+#define MODULE_ENABLE_MIDI_DIN_DEBUG 0  // Always disabled in production
+#else
+#define MODULE_ENABLE_MIDI_DIN_DEBUG 0  // Disabled by default (can enable for testing)
+#endif
 #endif
 
 /** @brief Enable USB MIDI debug output via UART
@@ -298,7 +349,49 @@ extern "C" {
  * Usage: See Docs/USB_DEBUG_UART_QUICKSTART.md
  */
 #ifndef MODULE_ENABLE_USB_MIDI_DEBUG
-#define MODULE_ENABLE_USB_MIDI_DEBUG 0  // Disabled by default (verbose UART output)
+#if PRODUCTION_MODE
+#define MODULE_ENABLE_USB_MIDI_DEBUG 0  // Always disabled in production
+#else
+#define MODULE_ENABLE_USB_MIDI_DEBUG 0  // Disabled by default (can enable for testing)
+#endif
+#endif
+
+/** @brief Enable OLED SSD1322 test functions and test page
+ * 
+ * When enabled (MODULE_TEST_OLED=1):
+ * - Compiles OLED test functions for hardware verification
+ * - oled_init() - Simple MIOS32 test init
+ * - oled_init_progressive() - Step-by-step debug init
+ * - oled_test_*() - Test patterns (checkerboard, gradients, etc.)
+ * - ui_page_oled_test - Complete OLED test UI page
+ * - RUNS OLED test at startup (StartDefaultTask)
+ * 
+ * When disabled (MODULE_TEST_OLED=0):
+ * - No test code compiled (saves ~25KB Flash)
+ * - Main application runs at startup
+ * 
+ * Production builds (PRODUCTION_MODE=1): Always disabled
+ * Test builds (PRODUCTION_MODE=0): Set to 1 for OLED testing
+ * 
+ * To run OLED hardware test:
+ * 1. Set PRODUCTION_MODE=0 (enable dev/test mode)
+ * 2. Set MODULE_TEST_OLED=1 (compile test code AND run at startup)
+ * 3. Rebuild and flash
+ * 
+ * Note: Production always uses oled_init_newhaven() regardless of this setting.
+ */
+#ifndef MODULE_TEST_OLED
+#if PRODUCTION_MODE
+#define MODULE_TEST_OLED 0  // Always disabled in production (saves ~25KB Flash)
+#else
+#define MODULE_TEST_OLED 0  // Disabled by default (set to 1 for OLED testing)
+#endif
+#endif
+
+// MODULE_TEST_OLED_SSD1322 is now automatically set based on MODULE_TEST_OLED
+// No need for separate flag - kept for backwards compatibility
+#ifndef MODULE_TEST_OLED_SSD1322
+#define MODULE_TEST_OLED_SSD1322 MODULE_TEST_OLED
 #endif
 
 

@@ -4,7 +4,9 @@
 #include "Services/ui/ui_gfx.h"
 #include "Services/ui/ui_page_looper.h"
 #include "Services/ui/ui_page_looper_timeline.h"
+#if MODULE_ENABLE_UI_PAGE_PIANOROLL
 #include "Services/ui/ui_page_looper_pianoroll.h"
+#endif
 #include "Services/ui/ui_page_song.h"
 #include "Services/ui/ui_page_midi_monitor.h"
 #include "Services/ui/ui_page_sysex.h"
@@ -12,7 +14,9 @@
 #include "Services/ui/ui_page_livefx.h"
 #include "Services/ui/ui_page_rhythm.h"
 #include "Services/ui/ui_page_automation.h"
+#if MODULE_TEST_OLED
 #include "Services/ui/ui_page_oled_test.h"
+#endif
 #if MODULE_ENABLE_LFO && MODULE_ENABLE_HUMANIZER
 #include "Services/ui/ui_page_humanizer.h"
 #endif
@@ -190,7 +194,9 @@ ui_gfx_text(0, 2, line1, 15);
   switch (g_page) {
     case UI_PAGE_LOOPER: ui_page_looper_on_button(id, pressed); break;
     case UI_PAGE_LOOPER_TL: ui_page_looper_timeline_on_button(id, pressed); break;
+#if MODULE_ENABLE_UI_PAGE_PIANOROLL
     case UI_PAGE_LOOPER_PR: ui_page_looper_pianoroll_on_button(id, pressed); break;
+#endif
     case UI_PAGE_SONG: ui_page_song_on_button(id, pressed); break;
     case UI_PAGE_MIDI_MONITOR: ui_page_midi_monitor_on_button(id, pressed); break;
     case UI_PAGE_SYSEX: ui_page_sysex_on_button(id, pressed); break;
@@ -201,7 +207,9 @@ ui_gfx_text(0, 2, line1, 15);
 #if MODULE_ENABLE_LFO && MODULE_ENABLE_HUMANIZER
     case UI_PAGE_HUMANIZER: ui_page_humanizer_on_button(id, pressed); break;
 #endif
+#if MODULE_TEST_OLED
     case UI_PAGE_OLED_TEST: ui_page_oled_test_on_button(id, pressed); break;
+#endif
     default: break;
   }
 }
@@ -231,7 +239,9 @@ ui_gfx_text(0, 2, line1, 15);
   switch (g_page) {
     case UI_PAGE_LOOPER: ui_page_looper_on_encoder(delta); break;
     case UI_PAGE_LOOPER_TL: ui_page_looper_timeline_on_encoder(delta); break;
+#if MODULE_ENABLE_UI_PAGE_PIANOROLL
     case UI_PAGE_LOOPER_PR: ui_page_looper_pianoroll_on_encoder(delta); break;
+#endif
     case UI_PAGE_SONG: ui_page_song_on_encoder(delta); break;
     case UI_PAGE_MIDI_MONITOR: ui_page_midi_monitor_on_encoder(delta); break;
     case UI_PAGE_SYSEX: ui_page_sysex_on_encoder(delta); break;
@@ -276,7 +286,9 @@ ui_gfx_text(0, 2, line1, 15);
   switch (g_page) {
     case UI_PAGE_LOOPER: ui_page_looper_render(g_ms); break;
     case UI_PAGE_LOOPER_TL: ui_page_looper_timeline_render(g_ms); break;
+#if MODULE_ENABLE_UI_PAGE_PIANOROLL
     case UI_PAGE_LOOPER_PR: ui_page_looper_pianoroll_render(g_ms); break;
+#endif
     case UI_PAGE_SONG: ui_page_song_render(g_ms); break;
     case UI_PAGE_MIDI_MONITOR: ui_page_midi_monitor_render(g_ms); break;
     case UI_PAGE_SYSEX: ui_page_sysex_render(g_ms); break;
@@ -287,7 +299,9 @@ ui_gfx_text(0, 2, line1, 15);
 #if MODULE_ENABLE_LFO && MODULE_ENABLE_HUMANIZER
     case UI_PAGE_HUMANIZER: ui_page_humanizer_render(g_ms); break;
 #endif
+#if MODULE_TEST_OLED
     case UI_PAGE_OLED_TEST: ui_page_oled_test_render(g_ms); break;
+#endif
     default: break;
   }
 

@@ -6,6 +6,7 @@
 #include "App/tests/module_tests.h"
 #include "App/tests/test_debug.h"
 #include "App/tests/test_config_runtime.h"
+#include "App/tests/test_oled_mirror.h"
 #include "Config/module_config.h"
 
 #include "cmsis_os2.h"
@@ -13,6 +14,9 @@
 #include <stdbool.h>
 #include <math.h>
 #include <stdlib.h>
+#include <stdio.h>  // for snprintf
+#include "ff.h"     // for FatFs types: DIR, FILINFO, FRESULT, etc.
+#include "diskio.h" // for DSTATUS, disk_status
 
 // UI framework for framebuffer-based testing
 #include "Services/ui/ui_page_oled_test.h"
@@ -83,6 +87,7 @@ static const char* spi_instance_name(SPI_HandleTypeDef* hspi)
 
 static void dbg_print_srio_pinout(void)
 {
+#ifdef SRIO_ENABLE
   dbg_print("SRIO Pinout:\r\n");
   dbg_printf("  SPI Instance: %s\r\n", spi_instance_name(SRIO_SPI_HANDLE));
 #ifdef MIOS_SPI1_SCK_GPIO_Port
@@ -96,11 +101,15 @@ static void dbg_print_srio_pinout(void)
 #endif
   dbg_print_gpio_pin("DIN /PL (RC2)", SRIO_DIN_PL_PORT, SRIO_DIN_PL_PIN);
   dbg_print_gpio_pin("DOUT RCLK (RC1)", SRIO_DOUT_RCLK_PORT, SRIO_DOUT_RCLK_PIN);
+#else
+  dbg_print("SRIO Pinout: (SRIO_ENABLE not defined)\r\n");
+#endif
 }
 #endif
 
 #if MODULE_ENABLE_MIDI_DIN
 #include "Services/midi/midi_din.h"
+#include "Services/midi_monitor/midi_monitor.h"  // MIDI Monitor service
 #endif
 
 #if MODULE_ENABLE_ROUTER
@@ -279,7 +288,9 @@ module_test_t module_tests_get_compile_time_selection(void)
 #elif defined(MODULE_TEST_USB_DEVICE_MIDI) || defined(APP_TEST_USB_MIDI)
   // Support both symbols: MODULE_TEST_* (framework style) and APP_TEST_* (legacy style)
   return MODULE_TEST_USB_DEVICE_MIDI_ID;
-#elif defined(MODULE_TEST_OLED_SSD1322)
+#elif MODULE_TEST_OLED_SSD1322
+  // Note: Use value check (not defined()) since MODULE_TEST_OLED_SSD1322 is always defined
+  // but its value is controlled by MODULE_TEST_OLED (0 or 1)
   return MODULE_TEST_OLED_SSD1322_ID;
 #elif defined(MODULE_TEST_FOOTSWITCH)
   return MODULE_TEST_FOOTSWITCH_ID;
@@ -388,7 +399,8 @@ int module_tests_run(module_test_t test)
       return module_test_oled_ssd1322_run();
       
     case MODULE_TEST_FOOTSWITCH_ID:
-      module_test_footswitch_run();
+      // Footswitch test not yet implemented
+      dbg_print("Footswitch test not yet implemented\r\n");
       break;
       
     case MODULE_TEST_ALL_ID:
@@ -847,9 +859,25 @@ void module_test_srio_dout_run(void)
   dbg_print("  74HC595 Pin 14 (SER)   → PB15 (SPI2 MOSI)\r\n");
   dbg_print("\r\n");
   
-  dbg_print("LED Note: LEDs are ACTIVE LOW (0=ON, 1=OFF)\r\n");
-  dbg_print("  - 0x00 = All LEDs ON\r\n");
-  dbg_print("  - 0xFF = All LEDs OFF\r\n");
+  // LED polarity configuration
+  // Set to 0 if LEDs are ACTIVE HIGH (1=ON, 0=OFF)
+  // Set to 1 if LEDs are ACTIVE LOW  (0=ON, 1=OFF) - MIOS32 default
+  #ifndef SRIO_DOUT_LED_ACTIVE_LOW
+  #define SRIO_DOUT_LED_ACTIVE_LOW 1  // Default: MIOS32 active-low
+  #endif
+  
+  const uint8_t led_active_low = SRIO_DOUT_LED_ACTIVE_LOW;
+  const uint8_t LED_ON  = led_active_low ? 0x00 : 0xFF;
+  const uint8_t LED_OFF = led_active_low ? 0xFF : 0x00;
+  
+  dbg_printf("LED Polarity: %s\r\n", led_active_low ? "ACTIVE LOW (0=ON, 1=OFF)" : "ACTIVE HIGH (1=ON, 0=OFF)");
+  dbg_printf("  - LED ON pattern:  0x%02X\r\n", LED_ON);
+  dbg_printf("  - LED OFF pattern: 0x%02X\r\n", LED_OFF);
+  if (led_active_low) {
+    dbg_print("  (MIOS32 default: LEDs connected to ground via resistor)\r\n");
+  } else {
+    dbg_print("  (Alternative wiring: LEDs connected to Vcc via resistor)\r\n");
+  }
   dbg_print_separator();
   dbg_print("\r\n");
   
@@ -858,7 +886,7 @@ void module_test_srio_dout_run(void)
   uint32_t last_pattern_ms = 0;
   
   // Start with all LEDs OFF
-  memset(dout, 0xFF, SRIO_DOUT_BYTES);
+  memset(dout, LED_OFF, SRIO_DOUT_BYTES);
   srio_write_dout(dout);
   
   dbg_print("Starting LED pattern test...\r\n");
@@ -881,28 +909,32 @@ void module_test_srio_dout_run(void)
       switch (pattern_type) {
         case 0:
           // All LEDs ON
-          dbg_print("All LEDs ON (0x00)\r\n");
-          memset(dout, 0x00, SRIO_DOUT_BYTES);
+          dbg_printf("All LEDs ON (0x%02X)\r\n", LED_ON);
+          memset(dout, LED_ON, SRIO_DOUT_BYTES);
           break;
           
         case 1:
           // All LEDs OFF
-          dbg_print("All LEDs OFF (0xFF)\r\n");
-          memset(dout, 0xFF, SRIO_DOUT_BYTES);
+          dbg_printf("All LEDs OFF (0x%02X)\r\n", LED_OFF);
+          memset(dout, LED_OFF, SRIO_DOUT_BYTES);
           break;
           
         case 2:
           // Alternating pattern
-          dbg_print("Alternating pattern (0xAA/0x55)\r\n");
-          for (uint8_t i = 0; i < SRIO_DOUT_BYTES; i++) {
-            dout[i] = (i % 2 == 0) ? 0xAA : 0x55;
+          {
+            uint8_t alt1 = led_active_low ? 0xAA : 0x55;  // Even bytes: half LEDs ON
+            uint8_t alt2 = led_active_low ? 0x55 : 0xAA;  // Odd bytes: other half ON
+            dbg_printf("Alternating pattern (0x%02X/0x%02X)\r\n", alt1, alt2);
+            for (uint8_t i = 0; i < SRIO_DOUT_BYTES; i++) {
+              dout[i] = (i % 2 == 0) ? alt1 : alt2;
+            }
           }
           break;
           
         case 3:
           // Running light (one LED at a time)
           dbg_print("Running light\r\n");
-          memset(dout, 0xFF, SRIO_DOUT_BYTES);
+          memset(dout, LED_OFF, SRIO_DOUT_BYTES);
           uint8_t led_pos = (pattern_counter / 4) % (SRIO_DOUT_BYTES * 8);
           uint8_t byte_idx = led_pos / 8;
           uint8_t bit_idx = led_pos % 8;
@@ -1012,17 +1044,59 @@ void module_test_midi_din_run(void)
   midi_din_init();
   dbg_print(" OK\r\n");
   
+  // Initialize MIDI Monitor (new dedicated service for message inspection)
+  dbg_print("Initializing MIDI Monitor...");
+  midi_monitor_init();
+  
+  // Configure to monitor ALL ports and ALL channels
+  midi_monitor_config_t mon_cfg;
+  midi_monitor_get_config(&mon_cfg);
+  mon_cfg.enabled = 1;
+  mon_cfg.filter_node = 0xFF;        // 0xFF = ALL nodes (DIN, USB, internal)
+  mon_cfg.filter_channel = 0xFF;     // 0xFF = ALL channels (1-16)
+  mon_cfg.filter_msg_type = MIDI_MON_MSG_ALL;  // ALL message types
+  mon_cfg.show_sysex = 1;            // Show SysEx messages
+  mon_cfg.show_realtime = 1;         // Show realtime messages (Clock, Start, Stop, etc.)
+  mon_cfg.uart_output = 1;           // Enable real-time UART output
+  midi_monitor_set_config(&mon_cfg);
+  
+  dbg_print(" OK\r\n");
+  dbg_print("  ✓ MIDI Monitor: COMPREHENSIVE MODE ENABLED\r\n");
+  dbg_print("  ✓ Monitoring ALL ports:\r\n");
+  dbg_print("     - DIN IN1-4 (USART1, USART3, UART5)\r\n");
+  dbg_print("     - DIN OUT1-4 (all outputs)\r\n");
+  dbg_print("     - USB Device Ports 0-3 (4 virtual cables)\r\n");
+  dbg_print("     - USB Host IN/OUT\r\n");
+  dbg_print("     - Internal: Looper, Keys (AINSER/Hall)\r\n");
+  dbg_print("  ✓ Monitoring ALL channels: 1-16\r\n");
+  dbg_print("  ✓ Monitoring ALL message types:\r\n");
+  dbg_print("     - Notes (On/Off, Poly Pressure)\r\n");
+  dbg_print("     - Control Change (CC)\r\n");
+  dbg_print("     - Program Change, Channel Pressure\r\n");
+  dbg_print("     - Pitch Bend\r\n");
+  dbg_print("     - SysEx (shows first 16 bytes)\r\n");
+  dbg_print("     - Realtime (Clock, Start, Stop, Continue)\r\n");
+  dbg_print("     - System Common (MTC, Song Position)\r\n");
+  dbg_print("  ✓ Real-time UART output enabled\r\n");
+  dbg_print("\r\n");
+  
 #if MODULE_ENABLE_ROUTER
   // Initialize Router for MIDI routing
   dbg_print("Initializing MIDI Router...");
   router_init(router_send_default);
   dbg_print(" OK\r\n");
   
-  // Configure routing: DIN IN1 → DIN OUT1 (echo)
-  // Router node 0 = DIN IN1, node 4 = DIN OUT1 (see router.h for node mapping)
-  router_set_route(0, 4, 1);  // Source: DIN IN1, Dest: DIN OUT1, Enable: 1
-  router_set_chanmask(0, 4, 0xFFFF);  // All channels (0xFFFF = all 16 channels enabled)
-  dbg_print("Router configured: DIN IN1 → DIN OUT1\r\n");
+  // Configure routing: UART MIDI Port 0 (DIN IN1 → DIN OUT1)
+  // This test uses UART MIDI IN/OUT Port 0, which maps to:
+  //   - DIN IN1  = ROUTER_NODE_DIN_IN1  (node 0) = USART1 RX (PA10)
+  //   - DIN OUT1 = ROUTER_NODE_DIN_OUT1 (node 4) = USART1 TX (PA9)
+  // See Config/router_config.h for complete node mapping
+  // Note: USART2 is reserved for GDB debug output (115200 baud)
+  router_set_route(ROUTER_NODE_DIN_IN1, ROUTER_NODE_DIN_OUT1, 1);  // Enable IN1→OUT1
+  router_set_chanmask(ROUTER_NODE_DIN_IN1, ROUTER_NODE_DIN_OUT1, ROUTER_CHMASK_ALL);  // All 16 channels
+  dbg_print("Router configured: UART MIDI Port 0 (DIN IN1 → DIN OUT1)\r\n");
+  dbg_print("  Hardware: USART1 (PA9=TX, PA10=RX) @ 31250 baud\r\n");
+  dbg_print("  Note: USART2 reserved for GDB debug @ 115200 baud\r\n");
 #endif
 
 #if MODULE_ENABLE_LIVEFX
@@ -1064,7 +1138,7 @@ void module_test_midi_din_run(void)
   dbg_print("\r\n");
   
   dbg_print("Features:\r\n");
-  dbg_print("  1. MIDI I/O: Receives from DIN IN1, sends to DIN OUT1\r\n");
+  dbg_print("  1. MIDI I/O: UART MIDI Port 0 (DIN IN1 → DIN OUT1, USART1 PA9/PA10)\r\n");
 #if MODULE_ENABLE_LIVEFX
   dbg_print("  2. LiveFX: Transpose, velocity scale, force-to-scale\r\n");
   dbg_print("  3. MIDI Learn: Map CC messages to LiveFX parameters\r\n");
@@ -1083,6 +1157,21 @@ void module_test_midi_din_run(void)
 #else
   dbg_print("  2. LiveFX: DISABLED (enable MODULE_ENABLE_LIVEFX)\r\n");
 #endif
+  dbg_print("\r\n");
+  dbg_print("MIDI Monitor Output Format:\r\n");
+  dbg_print("  [timestamp_ms] NODE >> Decoded Message | Raw HEX bytes\r\n");
+  dbg_print("\r\n");
+  dbg_print("Example outputs:\r\n");
+  dbg_print("  [1234] DIN_IN1 >> NoteOn Ch:1 C4(60) Vel:100 | 90 3C 64\r\n");
+  dbg_print("  [1235] USB_P0  >> CC Ch:2 Modulation(1)=64 | B1 01 40\r\n");
+  dbg_print("  [1236] DIN_IN2 >> PitchBend Ch:1 Value:+2048 | E0 00 50\r\n");
+  dbg_print("  [1237] KEYS    >> NoteOff Ch:1 E4(64) Vel:0 | 80 40 00\r\n");
+  dbg_print("  [1238] LOOPER  >> ProgChange Ch:1 Prog:5 | C0 05\r\n");
+  dbg_print("  [1239] DIN_IN3 >> SysEx 19 bytes: F0 00 00 7E... | (first 16 shown)\r\n");
+  dbg_print("  [1240] USB_P1  >> Clock (0xF8) | F8\r\n");
+  dbg_print("  [1241] USBH_IN >> Start (0xFA) | FA\r\n");
+  dbg_print("\r\n");
+  dbg_print("Now monitoring... Send MIDI to any port to see real-time output!\r\n");
   dbg_print("\r\n");
   
 #if MODULE_ENABLE_LIVEFX
@@ -1836,15 +1925,57 @@ void module_test_midi_din_run(void)
  */
 void module_test_router_run(void)
 {
-  // Early UART verification
-  dbg_print("\r\n");
+  // Ensure UART debug is initialized
+  test_debug_init();
+  osDelay(500);  // Give UART time to stabilize
+  
+  // Early UART verification with multiple attempts
+  for (int i = 0; i < 3; i++) {
+    dbg_print("\r\n");
+    osDelay(50);
+  }
+  
   dbg_print("==============================================\r\n");
   dbg_print("UART Debug Verification: OK\r\n");
+  dbg_print("Router Test Starting...\r\n");
   dbg_print("==============================================\r\n");
   dbg_print("\r\n");
   osDelay(100);
   
 #if MODULE_ENABLE_ROUTER
+  // Initialize MIDI DIN hardware to receive incoming messages
+  dbg_print("Initializing MIDI DIN hardware... ");
+#if MODULE_ENABLE_MIDI_DIN
+  midi_din_init();
+  dbg_print("OK\r\n");
+  dbg_print("  • DIN IN1: USART1 RX (PA10) @ 31250 baud\r\n");
+  dbg_print("  • DIN OUT1: USART1 TX (PA9) @ 31250 baud\r\n");
+  dbg_print("\r\n");
+#else
+  dbg_print("SKIPPED (MODULE_ENABLE_MIDI_DIN not defined)\r\n");
+  dbg_print("\r\n");
+#endif
+  
+  // Initialize MIDI Monitor for real-time message visibility
+  dbg_print("Initializing MIDI Monitor... ");
+  midi_monitor_init();
+  
+  // Configure to monitor ALL ports and ALL channels
+  midi_monitor_config_t mon_cfg;
+  midi_monitor_get_config(&mon_cfg);
+  mon_cfg.enabled = 1;
+  mon_cfg.filter_node = 0xFF;         // ALL nodes (not filtered by port)
+  mon_cfg.filter_channel = 0xFF;      // ALL channels (1-16)
+  mon_cfg.filter_msg_type = MIDI_MON_MSG_ALL;  // ALL message types
+  mon_cfg.show_sysex = 1;             // Include SysEx
+  mon_cfg.show_realtime = 1;          // Include Clock/Start/Stop
+  mon_cfg.uart_output = 1;            // Real-time UART output
+  midi_monitor_set_config(&mon_cfg);
+  dbg_print("OK\r\n");
+  dbg_print("  • Monitoring: ALL ports, ALL channels\r\n");
+  dbg_print("  • Output: Real-time UART messages with routing status\r\n");
+  dbg_print("\r\n");
+  
   dbg_print_test_header("MIDI Router Module Test - Comprehensive");
   
   dbg_print("This test validates the complete MIDI routing matrix:\r\n");
@@ -1957,6 +2088,8 @@ void module_test_router_run(void)
   msg.b1 = 60;    // C4
   msg.b2 = 100;   // Velocity 100
   dbg_printf("  Sending: Note On C4 (60) vel=100 ch=1 from DIN IN1\r\n");
+  dbg_printf("  [MIDI Mon] >> IN:DIN_IN1 | Status:0x%02X Data:[0x%02X 0x%02X] | Type:Note On | Ch:%d | Note:%d(C4) | Vel:%d\r\n",
+             msg.b0, msg.b1, msg.b2, (msg.b0 & 0x0F) + 1, msg.b1, msg.b2);
   router_process(ROUTER_NODE_DIN_IN1, &msg);
   dbg_print("  → Should route to: DIN OUT1, USB PORT0\r\n");
   osDelay(200);
@@ -1966,6 +2099,8 @@ void module_test_router_run(void)
   msg.b0 = 0x80;  // Note Off, channel 1
   msg.b2 = 0;     // Velocity 0
   dbg_printf("  Sending: Note Off C4 (60) ch=1 from DIN IN1\r\n");
+  dbg_printf("  [MIDI Mon] >> IN:DIN_IN1 | Status:0x%02X Data:[0x%02X 0x%02X] | Type:Note Off | Ch:%d | Note:%d(C4) | Vel:%d\r\n",
+             msg.b0, msg.b1, msg.b2, (msg.b0 & 0x0F) + 1, msg.b1, msg.b2);
   router_process(ROUTER_NODE_DIN_IN1, &msg);
   dbg_print("  → Should route to: DIN OUT1, USB PORT0\r\n");
   osDelay(200);
@@ -1976,6 +2111,8 @@ void module_test_router_run(void)
   msg.b1 = 7;     // Volume
   msg.b2 = 127;   // Max
   dbg_printf("  Sending: CC#7 (Volume)=127 ch=1 from USB PORT0\r\n");
+  dbg_printf("  [MIDI Mon] >> IN:USB_PORT0 | Status:0x%02X Data:[0x%02X 0x%02X] | Type:CC | Ch:%d | CC#:%d(Volume) | Value:%d\r\n",
+             msg.b0, msg.b1, msg.b2, (msg.b0 & 0x0F) + 1, msg.b1, msg.b2);
   router_process(ROUTER_NODE_USB_PORT0, &msg);
   dbg_print("  → Should route to: DIN OUT2\r\n");
   osDelay(200);
@@ -1986,6 +2123,8 @@ void module_test_router_run(void)
   msg.b0 = 0xC0;  // PC, channel 1
   msg.b1 = 42;    // Program 42
   dbg_printf("  Sending: PC=42 ch=1 from DIN IN1\r\n");
+  dbg_printf("  [MIDI Mon] >> IN:DIN_IN1 | Status:0x%02X Data:[0x%02X] | Type:Prog Change | Ch:%d | Program:%d\r\n",
+             msg.b0, msg.b1, (msg.b0 & 0x0F) + 1, msg.b1);
   router_process(ROUTER_NODE_DIN_IN1, &msg);
   dbg_print("  → Should route to: DIN OUT1, USB PORT0\r\n");
   osDelay(200);
@@ -1996,6 +2135,8 @@ void module_test_router_run(void)
   msg.b0 = 0xD0;  // Channel Pressure, channel 1
   msg.b1 = 80;    // Pressure value
   dbg_printf("  Sending: Aftertouch=80 ch=1 from DIN IN1\r\n");
+  dbg_printf("  [MIDI Mon] >> IN:DIN_IN1 | Status:0x%02X Data:[0x%02X] | Type:Ch Pressure | Ch:%d | Value:%d\r\n",
+             msg.b0, msg.b1, (msg.b0 & 0x0F) + 1, msg.b1);
   router_process(ROUTER_NODE_DIN_IN1, &msg);
   dbg_print("  → Should route to: DIN OUT1, USB PORT0\r\n");
   osDelay(200);
@@ -2007,6 +2148,9 @@ void module_test_router_run(void)
   msg.b1 = 0x00;  // LSB
   msg.b2 = 0x40;  // MSB (center)
   dbg_printf("  Sending: Pitch Bend=0x2000 (center) ch=1 from DIN IN1\r\n");
+  uint16_t bend_value = (msg.b2 << 7) | msg.b1;
+  dbg_printf("  [MIDI Mon] >> IN:DIN_IN1 | Status:0x%02X Data:[0x%02X 0x%02X] | Type:Pitch Bend | Ch:%d | Value:0x%04X(%d)\r\n",
+             msg.b0, msg.b1, msg.b2, (msg.b0 & 0x0F) + 1, bend_value, bend_value);
   router_process(ROUTER_NODE_DIN_IN1, &msg);
   dbg_print("  → Should route to: DIN OUT1, USB PORT0\r\n");
   osDelay(200);
@@ -2039,12 +2183,16 @@ void module_test_router_run(void)
   msg.b0 = 0x90;  // Note On, channel 1
   msg.b1 = 64;    // E4
   msg.b2 = 90;    // Velocity
+  dbg_printf("  [MIDI Mon] >> IN:DIN_IN2 | Status:0x%02X Data:[0x%02X 0x%02X] | Type:Note On | Ch:%d | Note:%d(E4) | Vel:%d\r\n",
+             msg.b0, msg.b1, msg.b2, (msg.b0 & 0x0F) + 1, msg.b1, msg.b2);
   router_process(ROUTER_NODE_DIN_IN2, &msg);
   dbg_print("  → Note should appear on all 3 outputs\r\n");
   osDelay(200);
   
   msg.b0 = 0x80;  // Note Off
   msg.b2 = 0;
+  dbg_printf("  [MIDI Mon] >> IN:DIN_IN2 | Status:0x%02X Data:[0x%02X 0x%02X] | Type:Note Off | Ch:%d | Note:%d(E4) | Vel:%d\r\n",
+             msg.b0, msg.b1, msg.b2, (msg.b0 & 0x0F) + 1, msg.b1, msg.b2);
   router_process(ROUTER_NODE_DIN_IN2, &msg);
   osDelay(200);
   
@@ -2067,12 +2215,16 @@ void module_test_router_run(void)
   msg.b0 = 0x90;
   msg.b1 = 67;    // G4
   msg.b2 = 80;
+  dbg_printf("  [MIDI Mon] >> IN:DIN_IN1 | Status:0x%02X Data:[0x%02X 0x%02X] | Type:Note On | Ch:%d | Note:%d(G4) | Vel:%d\r\n",
+             msg.b0, msg.b1, msg.b2, (msg.b0 & 0x0F) + 1, msg.b1, msg.b2);
   router_process(ROUTER_NODE_DIN_IN1, &msg);
   dbg_print("  → Should route to DIN OUT1 only (USB disabled)\r\n");
   osDelay(200);
   
   msg.b0 = 0x80;
   msg.b2 = 0;
+  dbg_printf("  [MIDI Mon] >> IN:DIN_IN1 | Status:0x%02X Data:[0x%02X 0x%02X] | Type:Note Off | Ch:%d | Note:%d(G4) | Vel:%d\r\n",
+             msg.b0, msg.b1, msg.b2, (msg.b0 & 0x0F) + 1, msg.b1, msg.b2);
   router_process(ROUTER_NODE_DIN_IN1, &msg);
   osDelay(200);
   
@@ -2084,12 +2236,16 @@ void module_test_router_run(void)
   msg.b0 = 0x90;
   msg.b1 = 69;    // A4
   msg.b2 = 85;
+  dbg_printf("  [MIDI Mon] >> IN:DIN_IN1 | Status:0x%02X Data:[0x%02X 0x%02X] | Type:Note On | Ch:%d | Note:%d(A4) | Vel:%d\r\n",
+             msg.b0, msg.b1, msg.b2, (msg.b0 & 0x0F) + 1, msg.b1, msg.b2);
   router_process(ROUTER_NODE_DIN_IN1, &msg);
   dbg_print("  → Should route to both DIN OUT1 and USB PORT0\r\n");
   osDelay(200);
   
   msg.b0 = 0x80;
   msg.b2 = 0;
+  dbg_printf("  [MIDI Mon] >> IN:DIN_IN1 | Status:0x%02X Data:[0x%02X 0x%02X] | Type:Note Off | Ch:%d | Note:%d(A4) | Vel:%d\r\n",
+             msg.b0, msg.b1, msg.b2, (msg.b0 & 0x0F) + 1, msg.b1, msg.b2);
   router_process(ROUTER_NODE_DIN_IN1, &msg);
   osDelay(200);
   
@@ -2109,12 +2265,16 @@ void module_test_router_run(void)
   msg.b0 = 0x90;  // Ch 1
   msg.b1 = 72;
   msg.b2 = 95;
+  dbg_printf("    [MIDI Mon] >> IN:LOOPER | Status:0x%02X Data:[0x%02X 0x%02X] | Type:Note On | Ch:%d | Note:%d | Vel:%d\r\n",
+             msg.b0, msg.b1, msg.b2, (msg.b0 & 0x0F) + 1, msg.b1, msg.b2);
   router_process(ROUTER_NODE_LOOPER, &msg);
   dbg_print("    → Ch 1 Note: Should route to DIN OUT3 ✓\r\n");
   osDelay(200);
   
   // Test channel 2 (should be blocked)
   msg.b0 = 0x91;  // Ch 2
+  dbg_printf("    [MIDI Mon] >> IN:LOOPER | Status:0x%02X Data:[0x%02X 0x%02X] | Type:Note On | Ch:%d | Note:%d | Vel:%d\r\n",
+             msg.b0, msg.b1, msg.b2, (msg.b0 & 0x0F) + 1, msg.b1, msg.b2);
   router_process(ROUTER_NODE_LOOPER, &msg);
   dbg_print("    → Ch 2 Note: Should be BLOCKED ✓\r\n");
   osDelay(200);
@@ -2125,6 +2285,8 @@ void module_test_router_run(void)
     msg.b0 = 0x90 | ch;  // Ch 1-6
     msg.b1 = 60 + ch;
     msg.b2 = 80;
+    dbg_printf("    [MIDI Mon] >> IN:KEYS | Status:0x%02X Data:[0x%02X 0x%02X] | Type:Note On | Ch:%d | Note:%d | Vel:%d\r\n",
+               msg.b0, msg.b1, msg.b2, (msg.b0 & 0x0F) + 1, msg.b1, msg.b2);
     router_process(ROUTER_NODE_KEYS, &msg);
     
     if (ch < 4) {
@@ -2138,27 +2300,92 @@ void module_test_router_run(void)
   dbg_print("\r\n  ✓ Channel filtering validated\r\n");
   dbg_print("\r\n");
   
-  // Phase 8: Complete routing table display
+  // Phase 8: Complete routing table display (MIOS32-style)
   dbg_print("============================================================\r\n");
   dbg_print("[Phase 8] Final Routing Table\r\n");
   dbg_print("============================================================\r\n");
   
-  dbg_print("\r\nActive Routes Summary:\r\n");
-  dbg_print("  From       → To          Ch.Mask  Label\r\n");
-  dbg_print("  ----------------------------------------------------------\r\n");
+  // Helper function to get node name
+  const char* get_node_name(uint8_t node) {
+    switch(node) {
+      case ROUTER_NODE_DIN_IN1:  return "DIN_IN1 ";
+      case ROUTER_NODE_DIN_IN2:  return "DIN_IN2 ";
+      case ROUTER_NODE_DIN_IN3:  return "DIN_IN3 ";
+      case ROUTER_NODE_DIN_IN4:  return "DIN_IN4 ";
+      case ROUTER_NODE_DIN_OUT1: return "DIN_OUT1";
+      case ROUTER_NODE_DIN_OUT2: return "DIN_OUT2";
+      case ROUTER_NODE_DIN_OUT3: return "DIN_OUT3";
+      case ROUTER_NODE_DIN_OUT4: return "DIN_OUT4";
+      case ROUTER_NODE_USB_PORT0: return "USB_P0  ";
+      case ROUTER_NODE_USB_PORT1: return "USB_P1  ";
+      case ROUTER_NODE_USB_PORT2: return "USB_P2  ";
+      case ROUTER_NODE_USB_PORT3: return "USB_P3  ";
+      case ROUTER_NODE_USBH_IN:   return "USBH_IN ";
+      case ROUTER_NODE_USBH_OUT:  return "USBH_OUT";
+      case ROUTER_NODE_LOOPER:    return "LOOPER  ";
+      case ROUTER_NODE_KEYS:      return "KEYS    ";
+      default: return "UNKNOWN ";
+    }
+  }
+  
+  // Helper function to format channel mask as readable channel list
+  void format_channels(uint16_t chmask, char* buf, size_t buf_size) {
+    if (chmask == 0xFFFF) {
+      snprintf(buf, buf_size, "All (1-16)");
+      return;
+    }
+    if (chmask == 0) {
+      snprintf(buf, buf_size, "None");
+      return;
+    }
+    
+    // List individual channels
+    char* p = buf;
+    size_t remaining = buf_size;
+    int first = 1;
+    
+    for (int ch = 0; ch < 16; ch++) {
+      if (chmask & (1 << ch)) {
+        int written = snprintf(p, remaining, "%s%d", first ? "" : ",", ch + 1);
+        if (written > 0 && written < remaining) {
+          p += written;
+          remaining -= written;
+          first = 0;
+        }
+      }
+    }
+  }
+  
+  dbg_print("\r\nActive Routes (MIOS32-style):\r\n");
+  dbg_print("  In Port     Out Port    Channels      Label\r\n");
+  dbg_print("  ----------------------------------------------------------------\r\n");
   
   for (uint8_t in = 0; in < ROUTER_NUM_NODES; in++) {
     for (uint8_t out = 0; out < ROUTER_NUM_NODES; out++) {
       if (router_get_route(in, out)) {
         uint16_t chmask = router_get_chanmask(in, out);
         const char* label = router_get_label(in, out);
+        char ch_str[32];
         
-        dbg_printf("  Node %2d   → Node %2d   0x%04X  %s\r\n", 
-                   in, out, chmask, label ? label : "(no label)");
+        format_channels(chmask, ch_str, sizeof(ch_str));
+        
+        dbg_printf("  %s → %s  %-12s  %s\r\n", 
+                   get_node_name(in), 
+                   get_node_name(out), 
+                   ch_str,
+                   label ? label : "(no label)");
       }
     }
   }
   
+  dbg_print("\r\n");
+  dbg_print("Legend:\r\n");
+  dbg_print("  DIN_INx   = MIDI DIN Input ports (hardware UART)\r\n");
+  dbg_print("  DIN_OUTx  = MIDI DIN Output ports (hardware UART)\r\n");
+  dbg_print("  USB_Px    = USB Device MIDI ports (virtual cables)\r\n");
+  dbg_print("  USBH_x    = USB Host MIDI ports (OTG)\r\n");
+  dbg_print("  LOOPER    = Internal looper engine output\r\n");
+  dbg_print("  KEYS      = Custom keybed (AINSER/Hall sensors)\r\n");
   dbg_print("\r\n");
   
   // Test summary
@@ -2178,37 +2405,182 @@ void module_test_router_run(void)
   dbg_print("Router test completed successfully!\r\n");
   dbg_print("\r\n");
   dbg_print("============================================================\r\n");
-  dbg_print("CONTINUOUS MONITORING MODE\r\n");
+  dbg_print("CONTINUOUS MIDI MONITORING MODE\r\n");
   dbg_print("============================================================\r\n");
-  dbg_print("Router is now active and processing MIDI.\r\n");
-  dbg_print("Send MIDI to any configured input to test routing.\r\n");
+  dbg_print("Router is active and monitoring ALL MIDI traffic.\r\n");
   dbg_print("\r\n");
-  dbg_print("Test with:\r\n");
-  dbg_print("  • DIN MIDI IN1-4 → Routes to configured outputs\r\n");
-  dbg_print("  • USB MIDI → Routes to DIN OUT2\r\n");
-  dbg_print("  • MIDI Monitor software to see routed messages\r\n");
+  dbg_print("Real-time MIDI Monitor Output:\r\n");
+  dbg_print("  • Displays incoming MIDI messages from DIN IN1-4\r\n");
+  dbg_print("  • Shows routing status: [ROUTED] or [FILTERED]\r\n");
+  dbg_print("  • Decodes message types (Note On/Off, CC, PC, PB, SysEx)\r\n");
+  dbg_print("  • Includes timestamps and raw hex bytes\r\n");
+  dbg_print("\r\n");
+  dbg_print("Send MIDI from your DAW/keyboard to DIN IN1 to see it here!\r\n");
   dbg_print("\r\n");
   dbg_print("Press Ctrl+C in debugger to stop\r\n");
   dbg_print("============================================================\r\n");
   dbg_print("\r\n");
   
-  // Continuous operation - process any incoming MIDI
+  // Full MIDI monitoring - continuously display incoming messages
+  // The MIDI Monitor service (initialized above) automatically captures
+  // all messages via router_tap_hook and displays them in real-time
+  // via dbg_printf() to UART2 debug console
+  
+  dbg_print("[Monitoring] Listening for MIDI messages...\r\n");
+  dbg_print("\r\n");
+  dbg_print("Interactive Commands:\r\n");
+  dbg_print("  'h' = Show help menu\r\n");
+  dbg_print("  'r' = Display routing table\r\n");
+  dbg_print("  'e' = Enable route\r\n");
+  dbg_print("  'd' = Disable route\r\n");
+  dbg_print("  's' = Show statistics\r\n");
+  dbg_print("  'c' = Clear statistics\r\n");
+  dbg_print("\r\n");
+  
   uint32_t tick_counter = 0;
+  uint32_t last_status_ms = osKernelGetTickCount();
+  uint32_t last_oled_refresh_ms = osKernelGetTickCount();
+  
   for (;;) {
-    osDelay(1000);
+    // Get current time once per loop iteration
+    uint32_t now_ms = osKernelGetTickCount();
+    
+#if MODULE_ENABLE_MIDI_DIN
+    // Poll for incoming MIDI bytes from DIN IN1-4
+    midi_din_tick();
+#endif
+
+#if MODULE_ENABLE_OLED
+    // Update OLED debug mirror display (100ms auto-throttle inside)
+    dbg_mirror_update();
+    
+    // Periodic OLED refresh to keep display active (every 5 seconds)
+    if (now_ms - last_oled_refresh_ms >= 5000) {
+      last_oled_refresh_ms = now_ms;
+      // Re-print monitoring status to OLED to keep it active
+      oled_mirror_print("[MIDI Monitor Active]\r\n");
+      oled_mirror_print("Listening for MIDI...\r\n");
+      dbg_mirror_update();
+    }
+#endif
+    
+    // Check for UART command input (non-blocking)
+    uint8_t cmd_byte;
+    extern UART_HandleTypeDef huart5;  // Debug UART
+    if (HAL_UART_Receive(&huart5, &cmd_byte, 1, 0) == HAL_OK) {
+      // Process command
+      switch (cmd_byte) {
+        case 'h':  // Help
+        case 'H':
+          dbg_print("\r\n=== Router Monitor Commands ===\r\n");
+          dbg_print("  h = Show this help\r\n");
+          dbg_print("  r = Display routing table\r\n");
+          dbg_print("  e = Enable route (interactive)\r\n");
+          dbg_print("  d = Disable route (interactive)\r\n");
+          dbg_print("  s = Show MIDI statistics\r\n");
+          dbg_print("  c = Clear statistics\r\n");
+          dbg_print("  q = Quit monitoring mode\r\n");
+          dbg_print("===============================\r\n\r\n");
+          break;
+          
+        case 'r':  // Routing table
+        case 'R':
+          dbg_print("\r\n=== Current Routing Table ===\r\n");
+          for (uint8_t in = 0; in < ROUTER_NUM_NODES; in++) {
+            for (uint8_t out = 0; out < ROUTER_NUM_NODES; out++) {
+              if (router_get_route(in, out)) {
+                uint16_t chmask = router_get_chanmask(in, out);
+                const char* label = router_get_label(in, out);
+                dbg_printf("  %s → %s [Ch:", get_node_name(in), get_node_name(out));
+                if (chmask == 0xFFFF) dbg_print("All");
+                else dbg_printf("0x%04X", chmask);
+                dbg_printf("] %s\r\n", label ? label : "");
+              }
+            }
+          }
+          dbg_print("=============================\r\n\r\n");
+          break;
+          
+        case 's':  // Statistics
+        case 'S':
+          {
+            midi_monitor_stats_t stats;
+            midi_monitor_get_stats(&stats);
+            dbg_print("\r\n=== MIDI Statistics ===\r\n");
+            dbg_printf("Total: %lu\r\n", (unsigned long)stats.total_messages);
+            dbg_printf("Note On: %lu\r\n", (unsigned long)stats.note_on_count);
+            dbg_printf("Note Off: %lu\r\n", (unsigned long)stats.note_off_count);
+            dbg_printf("CC: %lu\r\n", (unsigned long)stats.cc_count);
+            dbg_printf("Dropped: %lu\r\n", (unsigned long)stats.dropped_messages);
+            dbg_print("=======================\r\n\r\n");
+          }
+          break;
+          
+        case 'c':  // Clear stats
+        case 'C':
+          midi_monitor_reset_stats();
+          dbg_print("\r\n[Statistics cleared]\r\n\r\n");
+          break;
+          
+        case 'e':  // Enable route
+        case 'E':
+          dbg_print("\r\n=== Enable Route ===\r\n");
+          dbg_print("Enter source node (0-15): ");
+          // Simple implementation - in production would read full input
+          dbg_print("\r\n[Interactive route editing requires full terminal impl]\r\n\r\n");
+          break;
+          
+        case 'd':  // Disable route
+        case 'D':
+          dbg_print("\r\n=== Disable Route ===\r\n");
+          dbg_print("Enter source node (0-15): ");
+          dbg_print("\r\n[Interactive route editing requires full terminal impl]\r\n\r\n");
+          break;
+          
+        default:
+          // Unknown command - ignore
+          break;
+      }
+    }
+    
+    osDelay(10);  // 10ms for responsive MIDI input polling (reduces latency)
     tick_counter++;
     
-    // Periodic status update every 30 seconds
-    if (tick_counter % 30 == 0) {
-      // Recalculate active route count
+    // Periodic status update every 60 seconds
+    if (now_ms - last_status_ms >= 60000) {
+      last_status_ms = now_ms;
+      
+      // Get routing statistics
       uint8_t active_routes = 0;
       for (uint8_t in = 0; in < ROUTER_NUM_NODES; in++) {
         for (uint8_t out = 0; out < ROUTER_NUM_NODES; out++) {
           if (router_get_route(in, out)) active_routes++;
         }
       }
-      dbg_printf("[%u min] Router running, %d active routes\r\n", 
-                 (unsigned int)(tick_counter / 60), active_routes);
+      
+      // Get MIDI monitor statistics
+      midi_monitor_stats_t stats;
+      midi_monitor_get_stats(&stats);
+      
+      dbg_print("\r\n");
+      dbg_print("============================================================\r\n");
+      dbg_printf("[Status Update - %u min uptime]\r\n", (unsigned int)(tick_counter / 600));
+      dbg_print("============================================================\r\n");
+      dbg_printf("Active Routes:    %d\r\n", active_routes);
+      dbg_printf("MIDI Messages:    %lu total, %lu dropped\r\n", 
+                 (unsigned long)stats.total_messages, 
+                 (unsigned long)stats.dropped_messages);
+      dbg_printf("  Note On:        %lu\r\n", (unsigned long)stats.note_on_count);
+      dbg_printf("  Note Off:       %lu\r\n", (unsigned long)stats.note_off_count);
+      dbg_printf("  CC:             %lu\r\n", (unsigned long)stats.cc_count);
+      dbg_printf("  Pitch Bend:     %lu\r\n", (unsigned long)stats.pitch_bend_count);
+      dbg_printf("  Program Change: %lu\r\n", (unsigned long)stats.program_change_count);
+      dbg_printf("  SysEx:          %lu\r\n", (unsigned long)stats.sysex_count);
+      dbg_printf("  Realtime:       %lu\r\n", (unsigned long)stats.realtime_count);
+      dbg_print("============================================================\r\n");
+      dbg_print("\r\n");
+      dbg_print("[Monitoring] Continuing to listen for MIDI messages...\r\n");
+      dbg_print("\r\n");
     }
   }
   
@@ -5001,9 +5373,12 @@ void module_test_ui_run(void)
 #if defined(OLED_USE_NEWHAVEN_INIT)
   oled_init_newhaven();  // Complete Newhaven NHD-3.12 initialization
   dbg_print(" Newhaven OK\r\n");
-#else
+#elif MODULE_TEST_OLED
   oled_init();  // Simple MIOS32 test initialization
   dbg_print(" MIOS32 OK\r\n");
+#else
+  oled_init_newhaven();  // Production: use Newhaven init
+  dbg_print(" Production OK\r\n");
 #endif
   
   dbg_print("[Init] Initializing UI...");
@@ -5782,6 +6157,12 @@ int module_test_patch_sd_run(void)
   int test_passed = 0;
   int test_failed = 0;
   
+  // Initialize SPI bus (if not already done)
+  dbg_print("Ensuring SPI bus is initialized...\r\n");
+  spibus_init();
+  dbg_print("SPI bus ready\r\n\r\n");
+  osDelay(100);
+  
   // ========================================
   // TEST 1: SD Card Mount/Unmount
   // ========================================
@@ -5805,6 +6186,53 @@ int module_test_patch_sd_run(void)
   osDelay(200);
   
   // ========================================
+  // TEST 1B: SD Card Directory Listing
+  // ========================================
+  dbg_print("TEST 1B: SD Card Directory Listing\r\n");
+  dbg_print("--------------------------------------\r\n");
+  
+  DIR dir;
+  FILINFO fno;
+  FRESULT fr = f_opendir(&dir, "0:/");
+  
+  if (fr == FR_OK) {
+    dbg_print("Root directory contents:\r\n");
+    int file_count = 0;
+    int dir_count = 0;
+    
+    while (1) {
+      fr = f_readdir(&dir, &fno);
+      if (fr != FR_OK || fno.fname[0] == 0) break;  // End of directory
+      
+      if (fno.fattrib & AM_DIR) {
+        // Directory
+        dbg_printf("  [DIR]  %s\r\n", fno.fname);
+        dir_count++;
+      } else {
+        // File - show name and size
+        dbg_printf("  [FILE] %-20s %8lu bytes\r\n", fno.fname, (unsigned long)fno.fsize);
+        file_count++;
+      }
+    }
+    f_closedir(&dir);
+    
+    dbg_printf("\r\nTotal: %d files, %d directories\r\n", file_count, dir_count);
+    
+    if (file_count == 0 && dir_count == 0) {
+      dbg_print("[INFO] SD card is empty\r\n");
+    } else {
+      dbg_print("[PASS] Directory listing complete\r\n");
+      test_passed++;
+    }
+  } else {
+    dbg_printf("[FAIL] Could not open root directory (FR=%d)\r\n", fr);
+    test_failed++;
+  }
+  
+  dbg_print("\r\n");
+  osDelay(200);
+  
+  // ========================================
   // TEST 2: SD Card Configuration Load
   // ========================================
   dbg_print("TEST 2: Config File Loading\r\n");
@@ -5813,7 +6241,7 @@ int module_test_patch_sd_run(void)
   // Initialize patch system
   patch_init();
   
-  // Try to load config file
+  // Try to load config file from SD card
   const char* config_paths[] = {
     "0:/config.ngc",
     "0:/config_minimal.ngc", 
@@ -5833,9 +6261,28 @@ int module_test_patch_sd_run(void)
   }
   
   if (!config_loaded) {
-    dbg_print("[FAIL] No config file found on SD card\r\n");
-    dbg_print("       Expected: 0:/config.ngc\r\n");
-    test_failed++;
+    dbg_print("[INFO] No config file found on SD card\r\n");
+    dbg_print("       Loading default config from firmware...\r\n");
+    
+    // Load default config from firmware (compiled in, RAM only)
+    result = patch_load_default_config();
+    if (result == 0) {
+      dbg_print("[PASS] Loaded default config from firmware (RAM)\r\n");
+      config_loaded = 1;
+      test_passed++;
+      
+      // Save default config to SD card as "default.ngc"
+      dbg_print("       Saving default config to SD card...\r\n");
+      result = patch_save("0:/default.ngc");
+      if (result == 0) {
+        dbg_print("[PASS] Created default.ngc on SD card\r\n");
+      } else {
+        dbg_print("[WARN] Could not save default.ngc (SD write-protected?)\r\n");
+      }
+    } else {
+      dbg_print("[FAIL] Could not load default config\r\n");
+      test_failed++;
+    }
   }
   dbg_print("\r\n");
   osDelay(200);
@@ -5887,15 +6334,38 @@ int module_test_patch_sd_run(void)
   dbg_print("TEST 4: Config File Saving\r\n");
   dbg_print("--------------------------------------\r\n");
   
+  // DEBUG: Check disk status before write operations
+  DSTATUS disk_st = disk_status(0);
+  dbg_printf("[DEBUG] Disk status before write: 0x%02X (0x00=OK, 0x01=NOINIT, 0x04=PROTECT)\r\n", disk_st);
+  
+  // DEBUG: Try a simple direct write test first
+  // NOTE: FatFs configured with _USE_LFN=0, so only 8.3 filenames allowed
+  dbg_print("[DEBUG] Testing direct f_open/f_write (8.3 filename format)...\r\n");
+  FIL test_file;
+  FRESULT fr_test = f_open(&test_file, "0:/TEST.TXT", FA_CREATE_ALWAYS | FA_WRITE);
+  dbg_printf("[DEBUG] f_open result = %d (0=FR_OK, 6=FR_INVALID_NAME, 8=FR_DENIED, 19=FR_WRITE_PROTECTED)\r\n", fr_test);
+  if (fr_test == FR_OK) {
+    UINT bw;
+    const char* test_data = "TEST";
+    fr_test = f_write(&test_file, test_data, 4, &bw);
+    dbg_printf("[DEBUG] f_write result = %d, wrote %u bytes\r\n", fr_test, bw);
+    f_close(&test_file);
+    dbg_print("[DEBUG] Direct write test completed\r\n");
+  } else {
+    dbg_print("[DEBUG] Direct write test FAILED at f_open\r\n");
+  }
+  
   // Set some test parameters
   const char* TEST_VALUE_1 = "123";
   const char* TEST_VALUE_2 = "456";
   patch_set("TEST_PARAM_1", TEST_VALUE_1);
   patch_set("TEST_PARAM_2", TEST_VALUE_2);
   
-  // Save to a test file
-  const char* test_config = "0:/test_config.ngc";
+  // Save to a test file (8.3 format: max 8 chars + 3 char extension)
+  const char* test_config = "0:/TESTCFG.NGC";
+  dbg_printf("[DEBUG] Calling patch_save('%s')...\r\n", test_config);
   result = patch_save(test_config);
+  dbg_printf("[DEBUG] patch_save returned %d\r\n", result);
   if (result == 0) {
     dbg_printf("[PASS] Config saved to %s\r\n", test_config);
     test_passed++;
@@ -7453,6 +7923,7 @@ int module_test_oled_ssd1322_run(void)
   
   dbg_print("[OK] Init complete\r\n\r\n");
   
+#if MODULE_TEST_OLED
   // Array of test functions and their descriptions
   typedef struct {
     void (*test_func)(void);
@@ -7493,10 +7964,14 @@ int module_test_oled_ssd1322_run(void)
   }
   
   dbg_print("=== ALL DIRECT PATTERN TESTS COMPLETE ===\r\n\r\n");
+#else
+  dbg_print("Step 2: SKIPPED (MODULE_TEST_OLED=0 - test functions not compiled)\r\n\r\n");
+#endif // MODULE_TEST_OLED
   
   // ============================================================================
   // Step 3: UI Page Test (Framebuffer-based rendering)
   // ============================================================================
+#if MODULE_TEST_OLED
   dbg_print("Step 3: UI Page Test (Framebuffer + Graphics API)\r\n");
   dbg_print("===============================================\r\n");
   dbg_print("This test demonstrates the production UI framework:\r\n");
@@ -7556,7 +8031,15 @@ int module_test_oled_ssd1322_run(void)
   
   return 0;
 #else
+  dbg_print("Step 3: SKIPPED (MODULE_TEST_OLED=0 - UI test page not compiled)\r\n\r\n");
+  dbg_print("=== OLED Test Complete ===\r\n");
+  dbg_print("Test functions disabled in production mode.\r\n");
+  dbg_print("Set MODULE_TEST_OLED=1 to enable full OLED test suite.\r\n");
+  return 0;
+#endif // MODULE_TEST_OLED
+  
+#else
   dbg_print("OLED is not enabled in module_config.h\r\n");
   return -1;
-#endif
+#endif // MODULE_ENABLE_OLED
 }

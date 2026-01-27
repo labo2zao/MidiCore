@@ -92,6 +92,22 @@ void router_process(uint8_t in_node, const router_msg_t* msg) {
 
   if (!msg || in_node >= ROUTER_NUM_NODES) return;
   if (!g_send) return;
+  
+  // Filter MIOS Studio bootloader protocol SysEx messages (F0 00 00 7E 32/40 ...)
+  // These are sent automatically by MIOS Studio and can interfere with normal operation
+  if (msg->type == ROUTER_MSG_SYSEX && msg->data && msg->len >= 5) {
+    // Check for MIOS32/Bootloader manufacturer ID: F0 00 00 7E
+    if (msg->data[0] == 0xF0 && msg->data[1] == 0x00 && 
+        msg->data[2] == 0x00 && msg->data[3] == 0x7E) {
+      // Check device ID byte
+      uint8_t device_id = msg->data[4];
+      // 0x32 = MIOS32 query/response, 0x40 = Bootloader protocol
+      if (device_id == 0x32 || device_id == 0x40) {
+        // Block these messages from routing (they're only for bootloader/debug)
+        return;
+      }
+    }
+  }
 
   uint8_t status = msg->b0;
   uint8_t chan_voice = is_channel_voice(status);
@@ -106,6 +122,20 @@ void router_process(uint8_t in_node, const router_msg_t* msg) {
   for (uint8_t out=0; out<ROUTER_NUM_NODES; out++) {
     if (!snap[out].enabled) continue;
     if (chan_voice && ((snap[out].chmask & bit) == 0)) continue;
+    
+    // CRITICAL FIX: Prevent hardware loopback - don't route DIN_INx back to DIN_OUTx on SAME port
+    // Example: DIN_IN1 (node 0) should NOT route to DIN_OUT1 (node 4) to prevent feedback loops
+    // Cross-port routing still works: DIN_IN1 → DIN_OUT2 (for MIDI merge/split)
+    if (in_node >= ROUTER_NODE_DIN_IN1 && in_node <= ROUTER_NODE_DIN_IN4 &&
+        out >= ROUTER_NODE_DIN_OUT1 && out <= ROUTER_NODE_DIN_OUT4) {
+      uint8_t in_port = (uint8_t)(in_node - ROUTER_NODE_DIN_IN1);   // 0-3
+      uint8_t out_port = (uint8_t)(out - ROUTER_NODE_DIN_OUT1);     // 0-3
+      if (in_port == out_port) {
+        // Block same-port loopback: DIN_IN1→DIN_OUT1, DIN_IN2→DIN_OUT2, etc.
+        // This prevents infinite loops if hardware has MIDI cables connecting output back to input
+        continue;
+      }
+    }
     
     // Create a copy of the message for potential transformation
     router_msg_t transformed_msg = *msg;

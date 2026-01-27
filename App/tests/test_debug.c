@@ -5,16 +5,21 @@
 
 #include "App/tests/test_debug.h"
 #include "App/tests/test_oled_mirror.h"
+#include "Config/module_config.h"
 #include "main.h"
 #include <string.h>
 #include <stdio.h>
 #include <stdarg.h>
 
+#if MODULE_ENABLE_OLED
+#include "Hal/oled_ssd1322/oled_ssd1322.h"  // For oled_init_newhaven()
+#endif
+
 // External UART handles from main.c
-extern UART_HandleTypeDef huart1;
-extern UART_HandleTypeDef huart2;
-extern UART_HandleTypeDef huart3;
-extern UART_HandleTypeDef huart5;
+extern UART_HandleTypeDef huart1; // USART1 - MIDI DIN3 (PA9/PA10) or Debug in test mode
+extern UART_HandleTypeDef huart2; // USART2 - MIDI DIN1 (PA2/PA3)
+extern UART_HandleTypeDef huart3; // USART3 - MIDI DIN2 (PD8/PD9)
+extern UART_HandleTypeDef huart5; // UART5  - MIDI DIN4 (PC12/PD2)
 
 // =============================================================================
 // UART HANDLE SELECTION
@@ -22,12 +27,15 @@ extern UART_HandleTypeDef huart5;
 
 static UART_HandleTypeDef* get_debug_uart_handle(void)
 {
+  // Map TEST_DEBUG_UART_PORT to actual UART handles
+  // MIDI DIN ports (0-3): USART2, USART3, USART1, UART5
+  // Port 2 (USART1) can be used for either MIDI DIN3 or Debug
   switch (TEST_DEBUG_UART_PORT) {
-    case 0: return &huart1;
-    case 1: return &huart2;
-    case 2: return &huart3;
-    case 3: return &huart5;
-    default: return &huart2; // Default to UART2
+    case 0: return &huart2;  // USART2 PA2/PA3   [MIDI DIN1 - MIOS32 UART1]
+    case 1: return &huart3;  // USART3 PD8/PD9   [MIDI DIN2 - MIOS32 UART2]
+    case 2: return &huart1;  // USART1 PA9/PA10  [MIDI DIN3 - MIOS32 UART3 / Debug]
+    case 3: return &huart5;  // UART5  PC12/PD2  [MIDI DIN4 - MIOS32 UART4]
+    default: return &huart1; // Default to USART1 for debug
   }
 }
 
@@ -37,13 +45,61 @@ static UART_HandleTypeDef* get_debug_uart_handle(void)
 
 int test_debug_init(void)
 {
-  // UART is already initialized in main.c by CubeMX
-  // Just verify the handle is ready
+  // UART handles are initialized in main.c by CubeMX
+  // We need to reconfigure the debug UART to 115200 baud
+  // (CubeMX initializes all UARTs to 31250 for MIDI by default)
+  
   UART_HandleTypeDef* huart = get_debug_uart_handle();
-  if (huart->gState == HAL_UART_STATE_READY) {
-    return 0; // Success
+  
+  // Reconfigure debug UART to 115200 baud (from default 31250 MIDI baud)
+  if (huart->Init.BaudRate != TEST_DEBUG_UART_BAUD) {
+    HAL_UART_DeInit(huart);
+    huart->Init.BaudRate = TEST_DEBUG_UART_BAUD;  // 115200 for debug
+    huart->Init.WordLength = UART_WORDLENGTH_8B;
+    huart->Init.StopBits = UART_STOPBITS_1;
+    huart->Init.Parity = UART_PARITY_NONE;
+    huart->Init.Mode = UART_MODE_TX_RX;
+    huart->Init.HwFlowCtl = UART_HWCONTROL_NONE;
+    huart->Init.OverSampling = UART_OVERSAMPLING_16;
+    HAL_UART_Init(huart);
   }
-  return 0; // Return success anyway - UART might be in other states but still usable
+  
+#if MODULE_ENABLE_OLED
+  // Always initialize OLED for debug mirroring (enabled by default)
+  // This provides visual feedback even if UART debug is not connected
+  
+  dbg_print("Initializing OLED hardware (NHD-3.12-25664)...\r\n");
+  
+  // Initialize OLED hardware (production-grade Newhaven NHD-3.12-25664 init)
+  oled_init_newhaven();
+  
+  dbg_print("OLED hardware initialized, initializing text display...\r\n");
+  
+  // Initialize mirroring (framebuffer-based text display)
+  oled_mirror_init();
+  oled_mirror_set_enabled(1);  // Enable for text output
+  
+  dbg_print("OLED mirroring initialized, printing test text...\r\n");
+  
+  // Print test text directly to OLED
+  oled_mirror_print("*** MidiCore OLED Test ***\r\n");
+  oled_mirror_print("Hardware: STM32F407VGT6\r\n");
+  oled_mirror_print("Display: NHD-3.12-25664\r\n");
+  oled_mirror_print("Status: READY\r\n");
+  oled_mirror_print("Debug output active...\r\n");
+  oled_mirror_print("\r\n");
+  oled_mirror_print("You should see this text!\r\n");
+  
+  // Update the display to show the text
+  dbg_mirror_update();
+  
+  dbg_print("OLED test text displayed, debug mirroring ready\r\n");
+#else
+  // OLED not compiled in - debug output only via UART
+  dbg_print("OLED disabled (MODULE_ENABLE_OLED=0), using UART debug only\r\n");
+#endif
+  
+  return 0; // Success
 }
 
 // =============================================================================
@@ -52,24 +108,31 @@ int test_debug_init(void)
 
 void dbg_putc(char c)
 {
+  // Always output to UART debug
   UART_HandleTypeDef* huart = get_debug_uart_handle();
   HAL_UART_Transmit(huart, (uint8_t*)&c, 1, 100);
+  
+  // Also mirror to OLED if enabled (optional secondary output)
+  if (oled_mirror_is_enabled()) {
+    char str[2] = {c, '\0'};
+    oled_mirror_print(str);
+  }
 }
 
 void dbg_print(const char* str)
 {
   if (!str) return;
   
-  UART_HandleTypeDef* huart = get_debug_uart_handle();
-  // Send entire string at once for better performance
   size_t len = strlen(str);
-  if (len > 0) {
-    HAL_UART_Transmit(huart, (const uint8_t*)str, len, 1000);
-    
-    // Mirror to OLED if enabled
-    if (oled_mirror_is_enabled()) {
-      oled_mirror_print(str);
-    }
+  if (len == 0) return;
+  
+  // Always output to UART debug
+  UART_HandleTypeDef* huart = get_debug_uart_handle();
+  HAL_UART_Transmit(huart, (const uint8_t*)str, len, 1000);
+  
+  // Also mirror to OLED if enabled (optional secondary output)
+  if (oled_mirror_is_enabled()) {
+    oled_mirror_print(str);
   }
 }
 
@@ -387,9 +450,20 @@ void gdb_ptin_SPI_Pinout(const char* label,
 // OLED MIRROR SUPPORT
 // =============================================================================
 
+/**
+ * @brief Update OLED mirror display
+ * 
+ * Call this periodically (e.g. every 100ms) to refresh the OLED screen
+ * with mirrored debug output.
+ * 
+ * Note: OLED mirroring is automatically enabled when MODULE_ENABLE_OLED
+ * is active and test_debug_init() is called.
+ */
 void dbg_mirror_update(void)
 {
+#if MODULE_ENABLE_OLED
   if (oled_mirror_is_enabled()) {
     oled_mirror_update();
   }
+#endif
 }

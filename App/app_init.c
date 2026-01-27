@@ -55,6 +55,7 @@
 
 #if MODULE_ENABLE_BOOT_REASON
 #include "Services/system/boot_reason.h"
+#include "App/tests/test_debug.h"
 #endif
 
 #if MODULE_ENABLE_LOG
@@ -128,7 +129,9 @@ void app_init_and_start(void)
 #endif
 
 #if MODULE_ENABLE_OLED
-  oled_init();
+  // Production: Use complete Newhaven NHD-3.12 init (LoopA production code)
+  // oled_init() is a simple MIOS32 test init, not suitable for production
+  oled_init_newhaven();
 #endif
 
 #if MODULE_ENABLE_ROUTER
@@ -254,7 +257,7 @@ void app_init_and_start(void)
 #if MODULE_ENABLE_LOG
   log_init();
 #if MODULE_ENABLE_BOOT_REASON
-  log_printf("BOOT", "reason=%d", (int)boot_reason_get());
+  dbg_printf("BOOT: reason=%d\r\n", (int)boot_reason_get());
 #endif
 #endif
 

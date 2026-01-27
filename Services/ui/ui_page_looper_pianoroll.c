@@ -1,4 +1,7 @@
 #include "Services/ui/ui_page_looper_pianoroll.h"
+
+#if MODULE_ENABLE_UI_PAGE_PIANOROLL
+
 #include "Services/ui/ui_gfx.h"
 #include "Services/looper/looper.h"
 #include <stdio.h>
@@ -67,8 +70,9 @@ static uint32_t notes_n = 0;
 
 // simple active map for pairing within one loop
 typedef struct { uint32_t on_idx; uint32_t start; uint8_t vel; uint8_t valid; } active_t;
-// Large array (32KB) - only used in pianoroll UI
-static active_t active[16][128];
+// Large array (24KB) - placed in CCMRAM to save regular RAM for other systems
+// This is similar to looper g_tr placement - high-performance lookup table
+static active_t active[16][128] __attribute__((section(".ccmram")));
 
 static uint8_t is_note_on(const looper_event_view_t* e) {
   return (e->len==3) && ((e->b0 & 0xF0)==0x90) && e->b2!=0;
@@ -461,3 +465,5 @@ void ui_page_looper_pianoroll_zoom_out(void) {
   if (g_zoom > 0) g_zoom--;
   apply_zoom();
 }
+
+#endif // MODULE_ENABLE_UI_PAGE_PIANOROLL

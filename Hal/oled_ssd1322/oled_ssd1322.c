@@ -5,10 +5,11 @@
 #include <string.h>
 
 // Framebuffer: flat array compatible with MidiCore UI (256×64 pixels, 4-bit grayscale)
-// Size: OLED_W * OLED_H / 2 = 256 * 64 / 2 = 8192 bytes
+// Size: OLED_W * OLED_H / 2 = 256 * 64 / 2 = 8192 bytes (8 KB)
 // Layout: 64 rows × 128 bytes per row (each byte = 2 pixels)
-// Moved to regular RAM to free CCMRAM for looper data structures
-static uint8_t fb[OLED_W * OLED_H / 2];
+// Placed in CCMRAM for fast access and to free regular RAM
+// CCMRAM allocation: g_tr(17KB) + OLED_fb(8KB) + active(24KB) = 49KB / 64KB ✅
+static uint8_t fb[OLED_W * OLED_H / 2] __attribute__((section(".ccmram")));
 
 // Software SPI bit-bang implementation (MIOS32 compatible)
 // CS is hardwired to GND, so no CS control needed
@@ -273,6 +274,13 @@ void oled_init_progressive(uint8_t max_step) {
   memset(fb, 0x00, sizeof(fb));
 }
 
+// ============================================================================
+// TEST/DEBUG FUNCTIONS - Only compile when MODULE_TEST_OLED is enabled
+// These functions are for hardware testing and debugging only
+// NOT NEEDED FOR PRODUCTION
+// ============================================================================
+#ifdef MODULE_TEST_OLED
+
 // MIOS32-compatible initialization - EXACT replica
 // Source: midibox/mios32/modules/app_lcd/ssd1322/app_lcd.c APP_LCD_Init()
 void oled_init(void) {
@@ -325,6 +333,12 @@ void oled_init(void) {
   // Clear framebuffer for future use
   memset(fb, 0x00, sizeof(fb));
 }
+
+#endif // MODULE_TEST_OLED
+
+// ============================================================================
+// PRODUCTION FUNCTIONS - Always compiled, required for normal operation
+// ============================================================================
 
 // Newhaven NHD-3.12 datasheet initialization (LoopA production code)
 // Source: LoopA app_lcd.c - active "Initialize display (NHD 3.12 datasheet)" section
@@ -465,6 +479,13 @@ uint8_t *oled_framebuffer(void) {
 void oled_clear(void) {
   memset(fb, 0x00, sizeof(fb));
 }
+
+// ============================================================================
+// TEST PATTERN FUNCTIONS - Only compile when MODULE_TEST_OLED is enabled
+// Visual verification patterns for hardware testing
+// NOT NEEDED FOR PRODUCTION
+// ============================================================================
+#ifdef MODULE_TEST_OLED
 
 // MIOS32-compatible test screen function - EXACT replica
 // Source: github.com/midibox/mios32/apps/mios32_test/app_lcd/ssd1322/app.c testScreen()
@@ -717,3 +738,5 @@ void oled_test_text_pattern(void) {
     }
   }
 }
+
+#endif // MODULE_TEST_OLED
