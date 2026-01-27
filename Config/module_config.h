@@ -287,6 +287,21 @@ extern "C" {
 #define MODULE_ENABLE_LOG 1
 #endif
 
+/** @brief Enable CLI (Command Line Interface) for UART terminal control */
+#ifndef MODULE_ENABLE_CLI
+#define MODULE_ENABLE_CLI 1
+#endif
+
+/** @brief Enable Module Registry (required for CLI module control) */
+#ifndef MODULE_ENABLE_MODULE_REGISTRY
+#define MODULE_ENABLE_MODULE_REGISTRY 1
+#endif
+
+/** @brief Enable Test Module (runtime module testing via CLI) */
+#ifndef MODULE_ENABLE_TEST
+#define MODULE_ENABLE_TEST 1
+#endif
+
 // =============================================================================
 // PRODUCTION / TEST MODE CONFIGURATION
 // =============================================================================

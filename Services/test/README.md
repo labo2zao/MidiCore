@@ -4,7 +4,51 @@ Runtime module testing service for MidiCore firmware via UART terminal.
 
 ## Overview
 
-The Test Module Service provides a CLI-based interface for running module tests at runtime through the UART terminal (MIOS Studio compatible). It integrates with the existing test infrastructure in `App/tests/` and allows selective execution of hardware and software module tests.
+The Test Module Service provides a CLI-based interface for running module tests at runtime through the UART terminal. It integrates with the existing test infrastructure in `App/tests/` and allows selective execution of hardware and software module tests.
+
+**MIOS Studio Compatible**: Uses standard MIOS32-style UART debug output via `dbg_print()` at 115200 baud, fully compatible with MIOS Studio terminal.
+
+## MIOS Studio Integration
+
+This module is designed to work seamlessly with [MIOS Studio](http://www.ucapps.de/mios_studio.html), the standard terminal tool for MIOS32/MIDIbox projects.
+
+### Why MIOS Studio?
+
+- **Professional MIDI/Debug Tool**: Industry standard for MIOS32 projects
+- **UART Terminal**: Built-in serial terminal for debug output
+- **MIDI Monitor**: Simultaneous MIDI and debug monitoring
+- **Easy Setup**: Simple connection to STM32 UART
+
+### Connection Setup
+
+1. **Hardware**: Connect USB-to-UART adapter to debug UART
+   - Default: UART5 (PC12=TX, PD2=RX) 
+   - Can be configured to USART2 (PA2/PA3) or USART3 (PD8/PD9)
+   
+2. **MIOS Studio Settings**:
+   - Baud Rate: **115200**
+   - Data Bits: 8
+   - Parity: None  
+   - Stop Bits: 1
+   - Port: Select your USB-to-UART COM port
+
+3. **Open Terminal** tab in MIOS Studio
+
+4. **Test connection**: Power on MidiCore, you should see initialization messages
+
+### UART Configuration
+
+The debug output uses MIOS32-compatible UART mapping (see `Docs/configuration/README_MIOS32_UART_CONFIG.md`):
+
+```c
+// Default debug UART configuration
+TEST_DEBUG_UART_PORT = 3        // UART5 (PC12/PD2) 
+TEST_DEBUG_UART_BAUD = 115200   // Standard terminal baud rate
+
+// MIDI DIN ports run at 31250 baud (separate from debug)
+```
+
+Can be changed via compile-time defines or in `App/tests/test_debug.h`.
 
 ## Architecture
 
