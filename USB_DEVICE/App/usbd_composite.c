@@ -33,6 +33,22 @@ static uint8_t *USBD_COMPOSITE_GetHSCfgDesc(uint16_t *length);
 static uint8_t *USBD_COMPOSITE_GetOtherSpeedCfgDesc(uint16_t *length);
 static uint8_t *USBD_COMPOSITE_GetDeviceQualifierDesc(uint16_t *length);
 
+typedef struct {
+  void *midi_class_data;
+#if MODULE_ENABLE_USB_CDC
+  void *cdc_class_data;
+#endif
+} USBD_COMPOSITE_ClassDataTypeDef;
+
+static USBD_COMPOSITE_ClassDataTypeDef composite_class_data;
+
+static void *USBD_COMPOSITE_SwitchClassData(USBD_HandleTypeDef *pdev, void *new_data)
+{
+  void *previous = pdev->pClassData;
+  pdev->pClassData = new_data;
+  return previous;
+}
+
 /* USB Composite Class Callbacks */
 USBD_ClassTypeDef USBD_COMPOSITE = 
 {
@@ -81,12 +97,15 @@ static uint8_t USBD_COMPOSITE_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
     if (ret != USBD_OK) {
       return ret;
     }
+    composite_class_data.midi_class_data = pdev->pClassData;
   }
   
 #if MODULE_ENABLE_USB_CDC
+  pdev->pClassData = NULL;
   /* Initialize CDC class */
   if (USBD_CDC.Init != NULL) {
     ret = USBD_CDC.Init(pdev, cfgidx);
+    composite_class_data.cdc_class_data = pdev->pClassData;
   }
 #endif
   
@@ -103,16 +122,23 @@ static uint8_t USBD_COMPOSITE_DeInit(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
 {
   /* DeInit MIDI class */
   if (USBD_MIDI.DeInit != NULL) {
+    (void)USBD_COMPOSITE_SwitchClassData(pdev, composite_class_data.midi_class_data);
     USBD_MIDI.DeInit(pdev, cfgidx);
   }
   
 #if MODULE_ENABLE_USB_CDC
   /* DeInit CDC class */
   if (USBD_CDC.DeInit != NULL) {
+    (void)USBD_COMPOSITE_SwitchClassData(pdev, composite_class_data.cdc_class_data);
     USBD_CDC.DeInit(pdev, cfgidx);
   }
 #endif
   
+  composite_class_data.midi_class_data = NULL;
+#if MODULE_ENABLE_USB_CDC
+  composite_class_data.cdc_class_data = NULL;
+#endif
+  pdev->pClassData = NULL;
   return USBD_OK;
 }
 
@@ -129,7 +155,10 @@ static uint8_t USBD_COMPOSITE_Setup(USBD_HandleTypeDef *pdev, USBD_SetupReqTyped
   /* MIDI interfaces: 0, 1 */
   if (interface <= 1) {
     if (USBD_MIDI.Setup != NULL) {
-      return USBD_MIDI.Setup(pdev, req);
+      void *previous = USBD_COMPOSITE_SwitchClassData(pdev, composite_class_data.midi_class_data);
+      uint8_t status = USBD_MIDI.Setup(pdev, req);
+      (void)USBD_COMPOSITE_SwitchClassData(pdev, previous);
+      return status;
     }
   }
   
@@ -137,7 +166,10 @@ static uint8_t USBD_COMPOSITE_Setup(USBD_HandleTypeDef *pdev, USBD_SetupReqTyped
   /* CDC interfaces: 2, 3 */
   if (interface >= 2 && interface <= 3) {
     if (USBD_CDC.Setup != NULL) {
-      return USBD_CDC.Setup(pdev, req);
+      void *previous = USBD_COMPOSITE_SwitchClassData(pdev, composite_class_data.cdc_class_data);
+      uint8_t status = USBD_CDC.Setup(pdev, req);
+      (void)USBD_COMPOSITE_SwitchClassData(pdev, previous);
+      return status;
     }
   }
 #endif
@@ -156,7 +188,10 @@ static uint8_t USBD_COMPOSITE_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum)
   /* MIDI IN endpoint: 0x81 (EP1) */
   if (epnum == 0x01) {
     if (USBD_MIDI.DataIn != NULL) {
-      return USBD_MIDI.DataIn(pdev, epnum);
+      void *previous = USBD_COMPOSITE_SwitchClassData(pdev, composite_class_data.midi_class_data);
+      uint8_t status = USBD_MIDI.DataIn(pdev, epnum);
+      (void)USBD_COMPOSITE_SwitchClassData(pdev, previous);
+      return status;
     }
   }
   
@@ -164,7 +199,10 @@ static uint8_t USBD_COMPOSITE_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum)
   /* CDC IN endpoints: 0x82 (EP2 data), 0x83 (EP3 command) */
   if (epnum == 0x02 || epnum == 0x03) {
     if (USBD_CDC.DataIn != NULL) {
-      return USBD_CDC.DataIn(pdev, epnum);
+      void *previous = USBD_COMPOSITE_SwitchClassData(pdev, composite_class_data.cdc_class_data);
+      uint8_t status = USBD_CDC.DataIn(pdev, epnum);
+      (void)USBD_COMPOSITE_SwitchClassData(pdev, previous);
+      return status;
     }
   }
 #endif
@@ -183,7 +221,10 @@ static uint8_t USBD_COMPOSITE_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum)
   /* MIDI OUT endpoint: 0x01 (EP1) */
   if (epnum == 0x01) {
     if (USBD_MIDI.DataOut != NULL) {
-      return USBD_MIDI.DataOut(pdev, epnum);
+      void *previous = USBD_COMPOSITE_SwitchClassData(pdev, composite_class_data.midi_class_data);
+      uint8_t status = USBD_MIDI.DataOut(pdev, epnum);
+      (void)USBD_COMPOSITE_SwitchClassData(pdev, previous);
+      return status;
     }
   }
   
@@ -191,7 +232,10 @@ static uint8_t USBD_COMPOSITE_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum)
   /* CDC OUT endpoint: 0x02 (EP2) */
   if (epnum == 0x02) {
     if (USBD_CDC.DataOut != NULL) {
-      return USBD_CDC.DataOut(pdev, epnum);
+      void *previous = USBD_COMPOSITE_SwitchClassData(pdev, composite_class_data.cdc_class_data);
+      uint8_t status = USBD_CDC.DataOut(pdev, epnum);
+      (void)USBD_COMPOSITE_SwitchClassData(pdev, previous);
+      return status;
     }
   }
 #endif
@@ -208,12 +252,16 @@ static uint8_t USBD_COMPOSITE_EP0_RxReady(USBD_HandleTypeDef *pdev)
 {
   /* Route to both classes - they'll ignore if not relevant */
   if (USBD_MIDI.EP0_RxReady != NULL) {
+    void *previous = USBD_COMPOSITE_SwitchClassData(pdev, composite_class_data.midi_class_data);
     USBD_MIDI.EP0_RxReady(pdev);
+    (void)USBD_COMPOSITE_SwitchClassData(pdev, previous);
   }
   
 #if MODULE_ENABLE_USB_CDC
   if (USBD_CDC.EP0_RxReady != NULL) {
+    void *previous = USBD_COMPOSITE_SwitchClassData(pdev, composite_class_data.cdc_class_data);
     USBD_CDC.EP0_RxReady(pdev);
+    (void)USBD_COMPOSITE_SwitchClassData(pdev, previous);
   }
 #endif
   
