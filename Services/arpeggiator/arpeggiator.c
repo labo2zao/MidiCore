@@ -92,15 +92,15 @@ uint8_t arp_add_note(uint8_t note, uint8_t velocity) {
   note_buffer[note_count].velocity = velocity;
   note_count++;
   
-  // Sort buffer by note number (for UP/DOWN patterns)
-  for (uint8_t i = 0; i < note_count - 1; i++) {
-    for (uint8_t j = i + 1; j < note_count; j++) {
-      if (note_buffer[i].note > note_buffer[j].note) {
-        arp_note_t temp = note_buffer[i];
-        note_buffer[i] = note_buffer[j];
-        note_buffer[j] = temp;
-      }
-    }
+  // Use insertion sort to maintain sorted order (O(n) for nearly-sorted data)
+  // This is more efficient than bubble sort for real-time MIDI input
+  // where notes are often added in ascending or descending order
+  uint8_t i = note_count - 1;
+  while (i > 0 && note_buffer[i-1].note > note_buffer[i].note) {
+    arp_note_t temp = note_buffer[i];
+    note_buffer[i] = note_buffer[i-1];
+    note_buffer[i-1] = temp;
+    i--;
   }
   
   return 1;
@@ -195,7 +195,10 @@ static uint8_t get_next_note(uint8_t* note, uint8_t* velocity) {
  * Handles note triggering and gate timing.
  */
 void arp_on_clock_tick(void) {
-  if (!arp_enabled || note_count == 0 || rate_division == 0) return;
+  if (!arp_enabled || note_count == 0) return;
+  
+  // Validate rate_division to prevent division by zero
+  if (rate_division == 0) return;
   
   clock_counter++;
   
