@@ -31,11 +31,21 @@
 /* Composite class data structure */
 typedef struct {
   void *midi_class_data;  /* Pointer to MIDI class data */
+#if MODULE_ENABLE_USB_CDC
   void *cdc_class_data;   /* Pointer to CDC class data */
+#endif
 } USBD_COMPOSITE_HandleTypeDef;
 
 /* Static storage for composite class data */
 static USBD_COMPOSITE_HandleTypeDef composite_class_data;
+
+/* Helper function to switch class data pointer */
+static void *USBD_COMPOSITE_SwitchClassData(USBD_HandleTypeDef *pdev, void *new_data)
+{
+  void *previous = pdev->pClassData;
+  pdev->pClassData = new_data;
+  return previous;
+}
 
 /* Private function prototypes */
 static uint8_t USBD_COMPOSITE_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx);
@@ -48,22 +58,6 @@ static uint8_t *USBD_COMPOSITE_GetFSCfgDesc(uint16_t *length);
 static uint8_t *USBD_COMPOSITE_GetHSCfgDesc(uint16_t *length);
 static uint8_t *USBD_COMPOSITE_GetOtherSpeedCfgDesc(uint16_t *length);
 static uint8_t *USBD_COMPOSITE_GetDeviceQualifierDesc(uint16_t *length);
-
-typedef struct {
-  void *midi_class_data;
-#if MODULE_ENABLE_USB_CDC
-  void *cdc_class_data;
-#endif
-} USBD_COMPOSITE_ClassDataTypeDef;
-
-static USBD_COMPOSITE_ClassDataTypeDef composite_class_data;
-
-static void *USBD_COMPOSITE_SwitchClassData(USBD_HandleTypeDef *pdev, void *new_data)
-{
-  void *previous = pdev->pClassData;
-  pdev->pClassData = new_data;
-  return previous;
-}
 
 /* USB Composite Class Callbacks */
 USBD_ClassTypeDef USBD_COMPOSITE = 
@@ -180,7 +174,6 @@ static uint8_t USBD_COMPOSITE_DeInit(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
 static uint8_t USBD_COMPOSITE_Setup(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req)
 {
   uint8_t interface = LOBYTE(req->wIndex);
-  void *saved_class_data = pdev->pClassData;
   uint8_t ret = USBD_OK;
   
   /* MIDI interfaces: 0, 1 */
