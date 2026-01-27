@@ -115,6 +115,8 @@ static void dbg_print_srio_pinout(void)
 #if MODULE_ENABLE_ROUTER
 #include "Services/router/router.h"
 #include "Services/router/router_send.h"
+#include "Services/cli/cli.h"
+#include "Services/cli/router_cli.h"
 #endif
 
 #if MODULE_ENABLE_LOOPER
@@ -1080,11 +1082,21 @@ void module_test_midi_din_run(void)
   dbg_print("  ✓ Real-time UART output enabled\r\n");
   dbg_print("\r\n");
   
+  // Initialize CLI for terminal commands
+  dbg_print("Initializing CLI...");
+  cli_init();
+  dbg_print(" OK\r\n");
+  dbg_print("  Type 'help' for available commands\r\n");
+  dbg_print("  Type 'router matrix' to view routing\r\n\r\n");
+
 #if MODULE_ENABLE_ROUTER
   // Initialize Router for MIDI routing
   dbg_print("Initializing MIDI Router...");
   router_init(router_send_default);
   dbg_print(" OK\r\n");
+  
+  // Register router CLI commands AFTER router is initialized
+  router_cli_register();
   
   // Configure routing: UART MIDI Port 0 (DIN IN1 → DIN OUT1)
   // This test uses UART MIDI IN/OUT Port 0, which maps to:
@@ -1279,6 +1291,9 @@ void module_test_midi_din_run(void)
 #endif
 
   for (;;) {
+    // Process CLI commands
+    cli_task();
+    
     midi_din_tick();
 
     uint32_t now_ms = osKernelGetTickCount();
