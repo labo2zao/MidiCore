@@ -2428,9 +2428,18 @@ void module_test_router_run(void)
   
   dbg_print("[Monitoring] Listening for MIDI messages...\r\n");
   dbg_print("\r\n");
+  dbg_print("Interactive Commands:\r\n");
+  dbg_print("  'h' = Show help menu\r\n");
+  dbg_print("  'r' = Display routing table\r\n");
+  dbg_print("  'e' = Enable route\r\n");
+  dbg_print("  'd' = Disable route\r\n");
+  dbg_print("  's' = Show statistics\r\n");
+  dbg_print("  'c' = Clear statistics\r\n");
+  dbg_print("\r\n");
   
   uint32_t tick_counter = 0;
   uint32_t last_status_ms = osKernelGetTickCount();
+  uint32_t last_oled_refresh_ms = osKernelGetTickCount();
   
   for (;;) {
 #if MODULE_ENABLE_MIDI_DIN
@@ -2441,7 +2450,96 @@ void module_test_router_run(void)
 #if MODULE_ENABLE_OLED
     // Update OLED debug mirror display (100ms auto-throttle inside)
     dbg_mirror_update();
+    
+    // Periodic OLED refresh to keep display active (every 5 seconds)
+    uint32_t now_ms = osKernelGetTickCount();
+    if (now_ms - last_oled_refresh_ms >= 5000) {
+      last_oled_refresh_ms = now_ms;
+      // Re-print monitoring status to OLED to keep it active
+      oled_mirror_print("[MIDI Monitor Active]\r\n");
+      oled_mirror_print("Listening for MIDI...\r\n");
+      dbg_mirror_update();
+    }
 #endif
+    
+    // Check for UART command input (non-blocking)
+    uint8_t cmd_byte;
+    extern UART_HandleTypeDef huart5;  // Debug UART
+    if (HAL_UART_Receive(&huart5, &cmd_byte, 1, 0) == HAL_OK) {
+      // Process command
+      switch (cmd_byte) {
+        case 'h':  // Help
+        case 'H':
+          dbg_print("\r\n=== Router Monitor Commands ===\r\n");
+          dbg_print("  h = Show this help\r\n");
+          dbg_print("  r = Display routing table\r\n");
+          dbg_print("  e = Enable route (interactive)\r\n");
+          dbg_print("  d = Disable route (interactive)\r\n");
+          dbg_print("  s = Show MIDI statistics\r\n");
+          dbg_print("  c = Clear statistics\r\n");
+          dbg_print("  q = Quit monitoring mode\r\n");
+          dbg_print("===============================\r\n\r\n");
+          break;
+          
+        case 'r':  // Routing table
+        case 'R':
+          dbg_print("\r\n=== Current Routing Table ===\r\n");
+          for (uint8_t in = 0; in < ROUTER_NUM_NODES; in++) {
+            for (uint8_t out = 0; out < ROUTER_NUM_NODES; out++) {
+              if (router_get_route(in, out)) {
+                uint16_t chmask = router_get_chanmask(in, out);
+                const char* label = router_get_label(in, out);
+                dbg_printf("  %s → %s [Ch:", get_node_name(in), get_node_name(out));
+                if (chmask == 0xFFFF) dbg_print("All");
+                else dbg_printf("0x%04X", chmask);
+                dbg_printf("] %s\r\n", label ? label : "");
+              }
+            }
+          }
+          dbg_print("=============================\r\n\r\n");
+          break;
+          
+        case 's':  // Statistics
+        case 'S':
+          {
+            midi_monitor_stats_t stats;
+            midi_monitor_get_stats(&stats);
+            dbg_print("\r\n=== MIDI Statistics ===\r\n");
+            dbg_printf("Total: %lu\r\n", (unsigned long)stats.total_messages);
+            dbg_printf("Note On: %lu\r\n", (unsigned long)stats.note_on_count);
+            dbg_printf("Note Off: %lu\r\n", (unsigned long)stats.note_off_count);
+            dbg_printf("CC: %lu\r\n", (unsigned long)stats.cc_count);
+            dbg_printf("Dropped: %lu\r\n", (unsigned long)stats.dropped_messages);
+            dbg_print("=======================\r\n\r\n");
+          }
+          break;
+          
+        case 'c':  // Clear stats
+        case 'C':
+          midi_monitor_clear_stats();
+          dbg_print("\r\n[Statistics cleared]\r\n\r\n");
+          break;
+          
+        case 'e':  // Enable route
+        case 'E':
+          dbg_print("\r\n=== Enable Route ===\r\n");
+          dbg_print("Enter source node (0-15): ");
+          // Simple implementation - in production would read full input
+          dbg_print("\r\n[Interactive route editing requires full terminal impl]\r\n\r\n");
+          break;
+          
+        case 'd':  // Disable route
+        case 'D':
+          dbg_print("\r\n=== Disable Route ===\r\n");
+          dbg_print("Enter source node (0-15): ");
+          dbg_print("\r\n[Interactive route editing requires full terminal impl]\r\n\r\n");
+          break;
+          
+        default:
+          // Unknown command - ignore
+          break;
+      }
+    }
     
     osDelay(10);  // 10ms for responsive MIDI input polling (reduces latency)
     tick_counter++;
