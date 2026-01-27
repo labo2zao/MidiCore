@@ -490,24 +490,20 @@ static uint8_t USBD_MIDI_Setup(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *r
   * @brief  Handle data IN stage (TX Complete callback)
   * 
   * CRITICAL: This callback is invoked when USB hardware finishes transmitting a packet.
-  * We MUST handle this properly or the endpoint stays BUSY forever, blocking all
-  * subsequent transmissions and causing MIOS Studio to freeze!
+  * We use this to trigger sending the next packet from the TX queue.
   */
 static uint8_t USBD_MIDI_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum)
 {
   /* Verify this is our MIDI IN endpoint */
   if (epnum == (MIDI_IN_EP & 0x7F))
   {
-    /* TX Complete - endpoint is now available for next transmission
-     * The USB HAL automatically clears the BUSY status, but we can
-     * signal to application layer that TX is complete if needed.
+    /* TX Complete - notify application layer to send next packet from queue
      * 
-     * Note: The HAL calls this AFTER setting ep_in[epnum].status to USBD_OK,
-     * so the next usb_midi_send_packet() will succeed.
+     * The HAL has already cleared the BUSY status for this endpoint.
+     * Call the external handler to send next queued packet.
      */
-     
-    /* Optional: Notify application layer that TX completed */
-    /* For now, just acknowledge completion */
+    extern void usb_midi_tx_complete(void);  /* Defined in Services/usb_midi/usb_midi.c */
+    usb_midi_tx_complete();
   }
   
   return USBD_OK;

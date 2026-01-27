@@ -32,6 +32,35 @@ typedef struct {
 
 static sysex_buffer_t sysex_buffers[4] __attribute__((aligned(4))); // 4 cables, 4-byte aligned
 
+/* TX Queue for packet buffering - CRITICAL FIX for packet dropping issue
+ * 
+ * Problem: usb_midi_send_sysex() calls usb_midi_send_packet() multiple times in a tight loop
+ * for multi-packet messages. USB Full Speed can only transmit 1 packet per ~1ms, but we were
+ * trying to send packets in microseconds, causing all but the first packet to be dropped.
+ * 
+ * Solution: Queue packets and send them as TX completes (flow control).
+ */
+#define USB_MIDI_TX_QUEUE_SIZE 32  // Power of 2 for efficient modulo with & mask
+typedef struct {
+  uint8_t packet[4];  // CIN + 3 data bytes
+} tx_packet_t;
+
+static tx_packet_t tx_queue[USB_MIDI_TX_QUEUE_SIZE] __attribute__((aligned(4)));
+static volatile uint8_t tx_queue_head = 0;  // Next position to write
+static volatile uint8_t tx_queue_tail = 0;  // Next position to read
+static volatile uint8_t tx_in_progress = 0; // Flag: transmission active
+
+/* TX Queue helper functions */
+static inline uint8_t tx_queue_is_full(void) {
+  return ((tx_queue_head + 1) & (USB_MIDI_TX_QUEUE_SIZE - 1)) == tx_queue_tail;
+}
+
+static inline uint8_t tx_queue_is_empty(void) {
+  return tx_queue_head == tx_queue_tail;
+}
+
+static void tx_queue_send_next(void);
+
 /* Message length lookup table for faster processing (indexed by CIN 0x0-0xF) */
 static const uint8_t cin_to_length[16] = {
   0, // 0x0: Reserved
@@ -67,42 +96,76 @@ void usb_midi_init(void) {
   /* Initialize SysEx buffers */
   memset(sysex_buffers, 0, sizeof(sysex_buffers));
   
+  /* Initialize TX queue */
+  tx_queue_head = 0;
+  tx_queue_tail = 0;
+  tx_in_progress = 0;
+  
   /* Register interface callbacks with USB Device MIDI class */
   USBD_MIDI_RegisterInterface(&hUsbDeviceFS, &midi_fops);
 }
 
-void usb_midi_send_packet(uint8_t cin, uint8_t b0, uint8_t b1, uint8_t b2) {
-  /* CRITICAL FIX: Send packet directly with provided CIN to avoid re-interpretation
-   * 
-   * Problem: USBD_MIDI_SendData() re-interprets the message bytes to determine CIN,
-   * but for SysEx continuation packets (CIN 0x4), the bytes don't start with 0xF0,
-   * causing misinterpretation as channel messages.
-   * 
-   * Solution: Build the 4-byte USB-MIDI packet directly and transmit it.
-   * This preserves the CIN provided by the caller (e.g., usb_midi_send_sysex).
-   */
-  
+/* Send next packet from TX queue (called from tx_queue_send_next and DataIn callback) */
+static void tx_queue_send_next(void) {
   USBD_MIDI_HandleTypeDef *hmidi = (USBD_MIDI_HandleTypeDef *)hUsbDeviceFS.pClassData;
   
   /* Check if interface is ready */
   if (hmidi == NULL || !hmidi->is_ready) {
-    return; /* Interface not ready - silently fail */
+    tx_in_progress = 0;
+    return;
   }
   
-  /* Check if endpoint is busy before sending */
+  /* Check if queue is empty */
+  if (tx_queue_is_empty()) {
+    tx_in_progress = 0;
+    return;
+  }
+  
+  /* Check if endpoint is busy */
   if (hUsbDeviceFS.ep_in[MIDI_IN_EP & 0x0F].status == USBD_BUSY) {
-    return; /* Endpoint busy - drop packet (non-blocking behavior) */
+    /* Endpoint busy - keep tx_in_progress flag set, will retry on next TX complete */
+    return;
   }
   
-  /* Build USB MIDI packet (4 bytes) with provided CIN */
-  uint8_t packet[4];
-  packet[0] = cin;  /* Cable number (upper 4 bits) + CIN (lower 4 bits) */
-  packet[1] = b0;
-  packet[2] = b1;
-  packet[3] = b2;
+  /* Get next packet from queue */
+  tx_packet_t *pkt = &tx_queue[tx_queue_tail];
+  tx_queue_tail = (tx_queue_tail + 1) & (USB_MIDI_TX_QUEUE_SIZE - 1);
   
-  /* Transmit packet directly */
-  USBD_LL_Transmit(&hUsbDeviceFS, MIDI_IN_EP, packet, 4);
+  /* Mark transmission in progress */
+  tx_in_progress = 1;
+  
+  /* Transmit packet */
+  USBD_LL_Transmit(&hUsbDeviceFS, MIDI_IN_EP, pkt->packet, 4);
+}
+
+void usb_midi_send_packet(uint8_t cin, uint8_t b0, uint8_t b1, uint8_t b2) {
+  /* CRITICAL FIX: Queue packets instead of sending directly
+   * 
+   * Problem: Calling USBD_LL_Transmit() in a tight loop causes packet drops because
+   * USB Full Speed can only handle ~1 packet per ms, but we were sending packets in μs.
+   * 
+   * Solution: Buffer packets in queue, send as TX completes (flow control).
+   * This ensures reliable multi-packet message delivery (SysEx, etc.)
+   */
+  
+  /* Check if queue is full */
+  if (tx_queue_is_full()) {
+    /* Queue full - drop packet (should rarely happen with 32-deep queue) */
+    return;
+  }
+  
+  /* Add packet to queue */
+  tx_packet_t *pkt = &tx_queue[tx_queue_head];
+  pkt->packet[0] = cin;  /* Cable number (upper 4 bits) + CIN (lower 4 bits) */
+  pkt->packet[1] = b0;
+  pkt->packet[2] = b1;
+  pkt->packet[3] = b2;
+  tx_queue_head = (tx_queue_head + 1) & (USB_MIDI_TX_QUEUE_SIZE - 1);
+  
+  /* If no transmission in progress, start sending */
+  if (!tx_in_progress) {
+    tx_queue_send_next();
+  }
 }
 
 void usb_midi_rx_packet(const uint8_t packet4[4]) {
@@ -292,6 +355,12 @@ void usb_midi_rx_packet(const uint8_t packet4[4]) {
 }
 
 /* Callbacks */
+/* TX Complete callback - called from USB MIDI class when packet transmission completes */
+void usb_midi_tx_complete(void) {
+  /* Send next packet from queue */
+  tx_queue_send_next();
+}
+
 static void USBD_MIDI_Init_Callback(void) {
   /* USB MIDI initialized - all 4 ports ready */
 }
