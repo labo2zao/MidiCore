@@ -32,15 +32,30 @@ void MX_USB_DEVICE_Init(void)
     Error_Handler();
   }
   
-  /* Register the MIDI class */
+#if MODULE_ENABLE_USB_CDC
+  /* Composite device mode: Register MIDI and CDC classes */
+  /* Note: Composite API requires USE_USBD_COMPOSITE to be defined */
+  
+  /* Register the MIDI class (interfaces 0-1) */
   if (USBD_RegisterClass(&hUsbDeviceFS, &USBD_MIDI) != USBD_OK)
   {
     Error_Handler();
   }
   
-#if MODULE_ENABLE_USB_CDC
-  /* Register the CDC class (composite device: MIDI + CDC) */
+  /* Register the CDC class (interfaces 2-3) */
   if (USBD_RegisterClass(&hUsbDeviceFS, &USBD_CDC) != USBD_OK)
+  {
+    Error_Handler();
+  }
+  
+  /* TODO: When USE_USBD_COMPOSITE is fully tested, use:
+   * USBD_RegisterClassComposite(&hUsbDeviceFS, &USBD_MIDI, CLASS_TYPE_AUDIO, NULL);
+   * USBD_RegisterClassComposite(&hUsbDeviceFS, &USBD_CDC, CLASS_TYPE_CDC, NULL);
+   */
+  
+#else
+  /* Single class mode: MIDI only */
+  if (USBD_RegisterClass(&hUsbDeviceFS, &USBD_MIDI) != USBD_OK)
   {
     Error_Handler();
   }
