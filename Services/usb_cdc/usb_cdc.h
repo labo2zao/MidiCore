@@ -110,100 +110,91 @@ void usb_cdc_register_receive_callback(usb_cdc_rx_callback_t callback);
 uint8_t usb_cdc_is_connected(void);
 
 /* ============================================================================
- * MIOS32 Compatibility API
- * ============================================================================ */
+ * Terminal Compatibility API (MIOS-Studio Compatible)
+ * ============================================================================
+ * 
+ * This API provides terminal/debugging functionality compatible with MIOS Studio
+ * and other USB CDC terminal applications, without using any MIOS32 code.
+ * 
+ * Designed for commercial use with clean-room implementation.
+ */
 
 /**
- * @brief MIOS32-compatible initialization
+ * @brief Initialize USB CDC for terminal use
+ * @return 0 on success, negative on error
  * 
- * Initializes USB CDC interface for MIOS Studio and terminal compatibility.
- * Must be called after USB Device initialization.
- * 
- * @param mode Mode parameter (currently ignored, for MIOS32 API compat)
- * @return 0 on success (MIOS32 convention)
- * 
- * MIOS32 API: MIOS32_USB_COM_Init(u32 mode)
+ * Terminal-compatible initialization function.
+ * Call after USB Device initialization.
  */
-static inline int32_t MIOS32_USB_COM_Init(uint32_t mode) {
-  (void)mode;  // Mode parameter not used
+static inline int32_t USB_CDC_TerminalInit(void) {
   usb_cdc_init();
   return USB_CDC_OK;
 }
 
 /**
- * @brief MIOS32-compatible connection check
+ * @brief Check if terminal is connected
  * @return 1 if connected, 0 otherwise
  * 
- * MIOS32 API: MIOS32_USB_COM_CheckAvailable(void)
+ * Use this to check if a terminal application (MIOS Studio, PuTTY, etc.)
+ * is connected before sending data.
  */
-static inline int32_t MIOS32_USB_COM_CheckAvailable(void) {
+static inline int32_t USB_CDC_TerminalAvailable(void) {
   return usb_cdc_is_connected() ? 1 : 0;
 }
 
 /**
- * @brief MIOS32-compatible single byte transmit (non-blocking)
- * @param usb_com USB COM interface number (0 for MidiCore, only one interface)
- * @param b Byte to transmit
- * @return 0 on success, negative on error
+ * @brief Send single byte to terminal (non-blocking)
+ * @param byte Byte to send
+ * @return 0 on success, -1 on error, -2 if busy
  * 
- * MIOS32 API: MIOS32_USB_COM_TxBufferPut_NonBlocking(u8 usb_com, u8 b)
+ * Non-blocking byte transmission for terminal output.
  */
-static inline int32_t MIOS32_USB_COM_TxBufferPut_NonBlocking(uint8_t usb_com, uint8_t b) {
-  (void)usb_com;  // Only one interface in MidiCore
-  int32_t result = usb_cdc_send(&b, 1);
-  return (result == 1) ? 0 : ((result == USB_CDC_BUSY) ? -2 : -1);
+static inline int32_t USB_CDC_TerminalPutChar(uint8_t byte) {
+  int32_t result = usb_cdc_send(&byte, 1);
+  if (result == 1) return 0;
+  if (result == USB_CDC_BUSY) return -2;
+  return -1;
 }
 
 /**
- * @brief MIOS32-compatible single byte transmit (blocking)
- * @param usb_com USB COM interface number (0 for MidiCore)
- * @param b Byte to transmit
+ * @brief Send string to terminal (non-blocking)
+ * @param str Null-terminated string
  * @return 0 on success, negative on error
  * 
- * MIOS32 API: MIOS32_USB_COM_TxBufferPut(u8 usb_com, u8 b)
- * 
- * Note: MidiCore implementation is non-blocking, so this is same as non-blocking version
+ * Convenience function for terminal string output.
  */
-static inline int32_t MIOS32_USB_COM_TxBufferPut(uint8_t usb_com, uint8_t b) {
-  return MIOS32_USB_COM_TxBufferPut_NonBlocking(usb_com, b);
+static inline int32_t USB_CDC_TerminalPutString(const char *str) {
+  if (!str) return -1;
+  uint32_t len = 0;
+  while (str[len]) len++;
+  int32_t result = usb_cdc_send((const uint8_t*)str, len);
+  return (result == (int32_t)len) ? 0 : -1;
 }
 
 /**
- * @brief MIOS32-compatible block transmit (non-blocking)
- * @param usb_com USB COM interface number (0 for MidiCore)
+ * @brief Send data buffer to terminal (non-blocking)
  * @param buffer Pointer to data buffer
- * @param len Number of bytes to send
- * @return 0 on success, negative on error
+ * @param length Number of bytes to send
+ * @return Number of bytes sent on success, negative on error
  * 
- * MIOS32 API: MIOS32_USB_COM_TxBufferPutMore_NonBlocking(u8 usb_com, u8 *buffer, u16 len)
+ * Non-blocking buffer transmission for terminal output.
  */
-static inline int32_t MIOS32_USB_COM_TxBufferPutMore_NonBlocking(uint8_t usb_com, uint8_t *buffer, uint16_t len) {
-  (void)usb_com;
-  int32_t result = usb_cdc_send(buffer, len);
-  return (result == (int32_t)len) ? 0 : ((result == USB_CDC_BUSY) ? -2 : -1);
+static inline int32_t USB_CDC_TerminalWrite(const uint8_t *buffer, uint32_t length) {
+  return usb_cdc_send(buffer, length);
 }
 
 /**
- * @brief MIOS32-compatible block transmit (blocking)
- * @param usb_com USB COM interface number (0 for MidiCore)
- * @param buffer Pointer to data buffer
- * @param len Number of bytes to send
- * @return 0 on success, negative on error
+ * @brief Register callback for received terminal data
+ * @param callback Function to call when data received
+ * @return 0 on success
  * 
- * MIOS32 API: MIOS32_USB_COM_TxBufferPutMore(u8 usb_com, u8 *buffer, u16 len)
- * 
- * Note: MidiCore implementation is non-blocking, so this is same as non-blocking version
+ * Register a callback to handle data received from the terminal.
+ * Callback is called from USB interrupt context.
  */
-static inline int32_t MIOS32_USB_COM_TxBufferPutMore(uint8_t usb_com, uint8_t *buffer, uint16_t len) {
-  return MIOS32_USB_COM_TxBufferPutMore_NonBlocking(usb_com, buffer, len);
+static inline int32_t USB_CDC_TerminalRegisterRxCallback(usb_cdc_rx_callback_t callback) {
+  usb_cdc_register_receive_callback(callback);
+  return USB_CDC_OK;
 }
-
-/* Legacy MIOS32_USB_CDC_* names for backward compatibility */
-#define MIOS32_USB_CDC_Init(void) MIOS32_USB_COM_Init(0)
-#define MIOS32_USB_CDC_CheckAvailable() MIOS32_USB_COM_CheckAvailable()
-#define MIOS32_USB_CDC_SendBlock(buf, len) MIOS32_USB_COM_TxBufferPutMore(0, (uint8_t*)(buf), (uint16_t)(len))
-#define MIOS32_USB_CDC_IsConnected() usb_cdc_is_connected()
-#define MIOS32_USB_CDC_RegisterRxCallback(cb) usb_cdc_register_receive_callback(cb)
 
 #ifdef __cplusplus
 }

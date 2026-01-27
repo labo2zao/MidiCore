@@ -6,8 +6,9 @@
  ******************************************************************************
  * @attention
  *
- * USB CDC ACM service implementation with MIOS32 compatibility
- * Maps between USB_DEVICE/Class/CDC interface and application layer
+ * Original clean-room USB CDC ACM implementation for MidiCore.
+ * Compatible with MIOS Studio and standard terminal applications.
+ * Licensed for commercial use.
  * 
  ******************************************************************************
  */
