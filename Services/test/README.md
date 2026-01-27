@@ -22,8 +22,9 @@ This module is designed to work seamlessly with [MIOS Studio](http://www.ucapps.
 ### Connection Setup
 
 1. **Hardware**: Connect USB-to-UART adapter to debug UART
-   - Default: UART5 (PC12=TX, PD2=RX) 
-   - Can be configured to USART2 (PA2/PA3) or USART3 (PD8/PD9)
+   - **Default (MIOS32 compatible)**: USART3 (PD8=TX, PD9=RX)
+   - Alternative: USART2 (PA2/PA3)
+   - Alternative: UART5 (PC12/PD2)
    
 2. **MIOS Studio Settings**:
    - Baud Rate: **115200**
@@ -41,8 +42,8 @@ This module is designed to work seamlessly with [MIOS Studio](http://www.ucapps.
 The debug output uses MIOS32-compatible UART mapping (see `Docs/configuration/README_MIOS32_UART_CONFIG.md`):
 
 ```c
-// Default debug UART configuration
-TEST_DEBUG_UART_PORT = 3        // UART5 (PC12/PD2) 
+// Default debug UART configuration (MIOS32 compatible)
+TEST_DEBUG_UART_PORT = 1        // USART3 (PD8/PD9) - Recommended for terminal
 TEST_DEBUG_UART_BAUD = 115200   // Standard terminal baud rate
 
 // MIDI DIN ports run at 31250 baud (separate from debug)

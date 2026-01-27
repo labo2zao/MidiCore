@@ -58,8 +58,9 @@ Modified `App/app_init.c` to initialize and run the test system:
 ### Connection Setup
 
 1. **Hardware**: Connect USB-to-UART adapter to STM32
-   - Default: UART5 (PC12=TX, PD2=RX)
-   - Alternative: USART2 (PA2/PA3) or USART3 (PD8/PD9)
+   - **Default (MIOS32 compatible)**: USART3 (PD8=TX, PD9=RX)
+   - Alternative: USART2 (PA2/PA3)
+   - Alternative: UART5 (PC12/PD2)
 
 2. **MIOS Studio Settings**:
    - Baud Rate: 115200
