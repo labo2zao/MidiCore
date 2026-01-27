@@ -21,6 +21,22 @@
 
 #include <string.h>
 
+/* ============================================================================
+ * CRITICAL FIX: Separate Class Data Storage
+ * ============================================================================
+ * Problem: MIDI and CDC both try to use pdev->pClassData, causing conflicts
+ * Solution: Composite class manages separate storage for each class
+ */
+
+/* Composite class data structure */
+typedef struct {
+  void *midi_class_data;  /* Pointer to MIDI class data */
+  void *cdc_class_data;   /* Pointer to CDC class data */
+} USBD_COMPOSITE_HandleTypeDef;
+
+/* Static storage for composite class data */
+static USBD_COMPOSITE_HandleTypeDef composite_class_data;
+
 /* Private function prototypes */
 static uint8_t USBD_COMPOSITE_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx);
 static uint8_t USBD_COMPOSITE_DeInit(USBD_HandleTypeDef *pdev, uint8_t cfgidx);
@@ -75,19 +91,39 @@ static uint8_t USBD_COMPOSITE_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
 {
   uint8_t ret = USBD_OK;
   
+  /* Initialize composite class data storage */
+  memset(&composite_class_data, 0, sizeof(USBD_COMPOSITE_HandleTypeDef));
+  pdev->pClassData = &composite_class_data;
+  
+  /* Save original pClassData pointer */
+  void *original_class_data = pdev->pClassData;
+  
   /* Initialize MIDI class */
   if (USBD_MIDI.Init != NULL) {
     ret = USBD_MIDI.Init(pdev, cfgidx);
     if (ret != USBD_OK) {
       return ret;
     }
+    /* Save MIDI class data pointer */
+    composite_class_data.midi_class_data = pdev->pClassData;
   }
+  
+  /* Restore composite class data pointer before CDC init */
+  pdev->pClassData = original_class_data;
   
 #if MODULE_ENABLE_USB_CDC
   /* Initialize CDC class */
   if (USBD_CDC.Init != NULL) {
     ret = USBD_CDC.Init(pdev, cfgidx);
+    if (ret != USBD_OK) {
+      return ret;
+    }
+    /* Save CDC class data pointer */
+    composite_class_data.cdc_class_data = pdev->pClassData;
   }
+  
+  /* Restore composite class data pointer */
+  pdev->pClassData = original_class_data;
 #endif
   
   return ret;
@@ -125,20 +161,32 @@ static uint8_t USBD_COMPOSITE_DeInit(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
 static uint8_t USBD_COMPOSITE_Setup(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req)
 {
   uint8_t interface = LOBYTE(req->wIndex);
+  void *saved_class_data = pdev->pClassData;
+  uint8_t ret = USBD_OK;
   
   /* MIDI interfaces: 0, 1 */
   if (interface <= 1) {
     if (USBD_MIDI.Setup != NULL) {
-      return USBD_MIDI.Setup(pdev, req);
+      /* Restore MIDI class data pointer */
+      pdev->pClassData = composite_class_data.midi_class_data;
+      ret = USBD_MIDI.Setup(pdev, req);
+      /* Restore composite pointer */
+      pdev->pClassData = saved_class_data;
     }
+    return ret;
   }
   
 #if MODULE_ENABLE_USB_CDC
   /* CDC interfaces: 2, 3 */
   if (interface >= 2 && interface <= 3) {
     if (USBD_CDC.Setup != NULL) {
-      return USBD_CDC.Setup(pdev, req);
+      /* Restore CDC class data pointer */
+      pdev->pClassData = composite_class_data.cdc_class_data;
+      ret = USBD_CDC.Setup(pdev, req);
+      /* Restore composite pointer */
+      pdev->pClassData = saved_class_data;
     }
+    return ret;
   }
 #endif
   
@@ -153,19 +201,32 @@ static uint8_t USBD_COMPOSITE_Setup(USBD_HandleTypeDef *pdev, USBD_SetupReqTyped
  */
 static uint8_t USBD_COMPOSITE_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum)
 {
+  void *saved_class_data = pdev->pClassData;
+  uint8_t ret = USBD_OK;
+  
   /* MIDI IN endpoint: 0x81 (EP1) */
   if (epnum == 0x01) {
     if (USBD_MIDI.DataIn != NULL) {
-      return USBD_MIDI.DataIn(pdev, epnum);
+      /* Restore MIDI class data pointer */
+      pdev->pClassData = composite_class_data.midi_class_data;
+      ret = USBD_MIDI.DataIn(pdev, epnum);
+      /* Restore composite pointer */
+      pdev->pClassData = saved_class_data;
     }
+    return ret;
   }
   
 #if MODULE_ENABLE_USB_CDC
   /* CDC IN endpoints: 0x82 (EP2 data), 0x83 (EP3 command) */
   if (epnum == 0x02 || epnum == 0x03) {
     if (USBD_CDC.DataIn != NULL) {
-      return USBD_CDC.DataIn(pdev, epnum);
+      /* Restore CDC class data pointer */
+      pdev->pClassData = composite_class_data.cdc_class_data;
+      ret = USBD_CDC.DataIn(pdev, epnum);
+      /* Restore composite pointer */
+      pdev->pClassData = saved_class_data;
     }
+    return ret;
   }
 #endif
   
@@ -180,19 +241,32 @@ static uint8_t USBD_COMPOSITE_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum)
  */
 static uint8_t USBD_COMPOSITE_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum)
 {
+  void *saved_class_data = pdev->pClassData;
+  uint8_t ret = USBD_OK;
+  
   /* MIDI OUT endpoint: 0x01 (EP1) */
   if (epnum == 0x01) {
     if (USBD_MIDI.DataOut != NULL) {
-      return USBD_MIDI.DataOut(pdev, epnum);
+      /* Restore MIDI class data pointer */
+      pdev->pClassData = composite_class_data.midi_class_data;
+      ret = USBD_MIDI.DataOut(pdev, epnum);
+      /* Restore composite pointer */
+      pdev->pClassData = saved_class_data;
     }
+    return ret;
   }
   
 #if MODULE_ENABLE_USB_CDC
   /* CDC OUT endpoint: 0x02 (EP2) */
   if (epnum == 0x02) {
     if (USBD_CDC.DataOut != NULL) {
-      return USBD_CDC.DataOut(pdev, epnum);
+      /* Restore CDC class data pointer */
+      pdev->pClassData = composite_class_data.cdc_class_data;
+      ret = USBD_CDC.DataOut(pdev, epnum);
+      /* Restore composite pointer */
+      pdev->pClassData = saved_class_data;
     }
+    return ret;
   }
 #endif
   
@@ -206,14 +280,21 @@ static uint8_t USBD_COMPOSITE_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum)
  */
 static uint8_t USBD_COMPOSITE_EP0_RxReady(USBD_HandleTypeDef *pdev)
 {
-  /* Route to both classes - they'll ignore if not relevant */
+  void *saved_class_data = pdev->pClassData;
+  
+  /* Route to MIDI class */
   if (USBD_MIDI.EP0_RxReady != NULL) {
+    pdev->pClassData = composite_class_data.midi_class_data;
     USBD_MIDI.EP0_RxReady(pdev);
+    pdev->pClassData = saved_class_data;
   }
   
 #if MODULE_ENABLE_USB_CDC
+  /* Route to CDC class */
   if (USBD_CDC.EP0_RxReady != NULL) {
+    pdev->pClassData = composite_class_data.cdc_class_data;
     USBD_CDC.EP0_RxReady(pdev);
+    pdev->pClassData = saved_class_data;
   }
 #endif
   
