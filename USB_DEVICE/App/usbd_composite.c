@@ -334,9 +334,6 @@ static uint8_t *USBD_COMPOSITE_GetFSCfgDesc(uint16_t *length)
     uint8_t *midi_desc = USBD_MIDI.GetFSConfigDescriptor(&midi_len);
     
 #if MODULE_ENABLE_USB_CDC
-    uint16_t cdc_len = 0;
-    uint8_t *cdc_desc = USBD_CDC.GetFSConfigDescriptor(&cdc_len);
-    
     /* ===================================================================
      * STEP 1: Configuration Descriptor Header
      * =================================================================== */
@@ -434,8 +431,8 @@ static uint8_t *USBD_COMPOSITE_GetFSCfgDesc(uint16_t *length)
     ptr[1] = USB_DESC_TYPE_ENDPOINT;  /* bDescriptorType */
     ptr[2] = 0x83;  /* bEndpointAddress: IN Endpoint 3 */
     ptr[3] = 0x03;  /* bmAttributes: Interrupt */
-    ptr[4] = 0x08;  /* wMaxPacketSize: 8 bytes */
-    ptr[5] = 0x00;
+    ptr[4] = LOBYTE(CDC_CMD_PACKET_SIZE);  /* wMaxPacketSize: 8 bytes */
+    ptr[5] = HIBYTE(CDC_CMD_PACKET_SIZE);
     ptr[6] = 0x10;  /* bInterval: 16 ms */
     ptr += 7;
     total_len += 7;
@@ -458,8 +455,8 @@ static uint8_t *USBD_COMPOSITE_GetFSCfgDesc(uint16_t *length)
     ptr[1] = USB_DESC_TYPE_ENDPOINT;  /* bDescriptorType */
     ptr[2] = 0x02;  /* bEndpointAddress: OUT Endpoint 2 */
     ptr[3] = 0x02;  /* bmAttributes: Bulk */
-    ptr[4] = 0x40;  /* wMaxPacketSize: 64 bytes */
-    ptr[5] = 0x00;
+    ptr[4] = LOBYTE(CDC_DATA_FS_MAX_PACKET_SIZE);  /* wMaxPacketSize: 64 bytes */
+    ptr[5] = HIBYTE(CDC_DATA_FS_MAX_PACKET_SIZE);
     ptr[6] = 0x00;  /* bInterval */
     ptr += 7;
     total_len += 7;
@@ -469,8 +466,8 @@ static uint8_t *USBD_COMPOSITE_GetFSCfgDesc(uint16_t *length)
     ptr[1] = USB_DESC_TYPE_ENDPOINT;  /* bDescriptorType */
     ptr[2] = 0x82;  /* bEndpointAddress: IN Endpoint 2 */
     ptr[3] = 0x02;  /* bmAttributes: Bulk */
-    ptr[4] = 0x40;  /* wMaxPacketSize: 64 bytes */
-    ptr[5] = 0x00;
+    ptr[4] = LOBYTE(CDC_DATA_FS_MAX_PACKET_SIZE);  /* wMaxPacketSize: 64 bytes */
+    ptr[5] = HIBYTE(CDC_DATA_FS_MAX_PACKET_SIZE);
     ptr[6] = 0x00;  /* bInterval */
     ptr += 7;
     total_len += 7;
