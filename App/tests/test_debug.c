@@ -15,6 +15,10 @@
 #include "Hal/oled_ssd1322/oled_ssd1322.h"  // For oled_init_newhaven()
 #endif
 
+#if MODULE_ENABLE_USB_CDC
+#include "Services/usb_cdc/usb_cdc.h"  // For USB CDC output
+#endif
+
 // External UART handles from main.c
 extern UART_HandleTypeDef huart1; // USART1 - MIDI DIN3 (PA9/PA10) or Debug in test mode
 extern UART_HandleTypeDef huart2; // USART2 - MIDI DIN1 (PA2/PA3)

@@ -26,7 +26,7 @@ extern "C" {
 #endif
 
 #define CC_SMOOTHER_MAX_TRACKS 4
-#define CC_SMOOTHER_MAX_CC_NUMBERS 128
+#define CC_SMOOTHER_MAX_CC_NUMBERS 32  // Reduced from 128 to 32 (saves ~8KB RAM) - covers most common CCs
 
 /**
  * @brief CC smoother mode
