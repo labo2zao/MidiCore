@@ -6,15 +6,15 @@
  * This protocol allows MIOS Studio to query connected devices for identification.
  * 
  * Protocol Format:
- *   Query:    F0 00 00 7E 32 00 <query_type> <data...> F7
- *   Response: F0 00 00 7E 32 01 <query_type> <data...> F7
+ *   Query:    F0 00 00 7E 32 <dev_id> <query_type> <data...> F7
+ *   Response: F0 00 00 7E 32 <dev_id> <query_type> <data...> F7
  * 
  * Query Types:
  *   0x00: Reserved
  *   0x01: Device Info Query - requests device name, version, etc.
  * 
  * Device Info Response Format:
- *   F0 00 00 7E 32 01 01 <device_name> 00 <version> F7
+ *   F0 00 00 7E 32 <dev_id> 01 <device_name> 00 <version> F7
  *   - device_name: ASCII string (null-terminated)
  *   - version: ASCII string (e.g., "1.0.0")
  */
@@ -60,9 +60,10 @@ bool mios32_query_process(const uint8_t* data, uint32_t len, uint8_t cable);
  * @brief Send device info response to MIOS Studio
  * @param device_name Device name (e.g., "MidiCore")
  * @param version Version string (e.g., "1.0.0")
+ * @param device_id Device instance ID to echo back in the response
  * @param cable USB MIDI cable number (0-3) to send response on
  */
-void mios32_query_send_device_info(const char* device_name, const char* version, uint8_t cable);
+void mios32_query_send_device_info(const char* device_name, const char* version, uint8_t device_id, uint8_t cable);
 
 #ifdef __cplusplus
 }

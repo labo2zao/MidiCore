@@ -55,12 +55,13 @@ bool mios32_query_process(const uint8_t* data, uint32_t len, uint8_t cable) {
   }
   
   // Extract command (byte 6 for MIOS32 protocol: F0 00 00 7E 32 <dev> <cmd>)
+  uint8_t device_id = data[5];
   uint8_t command = data[6];
   
   // Command 0x00 or 0x01: Device Info Request
   if (command == 0x00 || command == 0x01) {
     // Respond with device information on the same cable the query came from
-    mios32_query_send_device_info(MIOS32_DEVICE_NAME, MIOS32_DEVICE_VERSION, cable);
+    mios32_query_send_device_info(MIOS32_DEVICE_NAME, MIOS32_DEVICE_VERSION, device_id, cable);
     return true;
   }
   
@@ -68,7 +69,7 @@ bool mios32_query_process(const uint8_t* data, uint32_t len, uint8_t cable) {
   return false;
 }
 
-void mios32_query_send_device_info(const char* device_name, const char* version, uint8_t cable) {
+void mios32_query_send_device_info(const char* device_name, const char* version, uint8_t device_id, uint8_t cable) {
   if (!device_name || !version) {
     return;
   }
@@ -82,7 +83,7 @@ void mios32_query_send_device_info(const char* device_name, const char* version,
   *p++ = 0x00;  // Manufacturer ID 2
   *p++ = 0x7E;  // Manufacturer ID 3 (MIOS32)
   *p++ = MIOS32_QUERY_DEVICE_ID;  // Device ID (0x32)
-  *p++ = 0x00;  // Device instance ID
+  *p++ = device_id;  // Device instance ID (echo query)
   *p++ = 0x01;  // Command: Layout/Info Response
   
   // Copy device name (ASCII string, space-padded or null-terminated)
