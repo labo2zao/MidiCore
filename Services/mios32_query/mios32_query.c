@@ -38,10 +38,10 @@ bool mios32_query_is_query_message(const uint8_t* data, uint32_t len) {
       data[2] == 0x00 &&
       data[3] == 0x7E &&
       data[4] == MIOS32_QUERY_DEVICE_ID) {
-    // data[5] is device instance ID (00 for query)
-    // data[6] is command
-    // For query messages, device_id should be 0x00 and command should be 0x00 or 0x01
-    if (data[5] == 0x00 && (data[6] == 0x00 || data[6] == 0x01)) {
+    // data[5] is device instance ID
+    // data[6] is command (0x00 = query, 0x01 = response/info)
+    // Accept device info query forms used by MIOS Studio.
+    if (data[6] == 0x00 || data[6] == 0x01) {
       return true;
     }
   }
@@ -58,8 +58,9 @@ bool mios32_query_process(const uint8_t* data, uint32_t len, uint8_t cable) {
   uint8_t device_id = data[5];
   uint8_t command = data[6];
   
-  // Command 0x00 or 0x01: Device Info Request
-  if (command == 0x00 || command == 0x01) {
+  // Command 0x00: Device Info Request (MIOS Studio uses data[7]=0x01)
+  // Command 0x01: Device Info Request (alternate form)
+  if (command == 0x01 || (command == 0x00 && len >= 8 && data[7] == 0x01)) {
     // Respond with device information on the same cable the query came from
     mios32_query_send_device_info(MIOS32_DEVICE_NAME, MIOS32_DEVICE_VERSION, device_id, cable);
     return true;
