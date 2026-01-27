@@ -141,10 +141,13 @@ void usb_midi_rx_packet(const uint8_t packet4[4]) {
           
           /* Fast SysEx validation (check start and end markers) */
           if (buf->pos >= 2 && buf->buffer[0] == 0xF0 && buf->buffer[buf->pos-1] == 0xF7) {
-            /* Check if this is a MIOS32 query message - handle directly */
+            /* Check if this is a MIOS32 query message - IGNORE (don't respond like non-MIOS32 devices) */
             if (mios32_query_is_query_message(buf->buffer, buf->pos)) {
-              mios32_query_process(buf->buffer, buf->pos, cable);
-              // Don't route query messages - they're handled above
+              // CRITICAL FIX: Don't respond to MIOS32 queries
+              // MIOS Studio doesn't crash with other non-MIOS32 MIDI devices because they ignore these queries
+              // By not responding, MIOS Studio knows we're not a MIOS32 device and doesn't crash
+              // mios32_query_process(buf->buffer, buf->pos, cable);  // DISABLED
+              // Don't route query messages either - just ignore them completely
             } else {
               /* Only route if not in test mode with APP_TEST_USB_MIDI */
               #ifndef APP_TEST_USB_MIDI
@@ -179,10 +182,13 @@ void usb_midi_rx_packet(const uint8_t packet4[4]) {
           
           /* Fast SysEx validation */
           if (buf->pos >= 2 && buf->buffer[0] == 0xF0 && buf->buffer[buf->pos-1] == 0xF7) {
-            /* Check if this is a MIOS32 query message - handle directly */
+            /* Check if this is a MIOS32 query message - IGNORE (don't respond like non-MIOS32 devices) */
             if (mios32_query_is_query_message(buf->buffer, buf->pos)) {
-              mios32_query_process(buf->buffer, buf->pos, cable);
-              // Don't route query messages - they're handled above
+              // CRITICAL FIX: Don't respond to MIOS32 queries
+              // MIOS Studio doesn't crash with other non-MIOS32 MIDI devices because they ignore these queries
+              // By not responding, MIOS Studio knows we're not a MIOS32 device and doesn't crash
+              // mios32_query_process(buf->buffer, buf->pos, cable);  // DISABLED
+              // Don't route query messages either - just ignore them completely
             } else {
               #ifndef APP_TEST_USB_MIDI
               router_msg_t msg;
@@ -216,10 +222,13 @@ void usb_midi_rx_packet(const uint8_t packet4[4]) {
           
           /* Fast SysEx validation */
           if (buf->pos >= 2 && buf->buffer[0] == 0xF0 && buf->buffer[buf->pos-1] == 0xF7) {
-            /* Check if this is a MIOS32 query message - handle directly */
+            /* Check if this is a MIOS32 query message - IGNORE (don't respond like non-MIOS32 devices) */
             if (mios32_query_is_query_message(buf->buffer, buf->pos)) {
-              mios32_query_process(buf->buffer, buf->pos, cable);
-              // Don't route query messages - they're handled above
+              // CRITICAL FIX: Don't respond to MIOS32 queries
+              // MIOS Studio doesn't crash with other non-MIOS32 MIDI devices because they ignore these queries
+              // By not responding, MIOS Studio knows we're not a MIOS32 device and doesn't crash
+              // mios32_query_process(buf->buffer, buf->pos, cable);  // DISABLED
+              // Don't route query messages either - just ignore them completely
             } else {
               #ifndef APP_TEST_USB_MIDI
               router_msg_t msg;
