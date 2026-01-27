@@ -68,6 +68,19 @@ typedef void (*usb_cdc_rx_callback_t)(const uint8_t *buf, uint32_t len);
 void usb_cdc_init(void);
 
 /**
+ * @brief Process queued CDC RX data
+ * 
+ * Call periodically from task context (e.g., every 1ms in MIDI IO task).
+ * Processes all queued received CDC data and calls registered callbacks.
+ * 
+ * This function processes data that was queued in interrupt context,
+ * allowing safe processing without blocking USB interrupts.
+ * 
+ * @note Call from task context, not interrupt!
+ */
+void usb_cdc_process_rx_queue(void);
+
+/**
  * @brief Send data via USB CDC
  * @param buf Pointer to data buffer to send
  * @param len Number of bytes to send

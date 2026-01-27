@@ -32,6 +32,65 @@ static usb_cdc_rx_callback_t rx_callback = NULL;
 static uint8_t is_initialized = 0;
 
 /* ============================================================================
+ * RX Queue for Deferred Processing
+ * ============================================================================
+ * 
+ * CDC RX data is queued in interrupt context and processed in task context.
+ * This prevents blocking in USB interrupt and ensures proper endpoint flow control.
+ */
+
+#define CDC_RX_QUEUE_SIZE 16  /* 16 packets x 64 bytes = 1KB */
+#define CDC_MAX_PACKET_SIZE 64
+
+typedef struct {
+  uint8_t data[CDC_MAX_PACKET_SIZE];
+  uint16_t length;
+} cdc_rx_packet_t;
+
+static cdc_rx_packet_t rx_queue[CDC_RX_QUEUE_SIZE];
+static volatile uint16_t rx_queue_head = 0;
+static volatile uint16_t rx_queue_tail = 0;
+
+/**
+ * @brief Check if RX queue is empty
+ */
+static inline uint8_t rx_queue_is_empty(void) {
+  return (rx_queue_head == rx_queue_tail);
+}
+
+/**
+ * @brief Check if RX queue is full
+ */
+static inline uint8_t rx_queue_is_full(void) {
+  return ((rx_queue_head + 1) % CDC_RX_QUEUE_SIZE) == rx_queue_tail;
+}
+
+/**
+ * @brief Enqueue CDC RX packet (interrupt context)
+ * @param buf Pointer to received data
+ * @param len Length of received data
+ * @return 1 if queued successfully, 0 if queue full
+ */
+static uint8_t rx_queue_enqueue(const uint8_t *buf, uint16_t len) {
+  if (rx_queue_is_full()) {
+    return 0;  /* Queue full - drop packet */
+  }
+  
+  if (len > CDC_MAX_PACKET_SIZE) {
+    len = CDC_MAX_PACKET_SIZE;  /* Truncate if too large */
+  }
+  
+  /* Copy data to queue */
+  memcpy(rx_queue[rx_queue_head].data, buf, len);
+  rx_queue[rx_queue_head].length = len;
+  
+  /* Advance head */
+  rx_queue_head = (rx_queue_head + 1) % CDC_RX_QUEUE_SIZE;
+  
+  return 1;
+}
+
+/* ============================================================================
  * Service API Implementation
  * ============================================================================ */
 
@@ -40,10 +99,34 @@ void usb_cdc_init(void) {
     return; /* Already initialized */
   }
   
+  /* Initialize RX queue */
+  rx_queue_head = 0;
+  rx_queue_tail = 0;
+  
   /* Register CDC interface callbacks with USB Device stack */
   USBD_CDC_RegisterInterface(&hUsbDeviceFS, &USBD_CDC_fops);
   
   is_initialized = 1;
+}
+
+void usb_cdc_process_rx_queue(void) {
+  if (!is_initialized) {
+    return;
+  }
+  
+  /* Process all queued RX packets */
+  while (!rx_queue_is_empty()) {
+    /* Get packet from queue */
+    cdc_rx_packet_t *packet = &rx_queue[rx_queue_tail];
+    
+    /* Call application callback if registered */
+    if (rx_callback != NULL) {
+      rx_callback(packet->data, packet->length);
+    }
+    
+    /* Advance tail */
+    rx_queue_tail = (rx_queue_tail + 1) % CDC_RX_QUEUE_SIZE;
+  }
 }
 
 int32_t usb_cdc_send(const uint8_t *buf, uint32_t len) {
@@ -95,18 +178,22 @@ uint8_t usb_cdc_is_connected(void) {
  * @param len Number of bytes received
  * 
  * Called from USB interrupt context via usbd_cdc_if.c
- * Forwards data to registered application callback
+ * 
+ * CRITICAL: This function is called from USB RX INTERRUPT context!
+ * We MUST NOT do heavy processing here. Queue data and return immediately.
  */
 void usb_cdc_rx_callback_internal(const uint8_t *buf, uint32_t len) {
-  if (rx_callback != NULL) {
-    rx_callback(buf, len);
-  }
+  /* Queue packet for processing in task context */
+  rx_queue_enqueue(buf, (uint16_t)len);
+  
+  /* Return immediately - processing happens in usb_cdc_process_rx_queue() */
 }
 
 #else /* !MODULE_ENABLE_USB_CDC */
 
 /* Stub implementations when CDC is disabled */
 void usb_cdc_init(void) {}
+void usb_cdc_process_rx_queue(void) {}
 int32_t usb_cdc_send(const uint8_t *buf, uint32_t len) { (void)buf; (void)len; return USB_CDC_NOT_READY; }
 void usb_cdc_register_receive_callback(usb_cdc_rx_callback_t callback) { (void)callback; }
 uint8_t usb_cdc_is_connected(void) { return 0; }
