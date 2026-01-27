@@ -8,12 +8,13 @@
 #include "Services/din/din_map.h"
 #include "Services/patch/patch_sd_mount.h"
 #include "Services/midi/midi_router.h"
+#include "Services/router/router.h"
+#include "Services/router/router_send.h"
 #include "Services/usb_host_midi/usb_host_midi.h"
 #include "Services/cli/cli.h"
 #include "Services/cli/router_cli.h"
 #include "Services/ui/ui.h"
 #include "Hal/oled_ssd1322/oled_ssd1322.h"
-#include "Hal/uart_midi/hal_uart_midi.h"
 #include "App/tests/test_debug.h"
 
 #include <string.h>
@@ -62,7 +63,7 @@ static void app_test_din_output_cb(DIN_MapType type, uint8_t channel,
 void app_test_din_midi_run_forever(void)
 {
 #ifdef SRIO_ENABLE
-  // Initialize UART debug first
+  // Initialize UART debug FIRST before anything else
   test_debug_init();
   osDelay(100);
   
@@ -76,13 +77,20 @@ void app_test_din_midi_run_forever(void)
   ui_init();
   dbg_print("OK\r\n");
   
-  // Initialize CLI
+  // Initialize CLI BEFORE router (so router CLI can register)
   dbg_print("Initializing CLI... ");
   cli_init();
-  router_cli_register();
   dbg_print("OK\r\n");
   dbg_print("  Type 'help' for available commands\r\n");
   dbg_print("  Type 'router matrix' to view routing\r\n\r\n");
+  
+  // Initialize router first (required for CLI commands)
+  dbg_print("Initializing MIDI Router... ");
+  router_init(router_send_default);
+  dbg_print("OK\r\n");
+  
+  // Register router CLI commands AFTER router is initialized
+  router_cli_register();
   
   // 0) SD + DIN mapping
   dbg_print("Initializing SD and DIN mapping... ");
@@ -97,10 +105,10 @@ void app_test_din_midi_run_forever(void)
     dbg_print("OK (using defaults)\r\n");
   }
 
-  // 1) UART MIDI
-  dbg_print("Initializing UART MIDI... ");
-  (void)hal_uart_midi_init();
-  dbg_print("OK\r\n");
+  // 1) UART MIDI - IMPORTANT: Do NOT call hal_uart_midi_init() here!
+  // It would reconfigure the debug UART back to 31250 baud.
+  // The router will handle MIDI output directly via router_send_default().
+  dbg_print("MIDI routing via router (hal_uart_midi skipped to preserve 115200 debug baud)... OK\r\n");
 
   // 2) SRIO
   dbg_print("Initializing SRIO... ");
@@ -125,6 +133,16 @@ void app_test_din_midi_run_forever(void)
   dbg_print("==============================================\r\n");
   dbg_print("Test running. Press DIN buttons to send MIDI.\r\n");
   dbg_print("Use CLI commands to control routing.\r\n");
+  dbg_print("\r\n");
+  dbg_print("** UART DEBUG @ 115200 BAUD **\r\n");
+  dbg_print("  Port: UART5 (PC12/PD2)\r\n");
+  dbg_print("  Verify your terminal is set to 115200 baud!\r\n");
+  dbg_print("\r\n");
+  dbg_print("Available commands:\r\n");
+  dbg_print("  help          - Show all commands\r\n");
+  dbg_print("  router matrix - Show routing matrix\r\n");
+  dbg_print("  router enable IN OUT - Enable route\r\n");
+  dbg_print("  router disable IN OUT - Disable route\r\n");
   dbg_print("==============================================\r\n\r\n");
 
   // 3) Main loop
