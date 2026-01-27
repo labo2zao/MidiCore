@@ -61,6 +61,31 @@ static inline uint8_t tx_queue_is_empty(void) {
 
 static void tx_queue_send_next(void);
 
+/* RX Queue for deferred processing - CRITICAL FIX for interrupt context issues
+ * 
+ * Problem: RX interrupt was processing packets immediately, including sending TX responses
+ * in the same interrupt context. This violates USB protocol and causes race conditions.
+ * 
+ * Solution: Queue RX packets in interrupt, process them in task context.
+ */
+#define USB_MIDI_RX_QUEUE_SIZE 16  // Power of 2
+typedef struct {
+  uint8_t packet[4];  // Header (cable+CIN) + 3 data bytes
+} rx_packet_t;
+
+static rx_packet_t rx_queue[USB_MIDI_RX_QUEUE_SIZE] __attribute__((aligned(4)));
+static volatile uint8_t rx_queue_head = 0;  // Next position to write (ISR)
+static volatile uint8_t rx_queue_tail = 0;  // Next position to read (task)
+
+/* RX Queue helper functions */
+static inline uint8_t rx_queue_is_full(void) {
+  return ((rx_queue_head + 1) & (USB_MIDI_RX_QUEUE_SIZE - 1)) == rx_queue_tail;
+}
+
+static inline uint8_t rx_queue_is_empty(void) {
+  return rx_queue_head == rx_queue_tail;
+}
+
 /* Message length lookup table for faster processing (indexed by CIN 0x0-0xF) */
 static const uint8_t cin_to_length[16] = {
   0, // 0x0: Reserved
