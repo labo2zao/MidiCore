@@ -21,6 +21,22 @@
 
 #include <string.h>
 
+/* ============================================================================
+ * CRITICAL FIX: Separate Class Data Storage
+ * ============================================================================
+ * Problem: MIDI and CDC both try to use pdev->pClassData, causing conflicts
+ * Solution: Composite class manages separate storage for each class
+ */
+
+/* Composite class data structure */
+typedef struct {
+  void *midi_class_data;  /* Pointer to MIDI class data */
+  void *cdc_class_data;   /* Pointer to CDC class data */
+} USBD_COMPOSITE_HandleTypeDef;
+
+/* Static storage for composite class data */
+static USBD_COMPOSITE_HandleTypeDef composite_class_data;
+
 /* Private function prototypes */
 static uint8_t USBD_COMPOSITE_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx);
 static uint8_t USBD_COMPOSITE_DeInit(USBD_HandleTypeDef *pdev, uint8_t cfgidx);
@@ -91,6 +107,13 @@ static uint8_t USBD_COMPOSITE_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
 {
   uint8_t ret = USBD_OK;
   
+  /* Initialize composite class data storage */
+  memset(&composite_class_data, 0, sizeof(USBD_COMPOSITE_HandleTypeDef));
+  pdev->pClassData = &composite_class_data;
+  
+  /* Save original pClassData pointer */
+  void *original_class_data = pdev->pClassData;
+  
   /* Initialize MIDI class */
   if (USBD_MIDI.Init != NULL) {
     ret = USBD_MIDI.Init(pdev, cfgidx);
@@ -100,6 +123,9 @@ static uint8_t USBD_COMPOSITE_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
     composite_class_data.midi_class_data = pdev->pClassData;
   }
   
+  /* Restore composite class data pointer before CDC init */
+  pdev->pClassData = original_class_data;
+  
 #if MODULE_ENABLE_USB_CDC
   pdev->pClassData = NULL;
   /* Initialize CDC class */
@@ -107,6 +133,9 @@ static uint8_t USBD_COMPOSITE_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
     ret = USBD_CDC.Init(pdev, cfgidx);
     composite_class_data.cdc_class_data = pdev->pClassData;
   }
+  
+  /* Restore composite class data pointer */
+  pdev->pClassData = original_class_data;
 #endif
   
   return ret;
@@ -151,6 +180,8 @@ static uint8_t USBD_COMPOSITE_DeInit(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
 static uint8_t USBD_COMPOSITE_Setup(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *req)
 {
   uint8_t interface = LOBYTE(req->wIndex);
+  void *saved_class_data = pdev->pClassData;
+  uint8_t ret = USBD_OK;
   
   /* MIDI interfaces: 0, 1 */
   if (interface <= 1) {
@@ -160,6 +191,7 @@ static uint8_t USBD_COMPOSITE_Setup(USBD_HandleTypeDef *pdev, USBD_SetupReqTyped
       (void)USBD_COMPOSITE_SwitchClassData(pdev, previous);
       return status;
     }
+    return ret;
   }
   
 #if MODULE_ENABLE_USB_CDC
@@ -171,6 +203,7 @@ static uint8_t USBD_COMPOSITE_Setup(USBD_HandleTypeDef *pdev, USBD_SetupReqTyped
       (void)USBD_COMPOSITE_SwitchClassData(pdev, previous);
       return status;
     }
+    return ret;
   }
 #endif
   
@@ -185,6 +218,9 @@ static uint8_t USBD_COMPOSITE_Setup(USBD_HandleTypeDef *pdev, USBD_SetupReqTyped
  */
 static uint8_t USBD_COMPOSITE_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum)
 {
+  void *saved_class_data = pdev->pClassData;
+  uint8_t ret = USBD_OK;
+  
   /* MIDI IN endpoint: 0x81 (EP1) */
   if (epnum == 0x01) {
     if (USBD_MIDI.DataIn != NULL) {
@@ -193,6 +229,7 @@ static uint8_t USBD_COMPOSITE_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum)
       (void)USBD_COMPOSITE_SwitchClassData(pdev, previous);
       return status;
     }
+    return ret;
   }
   
 #if MODULE_ENABLE_USB_CDC
@@ -204,6 +241,7 @@ static uint8_t USBD_COMPOSITE_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum)
       (void)USBD_COMPOSITE_SwitchClassData(pdev, previous);
       return status;
     }
+    return ret;
   }
 #endif
   
@@ -218,6 +256,9 @@ static uint8_t USBD_COMPOSITE_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum)
  */
 static uint8_t USBD_COMPOSITE_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum)
 {
+  void *saved_class_data = pdev->pClassData;
+  uint8_t ret = USBD_OK;
+  
   /* MIDI OUT endpoint: 0x01 (EP1) */
   if (epnum == 0x01) {
     if (USBD_MIDI.DataOut != NULL) {
@@ -226,6 +267,7 @@ static uint8_t USBD_COMPOSITE_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum)
       (void)USBD_COMPOSITE_SwitchClassData(pdev, previous);
       return status;
     }
+    return ret;
   }
   
 #if MODULE_ENABLE_USB_CDC
@@ -237,6 +279,7 @@ static uint8_t USBD_COMPOSITE_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum)
       (void)USBD_COMPOSITE_SwitchClassData(pdev, previous);
       return status;
     }
+    return ret;
   }
 #endif
   
@@ -250,7 +293,9 @@ static uint8_t USBD_COMPOSITE_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum)
  */
 static uint8_t USBD_COMPOSITE_EP0_RxReady(USBD_HandleTypeDef *pdev)
 {
-  /* Route to both classes - they'll ignore if not relevant */
+  void *saved_class_data = pdev->pClassData;
+  
+  /* Route to MIDI class */
   if (USBD_MIDI.EP0_RxReady != NULL) {
     void *previous = USBD_COMPOSITE_SwitchClassData(pdev, composite_class_data.midi_class_data);
     USBD_MIDI.EP0_RxReady(pdev);
@@ -258,6 +303,7 @@ static uint8_t USBD_COMPOSITE_EP0_RxReady(USBD_HandleTypeDef *pdev)
   }
   
 #if MODULE_ENABLE_USB_CDC
+  /* Route to CDC class */
   if (USBD_CDC.EP0_RxReady != NULL) {
     void *previous = USBD_COMPOSITE_SwitchClassData(pdev, composite_class_data.cdc_class_data);
     USBD_CDC.EP0_RxReady(pdev);
@@ -339,50 +385,103 @@ static uint8_t *USBD_COMPOSITE_GetFSCfgDesc(uint16_t *length)
     total_len += 8;
     
     /* ===================================================================
-     * STEP 4: Copy CDC interfaces and endpoints
-     * Skip config header (9 bytes), but adjust interface numbers
+     * STEP 4: Copy CDC interfaces with hardcoded interface numbers
+     * Instead of adjusting in-place, rebuild CDC descriptors with correct values
      * =================================================================== */
-    uint8_t *cdc_interfaces = cdc_desc + 9;  /* Skip config header */
-    uint16_t cdc_function_len = cdc_len - 9;
     
-    /* First, copy entire CDC function */
-    memcpy(ptr, cdc_interfaces, cdc_function_len);
+    /* Build CDC Control Interface (Interface 2) */
+    ptr[0] = 0x09;  /* bLength */
+    ptr[1] = USB_DESC_TYPE_INTERFACE;  /* bDescriptorType */
+    ptr[2] = 0x02;  /* bInterfaceNumber: 2 (not 0!) */
+    ptr[3] = 0x00;  /* bAlternateSetting */
+    ptr[4] = 0x01;  /* bNumEndpoints: 1 (Interrupt IN) */
+    ptr[5] = 0x02;  /* bInterfaceClass: CDC */
+    ptr[6] = 0x02;  /* bInterfaceSubClass: ACM */
+    ptr[7] = 0x01;  /* bInterfaceProtocol: AT commands */
+    ptr[8] = 0x00;  /* iInterface */
+    ptr += 9;
+    total_len += 9;
     
-    /* Now fix interface numbers in-place */
-    for (uint16_t i = 0; i < cdc_function_len; i++) {
-      /* Find interface descriptors and update interface numbers */
-      /* Interface descriptor: bLength=0x09, bDescriptorType=0x04, bInterfaceNumber at offset +2 */
-      if (i + 2 < cdc_function_len && 
-          ptr[i] == 0x09 &&                    /* bLength = 9 */
-          ptr[i+1] == USB_DESC_TYPE_INTERFACE) {  /* bDescriptorType = 0x04 */
-        /* Adjust interface number: add 2 to offset from MIDI interfaces (0,1) */
-        ptr[i+2] += 2;
-      }
-      
-      /* Fix Union Functional Descriptor interface references */
-      /* Union descriptor: bLength=0x05, bDescriptorType=0x24, bDescriptorSubtype=0x06 */
-      if (i + 4 < cdc_function_len &&
-          ptr[i] == 0x05 &&        /* bLength = 5 */
-          ptr[i+1] == 0x24 &&      /* CS_INTERFACE */
-          ptr[i+2] == 0x06) {      /* UNION subtype */
-        /* bMasterInterface and bSlaveInterface need +2 offset */
-        ptr[i+3] += 2;  /* bControlInterface (Master) */
-        ptr[i+4] += 2;  /* bSubordinateInterface (Slave) */
-      }
-      
-      /* Fix Call Management Functional Descriptor data interface */
-      /* Call Mgmt descriptor: bLength=0x05, bDescriptorType=0x24, bDescriptorSubtype=0x01 */
-      if (i + 4 < cdc_function_len &&
-          ptr[i] == 0x05 &&        /* bLength = 5 */
-          ptr[i+1] == 0x24 &&      /* CS_INTERFACE */
-          ptr[i+2] == 0x01) {      /* CALL_MGMT subtype */
-        /* bDataInterface needs +2 offset */
-        ptr[i+4] += 2;  /* bDataInterface */
-      }
-    }
+    /* Header Functional Descriptor */
+    ptr[0] = 0x05;  /* bLength */
+    ptr[1] = 0x24;  /* bDescriptorType: CS_INTERFACE */
+    ptr[2] = 0x00;  /* bDescriptorSubtype: Header */
+    ptr[3] = 0x10;  /* bcdCDC: 1.10 */
+    ptr[4] = 0x01;
+    ptr += 5;
+    total_len += 5;
     
-    ptr += cdc_function_len;
-    total_len += cdc_function_len;
+    /* Call Management Functional Descriptor */
+    ptr[0] = 0x05;  /* bLength */
+    ptr[1] = 0x24;  /* bDescriptorType: CS_INTERFACE */
+    ptr[2] = 0x01;  /* bDescriptorSubtype: Call Management */
+    ptr[3] = 0x00;  /* bmCapabilities */
+    ptr[4] = 0x03;  /* bDataInterface: 3 (not 1!) */
+    ptr += 5;
+    total_len += 5;
+    
+    /* ACM Functional Descriptor */
+    ptr[0] = 0x04;  /* bLength */
+    ptr[1] = 0x24;  /* bDescriptorType: CS_INTERFACE */
+    ptr[2] = 0x02;  /* bDescriptorSubtype: ACM */
+    ptr[3] = 0x02;  /* bmCapabilities */
+    ptr += 4;
+    total_len += 4;
+    
+    /* Union Functional Descriptor */
+    ptr[0] = 0x05;  /* bLength */
+    ptr[1] = 0x24;  /* bDescriptorType: CS_INTERFACE */
+    ptr[2] = 0x06;  /* bDescriptorSubtype: Union */
+    ptr[3] = 0x02;  /* bControlInterface: 2 (not 0!) */
+    ptr[4] = 0x03;  /* bSubordinateInterface: 3 (not 1!) */
+    ptr += 5;
+    total_len += 5;
+    
+    /* Endpoint Descriptor: Interrupt IN (Command) */
+    ptr[0] = 0x07;  /* bLength */
+    ptr[1] = USB_DESC_TYPE_ENDPOINT;  /* bDescriptorType */
+    ptr[2] = 0x83;  /* bEndpointAddress: IN Endpoint 3 */
+    ptr[3] = 0x03;  /* bmAttributes: Interrupt */
+    ptr[4] = 0x08;  /* wMaxPacketSize: 8 bytes */
+    ptr[5] = 0x00;
+    ptr[6] = 0x10;  /* bInterval: 16 ms */
+    ptr += 7;
+    total_len += 7;
+    
+    /* Build CDC Data Interface (Interface 3) */
+    ptr[0] = 0x09;  /* bLength */
+    ptr[1] = USB_DESC_TYPE_INTERFACE;  /* bDescriptorType */
+    ptr[2] = 0x03;  /* bInterfaceNumber: 3 (not 1!) */
+    ptr[3] = 0x00;  /* bAlternateSetting */
+    ptr[4] = 0x02;  /* bNumEndpoints: 2 (Bulk IN/OUT) */
+    ptr[5] = 0x0A;  /* bInterfaceClass: CDC Data */
+    ptr[6] = 0x00;  /* bInterfaceSubClass */
+    ptr[7] = 0x00;  /* bInterfaceProtocol */
+    ptr[8] = 0x00;  /* iInterface */
+    ptr += 9;
+    total_len += 9;
+    
+    /* Endpoint Descriptor: Bulk OUT */
+    ptr[0] = 0x07;  /* bLength */
+    ptr[1] = USB_DESC_TYPE_ENDPOINT;  /* bDescriptorType */
+    ptr[2] = 0x02;  /* bEndpointAddress: OUT Endpoint 2 */
+    ptr[3] = 0x02;  /* bmAttributes: Bulk */
+    ptr[4] = 0x40;  /* wMaxPacketSize: 64 bytes */
+    ptr[5] = 0x00;
+    ptr[6] = 0x00;  /* bInterval */
+    ptr += 7;
+    total_len += 7;
+    
+    /* Endpoint Descriptor: Bulk IN */
+    ptr[0] = 0x07;  /* bLength */
+    ptr[1] = USB_DESC_TYPE_ENDPOINT;  /* bDescriptorType */
+    ptr[2] = 0x82;  /* bEndpointAddress: IN Endpoint 2 */
+    ptr[3] = 0x02;  /* bmAttributes: Bulk */
+    ptr[4] = 0x40;  /* wMaxPacketSize: 64 bytes */
+    ptr[5] = 0x00;
+    ptr[6] = 0x00;  /* bInterval */
+    ptr += 7;
+    total_len += 7;
     
     /* ===================================================================
      * STEP 5: Update total length in configuration descriptor
@@ -390,11 +489,52 @@ static uint8_t *USBD_COMPOSITE_GetFSCfgDesc(uint16_t *length)
     USBD_COMPOSITE_CfgDesc[2] = LOBYTE(total_len);
     USBD_COMPOSITE_CfgDesc[3] = HIBYTE(total_len);
     
+    /* ===================================================================
+     * STEP 6: Validate descriptor structure (prevent freeze)
+     * =================================================================== */
+    uint16_t parsed_len = 0;
+    uint8_t *validate_ptr = USBD_COMPOSITE_CfgDesc;
+    uint8_t valid = 1;
+    
+    while (parsed_len < total_len && valid) {
+      uint8_t desc_len = validate_ptr[parsed_len];
+      
+      /* Check for zero-length descriptor (causes infinite loop) */
+      if (desc_len == 0) {
+        valid = 0;
+        break;
+      }
+      
+      /* Check for descriptor extending past buffer */
+      if (parsed_len + desc_len > total_len) {
+        valid = 0;
+        break;
+      }
+      
+      /* Check for invalid descriptor length (must be at least 2) */
+      if (desc_len < 2) {
+        valid = 0;
+        break;
+      }
+      
+      parsed_len += desc_len;
+    }
+    
+    /* If validation failed, reset and return NULL */
+    if (!valid || parsed_len != total_len) {
+      /* Descriptor validation FAILED - fall back to MIDI-only mode */
+      /* This prevents device freeze if CDC descriptor is malformed */
+      memcpy(USBD_COMPOSITE_CfgDesc, midi_desc, midi_len);
+      composite_desc_len = midi_len;
+      *length = midi_len;
+      return USBD_COMPOSITE_CfgDesc;
+    }
+    
     composite_desc_len = total_len;
     
 #else /* !MODULE_ENABLE_USB_CDC - MIDI only mode */
     /* Just copy MIDI descriptor as-is */
-    memcpy(ptr, midi_desc, midi_len);
+    memcpy(USBD_COMPOSITE_CfgDesc, midi_desc, midi_len);
     composite_desc_len = midi_len;
 #endif
   }
