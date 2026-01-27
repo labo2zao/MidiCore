@@ -106,7 +106,7 @@ extern "C" {
  * See Docs/usb/CDC_INTEGRATION.md for setup and usage
  */
 #ifndef MODULE_ENABLE_USB_CDC
-#define MODULE_ENABLE_USB_CDC 1  // Enabled for MIOS32 terminal compatibility
+#define MODULE_ENABLE_USB_CDC 0  // Disabled by default (opt-in feature) - saves ~13KB RAM
 #endif
 
 /** @brief Enable USB MSC (Mass Storage Class) - SD card access via USB
