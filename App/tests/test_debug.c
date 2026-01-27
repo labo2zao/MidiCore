@@ -45,27 +45,31 @@ static UART_HandleTypeDef* get_debug_uart_handle(void)
 
 int test_debug_init(void)
 {
-  // UART handles are initialized in main.c by CubeMX
-  // UART5 is now configured to 115200 baud by default (see MidiCore.ioc)
-  // No need to reconfigure unless using a different port
+  // UART handles are initialized in main.c by CubeMX to 31250 (MIDI baud)
+  // In TEST MODE, we reconfigure the debug UART to 115200 baud
+  // In PRODUCTION MODE, all UARTs stay at 31250 baud
   
   UART_HandleTypeDef* huart = get_debug_uart_handle();
   
-  // Verify or reconfigure debug UART baudrate if needed
-  if (huart->Init.BaudRate != TEST_DEBUG_UART_BAUD) {
-    // Reconfigure to desired debug baudrate
-    HAL_UART_DeInit(huart);
-    huart->Init.BaudRate = TEST_DEBUG_UART_BAUD;  // 115200 for debug
-    huart->Init.WordLength = UART_WORDLENGTH_8B;
-    huart->Init.StopBits = UART_STOPBITS_1;
-    huart->Init.Parity = UART_PARITY_NONE;
-    huart->Init.Mode = UART_MODE_TX_RX;
-    huart->Init.HwFlowCtl = UART_HWCONTROL_NONE;
-    huart->Init.OverSampling = UART_OVERSAMPLING_16;
-    if (HAL_UART_Init(huart) != HAL_OK) {
-      Error_Handler();
-    }
+  // ALWAYS reconfigure debug UART to 115200 in test mode
+  dbg_print("Reconfiguring debug UART to 115200 baud for test mode...\r\n");
+  
+  HAL_UART_DeInit(huart);
+  huart->Init.BaudRate = TEST_DEBUG_UART_BAUD;  // 115200 for debug
+  huart->Init.WordLength = UART_WORDLENGTH_8B;
+  huart->Init.StopBits = UART_STOPBITS_1;
+  huart->Init.Parity = UART_PARITY_NONE;
+  huart->Init.Mode = UART_MODE_TX_RX;
+  huart->Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart->Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(huart) != HAL_OK) {
+    // If init fails, try to output error at any baudrate
+    const char* err = "ERROR: Failed to init debug UART\r\n";
+    HAL_UART_Transmit(huart, (const uint8_t*)err, strlen(err), 1000);
+    Error_Handler();
   }
+  
+  dbg_print("Debug UART initialized at 115200 baud\r\n");
   
 #if MODULE_ENABLE_OLED
   // Always initialize OLED for debug mirroring (enabled by default)

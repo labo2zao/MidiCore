@@ -5,7 +5,9 @@
  * This module provides debug print functions compatible with MIOS32 hardware.
  * 
  * **Test Mode Debug Configuration:**
- * - Debug UART: UART5 (PC12/PD2) @ 115200 baud (default TEST_DEBUG_UART_PORT=3)
+ * - Debug UART: UART5 (PC12/PD2) reconfigured to 115200 baud in test mode
+ * - Production: All UARTs at 31250 baud for MIDI
+ * - Test mode: test_debug_init() changes debug UART to 115200 baud
  * - 2 MIDI DIN ports available for MIDI @ 31250 baud (DIN1, DIN2)
  * - PA9/PA10 (USART1) reserved for USB OTG
  * - Baud rate automatically configured by test_debug_init()
@@ -21,6 +23,8 @@
  * - Port 1 (DIN2): USART3 PD8=TX,  PD9=RX   @ 31250 baud [MIOS32 UART2]
  * - Port 2 (DIN3): Reserved for USB OTG (PA9/PA10)
  * - Port 3 (DIN4): UART5  PC12=TX, PD2=RX   @ 31250 baud [MIOS32 UART4]
+ * 
+ * **Important**: Do NOT call test_debug_init() in production mode!
  */
 
 #ifndef TEST_DEBUG_H
@@ -98,13 +102,16 @@ extern "C" {
 /**
  * @brief Initialize debug output system
  * 
- * Call this before using dbg_print functions.
+ * Call this ONLY in test mode before using dbg_print functions.
+ * DO NOT call in production mode!
  * 
  * **Behavior:**
  * - Reconfigures TEST_DEBUG_UART_PORT to 115200 baud for debug output
  * - All other UARTs remain at 31250 baud for MIDI
  * - If MODULE_ENABLE_OLED is active, also mirrors output to OLED display
  * - UART debug is ALWAYS active (OLED is optional secondary output)
+ * 
+ * **Production Mode**: Do not call this function! Leave all UARTs at 31250 baud.
  * 
  * @return 0 on success, negative on error
  */
