@@ -1782,6 +1782,15 @@ typedef struct {
 } sd_undo_tracker_t;
 
 static sd_undo_tracker_t g_sd_undo[LOOPER_TRACKS];
+
+// Forward declarations for SD undo functions
+static void sd_undo_init(uint8_t track);
+static void sd_undo_get_filename(uint8_t track, uint8_t level, char* out, size_t out_size);
+static int sd_undo_save(uint8_t track, uint8_t level);
+static int sd_undo_load(uint8_t track, uint8_t level);
+static int sd_undo_push(uint8_t track);
+static uint8_t sd_undo_can_undo(uint8_t track);
+static int sd_undo_do_undo(uint8_t track);
 #endif
 
 /**
