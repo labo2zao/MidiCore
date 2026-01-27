@@ -1,0 +1,502 @@
+/**
+ * @file cli.c
+ * @brief Command Line Interface implementation
+ */
+
+#include "cli.h"
+#include "App/tests/test_debug.h"
+#include "Services/config/runtime_config.h"
+#include <string.h>
+#include <stdio.h>
+#include <ctype.h>
+#include <stdarg.h>
+
+// =============================================================================
+// PRIVATE STATE
+// =============================================================================
+
+static cli_command_t s_commands[CLI_MAX_COMMANDS];
+static uint32_t s_command_count = 0;
+static char s_input_line[CLI_MAX_LINE_LEN];
+static uint32_t s_input_pos = 0;
+static uint8_t s_initialized = 0;
+
+// Command history
+static char s_history[CLI_HISTORY_SIZE][CLI_MAX_LINE_LEN];
+static uint8_t s_history_count = 0;
+static uint8_t s_history_index = 0;
+
+// =============================================================================
+// FORWARD DECLARATIONS
+// =============================================================================
+
+static cli_result_t cmd_help(int argc, char* argv[]);
+static cli_result_t cmd_list(int argc, char* argv[]);
+static cli_result_t cmd_clear(int argc, char* argv[]);
+static cli_result_t cmd_version(int argc, char* argv[]);
+static cli_result_t cmd_uptime(int argc, char* argv[]);
+static cli_result_t cmd_status(int argc, char* argv[]);
+static cli_result_t cmd_reboot(int argc, char* argv[]);
+static cli_result_t cmd_config(int argc, char* argv[]);
+
+// =============================================================================
+// INITIALIZATION
+// =============================================================================
+
+int cli_init(void)
+{
+  if (s_initialized) {
+    return 0;
+  }
+
+  // Clear state
+  memset(s_commands, 0, sizeof(s_commands));
+  s_command_count = 0;
+  memset(s_input_line, 0, sizeof(s_input_line));
+  s_input_pos = 0;
+  memset(s_history, 0, sizeof(s_history));
+  s_history_count = 0;
+  s_history_index = 0;
+
+  // Register built-in commands
+  cli_register_command("help", cmd_help, "Show help", "help [command]", "system");
+  cli_register_command("list", cmd_list, "List commands", "list", "system");
+  cli_register_command("clear", cmd_clear, "Clear screen", "clear", "system");
+  cli_register_command("version", cmd_version, "Show version", "version", "system");
+  cli_register_command("uptime", cmd_uptime, "Show uptime", "uptime", "system");
+  cli_register_command("status", cmd_status, "Show status", "status", "system");
+  cli_register_command("reboot", cmd_reboot, "Reboot system", "reboot", "system");
+  cli_register_command("config", cmd_config, "Configuration management", 
+                       "config <load|save|get|set|list> [args...]", "system");
+
+  s_initialized = 1;
+
+  // Print welcome banner
+  cli_print_banner();
+  cli_print_prompt();
+
+  return 0;
+}
+
+// =============================================================================
+// COMMAND REGISTRATION
+// =============================================================================
+
+int cli_register_command(const char* name,
+                         cli_command_handler_t handler,
+                         const char* description,
+                         const char* usage,
+                         const char* category)
+{
+  if (!name || !handler || s_command_count >= CLI_MAX_COMMANDS) {
+    return -1;
+  }
+
+  // Check for duplicates
+  for (uint32_t i = 0; i < s_command_count; i++) {
+    if (strcasecmp(s_commands[i].name, name) == 0) {
+      return -1; // Already registered
+    }
+  }
+
+  // Register command
+  strncpy(s_commands[s_command_count].name, name, CLI_MAX_COMMAND_LEN - 1);
+  s_commands[s_command_count].handler = handler;
+  s_commands[s_command_count].description = description ? description : "";
+  s_commands[s_command_count].usage = usage ? usage : name;
+  s_commands[s_command_count].category = category ? category : "other";
+  s_command_count++;
+
+  return 0;
+}
+
+int cli_unregister_command(const char* name)
+{
+  if (!name) {
+    return -1;
+  }
+
+  for (uint32_t i = 0; i < s_command_count; i++) {
+    if (strcasecmp(s_commands[i].name, name) == 0) {
+      // Shift remaining commands
+      for (uint32_t j = i; j < s_command_count - 1; j++) {
+        s_commands[j] = s_commands[j + 1];
+      }
+      s_command_count--;
+      return 0;
+    }
+  }
+
+  return -1; // Not found
+}
+
+// =============================================================================
+// COMMAND EXECUTION
+// =============================================================================
+
+cli_result_t cli_execute(const char* line)
+{
+  if (!line || strlen(line) == 0) {
+    return CLI_OK;
+  }
+
+  // Parse command line into arguments
+  char buffer[CLI_MAX_LINE_LEN];
+  strncpy(buffer, line, sizeof(buffer) - 1);
+  buffer[sizeof(buffer) - 1] = '\0';
+
+  char* argv[CLI_MAX_ARGS];
+  int argc = 0;
+
+  char* token = strtok(buffer, " \t\r\n");
+  while (token && argc < CLI_MAX_ARGS) {
+    argv[argc++] = token;
+    token = strtok(NULL, " \t\r\n");
+  }
+
+  if (argc == 0) {
+    return CLI_OK;
+  }
+
+  return cli_execute_argv(argc, argv);
+}
+
+cli_result_t cli_execute_argv(int argc, char* argv[])
+{
+  if (argc == 0 || !argv[0]) {
+    return CLI_INVALID_ARGS;
+  }
+
+  // Find command
+  for (uint32_t i = 0; i < s_command_count; i++) {
+    if (strcasecmp(s_commands[i].name, argv[0]) == 0) {
+      // Execute handler
+      cli_result_t result = s_commands[i].handler(argc, argv);
+      return result;
+    }
+  }
+
+  cli_error("Command not found: %s\n", argv[0]);
+  cli_printf("Type 'help' for available commands.\n");
+  return CLI_NOT_FOUND;
+}
+
+// =============================================================================
+// INPUT PROCESSING
+// =============================================================================
+
+void cli_task(void)
+{
+  // This would be called periodically to read UART input
+  // For now, it's a placeholder - actual UART reading would be done here
+  // In a full implementation, this would:
+  // 1. Check for available UART data
+  // 2. Read character
+  // 3. Handle special characters (backspace, arrows, etc.)
+  // 4. Echo character back to terminal
+  // 5. When Enter is pressed, execute command
+  // 6. Add to history
+  // 7. Print new prompt
+}
+
+// =============================================================================
+// OUTPUT HELPERS
+// =============================================================================
+
+void cli_printf(const char* fmt, ...)
+{
+  char buffer[256];
+  va_list args;
+
+  va_start(args, fmt);
+  vsnprintf(buffer, sizeof(buffer), fmt, args);
+  va_end(args);
+
+  dbg_print(buffer);
+}
+
+void cli_error(const char* fmt, ...)
+{
+  char buffer[256];
+  va_list args;
+
+  cli_printf("ERROR: ");
+  va_start(args, fmt);
+  vsnprintf(buffer, sizeof(buffer), fmt, args);
+  va_end(args);
+
+  dbg_print(buffer);
+}
+
+void cli_success(const char* fmt, ...)
+{
+  char buffer[256];
+  va_list args;
+
+  cli_printf("OK: ");
+  va_start(args, fmt);
+  vsnprintf(buffer, sizeof(buffer), fmt, args);
+  va_end(args);
+
+  dbg_print(buffer);
+}
+
+void cli_warning(const char* fmt, ...)
+{
+  char buffer[256];
+  va_list args;
+
+  cli_printf("WARNING: ");
+  va_start(args, fmt);
+  vsnprintf(buffer, sizeof(buffer), fmt, args);
+  va_end(args);
+
+  dbg_print(buffer);
+}
+
+// =============================================================================
+// UTILITIES
+// =============================================================================
+
+void cli_print_help(const char* command_name)
+{
+  if (command_name) {
+    // Show help for specific command
+    for (uint32_t i = 0; i < s_command_count; i++) {
+      if (strcasecmp(s_commands[i].name, command_name) == 0) {
+        cli_printf("\n");
+        cli_printf("Command: %s\n", s_commands[i].name);
+        cli_printf("Category: %s\n", s_commands[i].category);
+        cli_printf("Description: %s\n", s_commands[i].description);
+        cli_printf("Usage: %s\n", s_commands[i].usage);
+        cli_printf("\n");
+        return;
+      }
+    }
+    cli_error("Command not found: %s\n", command_name);
+  } else {
+    // Show all commands grouped by category
+    cli_printf("\n=== MidiCore CLI Help ===\n\n");
+    
+    // Group by category
+    const char* current_category = NULL;
+    for (uint32_t i = 0; i < s_command_count; i++) {
+      if (current_category == NULL || strcmp(s_commands[i].category, current_category) != 0) {
+        current_category = s_commands[i].category;
+        cli_printf("\n[%s]\n", current_category);
+      }
+      cli_printf("  %-20s - %s\n", s_commands[i].name, s_commands[i].description);
+    }
+    cli_printf("\nType 'help <command>' for detailed usage.\n\n");
+  }
+}
+
+void cli_print_commands(void)
+{
+  cli_printf("\n=== Registered Commands (%lu) ===\n\n", (unsigned long)s_command_count);
+  
+  const char* current_category = NULL;
+  for (uint32_t i = 0; i < s_command_count; i++) {
+    if (current_category == NULL || strcmp(s_commands[i].category, current_category) != 0) {
+      current_category = s_commands[i].category;
+      cli_printf("\n[%s]\n", current_category);
+    }
+    cli_printf("  %s\n", s_commands[i].name);
+  }
+  cli_printf("\n");
+}
+
+uint32_t cli_get_command_count(void)
+{
+  return s_command_count;
+}
+
+void cli_print_banner(void)
+{
+  cli_printf("\n");
+  cli_printf("=====================================\n");
+  cli_printf("   MidiCore CLI v1.0\n");
+  cli_printf("   Firmware Configuration Interface\n");
+  cli_printf("=====================================\n");
+  cli_printf("\n");
+  cli_printf("Type 'help' for available commands.\n");
+  cli_printf("\n");
+}
+
+void cli_print_prompt(void)
+{
+  cli_printf("midicore> ");
+}
+
+// =============================================================================
+// BUILT-IN COMMANDS
+// =============================================================================
+
+static cli_result_t cmd_help(int argc, char* argv[])
+{
+  if (argc > 1) {
+    cli_print_help(argv[1]);
+  } else {
+    cli_print_help(NULL);
+  }
+  return CLI_OK;
+}
+
+static cli_result_t cmd_list(int argc, char* argv[])
+{
+  (void)argc;
+  (void)argv;
+  cli_print_commands();
+  return CLI_OK;
+}
+
+static cli_result_t cmd_clear(int argc, char* argv[])
+{
+  (void)argc;
+  (void)argv;
+  
+  // ANSI escape sequence to clear screen
+  cli_printf("\033[2J\033[H");
+  cli_print_banner();
+  return CLI_OK;
+}
+
+static cli_result_t cmd_version(int argc, char* argv[])
+{
+  (void)argc;
+  (void)argv;
+  
+  cli_printf("\n");
+  cli_printf("MidiCore Firmware\n");
+  cli_printf("  Version: 1.0.0\n");
+  cli_printf("  Build: %s %s\n", __DATE__, __TIME__);
+  cli_printf("  Target: STM32F407VGT6\n");
+  cli_printf("\n");
+  return CLI_OK;
+}
+
+static cli_result_t cmd_uptime(int argc, char* argv[])
+{
+  (void)argc;
+  (void)argv;
+  
+  extern uint32_t HAL_GetTick(void);
+  uint32_t ticks = HAL_GetTick();
+  uint32_t seconds = ticks / 1000;
+  uint32_t minutes = seconds / 60;
+  uint32_t hours = minutes / 60;
+  
+  cli_printf("\n");
+  cli_printf("System Uptime: %lu:%02lu:%02lu\n", 
+             (unsigned long)hours, 
+             (unsigned long)(minutes % 60), 
+             (unsigned long)(seconds % 60));
+  cli_printf("\n");
+  return CLI_OK;
+}
+
+static cli_result_t cmd_status(int argc, char* argv[])
+{
+  (void)argc;
+  (void)argv;
+  
+  cli_printf("\n");
+  cli_printf("=== System Status ===\n");
+  cli_printf("  Commands registered: %lu\n", (unsigned long)s_command_count);
+  cli_printf("  Config entries: %lu\n", (unsigned long)runtime_config_get_count());
+  cli_printf("\n");
+  return CLI_OK;
+}
+
+static cli_result_t cmd_reboot(int argc, char* argv[])
+{
+  (void)argc;
+  (void)argv;
+  
+  cli_printf("\nRebooting system...\n");
+  
+  // Delay to allow UART to flush
+  extern void HAL_Delay(uint32_t Delay);
+  HAL_Delay(100);
+  
+  // Perform system reset
+  extern void NVIC_SystemReset(void);
+  NVIC_SystemReset();
+  
+  return CLI_OK;
+}
+
+static cli_result_t cmd_config(int argc, char* argv[])
+{
+  if (argc < 2) {
+    cli_error("Missing subcommand\n");
+    cli_printf("Usage: %s\n", s_commands[0].usage);
+    return CLI_INVALID_ARGS;
+  }
+
+  const char* subcmd = argv[1];
+
+  if (strcasecmp(subcmd, "load") == 0) {
+    if (argc < 3) {
+      cli_error("Missing filename\n");
+      return CLI_INVALID_ARGS;
+    }
+    int result = runtime_config_load(argv[2]);
+    if (result == 0) {
+      cli_success("Configuration loaded from %s\n", argv[2]);
+    } else {
+      cli_error("Failed to load configuration from %s\n", argv[2]);
+    }
+    return result == 0 ? CLI_OK : CLI_ERROR;
+  }
+  else if (strcasecmp(subcmd, "save") == 0) {
+    if (argc < 3) {
+      cli_error("Missing filename\n");
+      return CLI_INVALID_ARGS;
+    }
+    int result = runtime_config_save(argv[2]);
+    if (result == 0) {
+      cli_success("Configuration saved to %s\n", argv[2]);
+    } else {
+      cli_error("Failed to save configuration to %s\n", argv[2]);
+    }
+    return result == 0 ? CLI_OK : CLI_ERROR;
+  }
+  else if (strcasecmp(subcmd, "get") == 0) {
+    if (argc < 3) {
+      cli_error("Missing key\n");
+      return CLI_INVALID_ARGS;
+    }
+    const char* value = runtime_config_get_string(argv[2], NULL);
+    if (value) {
+      cli_printf("%s = %s\n", argv[2], value);
+    } else {
+      cli_error("Key not found: %s\n", argv[2]);
+      return CLI_ERROR;
+    }
+    return CLI_OK;
+  }
+  else if (strcasecmp(subcmd, "set") == 0) {
+    if (argc < 4) {
+      cli_error("Missing key or value\n");
+      return CLI_INVALID_ARGS;
+    }
+    int result = runtime_config_set_string(argv[2], argv[3]);
+    if (result == 0) {
+      cli_success("Set %s = %s\n", argv[2], argv[3]);
+    } else {
+      cli_error("Failed to set %s\n", argv[2]);
+    }
+    return result == 0 ? CLI_OK : CLI_ERROR;
+  }
+  else if (strcasecmp(subcmd, "list") == 0) {
+    cli_printf("\n=== Configuration ===\n");
+    runtime_config_print();
+    cli_printf("\n");
+    return CLI_OK;
+  }
+  else {
+    cli_error("Unknown subcommand: %s\n", subcmd);
+    return CLI_INVALID_ARGS;
+  }
+}
