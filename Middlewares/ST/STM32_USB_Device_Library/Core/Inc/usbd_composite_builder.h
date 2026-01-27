@@ -9,10 +9,9 @@
   * This file provides the composite device builder required by STM32 USB
   * middleware when USE_USBD_COMPOSITE is defined.
   *
-  * The middleware expects:
-  * - USBD_CMPSIT: A USBD_ClassTypeDef structure for composite device
-  * - USBD_CMPSIT_AddClass(): Function to add classes to composite
-  * - USBD_CMPST_ClearConfDesc(): Function to clear configuration
+  * The middleware expects specific functions and structures which are
+  * provided here and delegate to the actual composite implementation
+  * in USB_DEVICE/App/usbd_composite.c
   *
   * Original implementation for MidiCore - commercially licensable.
   *
