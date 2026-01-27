@@ -8,6 +8,9 @@
 
 #include "Services/ui/ui_page_sysex.h"
 #include "Services/ui/ui_gfx.h"
+#include "Services/router/router.h"
+#include "Services/fs/sd_guard.h"
+#include "FATFS/App/fatfs.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -18,6 +21,8 @@ static uint8_t sysex_buffer[SYSEX_MAX_SIZE];
 static uint16_t sysex_length = 0;
 static uint8_t sysex_captured = 0;
 static uint16_t scroll_offset = 0;
+static char status_message[32] = {0};
+static uint32_t status_time = 0;
 
 /**
  * @brief Capture a SysEx message (to be called by MIDI router)
@@ -118,10 +123,86 @@ void ui_page_sysex_render(uint32_t now_ms) {
     ui_gfx_text(0, 36, "Send a SysEx to view", 10);
   }
   
+  // Status message
+  if (status_time > 0) {
+    if (status_time > now_ms - 10000) {  // Still valid
+      ui_gfx_text(0, 47, status_message, 13);
+    } else {
+      status_time = 0;
+      status_message[0] = '\0';
+    }
+  }
+  
   // Footer with smaller font
   ui_gfx_hline(0, 54, 256, 6);
   ui_gfx_set_font(UI_FONT_5X7);
   ui_gfx_text(0, 56, "B1:SEND B2:RCV B3:CLR B4:SAVE ENC:scroll", 10);
+}
+
+/**
+ * @brief Send captured SysEx message via MIDI router
+ */
+static void send_sysex(void) {
+  if (!sysex_captured || sysex_length == 0) {
+    strncpy(status_message, "No SysEx to send", sizeof(status_message) - 1);
+    status_time = 2000;
+    return;
+  }
+  
+  // Send via MIDI router node 0 (typically USB MIDI)
+  router_msg_t msg = {
+    .type = ROUTER_MSG_SYSEX,
+    .data = sysex_buffer,
+    .len = sysex_length
+  };
+  
+  router_process(0, &msg);
+  
+  strncpy(status_message, "SysEx sent", sizeof(status_message) - 1);
+  status_time = 1500;
+}
+
+/**
+ * @brief Save captured SysEx to SD card
+ */
+static void save_sysex(void) {
+  if (!sysex_captured || sysex_length == 0) {
+    strncpy(status_message, "No SysEx to save", sizeof(status_message) - 1);
+    status_time = 2000;
+    return;
+  }
+  
+  if (sd_guard_is_readonly()) {
+    strncpy(status_message, "SD read-only", sizeof(status_message) - 1);
+    status_time = 2000;
+    return;
+  }
+  
+  // Generate filename with timestamp-like pattern
+  char filename[64];
+  static uint16_t file_counter = 0;
+  snprintf(filename, sizeof(filename), "/sysex/capture_%04u.syx", file_counter++);
+  
+  FIL file;
+  FRESULT res = f_open(&file, filename, FA_WRITE | FA_CREATE_ALWAYS);
+  if (res != FR_OK) {
+    strncpy(status_message, "Save failed", sizeof(status_message) - 1);
+    status_time = 2000;
+    sd_guard_note_write_error();
+    return;
+  }
+  
+  UINT written;
+  res = f_write(&file, sysex_buffer, sysex_length, &written);
+  f_close(&file);
+  
+  if (res != FR_OK || written != sysex_length) {
+    strncpy(status_message, "Write error", sizeof(status_message) - 1);
+    sd_guard_note_write_error();
+  } else {
+    snprintf(status_message, sizeof(status_message), "Saved %ub", sysex_length);
+  }
+  status_time = 2000;
 }
 
 /**
@@ -131,20 +212,26 @@ void ui_page_sysex_on_button(uint8_t id, uint8_t pressed) {
   if (!pressed) return;
   
   switch (id) {
-    case 1:  // SEND (placeholder - not implemented yet)
-      // Would send the captured SysEx message
+    case 1:  // SEND - send captured SysEx message
+      send_sysex();
       break;
       
-    case 2:  // RCV (placeholder - already receiving)
-      // Could toggle receive mode or reset capture
+    case 2:  // RCV - reset capture (already receiving)
+      sysex_captured = 0;
+      sysex_length = 0;
+      scroll_offset = 0;
+      strncpy(status_message, "Ready to receive", sizeof(status_message) - 1);
+      status_time = 1500;
       break;
       
     case 3:  // CLEAR
       clear_sysex();
+      strncpy(status_message, "Cleared", sizeof(status_message) - 1);
+      status_time = 1000;
       break;
       
-    case 4:  // SAVE (placeholder - not implemented yet)
-      // Would save SysEx to SD card
+    case 4:  // SAVE - save SysEx to SD card
+      save_sysex();
       break;
       
     default:

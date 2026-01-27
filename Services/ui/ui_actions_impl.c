@@ -79,6 +79,11 @@ void ui_delete(void) {
 }
 
 
+void ui_toggle_chord_mode(void) {
+  uint8_t current = ui_get_chord_mode();
+  ui_set_chord_mode(!current);
+}
+
 void ui_toggle_auto_loop(void) {
   looper_transport_t tp;
   looper_get_transport(&tp);
