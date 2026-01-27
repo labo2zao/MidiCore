@@ -49,7 +49,7 @@ bool mios32_query_is_query_message(const uint8_t* data, uint32_t len) {
   return false;
 }
 
-bool mios32_query_process(const uint8_t* data, uint32_t len) {
+bool mios32_query_process(const uint8_t* data, uint32_t len, uint8_t cable) {
   if (!mios32_query_is_query_message(data, len)) {
     return false;
   }
@@ -59,8 +59,8 @@ bool mios32_query_process(const uint8_t* data, uint32_t len) {
   
   // Command 0x00 or 0x01: Device Info Request
   if (command == 0x00 || command == 0x01) {
-    // Respond with device information
-    mios32_query_send_device_info(MIOS32_DEVICE_NAME, MIOS32_DEVICE_VERSION);
+    // Respond with device information on the same cable the query came from
+    mios32_query_send_device_info(MIOS32_DEVICE_NAME, MIOS32_DEVICE_VERSION, cable);
     return true;
   }
   
@@ -68,15 +68,15 @@ bool mios32_query_process(const uint8_t* data, uint32_t len) {
   return false;
 }
 
-void mios32_query_send_device_info(const char* device_name, const char* version) {
+void mios32_query_send_device_info(const char* device_name, const char* version, uint8_t cable) {
   if (!device_name || !version) {
     return;
   }
   
   uint8_t* p = sysex_response_buffer;
   
-  // Build response: F0 00 00 7E 32 <dev_id> 0x0F <device_name> 00 <version> F7
-  // Following MIOS32 pattern: response uses 0x0F (ACK/info response)
+  // Build response: F0 00 00 7E 32 <dev_id> 0x01 <device_name> 00 <version> F7
+  // Following MIOS32 pattern: response uses 0x01 (ACK/info response)
   *p++ = 0xF0;  // SysEx start
   *p++ = 0x00;  // Manufacturer ID 1
   *p++ = 0x00;  // Manufacturer ID 2
@@ -100,11 +100,13 @@ void mios32_query_send_device_info(const char* device_name, const char* version)
   
   *p++ = 0xF7;  // SysEx end
   
-  // Send via USB MIDI
+  // Send via USB MIDI on the same cable the query came from
+  // CRITICAL: Must respond on same cable to avoid confusing MIOS Studio
 #if HAS_USB_MIDI
-  usb_midi_send_sysex(sysex_response_buffer, p - sysex_response_buffer, 0);
+  usb_midi_send_sysex(sysex_response_buffer, p - sysex_response_buffer, cable);
 #else
   // USB MIDI not available - response not sent
   (void)p;
+  (void)cable;
 #endif
 }

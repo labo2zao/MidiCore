@@ -51,16 +51,18 @@ bool mios32_query_is_query_message(const uint8_t* data, uint32_t len);
  * @brief Process MIOS32 query message and send response
  * @param data SysEx data (including F0 and F7)
  * @param len Length of data
+ * @param cable USB MIDI cable number (0-3) to send response on
  * @return true if query was processed and response sent, false otherwise
  */
-bool mios32_query_process(const uint8_t* data, uint32_t len);
+bool mios32_query_process(const uint8_t* data, uint32_t len, uint8_t cable);
 
 /**
  * @brief Send device info response to MIOS Studio
  * @param device_name Device name (e.g., "MidiCore")
  * @param version Version string (e.g., "1.0.0")
+ * @param cable USB MIDI cable number (0-3) to send response on
  */
-void mios32_query_send_device_info(const char* device_name, const char* version);
+void mios32_query_send_device_info(const char* device_name, const char* version, uint8_t cable);
 
 #ifdef __cplusplus
 }

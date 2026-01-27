@@ -143,7 +143,7 @@ void usb_midi_rx_packet(const uint8_t packet4[4]) {
           if (buf->pos >= 2 && buf->buffer[0] == 0xF0 && buf->buffer[buf->pos-1] == 0xF7) {
             /* Check if this is a MIOS32 query message - handle directly */
             if (mios32_query_is_query_message(buf->buffer, buf->pos)) {
-              mios32_query_process(buf->buffer, buf->pos);
+              mios32_query_process(buf->buffer, buf->pos, cable);
               // Don't route query messages - they're handled above
             } else {
               /* Only route if not in test mode with APP_TEST_USB_MIDI */
@@ -181,7 +181,7 @@ void usb_midi_rx_packet(const uint8_t packet4[4]) {
           if (buf->pos >= 2 && buf->buffer[0] == 0xF0 && buf->buffer[buf->pos-1] == 0xF7) {
             /* Check if this is a MIOS32 query message - handle directly */
             if (mios32_query_is_query_message(buf->buffer, buf->pos)) {
-              mios32_query_process(buf->buffer, buf->pos);
+              mios32_query_process(buf->buffer, buf->pos, cable);
               // Don't route query messages - they're handled above
             } else {
               #ifndef APP_TEST_USB_MIDI
@@ -218,7 +218,7 @@ void usb_midi_rx_packet(const uint8_t packet4[4]) {
           if (buf->pos >= 2 && buf->buffer[0] == 0xF0 && buf->buffer[buf->pos-1] == 0xF7) {
             /* Check if this is a MIOS32 query message - handle directly */
             if (mios32_query_is_query_message(buf->buffer, buf->pos)) {
-              mios32_query_process(buf->buffer, buf->pos);
+              mios32_query_process(buf->buffer, buf->pos, cable);
               // Don't route query messages - they're handled above
             } else {
               #ifndef APP_TEST_USB_MIDI
