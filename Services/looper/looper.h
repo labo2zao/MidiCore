@@ -28,8 +28,9 @@ extern "C" {
 //     RAM: g_automation (8KB) + clipboards (20KB) + pianoroll (53KB) + other (20KB) = 101KB / 128KB ✅
 //   
 //   Production mode:
-//     CCMRAM: g_tr (25KB) + undo (33KB depth=1 OR move to RAM for depth=5) = 58KB / 64KB ✅
-//     RAM: g_automation (8KB) + undo (99KB if depth=5) + other (20KB) = 127KB / 128KB ✅
+//     CCMRAM: g_tr (25KB) + automation (8KB if moved back) = 33KB / 64KB ✅
+//     RAM: g_automation (8KB) + undo (59KB if depth=3) + other (20KB) = 87KB / 128KB ✅
+//          (Optimized from depth=5 which used 99KB to depth=3 which uses 59KB, saving 40KB)
 //
 #ifndef LOOPER_UNDO_STACK_DEPTH
 // Check if ANY test mode is active (must match looper.c memory placement logic)
@@ -48,9 +49,9 @@ extern "C" {
   // Test modes have additional allocations, so we reduce undo depth and keep in CCMRAM
   #define LOOPER_UNDO_STACK_DEPTH 2
 #else
-  // Production mode: Depth 5 (user requirement - maintained from PR #54)
-  // Undo stacks placed in RAM (too large for CCMRAM with depth=5)
-  #define LOOPER_UNDO_STACK_DEPTH 5
+  // Production mode: Depth 3 for balance of functionality and RAM usage (reduced from 5 to save ~16KB RAM)
+  // Undo stacks placed in RAM (depth=3 is acceptable for most use cases)
+  #define LOOPER_UNDO_STACK_DEPTH 3
 #endif
 #endif
 

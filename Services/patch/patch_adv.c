@@ -7,10 +7,10 @@
 #include <stdio.h>
 
 #ifndef PATCH_ADV_MAX_ENTRIES
-// Memory optimization: Reduce entries in test builds to save RAM
+// Memory optimization: Reduce entries to balance functionality and RAM usage
 // Each entry is 160 bytes (24+24+64+48)
-// Production: 256 entries = 40 KB
-// Test: 128 entries = 20 KB (saves 20 KB)
+// Production: 192 entries = 30.7 KB (reduced from 256 to save ~10 KB)
+// Test: 128 entries = 20 KB (saves additional 10 KB)
 #if defined(MODULE_TEST_LOOPER) || defined(MODULE_TEST_OLED_SSD1322) || defined(MODULE_TEST_ALL) || \
     defined(MODULE_TEST_UI) || defined(MODULE_TEST_GDB_DEBUG) || defined(MODULE_TEST_AINSER64) || \
     defined(MODULE_TEST_SRIO) || defined(MODULE_TEST_SRIO_DOUT) || defined(MODULE_TEST_MIDI_DIN) || \
@@ -24,7 +24,7 @@
     defined(MODULE_TEST_FOOTSWITCH) || defined(APP_TEST_DIN_MIDI)
   #define PATCH_ADV_MAX_ENTRIES 128  // Test mode: 128 entries (20 KB)
 #else
-  #define PATCH_ADV_MAX_ENTRIES 256  // Production: 256 entries (40 KB)
+  #define PATCH_ADV_MAX_ENTRIES 192  // Production: 192 entries (30.7 KB, reduced from 256 to save ~10 KB)
 #endif
 #endif
 
