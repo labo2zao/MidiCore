@@ -49,16 +49,16 @@ int test_cin_0x5_fixed(sysex_buffer_t* buf, uint8_t last_byte) {
   return 0; // No valid SysEx
 }
 
-// Test function to simulate the BUGGY CIN 0x5 handler logic (old version)
-int test_cin_0x5_buggy(sysex_buffer_t* buf, uint8_t last_byte) {
+// Test function to simulate the OLD CIN 0x5 handler logic
+int test_cin_0x5_old(sysex_buffer_t* buf, uint8_t last_byte) {
   if (buf->active) {
-    // BUGGY: Only checks pos < SIZE, not pos + 1 <= SIZE
+    // OLD: Checks pos < SIZE (semantically less clear than checking "room for N bytes")
     if (buf->pos < USB_MIDI_SYSEX_BUFFER_SIZE) {
       buf->buffer[buf->pos++] = last_byte;
       
-      // Validate SysEx - THIS COULD ACCESS INVALID buf->pos VALUE!
+      // Validate SysEx
       if (buf->pos >= 2 && buf->buffer[0] == 0xF0 && buf->buffer[buf->pos-1] == 0xF7) {
-        printf("  ! SysEx received with BUGGY CODE (len=%d)\n", buf->pos);
+        printf("  ! SysEx received with OLD CODE (len=%d)\n", buf->pos);
         buf->pos = 0;
         buf->active = 0;
         return 1;
@@ -111,9 +111,9 @@ void test_scenario_2_exactly_255_bytes() {
   printf("  ✓ Test PASSED\n");
 }
 
-void test_scenario_3_exactly_256_bytes_triggers_bug() {
-  printf("\n=== Test 3: SysEx exactly 256 bytes (F0 + 254 data + F7) ===\n");
-  printf("  Testing buffer full condition\n");
+void test_scenario_3_full_buffer_consistency() {
+  printf("\n=== Test 3: SysEx exactly 256 bytes (buffer completely full) ===\n");
+  printf("  Testing boundary check consistency\n");
   
   // Test with FIXED code - demonstrates improved consistency
   {
@@ -151,16 +151,16 @@ void test_scenario_3_exactly_256_bytes_triggers_bug() {
     
     printf("\n  OLD CODE (pos < SIZE check):\n");
     printf("    Before: pos=%d, active=%d\n", buf.pos, buf.active);
-    test_cin_0x5_buggy(&buf, 0xF7);
+    test_cin_0x5_old(&buf, 0xF7);
     printf("    After:  pos=%d, active=%d\n", buf.pos, buf.active);
     
     // Check: 255 < 256 → TRUE (also accepts)
-    // Result is the same, but the check is less clear about intent
-    printf("    → OLD code also works, but check is less clear\n");
-    printf("    → IMPROVED code matches CIN 0x6/0x7 style for consistency\n");
+    // Both approaches are functionally correct
+    printf("    → OLD code also works correctly\n");
+    printf("    → IMPROVED code matches CIN 0x6/0x7 for better consistency\n");
   }
   
-  printf("  ✓ Test PASSED - Improved consistency verified\n");
+  printf("  ✓ Test PASSED - Consistency improvement verified\n");
 }
 
 void test_scenario_4_overflow_257_bytes() {
@@ -191,7 +191,7 @@ int main() {
   
   test_scenario_1_normal_sysex();
   test_scenario_2_exactly_255_bytes();
-  test_scenario_3_exactly_256_bytes_triggers_bug();
+  test_scenario_3_full_buffer_consistency();
   test_scenario_4_overflow_257_bytes();
   
   printf("\n╔════════════════════════════════════════════════════════════╗\n");
