@@ -1,7 +1,8 @@
 #include "Services/usb_midi/usb_midi_sysex.h"
 #include "Services/usb_midi/usb_midi.h"
+#include "Config/module_config.h"
 
-#ifdef ENABLE_USBD_MIDI
+#if MODULE_ENABLE_USB_MIDI
 
 // USB-MIDI SysEx CIN values per USB MIDI 1.0 spec:
 // 0x4: SysEx start or continue (3 bytes, no F7)

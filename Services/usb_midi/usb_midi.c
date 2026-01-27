@@ -298,11 +298,11 @@ void usb_midi_process_rx_queue(void) {
           
           /* Fast SysEx validation (check start and end markers) */
           if (buf->pos >= 2 && buf->buffer[0] == 0xF0 && buf->buffer[buf->pos-1] == 0xF7) {
-            /* Check if this is a MIOS32 query message - respond to it */
+            /* Check if this is a MIOS32 query message - respond and consume */
             if (mios32_query_is_query_message(buf->buffer, buf->pos)) {
-              /* Process MIOS32 query and send response (MIOS Studio expects this) */
+              // Respond on the same cable, then swallow the query to avoid echo/loopback
               mios32_query_process(buf->buffer, buf->pos, cable);
-              /* Don't route query messages - they're handled above */
+              // Don't route query messages - the handler already replied
             } else {
               /* Only route if not in test mode with APP_TEST_USB_MIDI */
               #ifndef APP_TEST_USB_MIDI
@@ -328,6 +328,10 @@ void usb_midi_process_rx_queue(void) {
     
     /* CIN 0x6: SysEx end with 2 bytes (or two-byte System Common) */
     else if (cin == 0x06) {
+      if (!buf->active && packet4[1] == 0xF0) {
+        buf->pos = 0;
+        buf->active = 1;
+      }
       if (buf->active) {
         if (buf->pos + 2 <= USB_MIDI_SYSEX_BUFFER_SIZE) {
           /* Unrolled copy for 2 bytes */
@@ -337,11 +341,11 @@ void usb_midi_process_rx_queue(void) {
           
           /* Fast SysEx validation */
           if (buf->pos >= 2 && buf->buffer[0] == 0xF0 && buf->buffer[buf->pos-1] == 0xF7) {
-            /* Check if this is a MIOS32 query message - respond to it */
+            /* Check if this is a MIOS32 query message - respond and consume */
             if (mios32_query_is_query_message(buf->buffer, buf->pos)) {
-              /* Process MIOS32 query and send response (MIOS Studio expects this) */
+              // Respond on the same cable, then swallow the query to avoid echo/loopback
               mios32_query_process(buf->buffer, buf->pos, cable);
-              /* Don't route query messages - they're handled above */
+              // Don't route query messages - the handler already replied
             } else {
               #ifndef APP_TEST_USB_MIDI
               router_msg_t msg;
@@ -365,6 +369,10 @@ void usb_midi_process_rx_queue(void) {
     
     /* CIN 0x7: SysEx end with 3 bytes */
     else if (cin == 0x07) {
+      if (!buf->active && packet4[1] == 0xF0) {
+        buf->pos = 0;
+        buf->active = 1;
+      }
       if (buf->active) {
         if (buf->pos + 3 <= USB_MIDI_SYSEX_BUFFER_SIZE) {
           /* Unrolled copy for 3 bytes */
@@ -375,11 +383,11 @@ void usb_midi_process_rx_queue(void) {
           
           /* Fast SysEx validation */
           if (buf->pos >= 2 && buf->buffer[0] == 0xF0 && buf->buffer[buf->pos-1] == 0xF7) {
-            /* Check if this is a MIOS32 query message - respond to it */
+            /* Check if this is a MIOS32 query message - respond and consume */
             if (mios32_query_is_query_message(buf->buffer, buf->pos)) {
-              /* Process MIOS32 query and send response (MIOS Studio expects this) */
+              // Respond on the same cable, then swallow the query to avoid echo/loopback
               mios32_query_process(buf->buffer, buf->pos, cable);
-              /* Don't route query messages - they're handled above */
+              // Don't route query messages - the handler already replied
             } else {
               #ifndef APP_TEST_USB_MIDI
               router_msg_t msg;
