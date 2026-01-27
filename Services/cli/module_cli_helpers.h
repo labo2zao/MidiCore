@@ -247,8 +247,7 @@ extern "C" {
     .disable = module_name##_cli_disable, \
     .get_status = module_name##_cli_get_status, \
     .has_per_track_state = per_track, \
-    .is_global = global, \
-    .registered = 0 \
+    .is_global = global \
   }
 
 /**
