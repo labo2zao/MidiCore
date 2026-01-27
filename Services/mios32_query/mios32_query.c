@@ -4,12 +4,12 @@
  */
 
 #include "Services/mios32_query/mios32_query.h"
+#include "Config/module_config.h"
 
-#if __has_include("Services/usb_midi/usb_midi_sysex.h")
+/* Use proper module configuration macro instead of __has_include
+ * to ensure correct behavior across all build configurations */
+#if MODULE_ENABLE_USB_MIDI
 #include "Services/usb_midi/usb_midi_sysex.h"
-#define HAS_USB_MIDI 1
-#else
-#define HAS_USB_MIDI 0
 #endif
 
 #include <string.h>
@@ -128,10 +128,10 @@ void mios32_query_send_response(uint8_t query_type, uint8_t device_id, uint8_t c
   *p++ = 0xF7;  // SysEx end
   
   // Send via USB MIDI on the same cable the query came from
-#if HAS_USB_MIDI
+#if MODULE_ENABLE_USB_MIDI
   usb_midi_send_sysex(sysex_response_buffer, p - sysex_response_buffer, cable);
 #else
-  (void)cable;
+  (void)cable;  // Suppress unused parameter warning
 #endif
 }
 
