@@ -72,21 +72,37 @@ void usb_midi_init(void) {
 }
 
 void usb_midi_send_packet(uint8_t cin, uint8_t b0, uint8_t b1, uint8_t b2) {
-  /* Extract cable number from CIN (upper 4 bits) */
-  uint8_t cable = (cin >> 4) & 0x0F;
+  /* CRITICAL FIX: Send packet directly with provided CIN to avoid re-interpretation
+   * 
+   * Problem: USBD_MIDI_SendData() re-interprets the message bytes to determine CIN,
+   * but for SysEx continuation packets (CIN 0x4), the bytes don't start with 0xF0,
+   * causing misinterpretation as channel messages.
+   * 
+   * Solution: Build the 4-byte USB-MIDI packet directly and transmit it.
+   * This preserves the CIN provided by the caller (e.g., usb_midi_send_sysex).
+   */
   
-  /* Build MIDI message (without header) */
-  uint8_t data[3] = {b0, b1, b2};
-  uint16_t length = 3;
+  USBD_MIDI_HandleTypeDef *hmidi = (USBD_MIDI_HandleTypeDef *)hUsbDeviceFS.pClassData;
   
-  /* Adjust length based on message type (like MIOS32) */
-  uint8_t status = b0 & 0xF0;
-  if (status == 0xC0 || status == 0xD0) {
-    length = 2; /* Program Change, Channel Pressure - 2 bytes */
+  /* Check if interface is ready */
+  if (hmidi == NULL || !hmidi->is_ready) {
+    return; /* Interface not ready - silently fail */
   }
   
-  /* Send via USB Device MIDI (4 ports supported) */
-  USBD_MIDI_SendData(&hUsbDeviceFS, cable, data, length);
+  /* Check if endpoint is busy before sending */
+  if (hUsbDeviceFS.ep_in[MIDI_IN_EP & 0x0F].status == USBD_BUSY) {
+    return; /* Endpoint busy - drop packet (non-blocking behavior) */
+  }
+  
+  /* Build USB MIDI packet (4 bytes) with provided CIN */
+  uint8_t packet[4];
+  packet[0] = cin;  /* Cable number (upper 4 bits) + CIN (lower 4 bits) */
+  packet[1] = b0;
+  packet[2] = b1;
+  packet[3] = b2;
+  
+  /* Transmit packet directly */
+  USBD_LL_Transmit(&hUsbDeviceFS, MIDI_IN_EP, packet, 4);
 }
 
 void usb_midi_rx_packet(const uint8_t packet4[4]) {
