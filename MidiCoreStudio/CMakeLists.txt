@@ -27,6 +27,16 @@ set(SOURCE_FILES
     Source/Components/MidiMonitor.h
     Source/Components/FileManagerComponent.cpp
     Source/Components/FileManagerComponent.h
+    Source/Components/VirtualPiano.cpp
+    Source/Components/VirtualPiano.h
+    Source/Components/CCController.cpp
+    Source/Components/CCController.h
+    Source/Components/Terminal.cpp
+    Source/Components/Terminal.h
+    Source/Components/DeviceManager.cpp
+    Source/Components/DeviceManager.h
+    Source/Components/FirmwareUpdater.cpp
+    Source/Components/FirmwareUpdater.h
 )
 
 # Create executable
