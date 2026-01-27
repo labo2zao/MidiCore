@@ -109,6 +109,34 @@ extern "C" {
 #define MODULE_ENABLE_USB_CDC 0  // Disabled by default (opt-in feature)
 #endif
 
+/** @brief Enable USB MSC (Mass Storage Class) - SD card access via USB
+ * 
+ * When enabled (MODULE_ENABLE_USB_MSC=1):
+ * - Exposes SD card as USB Mass Storage device
+ * - Allows direct file editing from MIOS Studio and PC
+ * - Composite device: MIDI + CDC + MSC
+ * - Automatic SD card locking when accessed via USB
+ * 
+ * When disabled (MODULE_ENABLE_USB_MSC=0, default):
+ * - No MSC functionality
+ * - SD card only accessible via firmware
+ * 
+ * Requirements:
+ * - SD card initialized and working
+ * - FATFS configured
+ * - USB_OTG_FS with sufficient endpoints
+ * 
+ * Safety:
+ * - Automatic arbitration prevents SD corruption
+ * - Firmware pauses SD access when USB host mounts
+ * - Safe unmount handling
+ * 
+ * See Docs/usb/MSC_INTEGRATION.md for setup and usage
+ */
+#ifndef MODULE_ENABLE_USB_MSC
+#define MODULE_ENABLE_USB_MSC 0  // Disabled by default (opt-in feature)
+#endif
+
 /** @brief Enable USB Host MIDI - MIOS32-style dual-mode configuration */
 #ifndef MODULE_ENABLE_USBH_MIDI
 #define MODULE_ENABLE_USBH_MIDI 0  /* Disable Host for now - testing Device only */  // Enabled for MIOS32-style dual Host/Device support
