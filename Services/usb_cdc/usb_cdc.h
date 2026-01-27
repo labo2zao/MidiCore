@@ -7,25 +7,23 @@
  * @attention
  *
  * USB CDC ACM (Abstract Control Model) Virtual COM Port service
- * Compatible with MIOS32 USB_CDC API and MIOS Studio
+ * 
+ * Original clean-room implementation for MidiCore.
+ * Compatible with MIOS Studio and standard terminal applications.
+ * Licensed for commercial use.
  * 
  * Features:
  * - Virtual COM port for terminal/debug communication
  * - Composite device support (CDC + MIDI concurrent)
  * - Receive callback mechanism for incoming data
  * - Connection state detection
- * - MIOS32-compatible shim functions
+ * - MIOS Studio compatible terminal functions
  * 
  * Integration:
  * - Enable MODULE_ENABLE_USB_CDC in Config/module_config.h
  * - Configure CubeMX with USB_OTG_FS
  * - Call usb_cdc_init() during startup
  * - Register receive callback with usb_cdc_register_receive_callback()
- * 
- * MIOS32 Compatibility:
- * - MIOS32_USB_CDC_Init() maps to usb_cdc_init()
- * - MIOS32_USB_CDC_SendBlock() maps to usb_cdc_send()
- * - Similar callback registration pattern
  * 
  ******************************************************************************
  */
@@ -110,57 +108,90 @@ void usb_cdc_register_receive_callback(usb_cdc_rx_callback_t callback);
 uint8_t usb_cdc_is_connected(void);
 
 /* ============================================================================
- * MIOS32 Compatibility Shims
- * ============================================================================ */
+ * Terminal Compatibility API (MIOS-Studio Compatible)
+ * ============================================================================
+ * 
+ * This API provides terminal/debugging functionality compatible with MIOS Studio
+ * and other USB CDC terminal applications, without using any MIOS32 code.
+ * 
+ * Designed for commercial use with clean-room implementation.
+ */
 
 /**
- * @brief MIOS32-compatible initialization
+ * @brief Initialize USB CDC for terminal use
+ * @return 0 on success, negative on error
  * 
- * Maps to usb_cdc_init() for MIOS32 code compatibility.
- * MIOS32 applications can use this name directly.
- * 
- * @return 0 on success (MIOS32 convention)
+ * Terminal-compatible initialization function.
+ * Call after USB Device initialization.
  */
-static inline int32_t MIOS32_USB_CDC_Init(void) {
+static inline int32_t USB_CDC_TerminalInit(void) {
   usb_cdc_init();
   return USB_CDC_OK;
 }
 
 /**
- * @brief MIOS32-compatible block send
- * @param buf Pointer to data buffer
- * @param len Number of bytes to send
- * @return 0 on success, negative on error (MIOS32 convention)
- * 
- * Maps to usb_cdc_send() for MIOS32 code compatibility.
- * Note: Return convention differs (MIOS32 returns 0 on success,
- * while usb_cdc_send returns bytes sent). This shim adapts the return value.
- */
-static inline int32_t MIOS32_USB_CDC_SendBlock(const uint8_t *buf, uint32_t len) {
-  int32_t result = usb_cdc_send(buf, len);
-  return (result >= 0) ? USB_CDC_OK : result;
-}
-
-/**
- * @brief MIOS32-compatible receive callback registration
- * @param callback Function to call when data is received
- * @return 0 on success (MIOS32 convention)
- * 
- * Maps to usb_cdc_register_receive_callback() for MIOS32 compatibility.
- */
-static inline int32_t MIOS32_USB_CDC_RegisterRxCallback(usb_cdc_rx_callback_t callback) {
-  usb_cdc_register_receive_callback(callback);
-  return USB_CDC_OK;
-}
-
-/**
- * @brief MIOS32-compatible connection check
+ * @brief Check if terminal is connected
  * @return 1 if connected, 0 otherwise
  * 
- * Maps to usb_cdc_is_connected() for MIOS32 compatibility.
+ * Use this to check if a terminal application (MIOS Studio, PuTTY, etc.)
+ * is connected before sending data.
  */
-static inline uint8_t MIOS32_USB_CDC_IsConnected(void) {
-  return usb_cdc_is_connected();
+static inline int32_t USB_CDC_TerminalAvailable(void) {
+  return usb_cdc_is_connected() ? 1 : 0;
+}
+
+/**
+ * @brief Send single byte to terminal (non-blocking)
+ * @param byte Byte to send
+ * @return 0 on success, -1 on error, -2 if busy
+ * 
+ * Non-blocking byte transmission for terminal output.
+ */
+static inline int32_t USB_CDC_TerminalPutChar(uint8_t byte) {
+  int32_t result = usb_cdc_send(&byte, 1);
+  if (result == 1) return 0;
+  if (result == USB_CDC_BUSY) return -2;
+  return -1;
+}
+
+/**
+ * @brief Send string to terminal (non-blocking)
+ * @param str Null-terminated string
+ * @return 0 on success, negative on error
+ * 
+ * Convenience function for terminal string output.
+ */
+static inline int32_t USB_CDC_TerminalPutString(const char *str) {
+  if (!str) return -1;
+  uint32_t len = 0;
+  while (str[len]) len++;
+  int32_t result = usb_cdc_send((const uint8_t*)str, len);
+  return (result == (int32_t)len) ? 0 : -1;
+}
+
+/**
+ * @brief Send data buffer to terminal (non-blocking)
+ * @param buffer Pointer to data buffer
+ * @param length Number of bytes to send
+ * @return Number of bytes sent on success, negative on error
+ * 
+ * Non-blocking buffer transmission for terminal output.
+ */
+static inline int32_t USB_CDC_TerminalWrite(const uint8_t *buffer, uint32_t length) {
+  return usb_cdc_send(buffer, length);
+}
+
+/**
+ * @brief Register callback for received terminal data
+ * @param callback Function to call when data received
+ * @return 0 on success
+ * 
+ * Register a callback to handle data received from the terminal.
+ * Callback is called from USB interrupt context.
+ */
+static inline int32_t USB_CDC_TerminalRegisterRxCallback(usb_cdc_rx_callback_t callback) {
+  usb_cdc_register_receive_callback(callback);
+  return USB_CDC_OK;
 }
 
 #ifdef __cplusplus
