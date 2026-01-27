@@ -2442,6 +2442,9 @@ void module_test_router_run(void)
   uint32_t last_oled_refresh_ms = osKernelGetTickCount();
   
   for (;;) {
+    // Get current time once per loop iteration
+    uint32_t now_ms = osKernelGetTickCount();
+    
 #if MODULE_ENABLE_MIDI_DIN
     // Poll for incoming MIDI bytes from DIN IN1-4
     midi_din_tick();
@@ -2452,7 +2455,6 @@ void module_test_router_run(void)
     dbg_mirror_update();
     
     // Periodic OLED refresh to keep display active (every 5 seconds)
-    uint32_t now_ms = osKernelGetTickCount();
     if (now_ms - last_oled_refresh_ms >= 5000) {
       last_oled_refresh_ms = now_ms;
       // Re-print monitoring status to OLED to keep it active
@@ -2543,8 +2545,6 @@ void module_test_router_run(void)
     
     osDelay(10);  // 10ms for responsive MIDI input polling (reduces latency)
     tick_counter++;
-    
-    uint32_t now_ms = osKernelGetTickCount();
     
     // Periodic status update every 60 seconds
     if (now_ms - last_status_ms >= 60000) {
