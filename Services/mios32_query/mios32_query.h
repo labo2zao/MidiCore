@@ -57,7 +57,14 @@ bool mios32_query_is_query_message(const uint8_t* data, uint32_t len);
 bool mios32_query_process(const uint8_t* data, uint32_t len, uint8_t cable);
 
 /**
- * @brief Send device info response to MIOS Studio
+ * @brief Send MIOS32 query response based on query type
+ * @param query_type Query type (0x01-0x09, see MIOS32 protocol)
+ * @param cable USB MIDI cable number (0-3) to send response on
+ */
+void mios32_query_send_response(uint8_t query_type, uint8_t cable);
+
+/**
+ * @brief Send device info response to MIOS Studio (legacy, wraps mios32_query_send_response)
  * @param device_name Device name (e.g., "MidiCore")
  * @param version Version string (e.g., "1.0.0")
  * @param cable USB MIDI cable number (0-3) to send response on
