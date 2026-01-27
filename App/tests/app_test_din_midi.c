@@ -19,6 +19,9 @@
 
 #include <string.h>
 
+// External UART handles for baudrate validation
+extern UART_HandleTypeDef huart5; // UART5 - Debug port
+
 #ifndef APP_TEST_MIDI_BASE_NOTE
 #define APP_TEST_MIDI_BASE_NOTE 36
 #endif
@@ -105,9 +108,21 @@ void app_test_din_midi_run_forever(void)
     dbg_print("OK (using defaults)\r\n");
   }
 
-  // 1) UART MIDI - IMPORTANT: Do NOT call hal_uart_midi_init() here!
-  // It would reconfigure the debug UART back to 31250 baud.
+  // 1) UART MIDI - CRITICAL: Do NOT call hal_uart_midi_init() here!
+  // IMPORTANT: Calling hal_uart_midi_init() would reconfigure ALL UARTs to 31250 baud,
+  // including the debug UART (UART5) which test_debug_init() set to 115200 baud.
   // The router will handle MIDI output directly via router_send_default().
+  //
+  // Runtime validation: Debug UART must remain at 115200 baud
+  UART_HandleTypeDef* debug_uart = &huart5;  // UART5 is debug port
+  if (debug_uart->Init.BaudRate != 115200) {
+    dbg_print("WARNING: Debug UART baudrate changed from 115200!\r\n");
+    dbg_printf("Current baudrate: %lu\r\n", (unsigned long)debug_uart->Init.BaudRate);
+    dbg_print("Reconfiguring to 115200...\r\n");
+    HAL_UART_DeInit(debug_uart);
+    debug_uart->Init.BaudRate = 115200;
+    HAL_UART_Init(debug_uart);
+  }
   dbg_print("MIDI routing via router (hal_uart_midi skipped to preserve 115200 debug baud)... OK\r\n");
 
   // 2) SRIO

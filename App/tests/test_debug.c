@@ -46,13 +46,14 @@ static UART_HandleTypeDef* get_debug_uart_handle(void)
 int test_debug_init(void)
 {
   // UART handles are initialized in main.c by CubeMX
-  // We need to reconfigure the debug UART to 115200 baud
-  // (CubeMX initializes all UARTs to 31250 for MIDI by default)
+  // UART5 is now configured to 115200 baud by default (see MidiCore.ioc)
+  // No need to reconfigure unless using a different port
   
   UART_HandleTypeDef* huart = get_debug_uart_handle();
   
-  // Reconfigure debug UART to 115200 baud (from default 31250 MIDI baud)
+  // Verify or reconfigure debug UART baudrate if needed
   if (huart->Init.BaudRate != TEST_DEBUG_UART_BAUD) {
+    // Reconfigure to desired debug baudrate
     HAL_UART_DeInit(huart);
     huart->Init.BaudRate = TEST_DEBUG_UART_BAUD;  // 115200 for debug
     huart->Init.WordLength = UART_WORDLENGTH_8B;
@@ -61,7 +62,9 @@ int test_debug_init(void)
     huart->Init.Mode = UART_MODE_TX_RX;
     huart->Init.HwFlowCtl = UART_HWCONTROL_NONE;
     huart->Init.OverSampling = UART_OVERSAMPLING_16;
-    HAL_UART_Init(huart);
+    if (HAL_UART_Init(huart) != HAL_OK) {
+      Error_Handler();
+    }
   }
   
 #if MODULE_ENABLE_OLED

@@ -50,11 +50,12 @@ static uint16_t parse_channel_mask(const char* str) {
     }
   }
   
-  // For now, just support simple cases
-  // TODO: Add support for ranges like "1-8" and lists like "1,2,3"
-  cli_warning("Advanced channel mask parsing not yet implemented\n");
-  cli_warning("Using 'all' channels (0xFFFF)\n");
-  return 0xFFFF;
+  // Advanced parsing not yet implemented - return error indication
+  // Caller should check for 0 return value
+  cli_error("Advanced channel mask parsing not yet supported\n");
+  cli_error("Supported formats: 'all', '1' through '16'\n");
+  cli_error("TODO: Support ranges ('1-8') and lists ('1,2,3')\n");
+  return 0;  // Error - no channels selected
 }
 
 /**
@@ -195,6 +196,11 @@ static cli_result_t cmd_router(int argc, char* argv[]) {
     if (in_node < 0 || out_node < 0) return CLI_INVALID_ARGS;
     
     uint16_t chmask = parse_channel_mask(argv[4]);
+    if (chmask == 0) {
+      cli_error("Invalid channel mask, route not modified\n");
+      return CLI_INVALID_ARGS;
+    }
+    
     router_set_chanmask((uint8_t)in_node, (uint8_t)out_node, chmask);
     cli_success("Set channel mask for route %d -> %d: 0x%04X\n", in_node, out_node, chmask);
     return CLI_OK;
@@ -212,12 +218,22 @@ static cli_result_t cmd_router(int argc, char* argv[]) {
     int out_node = parse_node(argv[3]);
     if (in_node < 0 || out_node < 0) return CLI_INVALID_ARGS;
     
-    // Join remaining args as label
+    // Join remaining args as label (more efficient concatenation)
     char label[64] = {0};
-    for (int i = 4; i < argc && strlen(label) < sizeof(label) - 2; i++) {
-      if (i > 4) strcat(label, " ");
-      strncat(label, argv[i], sizeof(label) - strlen(label) - 1);
+    size_t label_len = 0;
+    for (int i = 4; i < argc && label_len < sizeof(label) - 2; i++) {
+      size_t arg_len = strlen(argv[i]);
+      if (i > 4 && label_len < sizeof(label) - 1) {
+        label[label_len++] = ' ';
+      }
+      size_t copy_len = arg_len;
+      if (label_len + copy_len >= sizeof(label)) {
+        copy_len = sizeof(label) - label_len - 1;
+      }
+      memcpy(label + label_len, argv[i], copy_len);
+      label_len += copy_len;
     }
+    label[label_len] = '\0';
     
     router_set_label((uint8_t)in_node, (uint8_t)out_node, label);
     cli_success("Set label for route %d -> %d: '%s'\n", in_node, out_node, label);
