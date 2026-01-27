@@ -1,5 +1,6 @@
 #include "Services/usb_midi/usb_midi.h"
 #include "Services/router/router.h"
+#include "Services/mios32_query/mios32_query.h"
 #include "Config/module_config.h"
 #include <string.h>
 
@@ -140,18 +141,24 @@ void usb_midi_rx_packet(const uint8_t packet4[4]) {
           
           /* Fast SysEx validation (check start and end markers) */
           if (buf->pos >= 2 && buf->buffer[0] == 0xF0 && buf->buffer[buf->pos-1] == 0xF7) {
-            /* Only route if not in test mode with APP_TEST_USB_MIDI */
-            #ifndef APP_TEST_USB_MIDI
-            /* Prepare message inline to avoid extra copies */
-            router_msg_t msg;
-            msg.type = ROUTER_MSG_SYSEX;
-            msg.data = buf->buffer;
-            msg.len = buf->pos;
-            msg.b0 = 0xF0;
-            msg.b1 = 0;
-            msg.b2 = 0;
-            router_process(node, &msg);
-            #endif
+            /* Check if this is a MIOS32 query message - handle directly */
+            if (mios32_query_is_query_message(buf->buffer, buf->pos)) {
+              mios32_query_process(buf->buffer, buf->pos);
+              // Don't route query messages - they're handled above
+            } else {
+              /* Only route if not in test mode with APP_TEST_USB_MIDI */
+              #ifndef APP_TEST_USB_MIDI
+              /* Prepare message inline to avoid extra copies */
+              router_msg_t msg;
+              msg.type = ROUTER_MSG_SYSEX;
+              msg.data = buf->buffer;
+              msg.len = buf->pos;
+              msg.b0 = 0xF0;
+              msg.b1 = 0;
+              msg.b2 = 0;
+              router_process(node, &msg);
+              #endif
+            }
           }
         }
         /* Always reset buffer state after end packet (even on overflow) */
@@ -172,16 +179,22 @@ void usb_midi_rx_packet(const uint8_t packet4[4]) {
           
           /* Fast SysEx validation */
           if (buf->pos >= 2 && buf->buffer[0] == 0xF0 && buf->buffer[buf->pos-1] == 0xF7) {
-            #ifndef APP_TEST_USB_MIDI
-            router_msg_t msg;
-            msg.type = ROUTER_MSG_SYSEX;
-            msg.data = buf->buffer;
-            msg.len = buf->pos;
-            msg.b0 = 0xF0;
-            msg.b1 = 0;
-            msg.b2 = 0;
-            router_process(node, &msg);
-            #endif
+            /* Check if this is a MIOS32 query message - handle directly */
+            if (mios32_query_is_query_message(buf->buffer, buf->pos)) {
+              mios32_query_process(buf->buffer, buf->pos);
+              // Don't route query messages - they're handled above
+            } else {
+              #ifndef APP_TEST_USB_MIDI
+              router_msg_t msg;
+              msg.type = ROUTER_MSG_SYSEX;
+              msg.data = buf->buffer;
+              msg.len = buf->pos;
+              msg.b0 = 0xF0;
+              msg.b1 = 0;
+              msg.b2 = 0;
+              router_process(node, &msg);
+              #endif
+            }
           }
         }
         /* Always reset buffer state after end packet (even on overflow) */
@@ -203,16 +216,22 @@ void usb_midi_rx_packet(const uint8_t packet4[4]) {
           
           /* Fast SysEx validation */
           if (buf->pos >= 2 && buf->buffer[0] == 0xF0 && buf->buffer[buf->pos-1] == 0xF7) {
-            #ifndef APP_TEST_USB_MIDI
-            router_msg_t msg;
-            msg.type = ROUTER_MSG_SYSEX;
-            msg.data = buf->buffer;
-            msg.len = buf->pos;
-            msg.b0 = 0xF0;
-            msg.b1 = 0;
-            msg.b2 = 0;
-            router_process(node, &msg);
-            #endif
+            /* Check if this is a MIOS32 query message - handle directly */
+            if (mios32_query_is_query_message(buf->buffer, buf->pos)) {
+              mios32_query_process(buf->buffer, buf->pos);
+              // Don't route query messages - they're handled above
+            } else {
+              #ifndef APP_TEST_USB_MIDI
+              router_msg_t msg;
+              msg.type = ROUTER_MSG_SYSEX;
+              msg.data = buf->buffer;
+              msg.len = buf->pos;
+              msg.b0 = 0xF0;
+              msg.b1 = 0;
+              msg.b2 = 0;
+              router_process(node, &msg);
+              #endif
+            }
           }
         }
         /* Always reset buffer state after end packet (even on overflow) */
