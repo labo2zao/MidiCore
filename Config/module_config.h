@@ -354,9 +354,15 @@ extern "C" {
 #define MODULE_ENABLE_MODULE_REGISTRY 1
 #endif
 
-/** @brief Enable Test Module (runtime module testing via CLI) */
+/** @brief Enable Test Module (runtime module testing via CLI)
+ * 
+ * WARNING: This module is deprecated and incomplete.
+ * The test_cli.c file is not included in the build, causing linker errors.
+ * 
+ * Set to 0 to disable (recommended for production builds).
+ */
 #ifndef MODULE_ENABLE_TEST
-#define MODULE_ENABLE_TEST 1
+#define MODULE_ENABLE_TEST 0
 #endif
 
 // =============================================================================
