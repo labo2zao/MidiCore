@@ -130,11 +130,13 @@ static int8_t CDC_Control_FS(uint8_t cmd, uint8_t *pbuf, uint16_t length)
  */
 static int8_t CDC_Receive_FS(uint8_t *buf, uint32_t *len)
 {
-  /* Forward received data to service layer callback */
-  usb_cdc_rx_callback_internal(buf, *len);
-  
-  /* Prepare for next reception */
+  /* CRITICAL FIX: Prepare for next reception FIRST
+   * This prevents data loss if processing takes time */
   USBD_CDC_ReceivePacket(&hUsbDeviceFS);
+  
+  /* Forward received data to service layer callback
+   * Data is queued in interrupt, processed in task context */
+  usb_cdc_rx_callback_internal(buf, *len);
   
   return USBD_OK;
 }

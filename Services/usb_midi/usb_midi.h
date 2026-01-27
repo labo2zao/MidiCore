@@ -46,16 +46,32 @@ void usb_midi_init(void);
 void usb_midi_send_packet(uint8_t cin, uint8_t b0, uint8_t b1, uint8_t b2);
 
 /**
- * @brief Process received USB MIDI packet (internal callback)
+ * @brief Process received USB MIDI packet (internal callback - called from interrupt)
  * @param packet4 4-byte USB MIDI packet [header, b0, b1, b2]
  * 
- * Routes packet to appropriate router node based on cable number:
- *  - Cable 0 → ROUTER_NODE_USB_PORT0
- *  - Cable 1 → ROUTER_NODE_USB_PORT1
- *  - Cable 2 → ROUTER_NODE_USB_PORT2
- *  - Cable 3 → ROUTER_NODE_USB_PORT3
+ * CRITICAL: This is called from USB interrupt context. It ONLY queues the packet
+ * for deferred processing. Actual processing happens in usb_midi_process_rx_queue().
+ * 
+ * DO NOT call this directly - it's automatically called by USB MIDI class.
  */
 void usb_midi_rx_packet(const uint8_t packet4[4]);
+
+/**
+ * @brief Process queued RX packets - MUST be called from task context!
+ * 
+ * Call this regularly from main loop or dedicated USB MIDI task. It processes
+ * all queued RX packets, handles SysEx assembly, MIOS32 queries, and routing.
+ * 
+ * CRITICAL: Do NOT call from interrupt context! This function does heavy
+ * processing including router operations and TX responses.
+ * 
+ * Example usage in main loop:
+ *   while(1) {
+ *     usb_midi_process_rx_queue();  // Process received MIDI
+ *     // ... other tasks ...
+ *   }
+ */
+void usb_midi_process_rx_queue(void);
 
 #ifdef __cplusplus
 }

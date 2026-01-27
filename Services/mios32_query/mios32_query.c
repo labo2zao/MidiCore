@@ -57,6 +57,7 @@ bool mios32_query_process(const uint8_t* data, uint32_t len, uint8_t cable) {
   // Extract command (byte 6 for MIOS32 protocol: F0 00 00 7E 32 <dev> <cmd>)
   uint8_t device_id = data[5];
   uint8_t command = data[6];
+  uint8_t query_type = (len > 7) ? data[7] : 0x00;
   
   // Command 0x00: Device Info Request (MIOS Studio uses data[7]=0x01)
   // Command 0x01: Device Info Request (alternate form)
@@ -76,39 +77,71 @@ void mios32_query_send_device_info(const char* device_name, const char* version,
   }
   
   uint8_t* p = sysex_response_buffer;
+  const char* response_str = NULL;
+  char num_buffer[12]; // For number-to-string conversions
   
-  // Build response: F0 00 00 7E 32 <dev_id> 0x01 <device_name> 00 <version> F7
-  // Following MIOS32 pattern: response uses 0x01 (ACK/info response)
+  // Determine response string based on query type
+  switch (query_type) {
+    case 0x01: // Operating system
+      response_str = "MIOS32";
+      break;
+    case 0x02: // Board
+      response_str = "STM32F407VGT6";
+      break;
+    case 0x03: // Core family
+      response_str = "STM32F4";
+      break;
+    case 0x04: // Chip ID (would need actual chip ID reading)
+      response_str = "00000000"; // Placeholder
+      break;
+    case 0x05: // Serial number
+      response_str = "000001"; // Placeholder
+      break;
+    case 0x06: // Flash memory size
+      response_str = "1048576"; // 1MB
+      break;
+    case 0x07: // RAM memory size
+      response_str = "131072"; // 128KB
+      break;
+    case 0x08: // Application name line 1
+      response_str = MIOS32_DEVICE_NAME;
+      break;
+    case 0x09: // Application name line 2
+      response_str = MIOS32_DEVICE_VERSION;
+      break;
+    default:
+      // Unknown query type - send empty ACK
+      response_str = "";
+      break;
+  }
+  
+  // Build response: F0 00 00 7E 32 <device_id> 0x0F <string> F7
+  // Following actual MIOS32 implementation (mios32/common/mios32_midi.c)
   *p++ = 0xF0;  // SysEx start
   *p++ = 0x00;  // Manufacturer ID 1
   *p++ = 0x00;  // Manufacturer ID 2
-  *p++ = 0x7E;  // Manufacturer ID 3 (MIOS32)
+  *p++ = 0x7E;  // Manufacturer ID 3 (MIOS)
   *p++ = MIOS32_QUERY_DEVICE_ID;  // Device ID (0x32)
   *p++ = device_id;  // Device instance ID (echo query)
   *p++ = 0x01;  // Command: Layout/Info Response
   
-  // Copy device name (ASCII string, space-padded or null-terminated)
-  size_t name_len = strlen(device_name);
-  if (name_len > 32) name_len = 32;  // Limit to 32 chars
-  memcpy(p, device_name, name_len);
-  p += name_len;
-  *p++ = 0x00;  // Null terminator
-  
-  // Copy version string
-  size_t ver_len = strlen(version);
-  if (ver_len > 16) ver_len = 16;  // Limit to 16 chars
-  memcpy(p, version, ver_len);
-  p += ver_len;
+  // Copy response string (NO null terminator in SysEx stream!)
+  while (*response_str && (p < sysex_response_buffer + 250)) {
+    *p++ = *response_str++;
+  }
   
   *p++ = 0xF7;  // SysEx end
   
   // Send via USB MIDI on the same cable the query came from
-  // CRITICAL: Must respond on same cable to avoid confusing MIOS Studio
 #if HAS_USB_MIDI
   usb_midi_send_sysex(sysex_response_buffer, p - sysex_response_buffer, cable);
 #else
-  // USB MIDI not available - response not sent
-  (void)p;
   (void)cable;
 #endif
+}
+
+// Legacy function - now wraps mios32_query_send_response()
+void mios32_query_send_device_info(const char* device_name, const char* version, uint8_t cable) {
+  // For compatibility, send application name (query type 0x08)
+  mios32_query_send_response(0x08, cable);
 }
