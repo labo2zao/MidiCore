@@ -117,36 +117,44 @@ void usb_midi_rx_packet(const uint8_t packet4[4]) {
       }
       
       /* Fast buffer copy if active and space available (unrolled for 3 bytes) */
-      if (buf->active && buf->pos + 3 <= USB_MIDI_SYSEX_BUFFER_SIZE) {
-        buf->buffer[buf->pos] = packet4[1];
-        buf->buffer[buf->pos + 1] = packet4[2];
-        buf->buffer[buf->pos + 2] = packet4[3];
-        buf->pos += 3;
+      if (buf->active) {
+        if (buf->pos + 3 <= USB_MIDI_SYSEX_BUFFER_SIZE) {
+          buf->buffer[buf->pos] = packet4[1];
+          buf->buffer[buf->pos + 1] = packet4[2];
+          buf->buffer[buf->pos + 2] = packet4[3];
+          buf->pos += 3;
+        } else {
+          /* Buffer overflow - discard this SysEx and reset */
+          buf->pos = 0;
+          buf->active = 0;
+        }
       }
       return; /* Don't send yet - wait for end packet */
     }
     
     /* CIN 0x5: SysEx end with 1 byte (or single-byte System Common) */
     else if (cin == 0x05) {
-      if (buf->active && buf->pos < USB_MIDI_SYSEX_BUFFER_SIZE) {
-        buf->buffer[buf->pos++] = packet4[1];
-        
-        /* Fast SysEx validation (check start and end markers) */
-        if (buf->pos >= 2 && buf->buffer[0] == 0xF0 && buf->buffer[buf->pos-1] == 0xF7) {
-          /* Only route if not in test mode with APP_TEST_USB_MIDI */
-          #ifndef APP_TEST_USB_MIDI
-          /* Prepare message inline to avoid extra copies */
-          router_msg_t msg;
-          msg.type = ROUTER_MSG_SYSEX;
-          msg.data = buf->buffer;
-          msg.len = buf->pos;
-          msg.b0 = 0xF0;
-          msg.b1 = 0;
-          msg.b2 = 0;
-          router_process(node, &msg);
-          #endif
+      if (buf->active) {
+        if (buf->pos + 1 <= USB_MIDI_SYSEX_BUFFER_SIZE) {
+          buf->buffer[buf->pos++] = packet4[1];
+          
+          /* Fast SysEx validation (check start and end markers) */
+          if (buf->pos >= 2 && buf->buffer[0] == 0xF0 && buf->buffer[buf->pos-1] == 0xF7) {
+            /* Only route if not in test mode with APP_TEST_USB_MIDI */
+            #ifndef APP_TEST_USB_MIDI
+            /* Prepare message inline to avoid extra copies */
+            router_msg_t msg;
+            msg.type = ROUTER_MSG_SYSEX;
+            msg.data = buf->buffer;
+            msg.len = buf->pos;
+            msg.b0 = 0xF0;
+            msg.b1 = 0;
+            msg.b2 = 0;
+            router_process(node, &msg);
+            #endif
+          }
         }
-        
+        /* Always reset buffer state after end packet (even on overflow) */
         buf->pos = 0;
         buf->active = 0;
       }
@@ -155,26 +163,28 @@ void usb_midi_rx_packet(const uint8_t packet4[4]) {
     
     /* CIN 0x6: SysEx end with 2 bytes (or two-byte System Common) */
     else if (cin == 0x06) {
-      if (buf->active && buf->pos + 2 <= USB_MIDI_SYSEX_BUFFER_SIZE) {
-        /* Unrolled copy for 2 bytes */
-        buf->buffer[buf->pos] = packet4[1];
-        buf->buffer[buf->pos + 1] = packet4[2];
-        buf->pos += 2;
-        
-        /* Fast SysEx validation */
-        if (buf->pos >= 2 && buf->buffer[0] == 0xF0 && buf->buffer[buf->pos-1] == 0xF7) {
-          #ifndef APP_TEST_USB_MIDI
-          router_msg_t msg;
-          msg.type = ROUTER_MSG_SYSEX;
-          msg.data = buf->buffer;
-          msg.len = buf->pos;
-          msg.b0 = 0xF0;
-          msg.b1 = 0;
-          msg.b2 = 0;
-          router_process(node, &msg);
-          #endif
+      if (buf->active) {
+        if (buf->pos + 2 <= USB_MIDI_SYSEX_BUFFER_SIZE) {
+          /* Unrolled copy for 2 bytes */
+          buf->buffer[buf->pos] = packet4[1];
+          buf->buffer[buf->pos + 1] = packet4[2];
+          buf->pos += 2;
+          
+          /* Fast SysEx validation */
+          if (buf->pos >= 2 && buf->buffer[0] == 0xF0 && buf->buffer[buf->pos-1] == 0xF7) {
+            #ifndef APP_TEST_USB_MIDI
+            router_msg_t msg;
+            msg.type = ROUTER_MSG_SYSEX;
+            msg.data = buf->buffer;
+            msg.len = buf->pos;
+            msg.b0 = 0xF0;
+            msg.b1 = 0;
+            msg.b2 = 0;
+            router_process(node, &msg);
+            #endif
+          }
         }
-        
+        /* Always reset buffer state after end packet (even on overflow) */
         buf->pos = 0;
         buf->active = 0;
       }
@@ -183,27 +193,29 @@ void usb_midi_rx_packet(const uint8_t packet4[4]) {
     
     /* CIN 0x7: SysEx end with 3 bytes */
     else if (cin == 0x07) {
-      if (buf->active && buf->pos + 3 <= USB_MIDI_SYSEX_BUFFER_SIZE) {
-        /* Unrolled copy for 3 bytes */
-        buf->buffer[buf->pos] = packet4[1];
-        buf->buffer[buf->pos + 1] = packet4[2];
-        buf->buffer[buf->pos + 2] = packet4[3];
-        buf->pos += 3;
-        
-        /* Fast SysEx validation */
-        if (buf->pos >= 2 && buf->buffer[0] == 0xF0 && buf->buffer[buf->pos-1] == 0xF7) {
-          #ifndef APP_TEST_USB_MIDI
-          router_msg_t msg;
-          msg.type = ROUTER_MSG_SYSEX;
-          msg.data = buf->buffer;
-          msg.len = buf->pos;
-          msg.b0 = 0xF0;
-          msg.b1 = 0;
-          msg.b2 = 0;
-          router_process(node, &msg);
-          #endif
+      if (buf->active) {
+        if (buf->pos + 3 <= USB_MIDI_SYSEX_BUFFER_SIZE) {
+          /* Unrolled copy for 3 bytes */
+          buf->buffer[buf->pos] = packet4[1];
+          buf->buffer[buf->pos + 1] = packet4[2];
+          buf->buffer[buf->pos + 2] = packet4[3];
+          buf->pos += 3;
+          
+          /* Fast SysEx validation */
+          if (buf->pos >= 2 && buf->buffer[0] == 0xF0 && buf->buffer[buf->pos-1] == 0xF7) {
+            #ifndef APP_TEST_USB_MIDI
+            router_msg_t msg;
+            msg.type = ROUTER_MSG_SYSEX;
+            msg.data = buf->buffer;
+            msg.len = buf->pos;
+            msg.b0 = 0xF0;
+            msg.b1 = 0;
+            msg.b2 = 0;
+            router_process(node, &msg);
+            #endif
+          }
         }
-        
+        /* Always reset buffer state after end packet (even on overflow) */
         buf->pos = 0;
         buf->active = 0;
       }
