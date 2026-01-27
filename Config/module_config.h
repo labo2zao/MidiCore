@@ -80,6 +80,35 @@ extern "C" {
 #define MODULE_ENABLE_USB_MIDI 1  // Disabled by default (requires USB config)
 #endif
 
+/** @brief Enable USB CDC (Virtual COM Port / ACM) - MIOS32 & MIOS Studio compatible
+ * 
+ * When enabled (MODULE_ENABLE_USB_CDC=1):
+ * - Adds CDC ACM interface to USB device (composite with MIDI)
+ * - Exposes virtual COM port for terminal/debug communication
+ * - Compatible with MIOS Studio (requires proper descriptor strings)
+ * - Provides MIOS32-compatible API shims (MIOS32_USB_CDC_*)
+ * 
+ * When disabled (MODULE_ENABLE_USB_CDC=0, default):
+ * - USB device remains MIDI-only
+ * - No CDC code compiled (saves Flash/RAM)
+ * - Default behavior for existing users
+ * 
+ * Requirements:
+ * - USB_OTG_FS configured in CubeMX
+ * - Available endpoints and FIFO space (see USB_CONFIGURATION_GUIDE.md)
+ * - Composite device descriptors (bDeviceClass=0)
+ * 
+ * Testing:
+ * - Windows: Device Manager → Ports (COM & LPT)
+ * - macOS: /dev/tty.usbmodem*
+ * - Linux: /dev/ttyACM*
+ * 
+ * See Docs/usb/CDC_INTEGRATION.md for setup and usage
+ */
+#ifndef MODULE_ENABLE_USB_CDC
+#define MODULE_ENABLE_USB_CDC 0  // Disabled by default (opt-in feature)
+#endif
+
 /** @brief Enable USB Host MIDI - MIOS32-style dual-mode configuration */
 #ifndef MODULE_ENABLE_USBH_MIDI
 #define MODULE_ENABLE_USBH_MIDI 0  /* Disable Host for now - testing Device only */  // Enabled for MIOS32-style dual Host/Device support
