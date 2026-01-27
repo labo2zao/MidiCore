@@ -171,6 +171,10 @@ void usb_midi_rx_packet(const uint8_t packet4[4]) {
     
     /* CIN 0x6: SysEx end with 2 bytes (or two-byte System Common) */
     else if (cin == 0x06) {
+      if (!buf->active && packet4[1] == 0xF0) {
+        buf->pos = 0;
+        buf->active = 1;
+      }
       if (buf->active) {
         if (buf->pos + 2 <= USB_MIDI_SYSEX_BUFFER_SIZE) {
           /* Unrolled copy for 2 bytes */
@@ -208,6 +212,10 @@ void usb_midi_rx_packet(const uint8_t packet4[4]) {
     
     /* CIN 0x7: SysEx end with 3 bytes */
     else if (cin == 0x07) {
+      if (!buf->active && packet4[1] == 0xF0) {
+        buf->pos = 0;
+        buf->active = 1;
+      }
       if (buf->active) {
         if (buf->pos + 3 <= USB_MIDI_SYSEX_BUFFER_SIZE) {
           /* Unrolled copy for 3 bytes */
