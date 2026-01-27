@@ -7,25 +7,23 @@
  * @attention
  *
  * USB CDC ACM (Abstract Control Model) Virtual COM Port service
- * Compatible with MIOS32 USB_CDC API and MIOS Studio
+ * 
+ * Original clean-room implementation for MidiCore.
+ * Compatible with MIOS Studio and standard terminal applications.
+ * Licensed for commercial use.
  * 
  * Features:
  * - Virtual COM port for terminal/debug communication
  * - Composite device support (CDC + MIDI concurrent)
  * - Receive callback mechanism for incoming data
  * - Connection state detection
- * - MIOS32-compatible shim functions
+ * - MIOS Studio compatible terminal functions
  * 
  * Integration:
  * - Enable MODULE_ENABLE_USB_CDC in Config/module_config.h
  * - Configure CubeMX with USB_OTG_FS
  * - Call usb_cdc_init() during startup
  * - Register receive callback with usb_cdc_register_receive_callback()
- * 
- * MIOS32 Compatibility:
- * - MIOS32_USB_CDC_Init() maps to usb_cdc_init()
- * - MIOS32_USB_CDC_SendBlock() maps to usb_cdc_send()
- * - Similar callback registration pattern
  * 
  ******************************************************************************
  */
