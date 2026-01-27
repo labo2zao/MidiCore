@@ -52,8 +52,17 @@ USBD_ClassTypeDef USBD_COMPOSITE =
   USBD_COMPOSITE_GetDeviceQualifierDesc,
 };
 
-/* Composite descriptor will be built dynamically */
-static uint8_t USBD_COMPOSITE_CfgDesc[256] __ALIGN_BEGIN __ALIGN_END;
+/* Composite descriptor - statically built for MIDI + CDC */
+/* Total size calculation:
+ * - Configuration Header: 9 bytes
+ * - MIDI IAD: 8 bytes
+ * - MIDI Interfaces (AC + MS): ~206 bytes (includes IAD already in MIDI descriptor)
+ * - CDC IAD: 8 bytes  
+ * - CDC Interfaces (Control + Data): 58 bytes (without config header)
+ * Total: 9 + 206 + 8 + 58 = 281 bytes (rounded to 300 for safety)
+ */
+#define USB_COMPOSITE_CONFIG_DESC_SIZE  512  /* Buffer size for building descriptor */
+static uint8_t USBD_COMPOSITE_CfgDesc[USB_COMPOSITE_CONFIG_DESC_SIZE] __ALIGN_BEGIN __ALIGN_END;
 static uint16_t composite_desc_len = 0;
 
 /**
@@ -212,36 +221,132 @@ static uint8_t USBD_COMPOSITE_EP0_RxReady(USBD_HandleTypeDef *pdev)
 }
 
 /**
- * @brief  Build composite configuration descriptor
+ * @brief  Build composite configuration descriptor for MIDI + CDC
  * @param  length: pointer to data length
  * @retval pointer to descriptor buffer
+ * 
+ * Descriptor structure:
+ * 1. Configuration Descriptor (9 bytes)
+ * 2. MIDI Function (IAD + Audio Control + MIDI Streaming + Endpoints)
+ * 3. CDC Function (IAD + Communication Interface + Data Interface + Endpoints)
+ * 
+ * Interface assignments:
+ * - Interface 0: Audio Control (MIDI)
+ * - Interface 1: MIDI Streaming
+ * - Interface 2: CDC Communication (Control)
+ * - Interface 3: CDC Data
  */
 static uint8_t *USBD_COMPOSITE_GetFSCfgDesc(uint16_t *length)
 {
   if (composite_desc_len == 0) {
     /* Build descriptor on first call */
     uint8_t *ptr = USBD_COMPOSITE_CfgDesc;
+    uint16_t total_len = 0;
+    
+    /* Get individual class descriptors */
     uint16_t midi_len = 0;
     uint8_t *midi_desc = USBD_MIDI.GetFSConfigDescriptor(&midi_len);
     
-    /* Copy MIDI descriptor (skip config descriptor header, we'll rebuild it) */
-    memcpy(ptr, midi_desc, midi_len);
-    ptr += midi_len;
-    composite_desc_len = midi_len;
-    
 #if MODULE_ENABLE_USB_CDC
-    /* Append CDC descriptor (skip config descriptor header) */
     uint16_t cdc_len = 0;
     uint8_t *cdc_desc = USBD_CDC.GetFSConfigDescriptor(&cdc_len);
     
-    /* Copy CDC descriptor parts (skip config header - 9 bytes) */
-    memcpy(ptr, cdc_desc + 9, cdc_len - 9);
-    composite_desc_len += (cdc_len - 9);
+    /* ===================================================================
+     * STEP 1: Configuration Descriptor Header
+     * =================================================================== */
+    ptr[0] = 0x09;                          /* bLength */
+    ptr[1] = USB_DESC_TYPE_CONFIGURATION;   /* bDescriptorType */
+    /* wTotalLength - will be filled later */
+    ptr[2] = 0x00;  /* Placeholder */
+    ptr[3] = 0x00;  /* Placeholder */
+    ptr[4] = 0x04;                          /* bNumInterfaces: 4 (MIDI:2 + CDC:2) */
+    ptr[5] = 0x01;                          /* bConfigurationValue */
+    ptr[6] = 0x00;                          /* iConfiguration */
+    ptr[7] = 0x80;                          /* bmAttributes: Bus Powered */
+    ptr[8] = 0xFA;                          /* MaxPower: 500mA */
+    ptr += 9;
+    total_len = 9;
     
-    /* Update configuration descriptor header */
-    USBD_COMPOSITE_CfgDesc[2] = LOBYTE(composite_desc_len);
-    USBD_COMPOSITE_CfgDesc[3] = HIBYTE(composite_desc_len);
-    USBD_COMPOSITE_CfgDesc[4] = 4;  /* 4 interfaces total (MIDI: 2, CDC: 2) */
+    /* ===================================================================
+     * STEP 2: Copy MIDI Function (includes IAD + interfaces + endpoints)
+     * Skip the config header (9 bytes) from MIDI descriptor
+     * =================================================================== */
+    uint16_t midi_function_len = midi_len - 9;  /* Exclude config header */
+    memcpy(ptr, midi_desc + 9, midi_function_len);
+    ptr += midi_function_len;
+    total_len += midi_function_len;
+    
+    /* ===================================================================
+     * STEP 3: Add IAD for CDC Function
+     * =================================================================== */
+    ptr[0] = 0x08;                          /* bLength */
+    ptr[1] = 0x0B;                          /* bDescriptorType: IAD */
+    ptr[2] = 0x02;                          /* bFirstInterface: 2 (CDC Control) */
+    ptr[3] = 0x02;                          /* bInterfaceCount: 2 (Control + Data) */
+    ptr[4] = 0x02;                          /* bFunctionClass: CDC */
+    ptr[5] = 0x02;                          /* bFunctionSubClass: ACM */
+    ptr[6] = 0x00;                          /* bFunctionProtocol */
+    ptr[7] = 0x00;                          /* iFunction */
+    ptr += 8;
+    total_len += 8;
+    
+    /* ===================================================================
+     * STEP 4: Copy CDC interfaces and endpoints
+     * Skip config header (9 bytes), but adjust interface numbers
+     * =================================================================== */
+    uint8_t *cdc_interfaces = cdc_desc + 9;  /* Skip config header */
+    uint16_t cdc_function_len = cdc_len - 9;
+    
+    /* Copy CDC descriptor and fix interface numbers */
+    for (uint16_t i = 0; i < cdc_function_len; i++) {
+      ptr[i] = cdc_interfaces[i];
+      
+      /* Find interface descriptors and update interface numbers */
+      if (i + 1 < cdc_function_len && 
+          cdc_interfaces[i] == 0x09 &&      /* bLength = 9 */
+          cdc_interfaces[i+1] == USB_DESC_TYPE_INTERFACE) {  /* Interface descriptor */
+        uint8_t old_interface_num = cdc_interfaces[i+2];
+        uint8_t new_interface_num = old_interface_num + 2;  /* Offset by 2 (MIDI uses 0,1) */
+        ptr[i+2] = new_interface_num;
+      }
+      
+      /* Fix Union Functional Descriptor interface references */
+      /* Union descriptor: 0x05 (len), 0x24 (CS_INTERFACE), 0x06 (UNION) */
+      if (i + 4 < cdc_function_len &&
+          cdc_interfaces[i] == 0x05 &&
+          cdc_interfaces[i+1] == 0x24 &&
+          cdc_interfaces[i+2] == 0x06) {
+        /* bMasterInterface and bSlaveInterface need +2 offset */
+        ptr[i+3] = cdc_interfaces[i+3] + 2;  /* Master */
+        ptr[i+4] = cdc_interfaces[i+4] + 2;  /* Slave */
+      }
+      
+      /* Fix Call Management Functional Descriptor data interface */
+      /* Call Mgmt descriptor: 0x05 (len), 0x24 (CS_INTERFACE), 0x01 (CALL_MGMT) */
+      if (i + 4 < cdc_function_len &&
+          cdc_interfaces[i] == 0x05 &&
+          cdc_interfaces[i+1] == 0x24 &&
+          cdc_interfaces[i+2] == 0x01) {
+        /* bDataInterface needs +2 offset */
+        ptr[i+4] = cdc_interfaces[i+4] + 2;
+      }
+    }
+    
+    ptr += cdc_function_len;
+    total_len += cdc_function_len;
+    
+    /* ===================================================================
+     * STEP 5: Update total length in configuration descriptor
+     * =================================================================== */
+    USBD_COMPOSITE_CfgDesc[2] = LOBYTE(total_len);
+    USBD_COMPOSITE_CfgDesc[3] = HIBYTE(total_len);
+    
+    composite_desc_len = total_len;
+    
+#else /* !MODULE_ENABLE_USB_CDC - MIDI only mode */
+    /* Just copy MIDI descriptor as-is */
+    memcpy(ptr, midi_desc, midi_len);
+    composite_desc_len = midi_len;
 #endif
   }
   
