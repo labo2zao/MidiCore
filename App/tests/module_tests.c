@@ -5,7 +5,6 @@
 
 #include "App/tests/module_tests.h"
 #include "App/tests/test_debug.h"
-#include "App/tests/test_config_runtime.h"
 #include "App/tests/test_oled_mirror.h"
 #include "Config/module_config.h"
 
