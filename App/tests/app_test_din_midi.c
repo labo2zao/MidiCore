@@ -67,6 +67,7 @@ void app_test_din_midi_run_forever(void)
 {
 #ifdef SRIO_ENABLE
   // Initialize UART debug FIRST before anything else
+  // NOTE: test_debug_init() also initializes OLED if MODULE_ENABLE_OLED is set
   test_debug_init();
   osDelay(100);
   
@@ -74,9 +75,8 @@ void app_test_din_midi_run_forever(void)
   dbg_print("DIN MIDI Test Mode\r\n");
   dbg_print("==============================================\r\n\r\n");
   
-  // Initialize OLED
-  dbg_print("Initializing OLED... ");
-  oled_init_newhaven();
+  // Initialize UI (OLED already initialized by test_debug_init)
+  dbg_print("Initializing UI subsystem... ");
   ui_init();
   dbg_print("OK\r\n");
   
