@@ -162,10 +162,24 @@ int main(void)
    */
   __HAL_RCC_CCMDATARAMEN_CLK_ENABLE();
   
-#if MODULE_ENABLE_USB_MIDI
+#if MODULE_ENABLE_USB_MIDI || MODULE_ENABLE_USB_CDC
+  /* Initialize USB Device */
   MX_USB_DEVICE_Init();
-  extern void usb_midi_init(void);
-  usb_midi_init();
+  
+  #if MODULE_ENABLE_USB_MIDI
+    /* Initialize MIDI service and register interface */
+    extern void usb_midi_init(void);
+    usb_midi_init();
+  #endif
+  
+  #if MODULE_ENABLE_USB_CDC
+    /* CRITICAL: Initialize CDC service and register interface callbacks
+     * This MUST be called to register pCDC_Fops with the USB CDC class.
+     * Without this, CDC class has no interface callbacks and cannot respond!
+     */
+    extern void usb_cdc_init(void);
+    usb_cdc_init();
+  #endif
 #endif
   /* USER CODE END 2 */
   
