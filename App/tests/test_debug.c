@@ -45,24 +45,30 @@ static UART_HandleTypeDef* get_debug_uart_handle(void)
 
 int test_debug_init(void)
 {
-  // UART handles are initialized in main.c by CubeMX
-  // We need to reconfigure the debug UART to 115200 baud
-  // (CubeMX initializes all UARTs to 31250 for MIDI by default)
+  // UART handles are initialized in main.c by CubeMX to 31250 (MIDI baud)
+  // In TEST MODE, we reconfigure the debug UART to 115200 baud
+  // In PRODUCTION MODE, all UARTs stay at 31250 baud
   
   UART_HandleTypeDef* huart = get_debug_uart_handle();
   
-  // Reconfigure debug UART to 115200 baud (from default 31250 MIDI baud)
-  if (huart->Init.BaudRate != TEST_DEBUG_UART_BAUD) {
-    HAL_UART_DeInit(huart);
-    huart->Init.BaudRate = TEST_DEBUG_UART_BAUD;  // 115200 for debug
-    huart->Init.WordLength = UART_WORDLENGTH_8B;
-    huart->Init.StopBits = UART_STOPBITS_1;
-    huart->Init.Parity = UART_PARITY_NONE;
-    huart->Init.Mode = UART_MODE_TX_RX;
-    huart->Init.HwFlowCtl = UART_HWCONTROL_NONE;
-    huart->Init.OverSampling = UART_OVERSAMPLING_16;
-    HAL_UART_Init(huart);
+  // CRITICAL: Reconfigure to 115200 BEFORE any dbg_print() calls!
+  // Do NOT call dbg_print() before this reconfiguration!
+  HAL_UART_DeInit(huart);
+  huart->Init.BaudRate = TEST_DEBUG_UART_BAUD;  // 115200 for debug
+  huart->Init.WordLength = UART_WORDLENGTH_8B;
+  huart->Init.StopBits = UART_STOPBITS_1;
+  huart->Init.Parity = UART_PARITY_NONE;
+  huart->Init.Mode = UART_MODE_TX_RX;
+  huart->Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart->Init.OverSampling = UART_OVERSAMPLING_16;
+  if (HAL_UART_Init(huart) != HAL_OK) {
+    Error_Handler();
   }
+  
+  // NOW we can print at 115200 baud
+  dbg_print("\r\n==============================================\r\n");
+  dbg_print("Debug UART initialized at 115200 baud\r\n");
+  dbg_print("==============================================\r\n");
   
 #if MODULE_ENABLE_OLED
   // Always initialize OLED for debug mirroring (enabled by default)

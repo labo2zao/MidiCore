@@ -6,6 +6,7 @@
 #include "cli.h"
 #include "App/tests/test_debug.h"
 #include "Services/config/runtime_config.h"
+#include "main.h"  // For UART handle
 #include <string.h>
 #include <stdio.h>
 #include <ctype.h>
@@ -187,16 +188,66 @@ cli_result_t cli_execute_argv(int argc, char* argv[])
 
 void cli_task(void)
 {
-  // This would be called periodically to read UART input
-  // For now, it's a placeholder - actual UART reading would be done here
-  // In a full implementation, this would:
-  // 1. Check for available UART data
-  // 2. Read character
-  // 3. Handle special characters (backspace, arrows, etc.)
-  // 4. Echo character back to terminal
-  // 5. When Enter is pressed, execute command
-  // 6. Add to history
-  // 7. Print new prompt
+  if (!s_initialized) {
+    return;
+  }
+
+  // Get UART handle for debug port (UART5)
+  extern UART_HandleTypeDef huart5;
+  UART_HandleTypeDef* uart = &huart5;
+  
+  // Poll for available character (non-blocking, 0 timeout)
+  uint8_t ch;
+  if (HAL_UART_Receive(uart, &ch, 1, 0) != HAL_OK) {
+    return; // No character available
+  }
+  
+  // Echo character back to terminal
+  HAL_UART_Transmit(uart, &ch, 1, 10);
+  
+  // Handle special characters
+  if (ch == '\r' || ch == '\n') {
+    // Enter pressed - execute command
+    cli_printf("\r\n");
+    
+    if (s_input_pos > 0) {
+      s_input_line[s_input_pos] = '\0';
+      
+      // Add to history
+      if (s_history_count < CLI_HISTORY_SIZE) {
+        strncpy(s_history[s_history_count], s_input_line, CLI_MAX_LINE_LEN - 1);
+        s_history[s_history_count][CLI_MAX_LINE_LEN - 1] = '\0';
+        s_history_count++;
+      }
+      
+      // Execute command
+      cli_execute(s_input_line);
+      
+      // Reset input line
+      s_input_pos = 0;
+      memset(s_input_line, 0, sizeof(s_input_line));
+    }
+    
+    // Print new prompt
+    cli_print_prompt();
+  }
+  else if (ch == 0x7F || ch == 0x08) {
+    // Backspace or DEL
+    if (s_input_pos > 0) {
+      s_input_pos--;
+      s_input_line[s_input_pos] = '\0';
+      // Erase character on terminal: backspace + space + backspace
+      cli_printf("\b \b");
+    }
+  }
+  else if (ch >= 0x20 && ch < 0x7F) {
+    // Printable character
+    if (s_input_pos < CLI_MAX_LINE_LEN - 1) {
+      s_input_line[s_input_pos++] = (char)ch;
+      s_input_line[s_input_pos] = '\0';
+    }
+  }
+  // Ignore other control characters for now (arrows, etc.)
 }
 
 // =============================================================================

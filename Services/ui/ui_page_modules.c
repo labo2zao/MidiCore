@@ -155,9 +155,9 @@ static void navigate_forward(void) {
 // RENDERING
 // =============================================================================
 
-static void render_header(uint8_t* fb, int w, int h) {
+static void render_header(int w, int h) {
   // Draw header background
-  ui_gfx_fill_rect(fb, w, h, 0, 0, w, 10, 3);
+  ui_gfx_fill_rect(0, 0, w, 10, 3);
   
   // Draw title based on state
   const char* title = "Modules";
@@ -179,12 +179,12 @@ static void render_header(uint8_t* fb, int w, int h) {
       break;
   }
   
-  ui_gfx_text(fb, w, h, 2, 2, title, 15);
+  ui_gfx_text(2, 2, title, 15);
 }
 
-static void render_footer(uint8_t* fb, int w, int h) {
+static void render_footer(int w, int h) {
   // Draw footer background
-  ui_gfx_fill_rect(fb, w, h, 0, h - 10, w, 10, 3);
+  ui_gfx_fill_rect(0, h - 10, w, 10, 3);
   
   // Draw navigation hints
   const char* hint = "";
@@ -206,10 +206,10 @@ static void render_footer(uint8_t* fb, int w, int h) {
       break;
   }
   
-  ui_gfx_text(fb, w, h, 2, h - 8, hint, 12);
+  ui_gfx_text(2, h - 8, hint, 12);
 }
 
-static void render_category_list(uint8_t* fb, int w, int h) {
+static void render_category_list(int w, int h) {
   int y = 14;
   int line_height = 10;
   int visible_items = (h - 24) / line_height;
@@ -229,10 +229,10 @@ static void render_category_list(uint8_t* fb, int w, int h) {
     uint8_t gray = is_selected ? 15 : 10;
     
     if (is_selected) {
-      ui_gfx_text(fb, w, h, 2, y, ">", 15);
+      ui_gfx_text(2, y, ">", 15);
     }
     
-    ui_gfx_text(fb, w, h, 12, y, name, gray);
+    ui_gfx_text(12, y, name, gray);
     y += line_height;
   }
   
@@ -240,17 +240,17 @@ static void render_category_list(uint8_t* fb, int w, int h) {
   if (NUM_CATEGORIES > visible_items) {
     int sb_h = (h - 24) * visible_items / NUM_CATEGORIES;
     int sb_y = 14 + (h - 24) * s_scroll_offset / NUM_CATEGORIES;
-    ui_gfx_fill_rect(fb, w, h, w - 3, sb_y, 2, sb_h, 8);
+    ui_gfx_fill_rect(w - 3, sb_y, 2, sb_h, 8);
   }
 }
 
-static void render_module_list(uint8_t* fb, int w, int h) {
+static void render_module_list(int w, int h) {
   int y = 14;
   int line_height = 10;
   int visible_items = (h - 24) / line_height;
   
   if (s_module_count == 0) {
-    ui_gfx_text(fb, w, h, 12, y, "(no modules)", 10);
+    ui_gfx_text(12, y, "(no modules)", 10);
     return;
   }
   
@@ -269,7 +269,7 @@ static void render_module_list(uint8_t* fb, int w, int h) {
     uint8_t gray = is_selected ? 15 : 10;
     
     if (is_selected) {
-      ui_gfx_text(fb, w, h, 2, y, ">", 15);
+      ui_gfx_text(2, y, ">", 15);
     }
     
     // Show module name and status
@@ -278,7 +278,7 @@ static void render_module_list(uint8_t* fb, int w, int h) {
     
     char line[64];
     snprintf(line, sizeof(line), "%-18s %s", mod->name, status_str);
-    ui_gfx_text(fb, w, h, 12, y, line, gray);
+    ui_gfx_text(12, y, line, gray);
     
     y += line_height;
   }
@@ -287,18 +287,18 @@ static void render_module_list(uint8_t* fb, int w, int h) {
   if (s_module_count > visible_items) {
     int sb_h = (h - 24) * visible_items / s_module_count;
     int sb_y = 14 + (h - 24) * s_scroll_offset / s_module_count;
-    ui_gfx_fill_rect(fb, w, h, w - 3, sb_y, 2, sb_h, 8);
+    ui_gfx_fill_rect(w - 3, sb_y, 2, sb_h, 8);
   }
 }
 
-static void render_module_info(uint8_t* fb, int w, int h) {
+static void render_module_info(int w, int h) {
   if (!s_current_module) return;
   
   int y = 14;
   int line_height = 10;
   
   // Module description
-  ui_gfx_text(fb, w, h, 2, y, s_current_module->description, 12);
+  ui_gfx_text(2, y, s_current_module->description, 12);
   y += line_height + 2;
   
   // Status
@@ -312,27 +312,27 @@ static void render_module_info(uint8_t* fb, int w, int h) {
   
   char line[64];
   snprintf(line, sizeof(line), "Status: %s", status_str);
-  ui_gfx_text(fb, w, h, 2, y, line, 10);
+  ui_gfx_text(2, y, line, 10);
   y += line_height;
   
   // Global/Per-track
   const char* scope = s_current_module->is_global ? "Global" : "Per-track";
   snprintf(line, sizeof(line), "Scope: %s", scope);
-  ui_gfx_text(fb, w, h, 2, y, line, 10);
+  ui_gfx_text(2, y, line, 10);
   y += line_height;
   
   // Parameter count
   snprintf(line, sizeof(line), "Parameters: %d", s_current_module->param_count);
-  ui_gfx_text(fb, w, h, 2, y, line, 10);
+  ui_gfx_text(2, y, line, 10);
   y += line_height + 2;
   
   // Actions
-  ui_gfx_text(fb, w, h, 2, y, "[1] Toggle Enable", 12);
+  ui_gfx_text(2, y, "[1] Toggle Enable", 12);
   y += line_height;
-  ui_gfx_text(fb, w, h, 2, y, "[2] View Parameters", 12);
+  ui_gfx_text(2, y, "[2] View Parameters", 12);
 }
 
-static void render_param_list(uint8_t* fb, int w, int h) {
+static void render_param_list(int w, int h) {
   if (!s_current_module) return;
   
   int y = 14;
@@ -340,7 +340,7 @@ static void render_param_list(uint8_t* fb, int w, int h) {
   int visible_items = (h - 24) / line_height;
   
   if (s_current_module->param_count == 0) {
-    ui_gfx_text(fb, w, h, 12, y, "(no parameters)", 10);
+    ui_gfx_text(12, y, "(no parameters)", 10);
     return;
   }
   
@@ -359,7 +359,7 @@ static void render_param_list(uint8_t* fb, int w, int h) {
     uint8_t gray = is_selected ? 15 : 10;
     
     if (is_selected) {
-      ui_gfx_text(fb, w, h, 2, y, ">", 15);
+      ui_gfx_text(2, y, ">", 15);
     }
     
     // Get current value
@@ -392,7 +392,7 @@ static void render_param_list(uint8_t* fb, int w, int h) {
     char line[64];
     snprintf(line, sizeof(line), "%-16s: %s%s", 
              param->name, value_str, param->read_only ? " (RO)" : "");
-    ui_gfx_text(fb, w, h, 12, y, line, gray);
+    ui_gfx_text(12, y, line, gray);
     
     y += line_height;
   }
@@ -401,11 +401,11 @@ static void render_param_list(uint8_t* fb, int w, int h) {
   if (s_current_module->param_count > visible_items) {
     int sb_h = (h - 24) * visible_items / s_current_module->param_count;
     int sb_y = 14 + (h - 24) * s_scroll_offset / s_current_module->param_count;
-    ui_gfx_fill_rect(fb, w, h, w - 3, sb_y, 2, sb_h, 8);
+    ui_gfx_fill_rect(w - 3, sb_y, 2, sb_h, 8);
   }
 }
 
-static void render_param_edit(uint8_t* fb, int w, int h) {
+static void render_param_edit(int w, int h) {
   if (!s_current_module || s_param_index >= s_current_module->param_count) return;
   
   const module_param_t* param = &s_current_module->params[s_param_index];
@@ -414,11 +414,11 @@ static void render_param_edit(uint8_t* fb, int w, int h) {
   int line_height = 12;
   
   // Parameter name
-  ui_gfx_text(fb, w, h, 2, y, param->name, 15);
+  ui_gfx_text(2, y, param->name, 15);
   y += line_height;
   
   // Description
-  ui_gfx_text(fb, w, h, 2, y, param->description, 10);
+  ui_gfx_text(2, y, param->description, 10);
   y += line_height + 4;
   
   // Current value (large)
@@ -449,7 +449,7 @@ static void render_param_edit(uint8_t* fb, int w, int h) {
   }
   
   // Draw value in center
-  ui_gfx_text(fb, w, h, w/2 - 20, h/2 - 6, value_str, 15);
+  ui_gfx_text(w/2 - 20, h/2 - 6, value_str, 15);
   
   // Range indicator for int/float
   if (param->type == PARAM_TYPE_INT || param->type == PARAM_TYPE_FLOAT) {
@@ -457,16 +457,16 @@ static void render_param_edit(uint8_t* fb, int w, int h) {
     char range[32];
     snprintf(range, sizeof(range), "Range: %ld - %ld", 
              (long)param->min, (long)param->max);
-    ui_gfx_text(fb, w, h, 2, y, range, 8);
+    ui_gfx_text(2, y, range, 8);
   }
 }
 
-static void render_status_message(uint8_t* fb, int w, int h) {
+static void render_status_message(int w, int h) {
   if (s_status_msg_time > 0) {
     int y = h / 2 - 6;
-    ui_gfx_fill_rect(fb, w, h, 10, y - 2, w - 20, 14, 5);
-    ui_gfx_rect(fb, w, h, 10, y - 2, w - 20, 14, 15);
-    ui_gfx_text(fb, w, h, 14, y, s_status_msg, 15);
+    ui_gfx_fill_rect(10, y - 2, w - 20, 14, 5);
+    ui_gfx_rect(10, y - 2, w - 20, 14, 15);
+    ui_gfx_text(14, y, s_status_msg, 15);
   }
 }
 
@@ -491,35 +491,35 @@ void ui_page_modules_init(void) {
 
 void ui_page_modules_render(uint8_t* fb, int w, int h) {
   // Clear background
-  ui_gfx_clear(fb, w, h, 0);
+  ui_gfx_clear(0);
   
   // Render header
-  render_header(fb, w, h);
+  render_header(w, h);
   
   // Render content based on state
   switch (s_state) {
     case UI_STATE_CATEGORY_LIST:
-      render_category_list(fb, w, h);
+      render_category_list(w, h);
       break;
     case UI_STATE_MODULE_LIST:
-      render_module_list(fb, w, h);
+      render_module_list(w, h);
       break;
     case UI_STATE_MODULE_INFO:
-      render_module_info(fb, w, h);
+      render_module_info(w, h);
       break;
     case UI_STATE_PARAM_LIST:
-      render_param_list(fb, w, h);
+      render_param_list(w, h);
       break;
     case UI_STATE_PARAM_EDIT:
-      render_param_edit(fb, w, h);
+      render_param_edit(w, h);
       break;
   }
   
   // Render footer
-  render_footer(fb, w, h);
+  render_footer(w, h);
   
   // Render status message overlay
-  render_status_message(fb, w, h);
+  render_status_message(w, h);
 }
 
 void ui_page_modules_on_encoder(uint8_t enc_id, int8_t delta) {
