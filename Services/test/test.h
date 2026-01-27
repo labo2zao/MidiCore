@@ -1,0 +1,223 @@
+/**
+ * @file test.h
+ * @brief Test Module - Runtime module testing service
+ * 
+ * Provides a service module for running module tests at runtime via CLI.
+ * Integrates with the existing module_tests.c framework but allows
+ * test selection and execution via CLI commands.
+ * 
+ * Features:
+ * - Run individual module tests via CLI
+ * - Query test status and results
+ * - List available tests
+ * - Enable/disable test execution
+ * - Integration with module registry
+ * 
+ * Usage:
+ * 1. Call test_init() during system initialization
+ * 2. Use CLI commands: "test run <module>", "test status", "test list"
+ * 3. Test results are reported via UART
+ */
+
+#pragma once
+
+#include <stdint.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+// =============================================================================
+// CONFIGURATION
+// =============================================================================
+
+#ifndef TEST_MAX_NAME_LEN
+#define TEST_MAX_NAME_LEN 32
+#endif
+
+#ifndef TEST_MAX_DESCRIPTION_LEN
+#define TEST_MAX_DESCRIPTION_LEN 128
+#endif
+
+// =============================================================================
+// TYPES
+// =============================================================================
+
+/**
+ * @brief Test execution status
+ */
+typedef enum {
+  TEST_STATUS_IDLE = 0,       // No test running
+  TEST_STATUS_RUNNING,        // Test in progress
+  TEST_STATUS_PASSED,         // Test passed
+  TEST_STATUS_FAILED,         // Test failed
+  TEST_STATUS_ERROR           // Test error
+} test_status_t;
+
+/**
+ * @brief Test result structure
+ */
+typedef struct {
+  char test_name[TEST_MAX_NAME_LEN];
+  test_status_t status;
+  uint32_t start_time_ms;
+  uint32_t duration_ms;
+  uint32_t iteration_count;
+  char error_message[TEST_MAX_DESCRIPTION_LEN];
+} test_result_t;
+
+/**
+ * @brief Test configuration
+ */
+typedef struct {
+  uint8_t enabled;              // Test module enabled
+  uint8_t auto_run;             // Auto-run tests on startup
+  uint32_t timeout_ms;          // Test timeout in milliseconds
+  uint8_t verbose;              // Verbose output
+} test_config_t;
+
+// =============================================================================
+// API - INITIALIZATION
+// =============================================================================
+
+/**
+ * @brief Initialize the test module
+ * @return 0 on success, negative on error
+ */
+int test_init(void);
+
+/**
+ * @brief Get test module initialization status
+ * @return 1 if initialized, 0 if not
+ */
+uint8_t test_is_initialized(void);
+
+// =============================================================================
+// API - TEST EXECUTION
+// =============================================================================
+
+/**
+ * @brief Run a specific module test
+ * @param test_name Name of the test to run (e.g., "ainser64", "srio", "router")
+ * @param duration_ms Duration to run test (0 = one iteration, -1 = infinite)
+ * @return 0 on success, negative on error
+ */
+int test_run(const char* test_name, int32_t duration_ms);
+
+/**
+ * @brief Stop currently running test
+ * @return 0 on success, negative on error
+ */
+int test_stop(void);
+
+/**
+ * @brief Check if a test is currently running
+ * @return 1 if running, 0 if not
+ */
+uint8_t test_is_running(void);
+
+// =============================================================================
+// API - TEST STATUS & RESULTS
+// =============================================================================
+
+/**
+ * @brief Get current test status
+ * @param result Pointer to result structure to fill
+ * @return 0 on success, negative on error
+ */
+int test_get_status(test_result_t* result);
+
+/**
+ * @brief Get last test result
+ * @param result Pointer to result structure to fill
+ * @return 0 on success, negative on error
+ */
+int test_get_last_result(test_result_t* result);
+
+/**
+ * @brief Clear test results
+ * @return 0 on success, negative on error
+ */
+int test_clear_results(void);
+
+// =============================================================================
+// API - TEST DISCOVERY
+// =============================================================================
+
+/**
+ * @brief Get number of available tests
+ * @return Number of tests
+ */
+uint32_t test_get_count(void);
+
+/**
+ * @brief Get test name by index
+ * @param index Test index (0 to test_get_count()-1)
+ * @return Test name string, or NULL if index invalid
+ */
+const char* test_get_name(uint32_t index);
+
+/**
+ * @brief Get test description by name
+ * @param test_name Test name
+ * @return Description string, or NULL if not found
+ */
+const char* test_get_description(const char* test_name);
+
+// =============================================================================
+// API - CONFIGURATION
+// =============================================================================
+
+/**
+ * @brief Enable test module
+ * @param enabled 1 to enable, 0 to disable
+ * @return 0 on success, negative on error
+ */
+int test_set_enabled(uint8_t enabled);
+
+/**
+ * @brief Get test module enabled status
+ * @return 1 if enabled, 0 if disabled
+ */
+uint8_t test_get_enabled(void);
+
+/**
+ * @brief Set verbose output mode
+ * @param verbose 1 for verbose, 0 for quiet
+ * @return 0 on success, negative on error
+ */
+int test_set_verbose(uint8_t verbose);
+
+/**
+ * @brief Get verbose output mode
+ * @return 1 if verbose, 0 if quiet
+ */
+uint8_t test_get_verbose(void);
+
+/**
+ * @brief Set test timeout
+ * @param timeout_ms Timeout in milliseconds
+ * @return 0 on success, negative on error
+ */
+int test_set_timeout(uint32_t timeout_ms);
+
+/**
+ * @brief Get test timeout
+ * @return Timeout in milliseconds
+ */
+uint32_t test_get_timeout(void);
+
+// =============================================================================
+// API - MODULE REGISTRY INTEGRATION
+// =============================================================================
+
+/**
+ * @brief Register test module with module registry
+ * Called automatically by test_init() if MODULE_REGISTRY is enabled
+ * @return 0 on success, negative on error
+ */
+int test_register_with_registry(void);
+
+#ifdef __cplusplus
+}
+#endif
