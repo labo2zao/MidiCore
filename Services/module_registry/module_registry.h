@@ -39,19 +39,19 @@ extern "C" {
 // =============================================================================
 
 #ifndef MODULE_REGISTRY_MAX_MODULES
-#define MODULE_REGISTRY_MAX_MODULES 64  // Maximum number of modules
+#define MODULE_REGISTRY_MAX_MODULES 32  // Maximum number of modules (reduced from 64 to save ~165 KB RAM)
 #endif
 
 #ifndef MODULE_REGISTRY_MAX_PARAMS
-#define MODULE_REGISTRY_MAX_PARAMS 16  // Maximum parameters per module
+#define MODULE_REGISTRY_MAX_PARAMS 8   // Maximum parameters per module (reduced from 16)
 #endif
 
 #ifndef MODULE_REGISTRY_MAX_NAME_LEN
-#define MODULE_REGISTRY_MAX_NAME_LEN 32  // Maximum module name length
+#define MODULE_REGISTRY_MAX_NAME_LEN 24  // Maximum module name length (reduced from 32)
 #endif
 
 #ifndef MODULE_REGISTRY_MAX_DESC_LEN
-#define MODULE_REGISTRY_MAX_DESC_LEN 128  // Maximum description length
+#define MODULE_REGISTRY_MAX_DESC_LEN 64  // Maximum description length (reduced from 128)
 #endif
 
 // =============================================================================
