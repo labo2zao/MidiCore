@@ -221,9 +221,9 @@ void arp_on_clock_tick(void) {
     uint8_t note, velocity;
     if (get_next_note(&note, &velocity)) {
       // Send note on
-      // This would integrate with MIDI router:
+      // This would integrate with MIDI router (example using ROUTER_NODE_LOOPER):
       // router_msg_t msg = { .type = ROUTER_MSG_3B, .b0 = 0x90, .b1 = note, .b2 = velocity };
-      // router_process(ARP_INPUT_NODE, &msg);
+      // router_process(ROUTER_NODE_LOOPER, &msg);
       
       last_sent_note = note;
       note_on_sent = 1;
@@ -244,7 +244,7 @@ void arp_on_clock_tick(void) {
     if (elapsed >= gate_ticks) {
       // Send note off
       // router_msg_t msg = { .type = ROUTER_MSG_3B, .b0 = 0x80, .b1 = last_sent_note, .b2 = 0 };
-      // router_process(ARP_INPUT_NODE, &msg);
+      // router_process(ROUTER_NODE_LOOPER, &msg);
       
       note_on_sent = 0;
     }

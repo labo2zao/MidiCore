@@ -226,7 +226,6 @@ void ui_page_sysex_on_button(uint8_t id, uint8_t pressed) {
   switch (id) {
     case 1:  // SEND - send captured SysEx message
       send_sysex();
-      if (status_start_time == STATUS_TIME_NOT_ACTIVE) status_start_time = STATUS_TIME_NEEDS_INIT;
       break;
       
     case 2:  // RCV - reset capture (already receiving)
@@ -245,7 +244,6 @@ void ui_page_sysex_on_button(uint8_t id, uint8_t pressed) {
       
     case 4:  // SAVE - save SysEx to SD card
       save_sysex();
-      if (status_start_time == STATUS_TIME_NOT_ACTIVE) status_start_time = STATUS_TIME_NEEDS_INIT;
       break;
       
     default:
