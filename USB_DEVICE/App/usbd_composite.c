@@ -53,7 +53,7 @@ USBD_ClassTypeDef USBD_COMPOSITE =
 };
 
 /* Composite descriptor will be built dynamically */
-static uint8_t USBD_COMPOSITE_CfgDesc[512] __ALIGN_BEGIN __ALIGN_END;
+static uint8_t USBD_COMPOSITE_CfgDesc[256] __ALIGN_BEGIN __ALIGN_END;
 static uint16_t composite_desc_len = 0;
 
 /**

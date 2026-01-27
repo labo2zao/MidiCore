@@ -12,7 +12,7 @@ static inline uint32_t wrap_tick_i32(uint32_t cur, int32_t d, uint32_t L){
   return (uint32_t)x;
 }
 
-#define MAX_SNAP 512  // Reduced from 512 to save ~3 KB RAM
+#define MAX_SNAP 256  // Reduced from 512 to save 3KB RAM (256 events is sufficient for typical editing)
 
 // shared state (kept simple)
 static uint8_t g_track = 0;
