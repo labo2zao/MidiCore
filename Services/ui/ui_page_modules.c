@@ -6,7 +6,6 @@
 #include "ui_page_modules.h"
 #include "ui_gfx.h"
 #include "Services/module_registry/module_registry.h"
-#include "Services/config/runtime_config.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -638,21 +637,17 @@ void ui_page_modules_on_button(uint8_t btn_id, uint8_t pressed) {
       
     case 2:  // Button 3
       if (s_state != UI_STATE_CATEGORY_LIST) {
-        // Save configuration
-        if (runtime_config_save("0:/modules.ini") == 0) {
-          snprintf(s_status_msg, sizeof(s_status_msg), "Config saved");
-          s_status_msg_time = 2000;
-        }
+        // Reserved for future use (previously: Save configuration)
+        snprintf(s_status_msg, sizeof(s_status_msg), "Config save N/A");
+        s_status_msg_time = 1000;
       }
       break;
       
     case 3:  // Button 4
       if (s_state != UI_STATE_CATEGORY_LIST) {
-        // Load configuration
-        if (runtime_config_load("0:/modules.ini") == 0) {
-          snprintf(s_status_msg, sizeof(s_status_msg), "Config loaded");
-          s_status_msg_time = 2000;
-        }
+        // Reserved for future use (previously: Load configuration)
+        snprintf(s_status_msg, sizeof(s_status_msg), "Config load N/A");
+        s_status_msg_time = 1000;
       }
       break;
   }

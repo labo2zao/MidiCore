@@ -5,7 +5,6 @@
 
 #include "cli.h"
 #include "App/tests/test_debug.h"
-#include "Services/config/runtime_config.h"
 #include "main.h"  // For UART handle
 #include <string.h>
 #include <stdio.h>
@@ -38,7 +37,6 @@ static cli_result_t cmd_version(int argc, char* argv[]);
 static cli_result_t cmd_uptime(int argc, char* argv[]);
 static cli_result_t cmd_status(int argc, char* argv[]);
 static cli_result_t cmd_reboot(int argc, char* argv[]);
-static cli_result_t cmd_config(int argc, char* argv[]);
 
 // =============================================================================
 // INITIALIZATION
@@ -67,8 +65,6 @@ int cli_init(void)
   cli_register_command("uptime", cmd_uptime, "Show uptime", "uptime", "system");
   cli_register_command("status", cmd_status, "Show status", "status", "system");
   cli_register_command("reboot", cmd_reboot, "Reboot system", "reboot", "system");
-  cli_register_command("config", cmd_config, "Configuration management", 
-                       "config <load|save|get|set|list> [args...]", "system");
 
   s_initialized = 1;
 
@@ -454,7 +450,6 @@ static cli_result_t cmd_status(int argc, char* argv[])
   cli_printf("\n");
   cli_printf("=== System Status ===\n");
   cli_printf("  Commands registered: %lu\n", (unsigned long)s_command_count);
-  cli_printf("  Config entries: %lu\n", (unsigned long)runtime_config_get_count());
   cli_printf("\n");
   return CLI_OK;
 }
@@ -475,79 +470,4 @@ static cli_result_t cmd_reboot(int argc, char* argv[])
   NVIC_SystemReset();
   
   return CLI_OK;
-}
-
-static cli_result_t cmd_config(int argc, char* argv[])
-{
-  if (argc < 2) {
-    cli_error("Missing subcommand\n");
-    cli_printf("Usage: %s\n", s_commands[0].usage);
-    return CLI_INVALID_ARGS;
-  }
-
-  const char* subcmd = argv[1];
-
-  if (strcasecmp(subcmd, "load") == 0) {
-    if (argc < 3) {
-      cli_error("Missing filename\n");
-      return CLI_INVALID_ARGS;
-    }
-    int result = runtime_config_load(argv[2]);
-    if (result == 0) {
-      cli_success("Configuration loaded from %s\n", argv[2]);
-    } else {
-      cli_error("Failed to load configuration from %s\n", argv[2]);
-    }
-    return result == 0 ? CLI_OK : CLI_ERROR;
-  }
-  else if (strcasecmp(subcmd, "save") == 0) {
-    if (argc < 3) {
-      cli_error("Missing filename\n");
-      return CLI_INVALID_ARGS;
-    }
-    int result = runtime_config_save(argv[2]);
-    if (result == 0) {
-      cli_success("Configuration saved to %s\n", argv[2]);
-    } else {
-      cli_error("Failed to save configuration to %s\n", argv[2]);
-    }
-    return result == 0 ? CLI_OK : CLI_ERROR;
-  }
-  else if (strcasecmp(subcmd, "get") == 0) {
-    if (argc < 3) {
-      cli_error("Missing key\n");
-      return CLI_INVALID_ARGS;
-    }
-    const char* value = runtime_config_get_string(argv[2], NULL);
-    if (value) {
-      cli_printf("%s = %s\n", argv[2], value);
-    } else {
-      cli_error("Key not found: %s\n", argv[2]);
-      return CLI_ERROR;
-    }
-    return CLI_OK;
-  }
-  else if (strcasecmp(subcmd, "set") == 0) {
-    if (argc < 4) {
-      cli_error("Missing key or value\n");
-      return CLI_INVALID_ARGS;
-    }
-    int result = runtime_config_set_string(argv[2], argv[3]);
-    if (result == 0) {
-      cli_success("Set %s = %s\n", argv[2], argv[3]);
-    } else {
-      cli_error("Failed to set %s\n", argv[2]);
-    }
-    return result == 0 ? CLI_OK : CLI_ERROR;
-  }
-  else if (strcasecmp(subcmd, "list") == 0) {
-    cli_printf("\n=== Configuration ===\n");
-    runtime_config_print();
-    cli_printf("\n");
-    return CLI_OK;
-  }
-  else {
-    cli_error("Unknown subcommand: %s\n", subcmd);
-    return CLI_INVALID_ARGS;
-  }
 }
