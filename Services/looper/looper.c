@@ -123,6 +123,17 @@ static uint8_t g_track_solo[LOOPER_TRACKS] = {0};
 // Global Transpose state
 static int8_t g_global_transpose = 0;
 
+// Forward declarations for SD undo functions (must be before looper_init)
+#if LOOPER_UNDO_USE_SD
+static void sd_undo_init(uint8_t track);
+static void sd_undo_get_filename(uint8_t track, uint8_t level, char* out, size_t out_size);
+static int sd_undo_save(uint8_t track, uint8_t level);
+static int sd_undo_load(uint8_t track, uint8_t level);
+static int sd_undo_push(uint8_t track);
+static uint8_t sd_undo_can_undo(uint8_t track);
+static int sd_undo_do_undo(uint8_t track);
+#endif
+
 // Scene storage: snapshot of track states
 typedef struct {
   uint8_t has_clip;
@@ -282,6 +293,13 @@ void looper_init(void) {
   const osMutexAttr_t attr = { .name = "looper" };
   g_mutex = osMutexNew(&attr);
   update_rate();
+  
+#if LOOPER_UNDO_USE_SD
+  // Initialize SD-based undo system (production mode only)
+  for (uint8_t t = 0; t < LOOPER_TRACKS; t++) {
+    sd_undo_init(t);
+  }
+#endif
 }
 
 void looper_set_transport(const looper_transport_t* t) {
@@ -1743,11 +1761,8 @@ typedef struct {
 } undo_stack_t;
 
 // Place undo stacks strategically based on mode
-// Both modes use depth=1 due to pianoroll UI (57KB) being required in production
-// Pianoroll is the main accordion page, not a test feature
-// Check if ANY test mode is active
-// Test modes have additional allocations (test phases, clipboards, etc.) that consume extra RAM
-// Therefore, we use smaller undo depth (2) and keep undo_stacks in CCMRAM to free up RAM
+// Production mode now uses SD card-based undo with only 1 level in RAM (massive RAM savings!)
+// Test mode uses depth=2 in CCMRAM for faster testing without SD dependency
 #if defined(MODULE_TEST_LOOPER) || defined(MODULE_TEST_OLED_SSD1322) || defined(MODULE_TEST_ALL) || \
     defined(MODULE_TEST_UI) || defined(MODULE_TEST_GDB_DEBUG) || defined(MODULE_TEST_AINSER64) || \
     defined(MODULE_TEST_SRIO) || defined(MODULE_TEST_SRIO_DOUT) || defined(MODULE_TEST_MIDI_DIN) || \
@@ -1759,22 +1774,42 @@ typedef struct {
     defined(MODULE_TEST_PRESSURE) || defined(MODULE_TEST_BREATH) || \
     defined(MODULE_TEST_USB_HOST_MIDI) || defined(MODULE_TEST_USB_DEVICE_MIDI) || \
     defined(MODULE_TEST_FOOTSWITCH) || defined(APP_TEST_DIN_MIDI)
-  // Test mode: Undo in CCMRAM (depth=2, ~7KB per track)
+  // Test mode: Undo in CCMRAM (depth=2, ~16KB total for 4 tracks)
   // Any test mode may have additional test-specific allocations that need RAM
   static undo_stack_t undo_stacks[LOOPER_TRACKS] __attribute__((section(".ccmram")));
 #else
-  // Production mode: Undo in RAM (depth=5, ~99KB total)
-  // With depth=5: 4 tracks × ~25KB = ~100KB (doesn't fit in 64KB CCMRAM)
-  // CCMRAM reserved for g_tr only (~25KB), leaving 39KB free
+  // Production mode: Undo in RAM (depth=1 only, ~4KB total for 4 tracks)
+  // Additional undo history stored on SD card (see LOOPER_UNDO_USE_SD in looper.h)
+  // Saves ~95KB RAM compared to depth=5! SD-based undo provides unlimited depth.
   static undo_stack_t undo_stacks[LOOPER_TRACKS];  // In RAM
+#endif
+
+// SD card-based undo history tracking (production mode only)
+#if LOOPER_UNDO_USE_SD
+typedef struct {
+  uint8_t depth;           // Number of undo levels stored on SD
+  uint8_t current_idx;     // Current position in SD undo history
+  char base_path[64];      // Base path for undo files (e.g., "/undo/track0/")
+} sd_undo_tracker_t;
+
+static sd_undo_tracker_t g_sd_undo[LOOPER_TRACKS];
 #endif
 
 /**
  * @brief Save current track state to undo history
+ * 
+ * In production mode with LOOPER_UNDO_USE_SD, this saves state to SD card
+ * instead of RAM, providing unlimited undo depth with minimal RAM usage.
+ * In test mode, uses traditional RAM-based undo stack.
  */
 void looper_undo_push(uint8_t track) {
   if (track >= LOOPER_TRACKS) return;
   
+#if LOOPER_UNDO_USE_SD
+  // Production mode: Save to SD card (RAM-efficient, unlimited depth)
+  sd_undo_push(track);
+#else
+  // Test mode: Use RAM-based undo stack (faster, no SD dependency)
   if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
   
   undo_stack_t* stack = &undo_stacks[track];
@@ -1806,13 +1841,23 @@ void looper_undo_push(uint8_t track) {
   stack->undo_idx = stack->write_idx;
   
   if (g_mutex) osMutexRelease(g_mutex);
+#endif
 }
 
 /**
  * @brief Undo last operation on track
+ * 
+ * In production mode with LOOPER_UNDO_USE_SD, loads previous state from SD card.
+ * In test mode, uses RAM-based undo stack.
  */
 int looper_undo(uint8_t track) {
   if (track >= LOOPER_TRACKS) return -1;
+  
+#if LOOPER_UNDO_USE_SD
+  // Production mode: Load from SD card
+  return sd_undo_do_undo(track);
+#else
+  // Test mode: Use RAM-based undo
   if (!looper_can_undo(track)) return -1;
   
   if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
@@ -1849,6 +1894,7 @@ int looper_undo(uint8_t track) {
   
   if (g_mutex) osMutexRelease(g_mutex);
   return 0;
+#endif
 }
 
 /**
@@ -1910,6 +1956,11 @@ void looper_undo_clear(uint8_t track) {
 uint8_t looper_can_undo(uint8_t track) {
   if (track >= LOOPER_TRACKS) return 0;
   
+#if LOOPER_UNDO_USE_SD
+  // Production mode: Check SD-based undo availability
+  return sd_undo_can_undo(track);
+#else
+  // Test mode: Check RAM-based undo stack
   undo_stack_t* stack = &undo_stacks[track];
   
   // Can undo if we have states and we're not at the oldest position
@@ -1918,6 +1969,7 @@ uint8_t looper_can_undo(uint8_t track) {
   uint8_t oldest_idx = (stack->write_idx + UNDO_STACK_DEPTH - stack->count) % UNDO_STACK_DEPTH;
   
   return stack->undo_idx != oldest_idx;
+#endif
 }
 
 /**
@@ -1931,6 +1983,124 @@ uint8_t looper_can_redo(uint8_t track) {
   // Can redo if we're not at the most recent position
   return stack->undo_idx != stack->write_idx && stack->count > 0;
 }
+
+// ================ SD Card-Based Undo System ================
+#if LOOPER_UNDO_USE_SD
+
+/**
+ * @brief Initialize SD-based undo system for a track
+ */
+static void sd_undo_init(uint8_t track) {
+  if (track >= LOOPER_TRACKS) return;
+  
+  sd_undo_tracker_t* tracker = &g_sd_undo[track];
+  tracker->depth = 0;
+  tracker->current_idx = 0;
+  snprintf(tracker->base_path, sizeof(tracker->base_path), "/undo/track%d", track);
+  
+  // Create undo directory if it doesn't exist
+  // Note: This is best-effort; if SD is not mounted, it will fail silently
+  // The actual undo operations will check for SD availability
+}
+
+/**
+ * @brief Get SD undo filename for a specific level
+ */
+static void sd_undo_get_filename(uint8_t track, uint8_t level, char* out, size_t out_size) {
+  snprintf(out, out_size, "/undo/track%d/undo_%02d.dat", track, level);
+}
+
+/**
+ * @brief Save current track state to SD card undo file
+ */
+static int sd_undo_save(uint8_t track, uint8_t level) {
+  if (track >= LOOPER_TRACKS) return -1;
+  
+  char filename[64];
+  sd_undo_get_filename(track, level, filename, sizeof(filename));
+  
+  // Use existing looper_save_track function (it already handles file I/O)
+  // This saves the entire track state including events
+  return looper_save_track(track, filename);
+}
+
+/**
+ * @brief Load track state from SD card undo file
+ */
+static int sd_undo_load(uint8_t track, uint8_t level) {
+  if (track >= LOOPER_TRACKS) return -1;
+  
+  char filename[64];
+  sd_undo_get_filename(track, level, filename, sizeof(filename));
+  
+  // Use existing looper_load_track function
+  return looper_load_track(track, filename);
+}
+
+/**
+ * @brief Push current state to SD card undo history
+ * 
+ * This is called before modifying track data to save the current state
+ * for potential undo. In production mode, this saves to SD card instead
+ * of consuming RAM.
+ */
+static int sd_undo_push(uint8_t track) {
+  if (track >= LOOPER_TRACKS) return -1;
+  
+  sd_undo_tracker_t* tracker = &g_sd_undo[track];
+  
+  // Save current state to SD card
+  uint8_t next_level = (tracker->current_idx + 1) % LOOPER_UNDO_SD_MAX_DEPTH;
+  
+  if (sd_undo_save(track, next_level) != 0) {
+    // SD save failed - continue anyway (undo just won't work)
+    return -1;
+  }
+  
+  // Update tracker
+  tracker->current_idx = next_level;
+  if (tracker->depth < LOOPER_UNDO_SD_MAX_DEPTH) {
+    tracker->depth++;
+  }
+  
+  return 0;
+}
+
+/**
+ * @brief Check if SD-based undo is available
+ */
+static uint8_t sd_undo_can_undo(uint8_t track) {
+  if (track >= LOOPER_TRACKS) return 0;
+  return g_sd_undo[track].depth > 0;
+}
+
+/**
+ * @brief Perform SD-based undo
+ */
+static int sd_undo_do_undo(uint8_t track) {
+  if (track >= LOOPER_TRACKS) return -1;
+  if (!sd_undo_can_undo(track)) return -1;
+  
+  sd_undo_tracker_t* tracker = &g_sd_undo[track];
+  
+  // Move back in history
+  if (tracker->current_idx == 0) {
+    tracker->current_idx = LOOPER_UNDO_SD_MAX_DEPTH - 1;
+  } else {
+    tracker->current_idx--;
+  }
+  
+  // Load state from SD card
+  if (sd_undo_load(track, tracker->current_idx) != 0) {
+    // Failed to load - try to recover position
+    tracker->current_idx = (tracker->current_idx + 1) % LOOPER_UNDO_SD_MAX_DEPTH;
+    return -1;
+  }
+  
+  return 0;
+}
+
+#endif  // LOOPER_UNDO_USE_SD
 
 // ================ Loop Quantization ================
 

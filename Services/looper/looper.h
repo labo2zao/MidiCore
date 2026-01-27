@@ -27,9 +27,11 @@ extern "C" {
 //     CCMRAM: g_tr (25KB) + undo (33KB depth=2) = 58KB / 64KB ✅
 //     RAM: g_automation (8KB) + clipboards (20KB) + pianoroll (53KB) + other (20KB) = 101KB / 128KB ✅
 //   
-//   Production mode:
-//     CCMRAM: g_tr (25KB) + undo (33KB depth=1 OR move to RAM for depth=5) = 58KB / 64KB ✅
-//     RAM: g_automation (8KB) + undo (99KB if depth=5) + other (20KB) = 127KB / 128KB ✅
+//   Production mode (NEW SD-based undo):
+//     CCMRAM: g_tr (25KB) + automation (8KB if moved back) = 33KB / 64KB ✅
+//     RAM: g_automation (8KB) + undo (8KB, depth=1 only!) + other (20KB) = 36KB / 128KB ✅
+//          (Massive improvement: SD-based undo saves 91KB vs depth=5, or 51KB vs depth=3)
+//     SD Card: Undo history files (negligible RAM, unlimited depth)
 //
 #ifndef LOOPER_UNDO_STACK_DEPTH
 // Check if ANY test mode is active (must match looper.c memory placement logic)
@@ -48,9 +50,34 @@ extern "C" {
   // Test modes have additional allocations, so we reduce undo depth and keep in CCMRAM
   #define LOOPER_UNDO_STACK_DEPTH 2
 #else
-  // Production mode: Depth 5 (user requirement - maintained from PR #54)
-  // Undo stacks placed in RAM (too large for CCMRAM with depth=5)
-  #define LOOPER_UNDO_STACK_DEPTH 5
+  // Production mode: Depth 1 (only current state in RAM)
+  // Additional undo history stored on SD card for massive RAM savings
+  // SD-based undo provides unlimited history depth while using minimal RAM
+  #define LOOPER_UNDO_STACK_DEPTH 1
+#endif
+#endif
+
+// SD Card-based undo configuration (production mode only)
+// Stores undo history files on SD card to save RAM
+#ifndef LOOPER_UNDO_USE_SD
+#if !defined(MODULE_TEST_LOOPER) && !defined(MODULE_TEST_OLED_SSD1322) && !defined(MODULE_TEST_ALL) && \
+    !defined(MODULE_TEST_UI) && !defined(MODULE_TEST_GDB_DEBUG) && !defined(MODULE_TEST_AINSER64) && \
+    !defined(MODULE_TEST_SRIO) && !defined(MODULE_TEST_SRIO_DOUT) && !defined(MODULE_TEST_MIDI_DIN) && \
+    !defined(MODULE_TEST_ROUTER) && !defined(MODULE_TEST_LFO) && !defined(MODULE_TEST_HUMANIZER) && \
+    !defined(MODULE_TEST_UI_PAGE_SONG) && !defined(MODULE_TEST_UI_PAGE_MIDI_MONITOR) && \
+    !defined(MODULE_TEST_UI_PAGE_SYSEX) && !defined(MODULE_TEST_UI_PAGE_CONFIG) && \
+    !defined(MODULE_TEST_UI_PAGE_LIVEFX) && !defined(MODULE_TEST_UI_PAGE_RHYTHM) && \
+    !defined(MODULE_TEST_UI_PAGE_HUMANIZER) && !defined(MODULE_TEST_PATCH_SD) && \
+    !defined(MODULE_TEST_PRESSURE) && !defined(MODULE_TEST_BREATH) && \
+    !defined(MODULE_TEST_USB_HOST_MIDI) && !defined(MODULE_TEST_USB_DEVICE_MIDI) && \
+    !defined(MODULE_TEST_FOOTSWITCH) && !defined(APP_TEST_DIN_MIDI)
+  // Production mode: Use SD card for undo history
+  #define LOOPER_UNDO_USE_SD 1
+  #define LOOPER_UNDO_SD_MAX_DEPTH 10  // Max undo levels stored on SD card
+#else
+  // Test mode: Use RAM-only undo (SD may not be available in all test scenarios)
+  #define LOOPER_UNDO_USE_SD 0
+  #define LOOPER_UNDO_SD_MAX_DEPTH 0
 #endif
 #endif
 

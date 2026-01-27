@@ -40,7 +40,7 @@ extern "C" {
 // =============================================================================
 
 #ifndef CLI_MAX_COMMANDS
-#define CLI_MAX_COMMANDS 128  // Maximum number of registered commands
+#define CLI_MAX_COMMANDS 64  // Maximum number of registered commands (reduced from 128 to save ~5KB RAM)
 #endif
 
 #ifndef CLI_MAX_COMMAND_LEN
@@ -56,7 +56,7 @@ extern "C" {
 #endif
 
 #ifndef CLI_HISTORY_SIZE
-#define CLI_HISTORY_SIZE 10  // Number of commands in history
+#define CLI_HISTORY_SIZE 16  // Number of commands in history (optimized for RAM usage)
 #endif
 
 // =============================================================================

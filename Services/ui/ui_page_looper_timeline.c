@@ -12,7 +12,7 @@ static inline uint32_t wrap_tick_i32(uint32_t cur, int32_t d, uint32_t L){
   return (uint32_t)x;
 }
 
-#define MAX_SNAP 512  // Event snapshot buffer for timeline display
+#define MAX_SNAP 320  // Event snapshot buffer for timeline display (minimum acceptable value, cannot go below 320)
 
 // shared state (kept simple)
 static uint8_t g_track = 0;
