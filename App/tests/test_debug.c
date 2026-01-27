@@ -51,9 +51,8 @@ int test_debug_init(void)
   
   UART_HandleTypeDef* huart = get_debug_uart_handle();
   
-  // ALWAYS reconfigure debug UART to 115200 in test mode
-  dbg_print("Reconfiguring debug UART to 115200 baud for test mode...\r\n");
-  
+  // CRITICAL: Reconfigure to 115200 BEFORE any dbg_print() calls!
+  // Do NOT call dbg_print() before this reconfiguration!
   HAL_UART_DeInit(huart);
   huart->Init.BaudRate = TEST_DEBUG_UART_BAUD;  // 115200 for debug
   huart->Init.WordLength = UART_WORDLENGTH_8B;
@@ -63,13 +62,13 @@ int test_debug_init(void)
   huart->Init.HwFlowCtl = UART_HWCONTROL_NONE;
   huart->Init.OverSampling = UART_OVERSAMPLING_16;
   if (HAL_UART_Init(huart) != HAL_OK) {
-    // If init fails, try to output error at any baudrate
-    const char* err = "ERROR: Failed to init debug UART\r\n";
-    HAL_UART_Transmit(huart, (const uint8_t*)err, strlen(err), 1000);
     Error_Handler();
   }
   
+  // NOW we can print at 115200 baud
+  dbg_print("\r\n==============================================\r\n");
   dbg_print("Debug UART initialized at 115200 baud\r\n");
+  dbg_print("==============================================\r\n");
   
 #if MODULE_ENABLE_OLED
   // Always initialize OLED for debug mirroring (enabled by default)
