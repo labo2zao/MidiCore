@@ -9,12 +9,15 @@
 #include "usb_device.h"
 #include "usbd_core.h"
 #include "usbd_desc.h"
-#include "USB_DEVICE/Class/MIDI/Inc/usbd_midi.h"  /* Custom MIDI class - protected from CubeMX regen */
 #include "Config/module_config.h"
 #include "main.h"  /* For Error_Handler */
 
 #if MODULE_ENABLE_USB_CDC
-#include "USB_DEVICE/Class/CDC/Inc/usbd_cdc.h"    /* Custom CDC class - protected from CubeMX regen */
+/* Composite device: MIDI + CDC */
+#include "usbd_composite.h"
+#else
+/* MIDI only */
+#include "USB_DEVICE/Class/MIDI/Inc/usbd_midi.h"
 #endif
 
 /* USB Device Core handle declaration */
@@ -33,26 +36,11 @@ void MX_USB_DEVICE_Init(void)
   }
   
 #if MODULE_ENABLE_USB_CDC
-  /* Composite device mode: Register MIDI and CDC classes */
-  /* Note: Composite API requires USE_USBD_COMPOSITE to be defined */
-  
-  /* Register the MIDI class (interfaces 0-1) */
-  if (USBD_RegisterClass(&hUsbDeviceFS, &USBD_MIDI) != USBD_OK)
+  /* Composite device mode: Register composite class (MIDI + CDC) */
+  if (USBD_RegisterClass(&hUsbDeviceFS, &USBD_COMPOSITE) != USBD_OK)
   {
     Error_Handler();
   }
-  
-  /* Register the CDC class (interfaces 2-3) */
-  if (USBD_RegisterClass(&hUsbDeviceFS, &USBD_CDC) != USBD_OK)
-  {
-    Error_Handler();
-  }
-  
-  /* TODO: When USE_USBD_COMPOSITE is fully tested, use:
-   * USBD_RegisterClassComposite(&hUsbDeviceFS, &USBD_MIDI, CLASS_TYPE_AUDIO, NULL);
-   * USBD_RegisterClassComposite(&hUsbDeviceFS, &USBD_CDC, CLASS_TYPE_CDC, NULL);
-   */
-  
 #else
   /* Single class mode: MIDI only */
   if (USBD_RegisterClass(&hUsbDeviceFS, &USBD_MIDI) != USBD_OK)

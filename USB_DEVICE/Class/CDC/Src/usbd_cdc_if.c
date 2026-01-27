@@ -160,7 +160,25 @@ static int8_t CDC_TransmitCplt_FS(uint8_t *buf, uint32_t *len, uint8_t epnum)
 
 #else /* !MODULE_ENABLE_USB_CDC */
 
-/* Stub implementation when CDC is disabled */
-USBD_CDC_ItfTypeDef USBD_CDC_fops = {0};
+/* Stub implementations when CDC is disabled - safe no-op functions */
+static int8_t CDC_Init_Stub(void) { return USBD_OK; }
+static int8_t CDC_DeInit_Stub(void) { return USBD_OK; }
+static int8_t CDC_Control_Stub(uint8_t cmd, uint8_t *pbuf, uint16_t length) { 
+  (void)cmd; (void)pbuf; (void)length; return USBD_OK; 
+}
+static int8_t CDC_Receive_Stub(uint8_t *buf, uint32_t *len) { 
+  (void)buf; (void)len; return USBD_OK; 
+}
+static int8_t CDC_TransmitCplt_Stub(uint8_t *buf, uint32_t *len, uint8_t epnum) { 
+  (void)buf; (void)len; (void)epnum; return USBD_OK; 
+}
+
+USBD_CDC_ItfTypeDef USBD_CDC_fops = {
+  CDC_Init_Stub,
+  CDC_DeInit_Stub,
+  CDC_Control_Stub,
+  CDC_Receive_Stub,
+  CDC_TransmitCplt_Stub
+};
 
 #endif /* MODULE_ENABLE_USB_CDC */

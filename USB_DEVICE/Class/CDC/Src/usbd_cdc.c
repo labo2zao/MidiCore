@@ -275,7 +275,7 @@ static uint8_t USBD_CDC_Setup(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *re
             pCDC_Fops->Control(req->bRequest, (uint8_t *)hcdc->data_out, req->wLength);
           }
           
-          len = (uint16_t)((req->wLength < CDC_DATA_OUT_MAX_PACKET_SIZE) ? req->wLength : CDC_DATA_OUT_MAX_PACKET_SIZE);
+          len = (uint16_t)((req->wLength < CDC_DATA_FS_MAX_PACKET_SIZE) ? req->wLength : CDC_DATA_FS_MAX_PACKET_SIZE);
           
           if (req->bRequest == CDC_GET_LINE_CODING) {
             pbuf = (uint8_t *)&hcdc->line_coding;
@@ -507,7 +507,9 @@ uint8_t USBD_CDC_SetTxBuffer(USBD_HandleTypeDef *pdev, uint8_t *pbuff, uint32_t 
   }
   
   hcdc->data_in_length = length;
-  /* Note: Application should manage its own buffer; we just store length */
+  /* Note: This function stores the length only. The actual buffer is managed
+   * internally by the class driver. The pbuff parameter is not used as data
+   * is copied to the internal buffer in USBD_CDC_TransmitData(). */
   
   return USBD_OK;
 }
