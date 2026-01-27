@@ -80,10 +80,9 @@ void app_test_din_midi_run_forever(void)
   ui_init();
   dbg_print("OK\r\n");
   
-  // Initialize CLI BEFORE router (so router CLI can register)
-  dbg_print("Initializing CLI... ");
-  cli_init();
-  dbg_print("OK\r\n");
+  // Note: CLI and Router are now initialized in app_init.c
+  // No need to initialize them here - just use the centralized initialization
+  dbg_print("CLI and Router already initialized by app_init\r\n");
   dbg_print("  Type 'help' for available commands\r\n");
   dbg_print("  Type 'router matrix' to view routing\r\n\r\n");
   
@@ -91,9 +90,6 @@ void app_test_din_midi_run_forever(void)
   dbg_print("Initializing MIDI Router... ");
   router_init(router_send_default);
   dbg_print("OK\r\n");
-  
-  // Register router CLI commands AFTER router is initialized
-  router_cli_register();
   
   // 0) SD + DIN mapping
   dbg_print("Initializing SD and DIN mapping... ");

@@ -47,13 +47,14 @@ extern "C" {
  * 
  * STM32F4 Discovery UART Mapping:
  * 0 = USART2 - PA2/PA3   - MIDI DIN1 [MIOS32 UART1]
- * 1 = USART3 - PD8/PD9   - MIDI DIN2 [MIOS32 UART2]
+ * 1 = USART3 - PD8/PD9   - MIDI DIN2 [MIOS32 UART2] - **RECOMMENDED FOR DEBUG**
  * 2 = USART1 - PA9/PA10  - USB OTG (not available for MIDI/debug)
- * 3 = UART5  - PC12/PD2  - MIDI DIN4 or Debug (shared) [MIOS32 UART4]
+ * 3 = UART5  - PC12/PD2  - MIDI DIN4 [MIOS32 UART4]
  * 
- * **RECOMMENDED: Use compile-time flag for test mode**
- * Add `-DTEST_MODE_DEBUG_UART=1` to your build flags to automatically
- * configure UART5 at 115200 baud at compile time.
+ * **MIOS32 COMPATIBILITY: Port 1 (USART3, PD8/PD9) is recommended**
+ * - Matches MIOS32 terminal configuration (avoids MIDI port conflicts)
+ * - USART2 (PA2/PA3) would also work but is typically used for MIDI DIN
+ * - Configure at 115200 baud at compile time for best results
  * 
  * **Alternative: Runtime reconfiguration (less reliable)**
  * Call test_debug_init() to reconfigure at runtime.
@@ -63,7 +64,7 @@ extern "C" {
  * - All other MIDI DIN ports run at 31250 baud for MIDI
  */
 #ifndef TEST_DEBUG_UART_PORT
-#define TEST_DEBUG_UART_PORT 3  // UART5 (PC12/PD2) - Can share with MIDI DIN4 (PA9/PA10 used for USB OTG)
+#define TEST_DEBUG_UART_PORT 1  // USART3 (PD8/PD9) - MIOS32 compatible terminal port
 #endif
 
 /**
