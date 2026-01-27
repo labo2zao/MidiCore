@@ -62,6 +62,20 @@
 #include "Services/log/log.h"
 #endif
 
+#if MODULE_ENABLE_CLI
+#include "Services/cli/cli.h"
+#include "Services/cli/cli_module_commands.h"
+#endif
+
+#if MODULE_ENABLE_MODULE_REGISTRY
+#include "Services/module_registry/module_registry.h"
+#endif
+
+#if MODULE_ENABLE_TEST
+#include "Services/test/test.h"
+#include "Services/test/test_cli.h"
+#endif
+
 #if MODULE_ENABLE_INSTRUMENT
 #include "Services/instrument/instrument_cfg.h"
 #endif
@@ -111,6 +125,9 @@
 
 static void AinTask(void *argument);
 static void OledDemoTask(void *argument);
+#if MODULE_ENABLE_CLI
+static void CliTask(void *argument);
+#endif
 static uint8_t boot_shift_held(uint8_t active_low);
 
 void app_init_and_start(void)
@@ -261,6 +278,21 @@ void app_init_and_start(void)
 #endif
 #endif
 
+  // Initialize CLI and module registry for terminal control
+#if MODULE_ENABLE_MODULE_REGISTRY
+  module_registry_init();
+#endif
+
+#if MODULE_ENABLE_CLI
+  cli_init();
+  cli_module_commands_init();
+#endif
+
+#if MODULE_ENABLE_TEST
+  test_init();
+  test_cli_init();
+#endif
+
   // Default routing examples
 #if MODULE_ENABLE_ROUTER && MODULE_ENABLE_MIDI_DIN
   router_set_route(ROUTER_NODE_DIN_IN1, ROUTER_NODE_DIN_OUT1, 1);
@@ -298,6 +330,16 @@ void app_init_and_start(void)
     .stack_size = 1024
   };
   (void)osThreadNew(OledDemoTask, NULL, &oled_attr);
+#endif
+
+#if MODULE_ENABLE_CLI
+  // CLI task for processing terminal commands via UART
+  const osThreadAttr_t cli_attr = {
+    .name = "CliTask",
+    .priority = osPriorityBelowNormal,
+    .stack_size = 2048
+  };
+  (void)osThreadNew(CliTask, NULL, &cli_attr);
 #endif
 
   // Optional UART debug stream (raw ADC values)
@@ -429,5 +471,25 @@ static uint8_t boot_shift_held(uint8_t active_low) {
   return 0;
 #endif
 }
+
+#if MODULE_ENABLE_CLI
+/**
+ * @brief CLI task for processing UART terminal commands
+ * 
+ * This task continuously calls cli_task() to process incoming
+ * commands from the UART terminal (MIOS Studio compatible).
+ * Commands are parsed and executed in real-time.
+ */
+static void CliTask(void *argument)
+{
+  (void)argument;
+  
+  // CLI processing loop
+  for (;;) {
+    cli_task();
+    osDelay(10);  // 10ms polling interval
+  }
+}
+#endif
 
 
