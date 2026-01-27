@@ -27,14 +27,25 @@
 #define USBD_INTERFACE_STRING_FS      "MIDI Interface"
 
 /* Device Descriptor */
+#if MODULE_ENABLE_USB_CDC
+/* Use IAD-composite device class when CDC is enabled */
+#define USBD_DEVICE_CLASS            0xEF
+#define USBD_DEVICE_SUBCLASS         0x02
+#define USBD_DEVICE_PROTOCOL         0x01
+#else
+#define USBD_DEVICE_CLASS            0x00
+#define USBD_DEVICE_SUBCLASS         0x00
+#define USBD_DEVICE_PROTOCOL         0x00
+#endif
+
 __ALIGN_BEGIN uint8_t USBD_FS_DeviceDesc[USB_LEN_DEV_DESC] __ALIGN_END =
 {
   0x12,                       /* bLength */
   USB_DESC_TYPE_DEVICE,       /* bDescriptorType */
   0x00, 0x02,                 /* bcdUSB = 2.00 */
-  0x00,                       /* bDeviceClass */
-  0x00,                       /* bDeviceSubClass */
-  0x00,                       /* bDeviceProtocol */
+  USBD_DEVICE_CLASS,          /* bDeviceClass */
+  USBD_DEVICE_SUBCLASS,       /* bDeviceSubClass */
+  USBD_DEVICE_PROTOCOL,       /* bDeviceProtocol */
   USB_MAX_EP0_SIZE,           /* bMaxPacketSize */
   LOBYTE(USBD_VID), HIBYTE(USBD_VID),     /* idVendor */
   LOBYTE(USBD_PID_FS), HIBYTE(USBD_PID_FS),  /* idProduct */
@@ -137,7 +148,8 @@ uint8_t *USBD_FS_SerialStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *length)
   if (deviceserial0 != 0)
   {
     /* Convert to hex string */
-    USBD_StrDesc[0] = 26;  /* Length */
+    uint8_t serial_length = 2U + (3U * 8U * 2U);  /* 3 words, 8 hex chars each, UTF-16LE */
+    USBD_StrDesc[0] = serial_length;  /* Length */
     USBD_StrDesc[1] = USB_DESC_TYPE_STRING;
     
     uint8_t *pStr = &USBD_StrDesc[2];
@@ -153,7 +165,7 @@ uint8_t *USBD_FS_SerialStrDescriptor(USBD_SpeedTypeDef speed, uint16_t *length)
         *pStr++ = 0;
       }
     }
-    *length = 26;
+    *length = serial_length;
   }
   else
   {
