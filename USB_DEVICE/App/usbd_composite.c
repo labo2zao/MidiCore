@@ -297,38 +297,39 @@ static uint8_t *USBD_COMPOSITE_GetFSCfgDesc(uint16_t *length)
     uint8_t *cdc_interfaces = cdc_desc + 9;  /* Skip config header */
     uint16_t cdc_function_len = cdc_len - 9;
     
-    /* Copy CDC descriptor and fix interface numbers */
+    /* First, copy entire CDC function */
+    memcpy(ptr, cdc_interfaces, cdc_function_len);
+    
+    /* Now fix interface numbers in-place */
     for (uint16_t i = 0; i < cdc_function_len; i++) {
-      ptr[i] = cdc_interfaces[i];
-      
       /* Find interface descriptors and update interface numbers */
-      if (i + 1 < cdc_function_len && 
-          cdc_interfaces[i] == 0x09 &&      /* bLength = 9 */
-          cdc_interfaces[i+1] == USB_DESC_TYPE_INTERFACE) {  /* Interface descriptor */
-        uint8_t old_interface_num = cdc_interfaces[i+2];
-        uint8_t new_interface_num = old_interface_num + 2;  /* Offset by 2 (MIDI uses 0,1) */
-        ptr[i+2] = new_interface_num;
+      /* Interface descriptor: bLength=0x09, bDescriptorType=0x04, bInterfaceNumber at offset +2 */
+      if (i + 2 < cdc_function_len && 
+          ptr[i] == 0x09 &&                    /* bLength = 9 */
+          ptr[i+1] == USB_DESC_TYPE_INTERFACE) {  /* bDescriptorType = 0x04 */
+        /* Adjust interface number: add 2 to offset from MIDI interfaces (0,1) */
+        ptr[i+2] += 2;
       }
       
       /* Fix Union Functional Descriptor interface references */
-      /* Union descriptor: 0x05 (len), 0x24 (CS_INTERFACE), 0x06 (UNION) */
+      /* Union descriptor: bLength=0x05, bDescriptorType=0x24, bDescriptorSubtype=0x06 */
       if (i + 4 < cdc_function_len &&
-          cdc_interfaces[i] == 0x05 &&
-          cdc_interfaces[i+1] == 0x24 &&
-          cdc_interfaces[i+2] == 0x06) {
+          ptr[i] == 0x05 &&        /* bLength = 5 */
+          ptr[i+1] == 0x24 &&      /* CS_INTERFACE */
+          ptr[i+2] == 0x06) {      /* UNION subtype */
         /* bMasterInterface and bSlaveInterface need +2 offset */
-        ptr[i+3] = cdc_interfaces[i+3] + 2;  /* Master */
-        ptr[i+4] = cdc_interfaces[i+4] + 2;  /* Slave */
+        ptr[i+3] += 2;  /* bControlInterface (Master) */
+        ptr[i+4] += 2;  /* bSubordinateInterface (Slave) */
       }
       
       /* Fix Call Management Functional Descriptor data interface */
-      /* Call Mgmt descriptor: 0x05 (len), 0x24 (CS_INTERFACE), 0x01 (CALL_MGMT) */
+      /* Call Mgmt descriptor: bLength=0x05, bDescriptorType=0x24, bDescriptorSubtype=0x01 */
       if (i + 4 < cdc_function_len &&
-          cdc_interfaces[i] == 0x05 &&
-          cdc_interfaces[i+1] == 0x24 &&
-          cdc_interfaces[i+2] == 0x01) {
+          ptr[i] == 0x05 &&        /* bLength = 5 */
+          ptr[i+1] == 0x24 &&      /* CS_INTERFACE */
+          ptr[i+2] == 0x01) {      /* CALL_MGMT subtype */
         /* bDataInterface needs +2 offset */
-        ptr[i+4] = cdc_interfaces[i+4] + 2;
+        ptr[i+4] += 2;  /* bDataInterface */
       }
     }
     
