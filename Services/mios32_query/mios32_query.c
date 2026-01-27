@@ -57,13 +57,13 @@ bool mios32_query_process(const uint8_t* data, uint32_t len, uint8_t cable) {
   // Extract command (byte 6 for MIOS32 protocol: F0 00 00 7E 32 <dev> <cmd>)
   uint8_t device_id = data[5];
   uint8_t command = data[6];
-  uint8_t query_type = (len > 7) ? data[7] : 0x00;
+  uint8_t query_type = (len > 7) ? data[7] : 0x01; // Default to 0x01 if not specified
   
-  // Command 0x00: Device Info Request (MIOS Studio uses data[7]=0x01)
+  // Command 0x00: Device Info Request (MIOS Studio uses data[7]=query_type)
   // Command 0x01: Device Info Request (alternate form)
-  if (command == 0x01 || (command == 0x00 && len >= 8 && data[7] == 0x01)) {
-    // Respond with device information on the same cable the query came from
-    mios32_query_send_device_info(MIOS32_DEVICE_NAME, MIOS32_DEVICE_VERSION, device_id, cable);
+  if (command == 0x01 || (command == 0x00 && len >= 8)) {
+    // Respond based on query type, on the same cable the query came from
+    mios32_query_send_response(query_type, device_id, cable);
     return true;
   }
   
@@ -71,14 +71,9 @@ bool mios32_query_process(const uint8_t* data, uint32_t len, uint8_t cable) {
   return false;
 }
 
-void mios32_query_send_device_info(const char* device_name, const char* version, uint8_t device_id, uint8_t cable) {
-  if (!device_name || !version) {
-    return;
-  }
-  
+void mios32_query_send_response(uint8_t query_type, uint8_t device_id, uint8_t cable) {
   uint8_t* p = sysex_response_buffer;
   const char* response_str = NULL;
-  char num_buffer[12]; // For number-to-string conversions
   
   // Determine response string based on query type
   switch (query_type) {
@@ -110,8 +105,8 @@ void mios32_query_send_device_info(const char* device_name, const char* version,
       response_str = MIOS32_DEVICE_VERSION;
       break;
     default:
-      // Unknown query type - send empty ACK
-      response_str = "";
+      // Unknown query type - send application name as default
+      response_str = MIOS32_DEVICE_NAME;
       break;
   }
   
@@ -123,7 +118,7 @@ void mios32_query_send_device_info(const char* device_name, const char* version,
   *p++ = 0x7E;  // Manufacturer ID 3 (MIOS)
   *p++ = MIOS32_QUERY_DEVICE_ID;  // Device ID (0x32)
   *p++ = device_id;  // Device instance ID (echo query)
-  *p++ = 0x01;  // Command: Layout/Info Response
+  *p++ = 0x0F;  // Command: 0x0F = ACK response
   
   // Copy response string (NO null terminator in SysEx stream!)
   while (*response_str && (p < sysex_response_buffer + 250)) {
@@ -140,8 +135,12 @@ void mios32_query_send_device_info(const char* device_name, const char* version,
 #endif
 }
 
-// Legacy function - now wraps mios32_query_send_response()
-void mios32_query_send_device_info(const char* device_name, const char* version, uint8_t cable) {
-  // For compatibility, send application name (query type 0x08)
-  mios32_query_send_response(0x08, cable);
+void mios32_query_send_device_info(const char* device_name, const char* version, uint8_t device_id, uint8_t cable) {
+  // This function sends a simple device info response
+  // For now, just send the application name (query type 0x08)
+  // The device_name and version parameters are ignored in favor of configured defaults
+  (void)device_name;  // Suppress unused parameter warning
+  (void)version;      // Suppress unused parameter warning
+  
+  mios32_query_send_response(0x08, device_id, cable);
 }

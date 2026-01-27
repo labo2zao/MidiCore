@@ -59,9 +59,10 @@ bool mios32_query_process(const uint8_t* data, uint32_t len, uint8_t cable);
 /**
  * @brief Send MIOS32 query response based on query type
  * @param query_type Query type (0x01-0x09, see MIOS32 protocol)
+ * @param device_id Device instance ID to echo back in the response
  * @param cable USB MIDI cable number (0-3) to send response on
  */
-void mios32_query_send_response(uint8_t query_type, uint8_t cable);
+void mios32_query_send_response(uint8_t query_type, uint8_t device_id, uint8_t cable);
 
 /**
  * @brief Send device info response to MIOS Studio (legacy, wraps mios32_query_send_response)
