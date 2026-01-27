@@ -29,9 +29,9 @@ extern "C" {
 #define MSC_SUBCLASS_SCSI_TRANSPARENT           0x06
 #define MSC_PROTOCOL_BULK_ONLY                  0x50
 
-/* MSC Endpoints - Must not conflict with MIDI (0x01) and CDC (0x02, 0x83) */
-#define MSC_IN_EP                               0x84  /* Endpoint 4 IN */
-#define MSC_OUT_EP                              0x04  /* Endpoint 4 OUT */
+/* MSC Endpoints - Must not conflict with MIDI (0x01/0x81) and CDC (0x02/0x82, 0x83) */
+#define MSC_IN_EP                               0x84  /* Endpoint 4 IN (0x84) */
+#define MSC_OUT_EP                              0x04  /* Endpoint 4 OUT (0x04) */
 
 /* MSC Endpoint Sizes */
 #define MSC_DATA_FS_MAX_PACKET_SIZE             64    /* Full Speed: 64 bytes */

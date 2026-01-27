@@ -93,8 +93,9 @@ void FileManagerComponent::resized()
 void FileManagerComponent::timerCallback()
 {
     // Check CDC connection status
-    // TODO: Implement actual CDC connection check
-    bool connected = false; // Placeholder
+    // TODO: Implement actual CDC connection check via CDCManager
+    // For now returns false until serial port implementation is complete
+    bool connected = false; // Placeholder - requires serial port enumeration
     
     if (connected != isConnected)
     {
