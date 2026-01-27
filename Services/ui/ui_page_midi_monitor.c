@@ -13,6 +13,7 @@
 #include "Services/ui/ui_gfx.h"
 #include "Services/midi_monitor/midi_monitor.h"
 #include "Config/module_config.h"
+#include "stm32f4xx_hal.h"
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
@@ -181,7 +182,7 @@ void ui_page_midi_monitor_render(uint32_t now_ms) {
     if (config.show_timestamp) {
       uint32_t sec = ev->timestamp_ms / 1000;
       uint32_t ms = ev->timestamp_ms % 1000;
-      int n = snprintf(p, remaining, "[%02u.%03u] ", sec % 100, ms);
+      int n = snprintf(p, remaining, "[%02lu.%03lu] ", (unsigned long)(sec % 100), (unsigned long)ms);
       p += n; remaining -= n;
     }
     
