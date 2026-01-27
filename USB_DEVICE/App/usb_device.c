@@ -9,8 +9,16 @@
 #include "usb_device.h"
 #include "usbd_core.h"
 #include "usbd_desc.h"
-#include "USB_DEVICE/Class/MIDI/Inc/usbd_midi.h"  /* Custom MIDI class - protected from CubeMX regen */
+#include "Config/module_config.h"
 #include "main.h"  /* For Error_Handler */
+
+#if MODULE_ENABLE_USB_CDC
+/* Composite device: MIDI + CDC */
+#include "usbd_composite.h"
+#else
+/* MIDI only */
+#include "USB_DEVICE/Class/MIDI/Inc/usbd_midi.h"
+#endif
 
 /* USB Device Core handle declaration */
 USBD_HandleTypeDef hUsbDeviceFS;
@@ -27,11 +35,19 @@ void MX_USB_DEVICE_Init(void)
     Error_Handler();
   }
   
-  /* Register the MIDI class */
+#if MODULE_ENABLE_USB_CDC
+  /* Composite device mode: Register composite class (MIDI + CDC) */
+  if (USBD_RegisterClass(&hUsbDeviceFS, &USBD_COMPOSITE) != USBD_OK)
+  {
+    Error_Handler();
+  }
+#else
+  /* Single class mode: MIDI only */
   if (USBD_RegisterClass(&hUsbDeviceFS, &USBD_MIDI) != USBD_OK)
   {
     Error_Handler();
   }
+#endif
   
   /* Start Device Process */
   if (USBD_Start(&hUsbDeviceFS) != USBD_OK)

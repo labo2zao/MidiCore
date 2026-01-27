@@ -18,9 +18,20 @@
 #include <string.h>
 #include "stm32f4xx.h"
 #include "stm32f4xx_hal.h"
+#include "Config/module_config.h"
+
+/* Enable USB composite device support when CDC is enabled */
+#if MODULE_ENABLE_USB_CDC
+#define USE_USBD_COMPOSITE     1
+#endif
 
 /*---------- -----------*/
-#define USBD_MAX_NUM_INTERFACES     1
+/* Maximum number of interfaces supported
+ * MIDI: 2 interfaces (Audio Control + MIDIStreaming)
+ * CDC: 2 interfaces (Communication + Data)
+ * Total: 4 interfaces for composite MIDI+CDC device
+ */
+#define USBD_MAX_NUM_INTERFACES     4
 /*---------- -----------*/
 #define USBD_MAX_NUM_CONFIGURATION     1
 /*---------- -----------*/
@@ -42,6 +53,11 @@
 #define USBD_MIDI_DATA_IN_PACKET_SIZE     64
 #define USBD_MIDI_DATA_OUT_PACKET_SIZE     64
 #define MIDI_NUM_PORTS                     4    /* 4 virtual ports like MIOS32 */
+
+/* CDC specific defines (when MODULE_ENABLE_USB_CDC is enabled) */
+#define USBD_CDC_DATA_IN_PACKET_SIZE      64
+#define USBD_CDC_DATA_OUT_PACKET_SIZE     64
+#define USBD_CDC_CMD_PACKET_SIZE          8
 
 /****************************************/
 /* #define for FS and HS identification */
