@@ -51,12 +51,12 @@ extern "C" {
  * 2 = USART1 - PA9/PA10  - USB OTG (not available for MIDI/debug)
  * 3 = UART5  - PC12/PD2  - MIDI DIN4 or Debug (shared) [MIOS32 UART4]
  * 
- * **Test Mode Default: Port 3 (UART5/PC12-PD2) @ 115200 baud**
- * This allows 2 MIDI DIN ports (0,1) @ 31250 baud
+ * **RECOMMENDED: Use compile-time flag for test mode**
+ * Add `-DTEST_MODE_DEBUG_UART=1` to your build flags to automatically
+ * configure UART5 at 115200 baud at compile time.
  * 
- * **Recommended: Use OLED debug mirroring instead**
- * Enable MODULE_ENABLE_OLED to get debug output on OLED display.
- * This frees all 4 MIDI DIN ports for MIDI @ 31250 baud.
+ * **Alternative: Runtime reconfiguration (less reliable)**
+ * Call test_debug_init() to reconfigure at runtime.
  * 
  * When a UART is configured as TEST_DEBUG_UART_PORT:
  * - It runs at 115200 baud for debug output
