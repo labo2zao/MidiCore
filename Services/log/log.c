@@ -14,7 +14,7 @@
 #include <string.h>
 
 #ifndef LOG_BUFFER_LINES
-#define LOG_BUFFER_LINES 32
+#define LOG_BUFFER_LINES 24  // Reduced from 32 to save RAM (768 bytes saved)
 #endif
 #ifndef LOG_LINE_MAX
 #define LOG_LINE_MAX 96
