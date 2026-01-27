@@ -80,7 +80,6 @@ extern "C" {
   #define LOOPER_UNDO_SD_MAX_DEPTH 0
 #endif
 #endif
-#endif
 
 // Clipboard feature configuration (only available in test mode)
 // Allows independent control of track vs scene clipboard features
