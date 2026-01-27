@@ -11,6 +11,7 @@
 #include "usbd_def.h"
 #include "usbd_core.h"
 #include "USB_DEVICE/Class/MIDI/Inc/usbd_midi.h"  /* Custom MIDI class - protected from CubeMX regen */
+#include "Config/module_config.h"  /* For MODULE_ENABLE_USB_CDC */
 #include "main.h"  /* For Error_Handler */
 
 /* Define missing USB_OTG_GOTGCTL register bits for STM32F407 B-session override */
@@ -218,10 +219,25 @@ USBD_StatusTypeDef USBD_LL_Init(USBD_HandleTypeDef *pdev)
   USB_OTG_FS->GOTGCTL |= USB_OTG_GOTGCTL_BVALOEN; /* Enable B-device valid override */
   USB_OTG_FS->GOTGCTL |= USB_OTG_GOTGCTL_BVALOVAL;/* Force B-session valid */
   
-  /* Allocate endpoints for MIDI */
-  HAL_PCDEx_SetRxFiFo(&hpcd_USB_OTG_FS, 0x80);
-  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_FS, 0, 0x40);
-  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_FS, 1, 0x80);  /* MIDI endpoint */
+  /* CRITICAL FIX: Allocate USB FIFO for all endpoints
+   * STM32F407 USB OTG FS has 320 words (1280 bytes) total FIFO RAM
+   * Must allocate for both MIDI and CDC when composite device is used
+   */
+#if MODULE_ENABLE_USB_CDC
+  /* Composite device (MIDI + CDC) - optimized allocation */
+  HAL_PCDEx_SetRxFiFo(&hpcd_USB_OTG_FS, 0x60);    /* RX FIFO: 96 words (shared by all OUT EPs) */
+  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_FS, 0, 0x30); /* EP0 TX: 48 words (Control) */
+  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_FS, 1, 0x40); /* EP1 TX: 64 words (MIDI IN) */
+  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_FS, 2, 0x60); /* EP2 TX: 96 words (CDC Data IN) */
+  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_FS, 3, 0x10); /* EP3 TX: 16 words (CDC Control IN) */
+  /* Total: 96 + 48 + 64 + 96 + 16 = 320 words ✓ */
+#else
+  /* MIDI-only device - generous allocation */
+  HAL_PCDEx_SetRxFiFo(&hpcd_USB_OTG_FS, 0x80);    /* RX FIFO: 128 words */
+  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_FS, 0, 0x40); /* EP0 TX: 64 words (Control) */
+  HAL_PCDEx_SetTxFiFo(&hpcd_USB_OTG_FS, 1, 0x80); /* EP1 TX: 128 words (MIDI IN) */
+  /* Total: 128 + 64 + 128 = 320 words ✓ */
+#endif
   
   return USBD_OK;
 }
