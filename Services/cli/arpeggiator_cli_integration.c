@@ -155,8 +155,7 @@ static module_descriptor_t s_arp_descriptor = {
   
   // Flags
   .has_per_track_state = 0,  // Arpeggiator is global
-  .is_global = 1,
-  .registered = 0
+  .is_global = 1
 };
 
 // =============================================================================

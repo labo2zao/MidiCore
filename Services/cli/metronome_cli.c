@@ -161,8 +161,7 @@ static module_descriptor_t s_metronome_descriptor = {
   .disable = metronome_cli_disable,
   .get_status = metronome_cli_get_status,
   .has_per_track_state = 0,
-  .is_global = 1,
-  .registered = 0
+  .is_global = 1
 };
 
 // =============================================================================

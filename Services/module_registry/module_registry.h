@@ -124,6 +124,10 @@ typedef enum {
 
 /**
  * @brief Module descriptor
+ * 
+ * NOTE: Module descriptors are stored as const pointers in the registry.
+ * The descriptor must remain in memory (typically as a static const).
+ * This pointer-based approach saves ~38 KB RAM vs copying full descriptors.
  */
 typedef struct {
   char name[MODULE_REGISTRY_MAX_NAME_LEN];          // Module name (e.g., "looper")
@@ -143,7 +147,6 @@ typedef struct {
   // Flags
   uint8_t has_per_track_state;  // 1 if module has per-track configuration
   uint8_t is_global;             // 1 if module is global (not per-track)
-  uint8_t registered;            // Internal: 1 if registered
 } module_descriptor_t;
 
 // =============================================================================
@@ -162,7 +165,12 @@ int module_registry_init(void);
 
 /**
  * @brief Register a module
- * @param descriptor Module descriptor (will be copied)
+ * 
+ * Stores a pointer to the module descriptor in the registry.
+ * The descriptor must remain valid for the lifetime of the program
+ * (typically defined as a static const in the module's source file).
+ * 
+ * @param descriptor Module descriptor (pointer is stored, not copied)
  * @return 0 on success, negative on error
  */
 int module_registry_register(const module_descriptor_t* descriptor);

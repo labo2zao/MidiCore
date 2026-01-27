@@ -12,7 +12,7 @@
  * - Line editing (backspace, cursor navigation)
  * - Command history
  * - Auto-completion
- * - Integration with runtime_config for persistence
+ * - Module registry integration
  * 
  * Architecture:
  * - Works with existing test_debug.h UART infrastructure

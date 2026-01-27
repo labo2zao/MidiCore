@@ -12,7 +12,8 @@
 // PRIVATE STATE
 // =============================================================================
 
-static module_descriptor_t s_modules[MODULE_REGISTRY_MAX_MODULES];
+// Pointer-based storage: saves ~38 KB RAM by storing pointers instead of full descriptors
+static const module_descriptor_t* s_modules[MODULE_REGISTRY_MAX_MODULES];
 static uint32_t s_module_count = 0;
 static uint8_t s_initialized = 0;
 
@@ -45,14 +46,13 @@ int module_registry_register(const module_descriptor_t* descriptor)
 
   // Check for duplicates
   for (uint32_t i = 0; i < s_module_count; i++) {
-    if (strcasecmp(s_modules[i].name, descriptor->name) == 0) {
+    if (strcasecmp(s_modules[i]->name, descriptor->name) == 0) {
       return -1; // Already registered
     }
   }
 
-  // Copy descriptor
-  memcpy(&s_modules[s_module_count], descriptor, sizeof(module_descriptor_t));
-  s_modules[s_module_count].registered = 1;
+  // Store pointer (no copy needed - saves RAM)
+  s_modules[s_module_count] = descriptor;
   s_module_count++;
 
   return 0;
@@ -65,8 +65,8 @@ int module_registry_unregister(const char* name)
   }
 
   for (uint32_t i = 0; i < s_module_count; i++) {
-    if (strcasecmp(s_modules[i].name, name) == 0) {
-      // Shift remaining modules
+    if (strcasecmp(s_modules[i]->name, name) == 0) {
+      // Shift remaining module pointers
       for (uint32_t j = i; j < s_module_count - 1; j++) {
         s_modules[j] = s_modules[j + 1];
       }
@@ -92,7 +92,7 @@ const module_descriptor_t* module_registry_get_by_index(uint32_t index)
   if (index >= s_module_count) {
     return NULL;
   }
-  return &s_modules[index];
+  return s_modules[index];
 }
 
 const module_descriptor_t* module_registry_get_by_name(const char* name)
@@ -102,8 +102,8 @@ const module_descriptor_t* module_registry_get_by_name(const char* name)
   }
 
   for (uint32_t i = 0; i < s_module_count; i++) {
-    if (strcasecmp(s_modules[i].name, name) == 0) {
-      return &s_modules[i];
+    if (strcasecmp(s_modules[i]->name, name) == 0) {
+      return s_modules[i];
     }
   }
 
@@ -120,8 +120,8 @@ uint32_t module_registry_list_by_category(module_category_t category,
 
   uint32_t count = 0;
   for (uint32_t i = 0; i < s_module_count && count < max_count; i++) {
-    if (s_modules[i].category == category) {
-      out_modules[count++] = &s_modules[i];
+    if (s_modules[i]->category == category) {
+      out_modules[count++] = s_modules[i];
     }
   }
 
@@ -266,12 +266,12 @@ void module_registry_print_modules(void)
 
   const char* current_category = NULL;
   for (uint32_t i = 0; i < s_module_count; i++) {
-    const char* cat = module_registry_category_to_string(s_modules[i].category);
+    const char* cat = module_registry_category_to_string(s_modules[i]->category);
     if (current_category == NULL || strcmp(cat, current_category) != 0) {
       current_category = cat;
       cli_printf("\n[%s]\n", current_category);
     }
-    cli_printf("  %-20s - %s\n", s_modules[i].name, s_modules[i].description);
+    cli_printf("  %-20s - %s\n", s_modules[i]->name, s_modules[i]->description);
   }
   cli_printf("\n");
 }
