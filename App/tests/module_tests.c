@@ -1082,10 +1082,9 @@ void module_test_midi_din_run(void)
   dbg_print("  ✓ Real-time UART output enabled\r\n");
   dbg_print("\r\n");
   
-  // Initialize CLI for terminal commands
-  dbg_print("Initializing CLI...");
-  cli_init();
-  dbg_print(" OK\r\n");
+  // Note: CLI and Module Registry are now initialized in app_init.c
+  // No need to initialize them here - just use the centralized initialization
+  dbg_print("CLI and Router already initialized by app_init\r\n");
   dbg_print("  Type 'help' for available commands\r\n");
   dbg_print("  Type 'router matrix' to view routing\r\n\r\n");
 
@@ -1095,8 +1094,8 @@ void module_test_midi_din_run(void)
   router_init(router_send_default);
   dbg_print(" OK\r\n");
   
-  // Register router CLI commands AFTER router is initialized
-  router_cli_register();
+  // Note: router_cli_register() is now called automatically by router_init()
+  // or during app_init - no need to call it explicitly here
   
   // Configure routing: UART MIDI Port 0 (DIN IN1 → DIN OUT1)
   // This test uses UART MIDI IN/OUT Port 0, which maps to:
