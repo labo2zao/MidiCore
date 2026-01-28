@@ -307,8 +307,9 @@ void app_init_and_start(void)
 #if MODULE_ENABLE_CLI
   dbg_printf("[INIT] Initializing CLI system...\r\n");
   cli_init();
-  dbg_printf("[INIT] Registering CLI module commands...\r\n");
-  cli_module_commands_init();
+  dbg_printf("[INIT] CLI init returned, registering module commands...\r\n");
+  int cli_cmd_result = cli_module_commands_init();
+  dbg_printf("[INIT] cli_module_commands_init returned %d\r\n", cli_cmd_result);
   dbg_printf("[INIT] CLI system ready\r\n");
 #endif
 

@@ -75,6 +75,7 @@ int cli_init(void)
   s_initialized = 1;
 
   dbg_printf("[CLI] CLI initialization complete - %lu commands registered\r\n", (unsigned long)s_command_count);
+  dbg_printf("[CLI] About to return from cli_init...\r\n");
 
 #if MODULE_ENABLE_USB_CDC
   dbg_printf("[CLI] Waiting for USB CDC ready (this may take 2-5 seconds)...\r\n");

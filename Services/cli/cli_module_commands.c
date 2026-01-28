@@ -235,8 +235,11 @@ static cli_result_t cmd_module(int argc, char* argv[])
 
 int cli_module_commands_init(void)
 {
-  return cli_register_command("module", cmd_module,
+  dbg_printf("[CLI-MOD] cli_module_commands_init called\r\n");
+  int result = cli_register_command("module", cmd_module,
                               "Module control and configuration",
                               "module <list|info|enable|disable|status|get|set|params> [args...]",
                               "modules");
+  dbg_printf("[CLI-MOD] cli_register_command returned %d\r\n", result);
+  return result;
 }
