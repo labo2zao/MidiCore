@@ -1,8 +1,14 @@
-# Windows MIDI Port Index Quirk
+# Windows MIDI Port Quirks
 
-## The Problem
+## Overview
 
-On Windows, when using `python-rtmidi` with loopMIDI or other virtual MIDI drivers, **the same logical MIDI port can have different numerical indices for input vs. output**.
+On Windows, `python-rtmidi` with loopMIDI and other virtual MIDI drivers has TWO major quirks that cause errors. Both are now handled by the emulator.
+
+## Quirk #1: Different Port Indices for Input vs. Output
+
+### The Problem
+
+**The same logical MIDI port can have different numerical indices for input vs. output**.
 
 This caused the error:
 ```
@@ -198,16 +204,124 @@ idx_out = find_output_index(name)
 midi_out.open_port(idx_out)
 ```
 
+---
+
+## Quirk #2: Asymmetric Input/Output Port Lists
+
+### The Problem
+
+**Windows MIDI drivers can expose DIFFERENT ports in input vs. output lists!**
+
+This caused the error:
+```
+✓ Found: LoopBe Internal MIDI 3
+ERROR: Input port 'LoopBe Internal MIDI 3' not found!
+Available input ports:
+  0: LoopBe Internal MIDI 0
+  1: USB MIDI Interface 1
+  2: loopMIDI Port 2
+```
+
+### What Happened
+
+Port "LoopBe Internal MIDI 3" exists as an **OUTPUT** port but NOT as an **INPUT** port!
+
+**Real Example (LoopBe Internal MIDI):**
+```
+Output Ports:
+  0: LoopBe Internal MIDI 0
+  1: LoopBe Internal MIDI 1
+  2: LoopBe Internal MIDI 2
+  3: LoopBe Internal MIDI 3  ← This one exists!
+
+Input Ports:
+  0: LoopBe Internal MIDI 0
+  1: LoopBe Internal MIDI 1
+  2: LoopBe Internal MIDI 2
+  (no port 3!)  ← But not here!
+```
+
+### Why It Happens
+
+Windows MIDI drivers can:
+- Expose different numbers of input vs. output ports
+- Have asymmetric routing configurations
+- Use different port capabilities for TX vs. RX
+- Show ports in different orders
+
+### The Solution
+
+**Find a port that exists in BOTH input AND output lists!**
+
+```python
+# CORRECT (new code):
+def find_port_name(pattern):
+    # Get both lists
+    input_ports = get_input_ports()
+    output_ports = get_output_ports()
+    
+    # Find ports in BOTH lists
+    input_names = {name for idx, name in input_ports}
+    output_names = {name for idx, name in output_ports}
+    common_ports = input_names & output_names
+    
+    # Search pattern in common ports only
+    for name in common_ports:
+        if pattern in name.lower():
+            return name  # Guaranteed to exist in both!
+```
+
+### What User Sees
+
+**Before (BROKEN):**
+```
+✓ Found: LoopBe Internal MIDI 3
+ERROR: Input port 'LoopBe Internal MIDI 3' not found!
+```
+
+**After (WORKING):**
+```
+✓ Detected Windows - searching for loopMIDI port...
+✓ Found: LoopBe Internal MIDI 0  ← Common to both lists!
+✓ MidiCore Emulator started
+```
+
+### Error Handling
+
+If NO common ports exist:
+```
+ERROR: No MIDI ports found that exist in BOTH input and output!
+
+Input ports:
+  0: LoopBe Internal MIDI 0
+  1: USB MIDI Interface 1
+
+Output ports:
+  0: Other Device 1
+  1: Other Device 2
+
+Note: The emulator needs a port that works for both input AND output.
+```
+
+---
+
 ## References
 
 - rtmidi documentation: https://pypi.org/project/python-rtmidi/
 - loopMIDI: https://www.tobias-erichsen.de/software/loopmidi.html
+- LoopBe Internal MIDI: https://nerds.de/en/loopbe1.html
 - MIOS Studio: http://www.ucapps.de/mios_studio.html
 
 ## Summary
 
+### Quirk #1: Different Indices
 **Problem:** Input and output MIDI ports can have different indices on Windows.
 
 **Solution:** Use port NAME as stable identifier, look up indices separately for input/output.
 
-**Result:** Emulator works reliably on Windows with loopMIDI!
+### Quirk #2: Asymmetric Port Lists
+**Problem:** A port might exist in output list but NOT in input list (or vice versa).
+
+**Solution:** Find intersection of input and output port names, only use ports in BOTH lists.
+
+**Result:** Emulator works reliably on Windows with any MIDI driver!
