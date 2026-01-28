@@ -24,9 +24,9 @@ static int perf_param_get_metric_name(uint8_t track, param_value_t* out) {
   if (track >= PERF_MONITOR_MAX_METRICS) return -1;
   const perf_metrics_t* metrics = perf_monitor_get(track);
   if (!metrics || !metrics->name) {
-    out->str_val = "(empty)";
+    out->string_val = "(empty)";
   } else {
-    out->str_val = metrics->name;
+    out->string_val = metrics->name;
   }
   return 0;
 }

@@ -31,11 +31,17 @@ DEFINE_MODULE_CONTROL_TRACK(note_stabilizer, note_stabilizer_set_enabled, note_s
 // MODULE DESCRIPTOR
 // =============================================================================
 
+// Init wrapper (module init returns void, descriptor needs int)
+static int note_stabilizer_cli_init(void) {
+  note_stab_init();
+  return 0;
+}
+
 static module_descriptor_t s_note_stabilizer_descriptor = {
   .name = "note_stabilizer",
   .description = "Stabilize note timing and velocity",
   .category = MODULE_CATEGORY_EFFECT,
-  .init = note_stabilizer_init,
+  .init = note_stabilizer_cli_init,
   .enable = note_stabilizer_cli_enable,
   .disable = note_stabilizer_cli_disable,
   .get_status = note_stabilizer_cli_get_status,

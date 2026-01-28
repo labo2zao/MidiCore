@@ -19,13 +19,13 @@ static char s_current_bank[32] = "";
 
 static int patch_param_get_current_patch(uint8_t track, param_value_t* out) {
   (void)track;
-  out->str_val = s_current_patch;
+  out->string_val = s_current_patch;
   return 0;
 }
 
 static int patch_param_get_current_bank(uint8_t track, param_value_t* out) {
   (void)track;
-  out->str_val = s_current_bank;
+  out->string_val = s_current_bank;
   return 0;
 }
 

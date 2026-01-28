@@ -64,10 +64,10 @@ static int pc_mgr_param_get_name(uint8_t track, param_value_t* out) {
   if (track >= PROGRAM_CHANGE_MAX_SLOTS) return -1;
   program_preset_t preset;
   if (!program_change_mgr_get_preset(track, &preset) || !preset.valid) {
-    out->str_val = "(empty)";
+    out->string_val = "(empty)";
     return 0;
   }
-  out->str_val = preset.name;
+  out->string_val = preset.name;
   return 0;
 }
 

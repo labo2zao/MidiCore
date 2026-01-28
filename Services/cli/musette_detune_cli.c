@@ -64,11 +64,17 @@ static const char* s_style_names[] = {
 // MODULE DESCRIPTOR
 // =============================================================================
 
+// Init wrapper (module init returns void, descriptor needs int)
+static int musette_detune_cli_init(void) {
+  musette_init();
+  return 0;
+}
+
 static module_descriptor_t s_musette_detune_descriptor = {
   .name = "musette_detune",
   .description = "Classic accordion musette/chorus",
   .category = MODULE_CATEGORY_ACCORDION,
-  .init = musette_detune_init,
+  .init = musette_detune_cli_init,
   .enable = musette_detune_cli_enable,
   .disable = musette_detune_cli_disable,
   .get_status = musette_detune_cli_get_status,
