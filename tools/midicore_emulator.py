@@ -28,6 +28,7 @@ import sys
 import time
 import argparse
 import threading
+import platform
 from typing import List, Optional
 
 try:
@@ -509,18 +510,38 @@ Examples:
     
     # Determine startup mode
     if args.use_existing:
-        # Use existing port (Windows/loopMIDI mode)
+        # Explicit flag - use specified port
         port_idx = emulator.find_port(args.use_existing)
         if port_idx is None:
             return 1
         
         if not emulator.start_with_existing_port(port_idx):
             return 1
+    elif platform.system() == 'Windows':
+        # Windows - auto-detect loopMIDI (virtual ports don't work on Windows)
+        print("✓ Detected Windows - searching for loopMIDI port...")
+        port_idx = emulator.find_port("loop")
+        if port_idx is None:
+            print("\n" + "=" * 60)
+            print("ERROR: loopMIDI port not found!")
+            print("=" * 60)
+            print("\nPlease:")
+            print("  1. Open loopMIDI application")
+            print("  2. Create a port (click '+' button)")
+            print("  3. Keep loopMIDI running")
+            print("  4. Run this script again")
+            print("\nOr specify a different port:")
+            print("  python midicore_emulator.py --use-existing 'YourPortName'")
+            print("=" * 60)
+            return 1
+        
+        if not emulator.start_with_existing_port(port_idx):
+            return 1
     else:
-        # Try to create virtual port (macOS/Linux mode)
+        # macOS/Linux - try to create virtual port
         if not emulator.start_with_virtual_port():
-            print("\nHint: Try --use-existing with a loopMIDI port name")
-            print("Example: python midicore_emulator.py --use-existing 'loopMIDI'")
+            print("\nHint: Try --use-existing with an existing port")
+            print("Example: python midicore_emulator.py --use-existing 'IAC'")
             return 1
     
     try:
