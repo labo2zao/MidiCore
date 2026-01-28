@@ -163,23 +163,40 @@ int main(void)
   __HAL_RCC_CCMDATARAMEN_CLK_ENABLE();
   
 #if MODULE_ENABLE_USB_MIDI || MODULE_ENABLE_USB_CDC
-  /* Initialize USB Device */
-  MX_USB_DEVICE_Init();
+  /* CRITICAL FIX: Register interface callbacks BEFORE starting USB device!
+   * 
+   * The callbacks MUST be registered before MX_USB_DEVICE_Init() because:
+   * - MX_USB_DEVICE_Init() calls USBD_Start() which triggers USB enumeration
+   * - During enumeration, host sends SET_CONFIGURATION
+   * - This calls USBD_COMPOSITE_Init() → USBD_MIDI.Init() and USBD_CDC.Init()
+   * - Those Init functions expect callbacks to already be registered
+   * - If callbacks are NULL, DataOut/Receive will never be called!
+   * 
+   * OLD (BROKEN) ORDER:
+   *   1. MX_USB_DEVICE_Init() → enumeration starts → callbacks NULL
+   *   2. usb_midi_init() → too late, already enumerated
+   *   3. usb_cdc_init() → too late, already enumerated
+   * 
+   * NEW (CORRECT) ORDER:
+   *   1. usb_midi_init() → register callbacks FIRST
+   *   2. usb_cdc_init() → register callbacks FIRST
+   *   3. MX_USB_DEVICE_Init() → NOW start enumeration with callbacks ready
+   */
   
   #if MODULE_ENABLE_USB_MIDI
-    /* Initialize MIDI service and register interface */
+    /* Initialize MIDI service and register interface callbacks */
     extern void usb_midi_init(void);
     usb_midi_init();
   #endif
   
   #if MODULE_ENABLE_USB_CDC
-    /* CRITICAL: Initialize CDC service and register interface callbacks
-     * This MUST be called to register pCDC_Fops with the USB CDC class.
-     * Without this, CDC class has no interface callbacks and cannot respond!
-     */
+    /* Initialize CDC service and register interface callbacks */
     extern void usb_cdc_init(void);
     usb_cdc_init();
   #endif
+  
+  /* NOW start USB device with callbacks already registered */
+  MX_USB_DEVICE_Init();
 #endif
   /* USER CODE END 2 */
   

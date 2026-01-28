@@ -145,20 +145,34 @@ void usb_midi_init(void) {
 static void tx_queue_send_next(void) {
   USBD_MIDI_HandleTypeDef *hmidi = usb_midi_get_class_data();
   
+  /* DEBUG: Add instrumentation to trace TX failures */
+  #ifdef MODULE_TEST_USB_DEVICE_MIDI
+  extern void test_debug_tx_trace(uint8_t code);
+  #endif
+  
   /* Check if interface is ready */
   if (hmidi == NULL || !hmidi->is_ready) {
+    #ifdef MODULE_TEST_USB_DEVICE_MIDI
+    test_debug_tx_trace(0x01); // Class data NULL or not ready
+    #endif
     tx_in_progress = 0;
     return;
   }
   
   /* Check if queue is empty */
   if (tx_queue_is_empty()) {
+    #ifdef MODULE_TEST_USB_DEVICE_MIDI
+    test_debug_tx_trace(0x02); // Queue empty
+    #endif
     tx_in_progress = 0;
     return;
   }
   
   /* Check if endpoint is busy */
   if (hUsbDeviceFS.ep_in[MIDI_IN_EP & 0x0F].status == USBD_BUSY) {
+    #ifdef MODULE_TEST_USB_DEVICE_MIDI
+    test_debug_tx_trace(0x03); // Endpoint busy
+    #endif
     /* Endpoint busy - keep tx_in_progress flag set, will retry on next TX complete */
     return;
   }
@@ -184,8 +198,18 @@ void usb_midi_send_packet(uint8_t cin, uint8_t b0, uint8_t b1, uint8_t b2) {
    * This ensures reliable multi-packet message delivery (SysEx, etc.)
    */
   
+  /* DEBUG: Trace packet arrival */
+  #ifdef MODULE_TEST_USB_DEVICE_MIDI
+  extern void test_debug_tx_packet_queued(uint8_t cin, uint8_t b0);
+  test_debug_tx_packet_queued(cin, b0);
+  #endif
+  
   /* Check if queue is full */
   if (tx_queue_is_full()) {
+    #ifdef MODULE_TEST_USB_DEVICE_MIDI
+    extern void test_debug_tx_trace(uint8_t code);
+    test_debug_tx_trace(0xFF); // Queue full!
+    #endif
     /* Queue full - drop packet (should rarely happen with 32-deep queue) */
     return;
   }
@@ -216,8 +240,22 @@ void usb_midi_send_packet(uint8_t cin, uint8_t b0, uint8_t b1, uint8_t b2) {
 void usb_midi_rx_packet(const uint8_t packet4[4]) {
   /* INTERRUPT CONTEXT - Keep this FAST! */
   
+#ifdef MODULE_TEST_USB_DEVICE_MIDI
+  /* Debug: Trace packet arrival at ISR level */
+  {
+    char buf[40];
+    uint8_t cable = (packet4[0] >> 4) & 0x0F;
+    uint8_t cin = packet4[0] & 0x0F;
+    snprintf(buf, sizeof(buf), "[RX-ISR] Cable:%d CIN:%02X\r\n", cable, cin);
+    dbg_print(buf);
+  }
+#endif
+  
   /* Check if queue is full (should be rare with 16-deep queue) */
   if (rx_queue_is_full()) {
+#ifdef MODULE_TEST_USB_DEVICE_MIDI
+    dbg_print("[RX-ISR] ERROR: Queue FULL!\r\n");
+#endif
     /* Drop packet - queue overflow */
     return;
   }
@@ -246,6 +284,16 @@ void usb_midi_rx_packet(const uint8_t packet4[4]) {
  */
 void usb_midi_process_rx_queue(void) {
   /* TASK CONTEXT - Safe to do heavy processing and TX operations */
+  
+#ifdef MODULE_TEST_USB_DEVICE_MIDI
+  /* Debug: Show queue status when non-empty */
+  if (!rx_queue_is_empty()) {
+    uint8_t count = ((rx_queue_head - rx_queue_tail) & (USB_MIDI_RX_QUEUE_SIZE - 1));
+    char buf[50];
+    snprintf(buf, sizeof(buf), "[RX-TASK] Processing %d packet(s)\r\n", count);
+    dbg_print(buf);
+  }
+#endif
   
   /* Process all queued packets */
   while (!rx_queue_is_empty()) {

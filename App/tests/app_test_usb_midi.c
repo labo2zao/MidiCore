@@ -10,6 +10,7 @@
 #endif
 
 #include <string.h>
+#include <stdio.h>  // For snprintf() in debug functions
 
 // =============================================================================
 // CONFIGURATION
@@ -125,6 +126,63 @@ static void print_usb_midi_packet(const uint8_t packet4[4])
 // =============================================================================
 
 /**
+ * @brief Debug trace for TX failures
+ * 
+ * Note: This is called from interrupt context, so we build the complete
+ * message in a buffer and send it as a single atomic write to avoid
+ * fragmentation when using USB CDC.
+ * 
+ * Only logs real errors (not normal conditions like "queue empty").
+ */
+void test_debug_tx_trace(uint8_t code)
+{
+  char buffer[80];
+  const char* msg;
+  
+  // Only log actual errors, not normal conditions
+  switch(code) {
+    case 0x01: msg = "ERROR: Class data NULL"; break;
+    case 0x02: return; // Queue empty is normal, don't log
+    case 0x03: msg = "WARNING: Endpoint BUSY"; break;
+    case 0xFF: msg = "ERROR: Queue FULL!"; break;
+    default: return; // Unknown, don't log
+  }
+  
+  // Build complete message in buffer for atomic send
+  int len = snprintf(buffer, sizeof(buffer), "[TX-DBG] %s\r\n", msg);
+  
+  if (len > 0 && len < (int)sizeof(buffer)) {
+    dbg_print(buffer);
+  }
+}
+
+/**
+ * @brief Debug trace for packet queueing
+ * 
+ * Note: This is called from interrupt context, so we build the complete
+ * message in a buffer and send it as a single atomic write to avoid
+ * fragmentation when using USB CDC.
+ * 
+ * Disabled by default to reduce noise - TX is working!
+ */
+void test_debug_tx_packet_queued(uint8_t cin, uint8_t b0)
+{
+  // Disabled to reduce debug noise
+  // Packets are being queued correctly, no need to trace every one
+  (void)cin;
+  (void)b0;
+  
+  // Uncomment below for detailed TX queue tracing if needed:
+  /*
+  char buffer[40];
+  int len = snprintf(buffer, sizeof(buffer), "[TX-QUEUE] CIN:%02X B0:%02X\r\n", cin, b0);
+  if (len > 0 && len < (int)sizeof(buffer)) {
+    dbg_print(buffer);
+  }
+  */
+}
+
+/**
  * @brief Send a test MIDI Note On message via USB
  */
 static void send_test_note_on(void)
@@ -146,9 +204,11 @@ static void send_test_note_on(void)
   dbg_print_hex8(note);
   dbg_print(" ");
   dbg_print_hex8(velocity);
-  dbg_print("\r\n");
+  dbg_print(" -> Calling usb_midi_send_packet()...\r\n");
   
   usb_midi_send_packet(cin, status, note, velocity);
+  
+  dbg_print("[TX] ...packet queued\r\n");
 #endif
 }
 

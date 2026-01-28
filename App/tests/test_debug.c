@@ -49,6 +49,14 @@ static UART_HandleTypeDef* get_debug_uart_handle(void)
 
 int test_debug_init(void)
 {
+#if MODULE_ENABLE_USB_CDC
+  // USB CDC is already initialized in main.c before this function
+  // Just print confirmation message via USB CDC
+  dbg_print("\r\n==============================================\r\n");
+  dbg_print("Debug output routed to USB CDC (Virtual COM)\r\n");
+  dbg_print("==============================================\r\n");
+#else
+  // Fallback to UART if USB CDC not available
   // UART handles are initialized in main.c by CubeMX to 31250 (MIDI baud)
   // In TEST MODE, we reconfigure the debug UART to 115200 baud
   // In PRODUCTION MODE, all UARTs stay at 31250 baud
@@ -73,6 +81,7 @@ int test_debug_init(void)
   dbg_print("\r\n==============================================\r\n");
   dbg_print("Debug UART initialized at 115200 baud\r\n");
   dbg_print("==============================================\r\n");
+#endif
   
 #if MODULE_ENABLE_OLED
   // Always initialize OLED for debug mirroring (enabled by default)
@@ -118,9 +127,14 @@ int test_debug_init(void)
 
 void dbg_putc(char c)
 {
-  // Always output to UART debug
+#if MODULE_ENABLE_USB_CDC
+  // Primary output: USB CDC (virtual COM port)
+  usb_cdc_send((const uint8_t*)&c, 1);
+#else
+  // Fallback to UART if USB CDC not available
   UART_HandleTypeDef* huart = get_debug_uart_handle();
   HAL_UART_Transmit(huart, (uint8_t*)&c, 1, 100);
+#endif
   
   // Also mirror to OLED if enabled (optional secondary output)
   if (oled_mirror_is_enabled()) {
@@ -136,9 +150,14 @@ void dbg_print(const char* str)
   size_t len = strlen(str);
   if (len == 0) return;
   
-  // Always output to UART debug
+#if MODULE_ENABLE_USB_CDC
+  // Primary output: USB CDC (virtual COM port)
+  usb_cdc_send((const uint8_t*)str, len);
+#else
+  // Fallback to UART if USB CDC not available
   UART_HandleTypeDef* huart = get_debug_uart_handle();
   HAL_UART_Transmit(huart, (const uint8_t*)str, len, 1000);
+#endif
   
   // Also mirror to OLED if enabled (optional secondary output)
   if (oled_mirror_is_enabled()) {

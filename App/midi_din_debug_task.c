@@ -6,11 +6,12 @@
 #include "cmsis_os2.h"
 
 #include "Config/project_config.h"
+#include "Config/module_config.h"
 #include "Services/midi/midi_din.h"
 
-#include "main.h" // huart1
-
-extern UART_HandleTypeDef huart1;
+#if MODULE_ENABLE_USB_CDC
+#include "Services/usb_cdc/usb_cdc.h"
+#endif
 
 #ifndef DEBUG_MIDI_DIN_MONITOR
 #define DEBUG_MIDI_DIN_MONITOR 0
@@ -22,10 +23,18 @@ extern UART_HandleTypeDef huart1;
 
 static osThreadId_t s_midi_mon_tid = NULL;
 
-static void debug_uart_write(const char* s)
+static void debug_write(const char* s)
 {
-  // Best-effort debug: never block forever.
-  (void)HAL_UART_Transmit(&huart1, (uint8_t*)s, (uint16_t)strlen(s), 50);
+  if (!s) return;
+  const size_t n = strlen(s);
+  if (n == 0) return;
+#if MODULE_ENABLE_USB_CDC
+  usb_cdc_send((const uint8_t*)s, (uint16_t)n);
+#else
+  // Fallback to UART if CDC not enabled
+  extern UART_HandleTypeDef huart1;
+  (void)HAL_UART_Transmit(&huart1, (uint8_t*)s, (uint16_t)n, 50);
+#endif
 }
 
 static void mon_task(void* arg)
@@ -34,7 +43,7 @@ static void mon_task(void* arg)
   char line[192];
 
   for (;;) {
-    debug_uart_write("\r\n[MIDI DIN] stats\r\n");
+    debug_write("\r\n[MIDI DIN] stats\r\n");
 
     for (uint8_t p = 0; p < MIDI_DIN_PORTS; ++p) {
       midi_din_stats_t st;
@@ -62,7 +71,7 @@ static void mon_task(void* arg)
                  (unsigned long)st.rx_drops, (unsigned)st.last_bytes[0], (unsigned)st.last_bytes[1],
                  (unsigned)st.last_bytes[2]);
       }
-      debug_uart_write(line);
+      debug_write(line);
     }
 
     osDelay(DEBUG_MIDI_DIN_MONITOR_PERIOD_MS);

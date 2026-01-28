@@ -15,6 +15,8 @@
 #include "../Inc/usbd_midi.h"
 #include "usbd_ctlreq.h"
 #include <string.h>
+#include <stdio.h>  // For snprintf in debug traces
+#include "../../../../App/tests/test_debug.h"  // For dbg_print() function
 
 /* MIDI Status Byte Constants */
 #define MIDI_STATUS_NOTE_OFF             0x80
@@ -514,6 +516,10 @@ static uint8_t USBD_MIDI_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum)
   */
 static uint8_t USBD_MIDI_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum)
 {
+  // UNCONDITIONAL trace to verify function is called
+  extern void dbg_print(const char *str);
+  dbg_print("[MIDI-DataOut] ENTRY\r\n");
+  
   USBD_MIDI_HandleTypeDef *hmidi = (USBD_MIDI_HandleTypeDef *)pdev->pClassData;
   
   if (epnum == (MIDI_OUT_EP & 0x7F))
@@ -521,16 +527,39 @@ static uint8_t USBD_MIDI_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum)
     /* Get received data length */
     hmidi->data_out_length = USBD_LL_GetRxDataSize(pdev, epnum);
     
+    // Debug: Trace data length and callback status
+    char debug_buf[50];
+    snprintf(debug_buf, sizeof(debug_buf), "[MIDI-RX] Len:%lu\r\n", (unsigned long)hmidi->data_out_length);
+    dbg_print(debug_buf);
+    
     /* Process received MIDI packets (4 bytes each) */
     if (midi_fops != NULL && midi_fops->DataOut != NULL && hmidi->data_out_length > 0)
     {
+      snprintf(debug_buf, sizeof(debug_buf), "[MIDI-RX] Calling callback\r\n");
+      dbg_print(debug_buf);
+      
       uint32_t num_packets = hmidi->data_out_length / 4;
       USBD_MIDI_EventPacket_t *packets = (USBD_MIDI_EventPacket_t *)hmidi->data_out;
       
       for (uint32_t i = 0; i < num_packets; i++)
       {
+        // Display received MIDI packet (like TX format)
+        uint8_t cable = (packets[i].header >> 4) & 0x0F;
+        snprintf(debug_buf, sizeof(debug_buf), "[MIDI-RX] Cable:%u %02X %02X %02X\r\n",
+                 (unsigned int)cable, 
+                 (unsigned int)packets[i].byte1,
+                 (unsigned int)packets[i].byte2, 
+                 (unsigned int)packets[i].byte3);
+        dbg_print(debug_buf);
+        
         midi_fops->DataOut(&packets[i]);
       }
+    }
+    else
+    {
+      snprintf(debug_buf, sizeof(debug_buf), "[MIDI-RX] Callback SKIP (fops:%p len:%lu)\r\n", 
+               (void*)midi_fops, (unsigned long)hmidi->data_out_length);
+      dbg_print(debug_buf);
     }
     
     /* Prepare Out endpoint to receive next packet */
