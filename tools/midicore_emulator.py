@@ -73,6 +73,9 @@ class MIOS32Protocol:
             cls.MIOS32_DEVICE_ID,
             0x00,  # Device instance 0
             cls.CMD_DEBUG_MESSAGE,
+            0x40,  # Message type: 0x40 = received (terminal output)
+                   # CRITICAL: MIOS Studio requires this byte!
+                   # See: mios_studio/src/gui/MiosTerminal.cpp line 113
         ]
         
         # Add ASCII text

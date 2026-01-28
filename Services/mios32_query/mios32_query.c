@@ -253,6 +253,9 @@ bool mios32_debug_send_message(const char* text, uint8_t cable) {
   *p++ = MIOS32_QUERY_DEVICE_ID;  // 0x32
   *p++ = 0x00;                    // Device instance 0
   *p++ = MIOS32_CMD_DEBUG_MESSAGE; // 0x0D - debug message command
+  *p++ = 0x40;                    // Message type: 0x40 = received (terminal output)
+                                   // CRITICAL: MIOS Studio requires this byte!
+                                   // See: mios32/tools/mios_studio/src/gui/MiosTerminal.cpp line 113
   
   // Copy ASCII text
   memcpy(p, text, text_len);
