@@ -296,14 +296,20 @@ void app_init_and_start(void)
 #endif
 #endif
 
+  dbg_printf("[INIT] System initialization complete\r\n");
+
   // Initialize CLI and module registry for terminal control
 #if MODULE_ENABLE_MODULE_REGISTRY
+  dbg_printf("[INIT] Initializing module registry...\r\n");
   module_registry_init();
 #endif
 
 #if MODULE_ENABLE_CLI
+  dbg_printf("[INIT] Initializing CLI system...\r\n");
   cli_init();
+  dbg_printf("[INIT] Registering CLI module commands...\r\n");
   cli_module_commands_init();
+  dbg_printf("[INIT] CLI system ready\r\n");
 #endif
 
 #if MODULE_ENABLE_TEST
@@ -501,6 +507,37 @@ static uint8_t boot_shift_held(uint8_t active_low) {
 static void CliTask(void *argument)
 {
   (void)argument;
+  
+  // Wait for USB CDC to be fully enumerated if using USB CDC
+  // This typically takes 2-5 seconds after boot
+#if MODULE_ENABLE_USB_CDC
+  dbg_printf("[CLI] CLI task started, waiting for USB CDC enumeration...\r\n");
+  
+  // Wait up to 5 seconds for USB CDC to be ready
+  uint32_t wait_count = 0;
+  while (wait_count < 500) {  // 500 x 10ms = 5 seconds
+    osDelay(10);
+    wait_count++;
+    
+    // Check if USB CDC is responding (simple test)
+    // After enumeration, USB CDC should accept data
+    // We just wait the full timeout to be safe
+    if (wait_count >= 200) {  // Minimum 2 seconds
+      break;
+    }
+  }
+  
+  dbg_printf("[CLI] USB CDC initialization period complete\r\n");
+#else
+  dbg_printf("[CLI] CLI task started using UART\r\n");
+  osDelay(100);  // Small delay to let system stabilize
+#endif
+  
+  // Now print welcome banner - USB CDC should be ready
+  dbg_printf("[CLI] Printing welcome banner...\r\n");
+  cli_print_banner();
+  cli_print_prompt();
+  dbg_printf("[CLI] CLI ready for commands\r\n");
   
   // CLI processing loop
   for (;;) {
