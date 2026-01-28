@@ -31,6 +31,15 @@ DEFINE_PARAM_BOOL_TRACK(register_coupling, smooth_transition, register_coupling_
 DEFINE_PARAM_INT_TRACK(register_coupling, transition_time, register_coupling_get_transition_time, register_coupling_set_transition_time)
 
 // =============================================================================
+// INIT WRAPPER
+// =============================================================================
+
+static int register_coupling_cli_init(void) {
+  reg_coupling_init();
+  return 0;
+}
+
+// =============================================================================
 // MODULE CONTROL WRAPPERS
 // =============================================================================
 
@@ -74,7 +83,7 @@ static module_descriptor_t s_register_coupling_descriptor = {
   .name = "register_coupling",
   .description = "Accordion register switching",
   .category = MODULE_CATEGORY_ACCORDION,
-  .init = register_coupling_init,
+  .init = register_coupling_cli_init,
   .enable = register_coupling_cli_enable,
   .disable = register_coupling_cli_disable,
   .get_status = register_coupling_cli_get_status,

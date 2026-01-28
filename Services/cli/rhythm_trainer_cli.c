@@ -14,7 +14,7 @@
 // PARAMETER WRAPPERS
 // =============================================================================
 
-static rhythm_cfg_t s_cfg = {0};
+static rhythm_config_t s_cfg = {0};
 
 static int rhythm_trainer_param_get_enabled(uint8_t track, param_value_t* out) {
   (void)track;
