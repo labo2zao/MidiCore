@@ -163,6 +163,18 @@ void app_init_and_start(void)
   usb_midi_init();
 #endif
 
+#if MODULE_ENABLE_USB_CDC
+  #include "Services/usb_cdc/usb_cdc.h"
+  usb_cdc_init();
+  
+  // Register CDC terminal echo callback for MIOS Studio terminal
+  static void cdc_terminal_echo(const uint8_t *data, uint32_t len) {
+    // Echo back what was received (simple terminal test)
+    usb_cdc_send(data, len);
+  }
+  usb_cdc_register_receive_callback(cdc_terminal_echo);
+#endif
+
 #if MODULE_ENABLE_PATCH
   patch_init();
 #endif
