@@ -7160,34 +7160,88 @@ void module_test_usb_device_midi_run(void)
   dbg_print("Sending test Note On/Off messages every 2 seconds.\r\n");
   
 #if MODULE_ENABLE_USB_MIDI
-  // Test MIOS Studio terminal by sending a direct message
-  // Send immediately, bypassing boot delay and rate limiting
-  dbg_print("\r\n");
-  dbg_print("Testing MIOS Studio terminal...\r\n");
-  extern bool mios32_debug_send_message(const char* text, uint8_t cable);
+  // ============================================================================
+  // MIOS STUDIO TERMINAL DEBUG TOOL
+  // ============================================================================
+  // Test MIOS Studio terminal by sending direct messages and reporting results
+  // All diagnostic output goes to CDC (TeraTerm) so we can see what's happening
+  // ============================================================================
   
-  // Send multiple test messages to ensure at least one gets through
-  dbg_print("Sending 5 test messages directly...\r\n");
+  extern bool mios32_debug_send_message(const char* text, uint8_t cable);
+  extern bool usb_midi_get_tx_status(uint32_t *queue_size, uint32_t *queue_used, uint32_t *queue_drops);
+  
+  dbg_print("\r\n");
+  dbg_print("========================================\r\n");
+  dbg_print("MIOS STUDIO TERMINAL DEBUG TOOL\r\n");
+  dbg_print("========================================\r\n");
+  
+  // Check USB MIDI TX queue status
+  uint32_t queue_size = 0, queue_used = 0, queue_drops = 0;
+  bool midi_ready = usb_midi_get_tx_status(&queue_size, &queue_used, &queue_drops);
+  
+  char status_buf[200];
+  snprintf(status_buf, sizeof(status_buf),
+           "USB MIDI Status:\r\n"
+           "  Ready: %s\r\n"
+           "  TX Queue Size: %lu packets\r\n"
+           "  TX Queue Used: %lu packets\r\n"
+           "  TX Queue Drops: %lu packets\r\n",
+           midi_ready ? "YES" : "NO",
+           (unsigned long)queue_size,
+           (unsigned long)queue_used,
+           (unsigned long)queue_drops);
+  dbg_print(status_buf);
+  
+  if (!midi_ready) {
+    dbg_print("\r\n*** ERROR: USB MIDI interface not ready! ***\r\n");
+    dbg_print("Check USB initialization and enumeration.\r\n");
+  }
+  
+  dbg_print("\r\nSending 5 test messages to MIOS Studio terminal...\r\n");
+  dbg_print("(Watch for these in MIOS Studio Terminal window)\r\n\r\n");
+  
+  // Send test messages with detailed reporting
   for (int i = 0; i < 5; i++) {
     char test_msg[100];
     snprintf(test_msg, sizeof(test_msg), "*** MIOS Terminal Test #%d ***\r\n", i+1);
+    
+    // Send the message
     bool sent = mios32_debug_send_message(test_msg, 0);
+    
+    // Report result to CDC (TeraTerm)
+    char result_buf[150];
     if (sent) {
-      dbg_printf("  Message %d sent successfully\r\n", i+1);
+      snprintf(result_buf, sizeof(result_buf),
+               "[CDC] Test #%d: SENT SUCCESSFULLY to MIOS Terminal\r\n", i+1);
     } else {
-      dbg_printf("  WARNING: Message %d FAILED to send!\r\n", i+1);
+      snprintf(result_buf, sizeof(result_buf),
+               "[CDC] Test #%d: FAILED - TX queue full or MIDI not ready\r\n", i+1);
     }
-    osDelay(50);  // Small delay between messages
+    dbg_print(result_buf);
+    
+    // Check queue status after each send
+    usb_midi_get_tx_status(&queue_size, &queue_used, &queue_drops);
+    snprintf(result_buf, sizeof(result_buf),
+             "      Queue: %lu/%lu used, %lu drops\r\n",
+             (unsigned long)queue_used, (unsigned long)queue_size, (unsigned long)queue_drops);
+    dbg_print(result_buf);
+    
+    osDelay(100);  // 100ms delay between messages
   }
   
-  dbg_print("If you see messages in MIOS Studio terminal, it's working!\r\n");
-  dbg_print("If not, check USB MIDI connection and MIOS Studio terminal window.\r\n");
+  dbg_print("\r\n");
+  dbg_print("Test complete. Check MIOS Studio Terminal window.\r\n");
+  dbg_print("If you see the test messages there, terminal is WORKING.\r\n");
+  dbg_print("If not, messages are being sent but not received.\r\n");
+  dbg_print("========================================\r\n");
+  dbg_print("\r\n");
 #endif
   
   dbg_print_separator();
   
   uint32_t last_send_time = 0;
   uint8_t note_state = 0;  // 0=off, 1=on
+  uint32_t last_mios_stats = 0;  // For periodic MIOS terminal diagnostics
   
   // Main test loop
   for (;;) {
@@ -7203,6 +7257,27 @@ void module_test_usb_device_midi_run(void)
 #endif
     
     uint32_t now = osKernelGetTickCount();
+    
+    // Periodically report MIOS terminal status to CDC (every 30 seconds)
+    if (now - last_mios_stats >= 30000) {
+      last_mios_stats = now;
+      
+      uint32_t q_size = 0, q_used = 0, q_drops = 0;
+      bool ready = usb_midi_get_tx_status(&q_size, &q_used, &q_drops);
+      
+      char mios_stats[250];
+      snprintf(mios_stats, sizeof(mios_stats),
+               "\r\n[MIOS STATS] MIDI Ready:%s Queue:%lu/%lu Drops:%lu\r\n",
+               ready ? "YES" : "NO",
+               (unsigned long)q_used,
+               (unsigned long)q_size,
+               (unsigned long)q_drops);
+      dbg_print(mios_stats);
+      
+      if (q_drops > 0) {
+        dbg_print("[MIOS WARN] TX queue has dropped packets! Possible queue overflow.\r\n");
+      }
+    }
     
     // Periodically send test MIDI messages
     if (now - last_send_time >= 2000) {
