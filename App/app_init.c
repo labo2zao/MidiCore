@@ -305,12 +305,15 @@ void app_init_and_start(void)
 #endif
 
 #if MODULE_ENABLE_CLI
-  dbg_printf("[INIT] Initializing CLI system...\r\n");
+  dbg_printf("[INIT] CLI step 1: calling cli_init...\r\n");
   cli_init();
-  dbg_printf("[INIT] CLI init returned, registering module commands...\r\n");
+  dbg_printf("[INIT] CLI step 2: cli_init returned OK\r\n");
+  dbg_printf("[INIT] CLI step 3: calling cli_module_commands_init...\r\n");
   int cli_cmd_result = cli_module_commands_init();
-  dbg_printf("[INIT] cli_module_commands_init returned %d\r\n", cli_cmd_result);
-  dbg_printf("[INIT] CLI system ready\r\n");
+  dbg_printf("[INIT] CLI step 4: cli_module_commands_init returned %d\r\n", cli_cmd_result);
+  dbg_printf("[INIT] CLI step 5: CLI system ready\r\n");
+#else
+  dbg_printf("[INIT] MODULE_ENABLE_CLI is NOT defined - CLI will not be available\r\n");
 #endif
 
 #if MODULE_ENABLE_TEST

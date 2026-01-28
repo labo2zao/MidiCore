@@ -75,15 +75,23 @@ int cli_init(void)
   s_initialized = 1;
 
   dbg_printf("[CLI] CLI initialization complete - %lu commands registered\r\n", (unsigned long)s_command_count);
-  dbg_printf("[CLI] About to return from cli_init...\r\n");
+  
+  // Intentionally split messages to isolate crash point
+  dbg_printf("[CLI] ");
+  dbg_printf("About to ");
+  dbg_printf("return from ");
+  dbg_printf("cli_init...\r\n");
 
 #if MODULE_ENABLE_USB_CDC
-  dbg_printf("[CLI] Waiting for USB CDC ready (this may take 2-5 seconds)...\r\n");
+  dbg_printf("[CLI] USB CDC mode active\r\n");
+#else
+  dbg_printf("[CLI] UART mode active\r\n");
 #endif
 
   // Note: Banner will be printed by CLI task after USB CDC is ready
   // to avoid it being lost during USB enumeration
 
+  dbg_printf("[CLI] Returning 0 from cli_init NOW\r\n");
   return 0;
 }
 
