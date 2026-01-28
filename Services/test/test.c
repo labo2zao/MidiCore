@@ -171,15 +171,17 @@ int test_run(const char* test_name, int32_t duration_ms)
     dbg_print("Description: ");
     dbg_print(desc->description);
     dbg_print("\r\n");
+    
+    // Buffer duration message to avoid fragmentation
+    char dur_buf[60];
     if (duration_ms > 0) {
-      dbg_print("Duration: ");
-      dbg_print_uint((uint32_t)duration_ms);
-      dbg_print(" ms\r\n");
+      snprintf(dur_buf, sizeof(dur_buf), "Duration: %lu ms\r\n", (unsigned long)duration_ms);
     } else if (duration_ms == 0) {
-      dbg_print("Duration: Single iteration\r\n");
+      snprintf(dur_buf, sizeof(dur_buf), "Duration: Single iteration\r\n");
     } else {
-      dbg_print("Duration: Infinite (until stopped)\r\n");
+      snprintf(dur_buf, sizeof(dur_buf), "Duration: Infinite (until stopped)\r\n");
     }
+    dbg_print(dur_buf);
     dbg_print("========================================\r\n\r\n");
   }
   
@@ -194,15 +196,16 @@ int test_run(const char* test_name, int32_t duration_ms)
   memcpy(&g_last_result, &g_current_result, sizeof(test_result_t));
   
   if (g_test_config.verbose) {
-    dbg_print("\r\n========================================\r\n");
-    dbg_print("Test completed: ");
-    dbg_print(test_name);
-    dbg_print("\r\nStatus: ");
-    dbg_print((result == 0) ? "PASSED" : "FAILED");
-    dbg_print("\r\nDuration: ");
-    dbg_print_uint(g_current_result.duration_ms);
-    dbg_print(" ms\r\n");
-    dbg_print("========================================\r\n\r\n");
+    // Buffer complete completion message to avoid fragmentation
+    char buf[150];
+    snprintf(buf, sizeof(buf), 
+             "\r\n========================================\r\n"
+             "Test completed: %s\r\nStatus: %s\r\nDuration: %lu ms\r\n"
+             "========================================\r\n\r\n",
+             test_name,
+             (result == 0) ? "PASSED" : "FAILED",
+             (unsigned long)g_current_result.duration_ms);
+    dbg_print(buf);
   }
   
   return result;

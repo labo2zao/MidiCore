@@ -24,22 +24,22 @@ static cli_result_t cmd_test_list(int argc, char* argv[])
   
   uint32_t count = test_get_count();
   
-  dbg_print("\r\n=== Available Tests ===\r\n\r\n");
-  dbg_print("Count: ");
-  dbg_print_uint(count);
-  dbg_print(" tests\r\n\r\n");
+  // Buffer complete header to avoid fragmentation
+  char header_buf[80];
+  snprintf(header_buf, sizeof(header_buf), 
+           "\r\n=== Available Tests ===\r\n\r\nCount: %lu tests\r\n\r\n",
+           (unsigned long)count);
+  dbg_print(header_buf);
   
   for (uint32_t i = 0; i < count; i++) {
     const char* name = test_get_name(i);
     const char* desc = test_get_description(name);
     
-    dbg_print("  ");
-    dbg_print_uint(i + 1);
-    dbg_print(". ");
-    dbg_print(name);
-    dbg_print("\r\n     ");
-    dbg_print(desc);
-    dbg_print("\r\n\r\n");
+    // Buffer complete test entry to avoid fragmentation
+    char test_buf[200];
+    snprintf(test_buf, sizeof(test_buf), "  %lu. %s\r\n     %s\r\n\r\n",
+             (unsigned long)(i + 1), name, desc);
+    dbg_print(test_buf);
   }
   
   dbg_print("Usage: test run <name>\r\n");
@@ -108,9 +108,10 @@ static cli_result_t cmd_test_stop(int argc, char* argv[])
   int result = test_stop();
   
   if (result < 0) {
-    dbg_print("ERROR: Could not stop test (code: ");
-    dbg_print_int(result);
-    dbg_print(")\r\n");
+    // Buffer error message to avoid fragmentation
+    char err_buf[80];
+    snprintf(err_buf, sizeof(err_buf), "ERROR: Could not stop test (code: %d)\r\n", result);
+    dbg_print(err_buf);
     return CLI_ERROR;
   }
   
@@ -137,47 +138,46 @@ static cli_result_t cmd_test_status(int argc, char* argv[])
   if (result.test_name[0] == '\0') {
     dbg_print("Status: No test has been run\r\n");
   } else {
-    dbg_print("Test: ");
-    dbg_print(result.test_name);
-    dbg_print("\r\n");
-    
-    dbg_print("Status: ");
+    const char* status_str;
     switch (result.status) {
-      case TEST_STATUS_IDLE:
-        dbg_print("IDLE");
-        break;
-      case TEST_STATUS_RUNNING:
-        dbg_print("RUNNING");
-        break;
-      case TEST_STATUS_PASSED:
-        dbg_print("PASSED");
-        break;
-      case TEST_STATUS_FAILED:
-        dbg_print("FAILED");
-        break;
-      case TEST_STATUS_ERROR:
-        dbg_print("ERROR");
-        break;
-      default:
-        dbg_print("UNKNOWN");
-        break;
+      case TEST_STATUS_IDLE:    status_str = "IDLE"; break;
+      case TEST_STATUS_RUNNING: status_str = "RUNNING"; break;
+      case TEST_STATUS_PASSED:  status_str = "PASSED"; break;
+      case TEST_STATUS_FAILED:  status_str = "FAILED"; break;
+      case TEST_STATUS_ERROR:   status_str = "ERROR"; break;
+      default:                  status_str = "UNKNOWN"; break;
     }
-    dbg_print("\r\n");
     
+    // Buffer test info to avoid fragmentation
+    char info_buf[150];
+    snprintf(info_buf, sizeof(info_buf), "Test: %s\r\nStatus: %s\r\n",
+             result.test_name, status_str);
+    dbg_print(info_buf);
+    
+    // Buffer timing info to avoid fragmentation
     if (result.status == TEST_STATUS_RUNNING) {
-      uint32_t elapsed = result.duration_ms;
-      dbg_print("Elapsed: ");
-      dbg_print_uint(elapsed);
-      dbg_print(" ms\r\n");
+      char time_buf[60];
+      snprintf(time_buf, sizeof(time_buf), "Elapsed: %lu ms\r\n",
+               (unsigned long)result.duration_ms);
+      dbg_print(time_buf);
     } else if (result.duration_ms > 0) {
-      dbg_print("Duration: ");
-      dbg_print_uint(result.duration_ms);
-      dbg_print(" ms\r\n");
+      char time_buf[60];
+      snprintf(time_buf, sizeof(time_buf), "Duration: %lu ms\r\n",
+               (unsigned long)result.duration_ms);
+      dbg_print(time_buf);
     }
     
     if (result.error_message[0] != '\0') {
-      dbg_print("Error: ");
-      dbg_print(result.error_message);
+      char err_buf[150];
+      snprintf(err_buf, sizeof(err_buf), "Error: %s\r\n", result.error_message);
+      dbg_print(err_buf);
+    }
+  }
+  
+  dbg_print("===================\r\n\r\n");
+  
+  return CLI_OK;
+}
       dbg_print("\r\n");
     }
   }
