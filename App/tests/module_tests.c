@@ -7159,6 +7159,10 @@ void module_test_usb_device_midi_run(void)
   
   // Main test loop
   for (;;) {
+    // CRITICAL: Process queued RX packets from USB interrupt
+    // Without this call, RX packets are queued but never processed!
+    usb_midi_process_rx_queue();
+    
     uint32_t now = osKernelGetTickCount();
     
     // Periodically send test MIDI messages
