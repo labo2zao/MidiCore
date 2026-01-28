@@ -160,32 +160,42 @@ void dbg_print(const char* str)
   HAL_UART_Transmit(huart, (const uint8_t*)str, len, 1000);
 #endif
 
-#if MODULE_ENABLE_USB_MIDI && MIOS32_ENABLE_DEBUG_OUTPUT
+#if MODULE_ENABLE_USB_MIDI
   // Secondary output: MIOS32 debug message via USB MIDI for MIOS Studio terminal
   // Send as MIOS32 SysEx: F0 00 00 7E 32 00 0D <text> F7
-  // NOTE: This is DISABLED by default because too many debug messages during
-  // boot interfere with MIOS32 query processing and device recognition.
-  // Enable MIOS32_ENABLE_DEBUG_OUTPUT in mios32_query.h when needed.
+  // NOTE: Delayed start to avoid interfering with USB enumeration and MIOS32 queries
   extern bool mios32_debug_send_message(const char* text, uint8_t cable);
+  extern uint32_t osKernelGetTickCount(void);
   
   // Track success/failure for diagnostics
   static uint32_t mios_msg_sent = 0;
   static uint32_t mios_msg_fail = 0;
   static bool first_attempt = true;
+  static uint32_t start_tick = 0;
   
-  bool sent = mios32_debug_send_message(str, 0); // Send on cable 0
+  // Get current tick on first call
+  if (start_tick == 0) {
+    start_tick = osKernelGetTickCount();
+  }
   
-  if (sent) {
-    mios_msg_sent++;
-  } else {
-    mios_msg_fail++;
-    // On first failure, report to CDC only (avoid recursion)
-    if (first_attempt) {
-      first_attempt = false;
+  // Wait 3 seconds after boot before sending debug to MIOS Studio
+  // This allows USB enumeration and MIOS32 query processing to complete first
+  uint32_t elapsed = osKernelGetTickCount() - start_tick;
+  if (elapsed >= 3000) {  // 3 second delay
+    bool sent = mios32_debug_send_message(str, 0); // Send on cable 0
+    
+    if (sent) {
+      mios_msg_sent++;
+    } else {
+      mios_msg_fail++;
+      // On first failure, report to CDC only (avoid recursion)
+      if (first_attempt) {
+        first_attempt = false;
 #if MODULE_ENABLE_USB_CDC
-      const char* err = "[DBG] MIOS32 debug send FAILED\r\n";
-      usb_cdc_send((const uint8_t*)err, strlen(err));
+        const char* err = "[DBG] MIOS32 debug send FAILED\r\n";
+        usb_cdc_send((const uint8_t*)err, strlen(err));
 #endif
+      }
     }
   }
 #endif
