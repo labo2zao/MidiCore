@@ -13,7 +13,7 @@
 // PARAMETER WRAPPERS
 // =============================================================================
 
-DEFINE_PARAM_BOOL_TRACK(cc_smoother, enabled, cc_smoother_get_enabled, cc_smoother_set_enabled)
+DEFINE_PARAM_BOOL_TRACK(cc_smoother, enabled, cc_smoother_is_enabled, cc_smoother_set_enabled)
 
 static int cc_smoother_param_get_mode(uint8_t track, param_value_t* out) {
   
