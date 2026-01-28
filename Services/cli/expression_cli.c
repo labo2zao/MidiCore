@@ -16,16 +16,17 @@
 
 static int expression_param_get_curve(uint8_t track, param_value_t* out) {
   (void)track;
-  const expr_cfg_t* cfg = expression_get_cfg();
-  out->int_val = cfg->curve;
+  expr_cfg_t cfg;
+  expression_get_cfg(&cfg);
+  out->int_val = cfg.curve;
   return 0;
 }
 
 static int expression_param_set_curve(uint8_t track, const param_value_t* val) {
   (void)track;
-  if (val->int_val < 0 || val->int_val >= 3) return -1;
-  const expr_cfg_t* current = expression_get_cfg();
-  expr_cfg_t cfg = *current;
+  if (val->int_val < 0 || val->int_val >= 4) return -1;
+  expr_cfg_t cfg;
+  expression_get_cfg(&cfg);
   cfg.curve = (uint8_t)val->int_val;
   expression_set_cfg(&cfg);
   return 0;
@@ -33,50 +34,53 @@ static int expression_param_set_curve(uint8_t track, const param_value_t* val) {
 
 static int expression_param_get_cc(uint8_t track, param_value_t* out) {
   (void)track;
-  const expr_cfg_t* cfg = expression_get_cfg();
-  out->int_val = cfg->cc_num;
+  expr_cfg_t cfg;
+  expression_get_cfg(&cfg);
+  out->int_val = cfg.cc_num;
   return 0;
 }
 
 static int expression_param_set_cc(uint8_t track, const param_value_t* val) {
   (void)track;
   if (val->int_val < 0 || val->int_val > 127) return -1;
-  const expr_cfg_t* current = expression_get_cfg();
-  expr_cfg_t cfg = *current;
+  expr_cfg_t cfg;
+  expression_get_cfg(&cfg);
   cfg.cc_num = (uint8_t)val->int_val;
   expression_set_cfg(&cfg);
   return 0;
 }
 
-static int expression_param_get_bidir(uint8_t track, param_value_t* out) {
+static int expression_param_get_bidirectional(uint8_t track, param_value_t* out) {
   (void)track;
-  const expr_cfg_t* cfg = expression_get_cfg();
-  out->bool_val = cfg->bidir;
+  expr_cfg_t cfg;
+  expression_get_cfg(&cfg);
+  out->bool_val = cfg.bidirectional;
   return 0;
 }
 
-static int expression_param_set_bidir(uint8_t track, const param_value_t* val) {
+static int expression_param_set_bidirectional(uint8_t track, const param_value_t* val) {
   (void)track;
-  const expr_cfg_t* current = expression_get_cfg();
-  expr_cfg_t cfg = *current;
-  cfg.bidir = val->bool_val;
+  expr_cfg_t cfg;
+  expression_get_cfg(&cfg);
+  cfg.bidirectional = val->bool_val;
   expression_set_cfg(&cfg);
   return 0;
 }
 
 static int expression_param_get_deadband(uint8_t track, param_value_t* out) {
   (void)track;
-  const expr_cfg_t* cfg = expression_get_cfg();
-  out->int_val = cfg->deadband_cc;
+  expr_cfg_t cfg;
+  expression_get_cfg(&cfg);
+  out->int_val = cfg.deadband;
   return 0;
 }
 
 static int expression_param_set_deadband(uint8_t track, const param_value_t* val) {
   (void)track;
   if (val->int_val < 0 || val->int_val > 255) return -1;
-  const expr_cfg_t* current = expression_get_cfg();
-  expr_cfg_t cfg = *current;
-  cfg.deadband_cc = (uint8_t)val->int_val;
+  expr_cfg_t cfg;
+  expression_get_cfg(&cfg);
+  cfg.deadband = (uint8_t)val->int_val;
   expression_set_cfg(&cfg);
   return 0;
 }
@@ -107,6 +111,7 @@ static int expression_cli_get_status(uint8_t track) {
 static const char* s_curve_names[] = {
   "LINEAR",
   "EXPONENTIAL",
+  "LOGARITHMIC",
   "S_CURVE",
 };
 
@@ -137,9 +142,9 @@ static void setup_expression_parameters(void) {
       .description = "Response curve",
       .type = PARAM_TYPE_ENUM,
       .min = 0,
-      .max = 2,
+      .max = 3,
       .enum_values = s_curve_names,
-      .enum_count = 3,
+      .enum_count = 4,
       .read_only = 0,
       .get_value = expression_param_get_curve,
       .set_value = expression_param_set_curve
@@ -155,12 +160,12 @@ static void setup_expression_parameters(void) {
       .set_value = expression_param_set_cc
     },
     {
-      .name = "bidir",
+      .name = "bidirectional",
       .description = "Bidirectional mode (push/pull)",
       .type = PARAM_TYPE_BOOL,
       .read_only = 0,
-      .get_value = expression_param_get_bidir,
-      .set_value = expression_param_set_bidir
+      .get_value = expression_param_get_bidirectional,
+      .set_value = expression_param_set_bidirectional
     },
     {
       .name = "deadband",

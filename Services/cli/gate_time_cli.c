@@ -13,7 +13,7 @@
 // PARAMETER WRAPPERS
 // =============================================================================
 
-DEFINE_PARAM_BOOL_TRACK(gate_time, enabled, gate_time_is_enabled, gate_time_set_enabled)
+DEFINE_PARAM_BOOL_TRACK(gate_time, enabled, gate_time_get_enabled, gate_time_set_enabled)
 
 static int gate_time_param_get_mode(uint8_t track, param_value_t* out) {
   

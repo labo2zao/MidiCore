@@ -31,7 +31,7 @@ static int dream_param_set_enabled(uint8_t track, const param_value_t* val) {
 
 static int dream_param_get_patch_path(uint8_t track, param_value_t* out) {
   (void)track;
-  out->string_val = s_patch_path;
+  out->str_val = s_patch_path;
   return 0;
 }
 

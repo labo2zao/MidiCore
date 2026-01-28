@@ -13,19 +13,19 @@
 // PARAMETER WRAPPERS
 // =============================================================================
 
-DEFINE_PARAM_BOOL_TRACK(envelope_cc, enabled, envelope_cc_is_enabled, envelope_cc_set_enabled)
+DEFINE_PARAM_BOOL_TRACK(envelope_cc, enabled, envelope_cc_get_enabled, envelope_cc_set_enabled)
 
 DEFINE_PARAM_INT_TRACK(envelope_cc, channel, envelope_cc_get_channel, envelope_cc_set_channel)
 
 DEFINE_PARAM_INT_TRACK(envelope_cc, cc_number, envelope_cc_get_cc_number, envelope_cc_set_cc_number)
 
-DEFINE_PARAM_INT_TRACK(envelope_cc, attack, envelope_cc_get_attack, envelope_cc_set_attack)
+DEFINE_PARAM_INT_TRACK(envelope_cc, attack_ms, envelope_cc_get_attack_ms, envelope_cc_set_attack_ms)
 
-DEFINE_PARAM_INT_TRACK(envelope_cc, decay, envelope_cc_get_decay, envelope_cc_set_decay)
+DEFINE_PARAM_INT_TRACK(envelope_cc, decay_ms, envelope_cc_get_decay_ms, envelope_cc_set_decay_ms)
 
 DEFINE_PARAM_INT_TRACK(envelope_cc, sustain, envelope_cc_get_sustain, envelope_cc_set_sustain)
 
-DEFINE_PARAM_INT_TRACK(envelope_cc, release, envelope_cc_get_release, envelope_cc_set_release)
+DEFINE_PARAM_INT_TRACK(envelope_cc, release_ms, envelope_cc_get_release_ms, envelope_cc_set_release_ms)
 
 // =============================================================================
 // MODULE CONTROL WRAPPERS
@@ -58,10 +58,10 @@ static void setup_envelope_cc_parameters(void) {
     PARAM_BOOL(envelope_cc, enabled, "Enable envelope"),
     PARAM_INT(envelope_cc, channel, "Output channel (0-15)", 0, 15),
     PARAM_INT(envelope_cc, cc_number, "CC to modulate (0-127)", 0, 127),
-    PARAM_INT(envelope_cc, attack, "Attack time (0-5000ms)", 0, 5000),
-    PARAM_INT(envelope_cc, decay, "Decay time (0-5000ms)", 0, 5000),
+    PARAM_INT(envelope_cc, attack_ms, "Attack time (0-5000ms)", 0, 5000),
+    PARAM_INT(envelope_cc, decay_ms, "Decay time (0-5000ms)", 0, 5000),
     PARAM_INT(envelope_cc, sustain, "Sustain level (0-127)", 0, 127),
-    PARAM_INT(envelope_cc, release, "Release time (0-5000ms)", 0, 5000),
+    PARAM_INT(envelope_cc, release_ms, "Release time (0-5000ms)", 0, 5000),
   };
   
   s_envelope_cc_descriptor.param_count = sizeof(params) / sizeof(params[0]);

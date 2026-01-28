@@ -13,7 +13,7 @@
 // PARAMETER WRAPPERS
 // =============================================================================
 
-DEFINE_PARAM_BOOL_TRACK(channelizer, enabled, channelizer_is_enabled, channelizer_set_enabled)
+DEFINE_PARAM_BOOL_TRACK(channelizer, enabled, channelizer_get_enabled, channelizer_set_enabled)
 
 static int channelizer_param_get_mode(uint8_t track, param_value_t* out) {
   

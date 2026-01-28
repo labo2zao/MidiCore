@@ -13,49 +13,37 @@
 // PARAMETER WRAPPERS
 // =============================================================================
 
-DEFINE_PARAM_BOOL_TRACK(harmonizer, enabled, harmonizer_is_enabled, harmonizer_set_enabled)
+DEFINE_PARAM_BOOL_TRACK(harmonizer, enabled, harmonizer_get_enabled, harmonizer_set_enabled)
 
 static int harmonizer_param_get_voice1_interval(uint8_t track, param_value_t* out) {
-  out->int_val = harmonizer_get_voice_interval(track, 0);
+  
+  out->int_val = harmonizer_get_voice1_interval(track);
   return 0;
 }
 
 static int harmonizer_param_set_voice1_interval(uint8_t track, const param_value_t* val) {
-  if (val->int_val < 0 || val->int_val >= HARM_INTERVAL_COUNT) return -1;
-  harmonizer_set_voice_interval(track, 0, (harmonizer_interval_t)val->int_val);
+  
+  if (val->int_val < 0 || val->int_val >= 7) return -1;
+  harmonizer_set_voice1_interval(track, (uint8_t)val->int_val);
   return 0;
 }
 
-static int harmonizer_param_get_voice1_enabled(uint8_t track, param_value_t* out) {
-  out->bool_val = harmonizer_is_voice_enabled(track, 0);
-  return 0;
-}
-
-static int harmonizer_param_set_voice1_enabled(uint8_t track, const param_value_t* val) {
-  harmonizer_set_voice_enabled(track, 0, val->bool_val);
-  return 0;
-}
+DEFINE_PARAM_BOOL_TRACK(harmonizer, voice1_enabled, harmonizer_get_voice1_enabled, harmonizer_set_voice1_enabled)
 
 static int harmonizer_param_get_voice2_interval(uint8_t track, param_value_t* out) {
-  out->int_val = harmonizer_get_voice_interval(track, 1);
+  
+  out->int_val = harmonizer_get_voice2_interval(track);
   return 0;
 }
 
 static int harmonizer_param_set_voice2_interval(uint8_t track, const param_value_t* val) {
-  if (val->int_val < 0 || val->int_val >= HARM_INTERVAL_COUNT) return -1;
-  harmonizer_set_voice_interval(track, 1, (harmonizer_interval_t)val->int_val);
+  
+  if (val->int_val < 0 || val->int_val >= 7) return -1;
+  harmonizer_set_voice2_interval(track, (uint8_t)val->int_val);
   return 0;
 }
 
-static int harmonizer_param_get_voice2_enabled(uint8_t track, param_value_t* out) {
-  out->bool_val = harmonizer_is_voice_enabled(track, 1);
-  return 0;
-}
-
-static int harmonizer_param_set_voice2_enabled(uint8_t track, const param_value_t* val) {
-  harmonizer_set_voice_enabled(track, 1, val->bool_val);
-  return 0;
-}
+DEFINE_PARAM_BOOL_TRACK(harmonizer, voice2_enabled, harmonizer_get_voice2_enabled, harmonizer_set_voice2_enabled)
 
 // =============================================================================
 // MODULE CONTROL WRAPPERS
@@ -67,7 +55,7 @@ DEFINE_MODULE_CONTROL_TRACK(harmonizer, harmonizer_set_enabled, harmonizer_is_en
 // ENUM STRINGS
 // =============================================================================
 
-static const char* s_interval_names[] = {
+static const char* s_voice1_interval_names[] = {
   "UNISON",
   "THIRD_UP",
   "THIRD_DOWN",
@@ -75,10 +63,16 @@ static const char* s_interval_names[] = {
   "FIFTH_DOWN",
   "OCTAVE_UP",
   "OCTAVE_DOWN",
-  "FOURTH_UP",
-  "FOURTH_DOWN",
-  "SIXTH_UP",
-  "SIXTH_DOWN",
+};
+
+static const char* s_voice2_interval_names[] = {
+  "UNISON",
+  "THIRD_UP",
+  "THIRD_DOWN",
+  "FIFTH_UP",
+  "FIFTH_DOWN",
+  "OCTAVE_UP",
+  "OCTAVE_DOWN",
 };
 
 // =============================================================================
@@ -109,41 +103,27 @@ static void setup_harmonizer_parameters(void) {
       .description = "Voice 1 interval",
       .type = PARAM_TYPE_ENUM,
       .min = 0,
-      .max = 10,
-      .enum_values = s_interval_names,
-      .enum_count = 11,
+      .max = 6,
+      .enum_values = s_voice1_interval_names,
+      .enum_count = 7,
       .read_only = 0,
       .get_value = harmonizer_param_get_voice1_interval,
       .set_value = harmonizer_param_set_voice1_interval
     },
-    {
-      .name = "voice1_enabled",
-      .description = "Enable voice 1",
-      .type = PARAM_TYPE_BOOL,
-      .read_only = 0,
-      .get_value = harmonizer_param_get_voice1_enabled,
-      .set_value = harmonizer_param_set_voice1_enabled
-    },
+    PARAM_BOOL(harmonizer, voice1_enabled, "Enable voice 1"),
     {
       .name = "voice2_interval",
       .description = "Voice 2 interval",
       .type = PARAM_TYPE_ENUM,
       .min = 0,
-      .max = 10,
-      .enum_values = s_interval_names,
-      .enum_count = 11,
+      .max = 6,
+      .enum_values = s_voice2_interval_names,
+      .enum_count = 7,
       .read_only = 0,
       .get_value = harmonizer_param_get_voice2_interval,
       .set_value = harmonizer_param_set_voice2_interval
     },
-    {
-      .name = "voice2_enabled",
-      .description = "Enable voice 2",
-      .type = PARAM_TYPE_BOOL,
-      .read_only = 0,
-      .get_value = harmonizer_param_get_voice2_enabled,
-      .set_value = harmonizer_param_set_voice2_enabled
-    },
+    PARAM_BOOL(harmonizer, voice2_enabled, "Enable voice 2"),
   };
   
   s_harmonizer_descriptor.param_count = sizeof(params) / sizeof(params[0]);
