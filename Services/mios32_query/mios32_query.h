@@ -88,6 +88,27 @@ void mios32_query_send_device_info(const char* device_name, const char* version,
  */
 bool mios32_debug_send_message(const char* text, uint8_t cable);
 
+/**
+ * @brief Queue a MIOS32 query for deferred processing
+ * 
+ * This function is ISR-safe and should be called when a query is received in interrupt context.
+ * The query will be processed later from task context by calling mios32_query_process_queued().
+ * 
+ * @param data SysEx data (including F0 and F7)
+ * @param len Length of data (max 32 bytes supported)
+ * @param cable USB MIDI cable number (0-3) where query was received
+ * @return true if query was queued successfully, false if queue full
+ */
+bool mios32_query_queue(const uint8_t* data, uint32_t len, uint8_t cable);
+
+/**
+ * @brief Process any queued MIOS32 queries from task context
+ * 
+ * This function must be called periodically from task context (NOT from ISR).
+ * It processes all queued queries and sends responses safely.
+ */
+void mios32_query_process_queued(void);
+
 #ifdef __cplusplus
 }
 #endif

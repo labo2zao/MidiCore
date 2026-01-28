@@ -333,11 +333,11 @@ void usb_midi_process_rx_queue(void) {
           
           /* Fast SysEx validation (check start and end markers) */
           if (buf->pos >= 2 && buf->buffer[0] == 0xF0 && buf->buffer[buf->pos-1] == 0xF7) {
-            /* Check if this is a MIOS32 query message - respond and consume */
+            /* Check if this is a MIOS32 query message - queue for task processing */
             if (mios32_query_is_query_message(buf->buffer, buf->pos)) {
-              // Respond on the same cable, then swallow the query to avoid echo/loopback
-              mios32_query_process(buf->buffer, buf->pos, cable);
-              // Don't route query messages - the handler already replied
+              // Queue for processing from task context (ISR-safe, no USB TX from ISR!)
+              mios32_query_queue(buf->buffer, buf->pos, cable);
+              // Don't route query messages - they'll be processed from queue
             } else {
               /* Only route if not in test mode with APP_TEST_USB_MIDI */
               #ifndef APP_TEST_USB_MIDI
@@ -376,11 +376,11 @@ void usb_midi_process_rx_queue(void) {
           
           /* Fast SysEx validation */
           if (buf->pos >= 2 && buf->buffer[0] == 0xF0 && buf->buffer[buf->pos-1] == 0xF7) {
-            /* Check if this is a MIOS32 query message - respond and consume */
+            /* Check if this is a MIOS32 query message - queue for task processing */
             if (mios32_query_is_query_message(buf->buffer, buf->pos)) {
-              // Respond on the same cable, then swallow the query to avoid echo/loopback
-              mios32_query_process(buf->buffer, buf->pos, cable);
-              // Don't route query messages - the handler already replied
+              // Queue for processing from task context (ISR-safe, no USB TX from ISR!)
+              mios32_query_queue(buf->buffer, buf->pos, cable);
+              // Don't route query messages - they'll be processed from queue
             } else {
               #ifndef APP_TEST_USB_MIDI
               router_msg_t msg;
@@ -418,11 +418,11 @@ void usb_midi_process_rx_queue(void) {
           
           /* Fast SysEx validation */
           if (buf->pos >= 2 && buf->buffer[0] == 0xF0 && buf->buffer[buf->pos-1] == 0xF7) {
-            /* Check if this is a MIOS32 query message - respond and consume */
+            /* Check if this is a MIOS32 query message - queue for task processing */
             if (mios32_query_is_query_message(buf->buffer, buf->pos)) {
-              // Respond on the same cable, then swallow the query to avoid echo/loopback
-              mios32_query_process(buf->buffer, buf->pos, cable);
-              // Don't route query messages - the handler already replied
+              // Queue for processing from task context (ISR-safe, no USB TX from ISR!)
+              mios32_query_queue(buf->buffer, buf->pos, cable);
+              // Don't route query messages - they'll be processed from queue
             } else {
               #ifndef APP_TEST_USB_MIDI
               router_msg_t msg;

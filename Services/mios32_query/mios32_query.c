@@ -27,6 +27,21 @@
 // Buffer for building SysEx responses (max 256 bytes)
 static uint8_t sysex_response_buffer[256];
 
+// Query queue for deferred processing from task context
+#define MIOS32_QUERY_QUEUE_SIZE 4
+#define MIOS32_QUERY_MAX_LEN 32
+
+typedef struct {
+  uint8_t data[MIOS32_QUERY_MAX_LEN];
+  uint32_t len;
+  uint8_t cable;
+  uint8_t valid;
+} mios32_query_queue_entry_t;
+
+static mios32_query_queue_entry_t query_queue[MIOS32_QUERY_QUEUE_SIZE];
+static volatile uint8_t query_queue_write = 0;
+static volatile uint8_t query_queue_read = 0;
+
 bool mios32_query_is_query_message(const uint8_t* data, uint32_t len) {
   // Minimum query: F0 00 00 7E 32 <dev_id> <cmd> F7 = 8 bytes
   if (data == NULL || len < 8) {
@@ -236,4 +251,46 @@ bool mios32_debug_send_message(const char* text, uint8_t cable) {
   return true; // Message sent successfully
   
 #endif
+}
+
+bool mios32_query_queue(const uint8_t* data, uint32_t len, uint8_t cable) {
+  // ISR-safe: Queue query for later processing from task context
+  if (!data || len == 0 || len > MIOS32_QUERY_MAX_LEN) {
+    return false;
+  }
+  
+  // Check if queue has space
+  if ((query_queue_write - query_queue_read) >= MIOS32_QUERY_QUEUE_SIZE) {
+    return false;  // Queue full
+  }
+  
+  // Add to queue
+  uint8_t idx = query_queue_write % MIOS32_QUERY_QUEUE_SIZE;
+  query_queue[idx].len = len;
+  memcpy(query_queue[idx].data, data, len);
+  query_queue[idx].cable = cable;
+  query_queue[idx].valid = 1;
+  
+  // Increment write pointer (atomic on Cortex-M)
+  query_queue_write++;
+  
+  return true;
+}
+
+void mios32_query_process_queued(void) {
+  // Process all queued queries from task context (safe to send USB MIDI)
+  while (query_queue_read != query_queue_write) {
+    uint8_t idx = query_queue_read % MIOS32_QUERY_QUEUE_SIZE;
+    
+    if (query_queue[idx].valid) {
+      // Process query and send response (now safe - we're in task context)
+      mios32_query_process(query_queue[idx].data,
+                          query_queue[idx].len,
+                          query_queue[idx].cable);
+      query_queue[idx].valid = 0;
+    }
+    
+    // Increment read pointer
+    query_queue_read++;
+  }
 }
