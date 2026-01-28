@@ -16,7 +16,7 @@
 #include "usbd_ctlreq.h"
 #include <string.h>
 #include <stdio.h>  // For snprintf in debug traces
-#include "test_debug.h"  // For dbg_print() function
+#include "../../../../App/tests/test_debug.h"  // For dbg_print() function
 
 /* MIDI Status Byte Constants */
 #define MIDI_STATUS_NOTE_OFF             0x80
