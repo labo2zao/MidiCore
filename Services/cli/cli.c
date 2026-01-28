@@ -11,6 +11,10 @@
 #include <ctype.h>
 #include <stdarg.h>
 
+#if MODULE_ENABLE_USB_CDC
+#include "Services/usb_cdc/usb_cdc.h"
+#endif
+
 // =============================================================================
 // PRIVATE STATE
 // =============================================================================
@@ -188,18 +192,29 @@ void cli_task(void)
     return;
   }
 
-  // Get UART handle for debug port (UART5)
+  // Poll for available character (non-blocking)
+  uint8_t ch;
+  
+#if MODULE_ENABLE_USB_CDC
+  // Use USB CDC for CLI input
+  if (usb_cdc_receive(&ch, 1) != 1) {
+    return; // No character available
+  }
+  
+  // Echo character back via USB CDC
+  usb_cdc_send(&ch, 1);
+#else
+  // Fallback to UART
   extern UART_HandleTypeDef huart5;
   UART_HandleTypeDef* uart = &huart5;
   
-  // Poll for available character (non-blocking, 0 timeout)
-  uint8_t ch;
   if (HAL_UART_Receive(uart, &ch, 1, 0) != HAL_OK) {
     return; // No character available
   }
   
   // Echo character back to terminal
   HAL_UART_Transmit(uart, &ch, 1, 10);
+#endif
   
   // Handle special characters
   if (ch == '\r' || ch == '\n') {
