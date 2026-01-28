@@ -64,8 +64,7 @@ static module_descriptor_t s_footswitch_descriptor = {
   .disable = footswitch_cli_disable,
   .get_status = footswitch_cli_get_status,
   .has_per_track_state = 1,  // Per-footswitch state
-  .is_global = 0,
-  .max_tracks = 8  // 8 footswitch inputs
+  .is_global = 0
 };
 
 // =============================================================================
