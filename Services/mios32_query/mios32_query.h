@@ -39,6 +39,9 @@ extern "C" {
 #define MIOS32_QUERY_DIRECTION_QUERY    0x00  // From host to device
 #define MIOS32_QUERY_DIRECTION_RESPONSE 0x01  // From device to host
 
+/** @brief MIOS32 Command Types */
+#define MIOS32_CMD_DEBUG_MESSAGE        0x0D  // Debug/terminal message to MIOS Studio
+
 /**
  * @brief Check if SysEx message is a MIOS32 query
  * @param data SysEx data (including F0 and F7)
@@ -72,6 +75,18 @@ void mios32_query_send_response(uint8_t query_type, uint8_t device_id, uint8_t c
  * @param cable USB MIDI cable number (0-3) to send response on
  */
 void mios32_query_send_device_info(const char* device_name, const char* version, uint8_t device_id, uint8_t cable);
+
+/**
+ * @brief Send debug/terminal message to MIOS Studio via MIDI SysEx
+ * 
+ * Sends ASCII text to MIOS Studio terminal using MIOS32 debug message protocol.
+ * Format: F0 00 00 7E 32 00 0D <ascii_text> F7
+ * 
+ * @param text ASCII text to send (max ~240 chars to fit in SysEx)
+ * @param cable USB MIDI cable number (0-3) to send on
+ * @return true if message sent successfully, false otherwise
+ */
+bool mios32_debug_send_message(const char* text, uint8_t cable);
 
 #ifdef __cplusplus
 }

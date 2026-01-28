@@ -180,3 +180,44 @@ void mios32_query_send_device_info(const char* device_name, const char* version,
   
   mios32_query_send_response(0x08, device_id, cable);
 }
+
+bool mios32_debug_send_message(const char* text, uint8_t cable) {
+  if (!text) return false;
+  
+#if !MODULE_ENABLE_USB_MIDI
+  // USB MIDI not enabled, cannot send
+  return false;
+#else
+  
+  size_t text_len = strlen(text);
+  if (text_len == 0 || text_len > 240) {
+    // Empty or too long (SysEx has ~256 byte limit, need room for header/footer)
+    return false;
+  }
+  
+  // Build MIOS32 debug message SysEx:
+  // F0 00 00 7E 32 00 0D <ascii_text> F7
+  uint8_t sysex[256];
+  uint8_t* p = sysex;
+  
+  *p++ = 0xF0;                    // SysEx start
+  *p++ = 0x00;                    // MIOS32 manufacturer ID
+  *p++ = 0x00;
+  *p++ = 0x7E;
+  *p++ = MIOS32_QUERY_DEVICE_ID;  // 0x32
+  *p++ = 0x00;                    // Device instance 0
+  *p++ = MIOS32_CMD_DEBUG_MESSAGE; // 0x0D - debug message command
+  
+  // Copy ASCII text
+  memcpy(p, text, text_len);
+  p += text_len;
+  
+  *p++ = 0xF7;                    // SysEx end
+  
+  uint32_t total_len = p - sysex;
+  
+  // Send via USB MIDI SysEx
+  return usb_midi_send_sysex(sysex, total_len, cable);
+  
+#endif
+}

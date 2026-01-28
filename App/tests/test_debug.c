@@ -151,15 +151,22 @@ void dbg_print(const char* str)
   if (len == 0) return;
   
 #if MODULE_ENABLE_USB_CDC
-  // Primary output: USB CDC (virtual COM port)
+  // Primary output: USB CDC (virtual COM port) for TeraTerm, etc.
   usb_cdc_send((const uint8_t*)str, len);
 #else
   // Fallback to UART if USB CDC not available
   UART_HandleTypeDef* huart = get_debug_uart_handle();
   HAL_UART_Transmit(huart, (const uint8_t*)str, len, 1000);
 #endif
+
+#if MODULE_ENABLE_USB_MIDI
+  // Secondary output: MIOS32 debug message via USB MIDI for MIOS Studio terminal
+  // Send as MIOS32 SysEx: F0 00 00 7E 32 00 0D <text> F7
+  extern bool mios32_debug_send_message(const char* text, uint8_t cable);
+  mios32_debug_send_message(str, 0); // Send on cable 0
+#endif
   
-  // Also mirror to OLED if enabled (optional secondary output)
+  // Also mirror to OLED if enabled (optional tertiary output)
   if (oled_mirror_is_enabled()) {
     oled_mirror_print(str);
   }
