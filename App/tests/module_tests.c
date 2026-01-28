@@ -7116,20 +7116,9 @@ void usb_midi_rx_debug_hook(const uint8_t packet4[4])
 {
   uint8_t cin = packet4[0] & 0x0F;
   
-  // Handle SysEx packets (CIN 0x4-0x7) - special logging format
+  // Handle SysEx packets (CIN 0x4-0x7) - skip debug output
   if (cin >= 0x04 && cin <= 0x07) {
-    uint8_t cable = (packet4[0] >> 4) & 0x0F;
-    
-    /* CRITICAL: Buffer complete message before calling dbg_print() to avoid USB CDC fragmentation
-     * Multiple dbg_print() calls can be interrupted causing message interleaving
-     * See USB_CDC_DEBUG_FRAGMENTATION_FIX.md for details
-     */
-    char buf[60];
-    snprintf(buf, sizeof(buf), "[RX SysEx] Cable:%u CIN:0x%X Data: %02X %02X %02X\r\n",
-             (unsigned int)cable, (unsigned int)cin,
-             (unsigned int)packet4[1], (unsigned int)packet4[2], (unsigned int)packet4[3]);
-    dbg_print(buf);
-    return; // Don't print regular format for SysEx
+    return; // Don't print SysEx messages
   }
   
   // Print regular MIDI messages using shared formatting function

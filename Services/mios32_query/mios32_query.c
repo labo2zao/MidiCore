@@ -54,10 +54,26 @@ bool mios32_query_process(const uint8_t* data, uint32_t len, uint8_t cable) {
     return false;
   }
   
+#ifdef MODULE_TEST_USB_DEVICE_MIDI
+  // Debug: Show MIOS32 query reception
+  extern void dbg_print(const char *str);
+  char buf[80];
+  snprintf(buf, sizeof(buf), "[MIOS32-Q] Received query len:%lu cable:%u\r\n",
+           (unsigned long)len, (unsigned int)cable);
+  dbg_print(buf);
+#endif
+  
   // Extract command (byte 6 for MIOS32 protocol: F0 00 00 7E 32 <dev> <cmd>)
   uint8_t device_id = data[5];
   uint8_t command = data[6];
   uint8_t query_type = (len > 7) ? data[7] : 0x01; // Default to 0x01 if not specified
+  
+#ifdef MODULE_TEST_USB_DEVICE_MIDI
+  // Debug: Show query details
+  snprintf(buf, sizeof(buf), "[MIOS32-Q] dev_id:%02X cmd:%02X type:%02X\r\n",
+           device_id, command, query_type);
+  dbg_print(buf);
+#endif
   
   // Command 0x00: Device Info Request (MIOS Studio uses data[7]=query_type)
   // Command 0x01: Device Info Request (alternate form)
@@ -66,6 +82,12 @@ bool mios32_query_process(const uint8_t* data, uint32_t len, uint8_t cable) {
     mios32_query_send_response(query_type, device_id, cable);
     return true;
   }
+  
+#ifdef MODULE_TEST_USB_DEVICE_MIDI
+  // Debug: Unknown command
+  snprintf(buf, sizeof(buf), "[MIOS32-Q] Unknown command ignored\r\n");
+  dbg_print(buf);
+#endif
   
   // Unknown command - ignore
   return false;
@@ -110,6 +132,15 @@ void mios32_query_send_response(uint8_t query_type, uint8_t device_id, uint8_t c
       break;
   }
   
+#ifdef MODULE_TEST_USB_DEVICE_MIDI
+  // Debug: Show response being sent
+  extern void dbg_print(const char *str);
+  char buf[100];
+  snprintf(buf, sizeof(buf), "[MIOS32-R] Sending type:%02X \"%s\" cable:%u\r\n",
+           query_type, response_str, (unsigned int)cable);
+  dbg_print(buf);
+#endif
+  
   // Build response: F0 00 00 7E 32 <device_id> 0x0F <string> F7
   // Following actual MIOS32 implementation (mios32/common/mios32_midi.c)
   *p++ = 0xF0;  // SysEx start
@@ -130,6 +161,11 @@ void mios32_query_send_response(uint8_t query_type, uint8_t device_id, uint8_t c
   // Send via USB MIDI on the same cable the query came from
 #if MODULE_ENABLE_USB_MIDI
   usb_midi_send_sysex(sysex_response_buffer, p - sysex_response_buffer, cable);
+#ifdef MODULE_TEST_USB_DEVICE_MIDI
+  snprintf(buf, sizeof(buf), "[MIOS32-R] Sent %lu bytes\r\n",
+           (unsigned long)(p - sysex_response_buffer));
+  dbg_print(buf);
+#endif
 #else
   (void)cable;  // Suppress unused parameter warning
 #endif

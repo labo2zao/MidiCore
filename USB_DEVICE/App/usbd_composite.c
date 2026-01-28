@@ -295,51 +295,12 @@ static uint8_t USBD_COMPOSITE_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum)
   
   /* MIDI OUT endpoint: 0x01 (EP1) */
   if (epnum == 0x01) {
-#ifdef MODULE_TEST_USB_DEVICE_MIDI
-    /* Debug: Declare buffer at outer scope for reuse */
-    extern void dbg_print(const char *str);
-    char buf[80];
-    
-    /* Debug: Show pointer status before check */
-    snprintf(buf, sizeof(buf), "[COMP-RX] EP:%02X MIDI.DataOut=%p midi_data=%p\r\n", 
-             epnum, (void*)USBD_MIDI.DataOut, composite_class_data.midi_class_data);
-    dbg_print(buf);
-    
-    /* Debug: Show actual condition result */
-    uint8_t dataout_ok = (USBD_MIDI.DataOut != NULL) ? 1 : 0;
-    uint8_t mididata_ok = (composite_class_data.midi_class_data != NULL) ? 1 : 0;
-    snprintf(buf, sizeof(buf), "[COMP-RX] Check: DataOut=%d midi_data=%d\r\n", 
-             dataout_ok, mididata_ok);
-    dbg_print(buf);
-#endif
-    
     if (USBD_MIDI.DataOut != NULL && composite_class_data.midi_class_data != NULL) {
-#ifdef MODULE_TEST_USB_DEVICE_MIDI
-      /* Debug: Trace composite DataOut calls - single atomic message */
-      snprintf(buf, sizeof(buf), "[COMP-RX] EP:%02X MIDI_OK\r\n", epnum);
-      dbg_print(buf);
-#endif
       void *previous = USBD_COMPOSITE_SwitchClassData(pdev, composite_class_data.midi_class_data);
-      
-#ifdef MODULE_TEST_USB_DEVICE_MIDI
-      dbg_print("[COMP] Calling MIDI.DataOut\r\n");
-#endif
-      
       uint8_t status = USBD_MIDI.DataOut(pdev, epnum);
-      
-#ifdef MODULE_TEST_USB_DEVICE_MIDI
-      dbg_print("[COMP] MIDI.DataOut returned\r\n");
-#endif
-      
       (void)USBD_COMPOSITE_SwitchClassData(pdev, previous);
       return status;
     }
-#ifdef MODULE_TEST_USB_DEVICE_MIDI
-    /* Debug: MIDI routing failed */
-    snprintf(buf, sizeof(buf), "[COMP-RX] EP:%02X MIDI_SKIP (DataOut:%p data:%p)\r\n", 
-             epnum, (void*)USBD_MIDI.DataOut, composite_class_data.midi_class_data);
-    dbg_print(buf);
-#endif
     return ret;
   }
   
