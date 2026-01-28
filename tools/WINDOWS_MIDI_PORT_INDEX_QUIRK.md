@@ -305,6 +305,163 @@ Note: The emulator needs a port that works for both input AND output.
 
 ---
 
+## Quirk #3: rtmidi Port Naming Suffixes
+
+### The Problem
+
+**rtmidi (the Python MIDI library) automatically appends the port index to port names!**
+
+This caused the error:
+```
+ERROR: No MIDI ports found that exist in BOTH input and output!
+Input: loopMIDI Port 2
+Output: loopMIDI Port 5
+```
+
+Even though both are the same logical port ("loopMIDI Port"), they appear with different suffixes!
+
+### What Happened
+
+```
+Logical port: "loopMIDI Port" (created in loopMIDI app)
+
+After rtmidi processing:
+  Input port at index 2  → "loopMIDI Port 2"
+  Output port at index 5 → "loopMIDI Port 5"
+```
+
+The emulator tried to find "loopMIDI Port 2" in the output list but failed because output has "loopMIDI Port 5"!
+
+### Real Example
+
+```
+Input ports:
+  0: LoopBe Internal MIDI 0
+  1: USB MIDI Interface 1
+  2: loopMIDI Port 2          ← This is loopMIDI
+
+Output ports:
+  0: Microsoft GS Wavetable Synth 0
+  3: LoopBe Internal MIDI 3
+  4: USB MIDI Interface 4
+  5: loopMIDI Port 5          ← Same loopMIDI but different suffix!
+```
+
+### Why It Happens
+
+rtmidi (and the underlying Windows MIDI API) appends port indices to make port names unique in the system. Different input/output indices mean different suffixes.
+
+### The Solution
+
+**Port Name Normalization:**
+
+```python
+import re
+
+def normalize_port_name(name):
+    """Strip trailing space + digits"""
+    # "loopMIDI Port 5" → "loopMIDI Port"
+    return re.sub(r'\s+\d+$', '', name)
+
+# Compare normalized names
+input_base = normalize("loopMIDI Port 2")   # → "loopMIDI Port"
+output_base = normalize("loopMIDI Port 5")  # → "loopMIDI Port"
+
+if input_base == output_base:
+    # Match! Same logical port despite different suffixes
+```
+
+**Implementation:**
+
+```python
+# Build map of base names to actual port names
+port_map = {}
+
+for idx, name in input_ports:
+    base = normalize_port_name(name)
+    port_map[base] = {
+        'input': name,
+        'output': port_map.get(base, {}).get('output')
+    }
+
+for idx, name in output_ports:
+    base = normalize_port_name(name)
+    if base in port_map:
+        port_map[base]['output'] = name
+    else:
+        port_map[base] = {'input': None, 'output': name}
+
+# Find ports in BOTH lists
+common = {base: names for base, names in port_map.items()
+          if names['input'] and names['output']}
+```
+
+### Interactive Selection Fallback
+
+If automatic matching still fails, the emulator offers an interactive menu:
+
+```
+Try interactive selection? (y/n): y
+
+============================================================
+INTERACTIVE PORT SELECTION
+============================================================
+
+Available ports (select by number):
+
+  1. LoopBe Internal MIDI          [✓ BOTH]
+      Input:  LoopBe Internal MIDI 0
+      Output: LoopBe Internal MIDI 3
+
+  2. loopMIDI Port                  [✓ BOTH]
+      Input:  loopMIDI Port 2
+      Output: loopMIDI Port 5
+
+  3. USB MIDI Interface             [✓ BOTH]
+      Input:  USB MIDI Interface 1
+      Output: USB MIDI Interface 4
+
+  4. Microsoft GS Wavetable Synth   [⚠ OUTPUT ONLY]
+      Output: Microsoft GS Wavetable Synth 0
+
+Enter port number (or 'q' to quit): 2
+
+✓ Selected: loopMIDI Port
+```
+
+### User Experience
+
+**Before (BROKEN):**
+```
+ERROR: No MIDI ports found that exist in BOTH input and output!
+```
+
+**After (AUTOMATIC):**
+```
+✓ Detected Windows - searching for loopMIDI port...
+✓ Found common port: loopMIDI Port
+  Input: loopMIDI Port 2
+  Output: loopMIDI Port 5
+✓ MidiCore Emulator started
+```
+
+**After (INTERACTIVE if needed):**
+```
+Try interactive selection? (y/n): y
+[Shows menu with all ports]
+Enter port number: 2
+✓ Selected: loopMIDI Port
+```
+
+### Why This Works
+
+1. **Automatic**: Normalizes all port names before comparing
+2. **Robust**: Finds matches despite rtmidi suffixes  
+3. **Safe**: Interactive fallback if normalization fails
+4. **User-friendly**: Clear status indicators (✓ BOTH, ⚠ INPUT ONLY, etc.)
+
+---
+
 ## References
 
 - rtmidi documentation: https://pypi.org/project/python-rtmidi/
@@ -324,4 +481,9 @@ Note: The emulator needs a port that works for both input AND output.
 
 **Solution:** Find intersection of input and output port names, only use ports in BOTH lists.
 
-**Result:** Emulator works reliably on Windows with any MIDI driver!
+### Quirk #3: rtmidi Port Naming Suffixes
+**Problem:** rtmidi appends port indices to names, making same port appear different.
+
+**Solution:** Normalize port names by stripping numeric suffixes before comparing. Interactive selection as fallback.
+
+**Result:** Emulator works reliably on Windows with any MIDI driver, any port configuration!
