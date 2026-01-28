@@ -10,6 +10,7 @@
 #endif
 
 #include <string.h>
+#include <stdio.h>  // For snprintf() in debug functions
 
 // =============================================================================
 // CONFIGURATION
