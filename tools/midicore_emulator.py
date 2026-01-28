@@ -152,8 +152,78 @@ class MidiCoreEmulator:
             0x09: "v1.0",             # App Name Line 2
         }
     
-    def start(self) -> bool:
-        """Start emulator - creates virtual MIDI ports"""
+    def list_ports(self) -> List[tuple]:
+        """List available MIDI ports"""
+        midi_out = rtmidi.MidiOut()
+        ports = []
+        for i in range(midi_out.get_port_count()):
+            name = midi_out.get_port_name(i)
+            ports.append((i, name))
+        return ports
+    
+    def find_port(self, pattern: str = None) -> Optional[int]:
+        """Find MIDI port by name pattern"""
+        ports = self.list_ports()
+        
+        if not ports:
+            print("ERROR: No MIDI ports found!")
+            print("\nOn Windows, you need to create a loopMIDI port first:")
+            print("  1. Open loopMIDI application")
+            print("  2. Click '+' to create a new port")
+            print("  3. Name it (e.g., 'loopMIDI Port')")
+            print("  4. Run this script again with: --use-existing 'loopMIDI'")
+            return None
+        
+        # If no pattern, return first port
+        if pattern is None:
+            return 0
+        
+        # Search for matching port
+        pattern_lower = pattern.lower()
+        for idx, name in ports:
+            if pattern_lower in name.lower():
+                return idx
+        
+        print(f"ERROR: Port matching '{pattern}' not found!")
+        print("Available ports:")
+        for idx, name in ports:
+            print(f"  {idx}: {name}")
+        return None
+    
+    def start_with_existing_port(self, port_idx: int) -> bool:
+        """Start emulator using existing MIDI port (e.g., loopMIDI on Windows)"""
+        try:
+            # Open existing input port
+            self.midi_in = rtmidi.MidiIn()
+            if port_idx >= self.midi_in.get_port_count():
+                print(f"ERROR: Port index {port_idx} out of range!")
+                return False
+            
+            port_name = self.midi_in.get_port_name(port_idx)
+            self.midi_in.open_port(port_idx)
+            self.midi_in.set_callback(self._midi_callback)
+            
+            # Open existing output port
+            self.midi_out = rtmidi.MidiOut()
+            self.midi_out.open_port(port_idx)
+            
+            print(f"✓ MidiCore Emulator started")
+            print(f"✓ Using existing MIDI port: '{port_name}'")
+            print(f"\nIn MIOS Studio:")
+            print(f"  1. Device '{port_name}' should appear in device list")
+            print(f"  2. Select it and click 'Query'")
+            print(f"  3. Open Terminal window (View → Terminal)")
+            print(f"  4. You should see test messages!\n")
+            
+            self.running = True
+            return True
+            
+        except Exception as e:
+            print(f"ERROR connecting to port: {e}")
+            return False
+    
+    def start_with_virtual_port(self) -> bool:
+        """Start emulator - creates virtual MIDI ports (macOS/Linux)"""
         try:
             # Create virtual MIDI INPUT port (receives queries from MIOS Studio)
             self.midi_in = rtmidi.MidiIn()
@@ -176,9 +246,19 @@ class MidiCoreEmulator:
             return True
             
         except Exception as e:
-            print(f"ERROR starting emulator: {e}")
-            print("\nNote: Virtual MIDI port creation may not work on all systems.")
-            print("If you see errors, your OS/driver may not support virtual ports.")
+            print(f"ERROR creating virtual port: {e}")
+            print("\n" + "="*60)
+            print("Virtual port creation not supported on this system!")
+            print("="*60)
+            print("\nOn Windows:")
+            print("  1. Install and open loopMIDI")
+            print("  2. Create a port (click '+')")
+            print("  3. Run: python midicore_emulator.py --use-existing 'loopMIDI'")
+            print("\nOn macOS:")
+            print("  Virtual ports should work. Check your python-rtmidi installation.")
+            print("\nOn Linux:")
+            print("  Virtual ports should work. Check your python-rtmidi installation.")
+            print("="*60)
             return False
     
     def stop(self):
@@ -347,40 +427,62 @@ def main():
         epilog="""
 This script EMULATES MidiCore to test MIOS Studio terminal.
 
-The emulator creates a virtual MIDI port that MIOS Studio can connect to.
+IMPORTANT FOR WINDOWS USERS:
+  On Windows, virtual port creation doesn't work. You MUST use loopMIDI:
+  1. Install and open loopMIDI
+  2. Create a port (click '+' button)
+  3. Run: python midicore_emulator.py --use-existing "loopMIDI"
 
-**For Windows users with loopMIDI:** This works great! The emulator creates
-a virtual port that MIOS Studio can discover.
+For macOS/Linux:
+  Virtual ports work automatically:
+  python midicore_emulator.py
 
-Setup:
-  1. Run this script: python midicore_emulator.py
-  2. Virtual MIDI port "MidiCore Emulator" will be created
+Setup (Windows with loopMIDI):
+  1. Open loopMIDI and create a port
+  2. Run: python midicore_emulator.py --use-existing "loopMIDI"
+  3. Wait for 5-second countdown
+  4. Open MIOS Studio
+  5. Device "loopMIDI Port" should appear in device list
+  6. Select it and click Query
+  7. Open Terminal window (View → Terminal)
+  8. You should see continuous test messages!
+
+Setup (macOS/Linux):
+  1. Run: python midicore_emulator.py
+  2. Wait for 5-second countdown
   3. Open MIOS Studio
   4. Device "MidiCore Emulator" should appear in device list
   5. Select it and click Query
   6. Open Terminal window (View → Terminal)
-  7. You should see test messages!
+  7. You should see continuous test messages!
 
 If messages appear → MIOS Studio terminal is WORKING
 If no messages → MIOS Studio terminal has a problem
 
 Examples:
-  %(prog)s
-      Start emulator with default name "MidiCore Emulator"
+  %(prog)s --use-existing "loopMIDI"
+      Connect to existing loopMIDI port (Windows)
   
-  %(prog)s --name "My Device"
-      Use custom device name
+  %(prog)s --use-existing "IAC"
+      Connect to existing IAC port (macOS)
+  
+  %(prog)s --list
+      List available MIDI ports
+  
+  %(prog)s
+      Create virtual port (macOS/Linux only)
   
   %(prog)s --verbose
       Show detailed MIDI message debug info
-
-Note: On Windows, you may need to install a virtual MIDI driver like
-loopMIDI for this to work. On macOS and Linux, it should work natively.
         """
     )
     
+    parser.add_argument('--list', action='store_true',
+                        help='List available MIDI ports and exit')
+    parser.add_argument('--use-existing', type=str, metavar='PORT_PATTERN',
+                        help='Use existing MIDI port (required for Windows/loopMIDI)')
     parser.add_argument('--name', type=str, default="MidiCore Emulator",
-                        help='Virtual MIDI port name (default: "MidiCore Emulator")')
+                        help='Virtual MIDI port name (only for macOS/Linux)')
     parser.add_argument('--verbose', action='store_true',
                         help='Show verbose debug output')
     
@@ -389,9 +491,37 @@ loopMIDI for this to work. On macOS and Linux, it should work natively.
     # Create emulator
     emulator = MidiCoreEmulator(port_name=args.name, verbose=args.verbose)
     
-    # Start emulator (creates virtual ports)
-    if not emulator.start():
-        return 1
+    # List ports mode
+    if args.list:
+        print("\nAvailable MIDI Ports:")
+        print("-" * 60)
+        ports = emulator.list_ports()
+        if not ports:
+            print("  No ports found!")
+            print("\nOn Windows: Create a loopMIDI port first")
+            print("On macOS: Enable IAC Driver in Audio MIDI Setup")
+            print("On Linux: Run 'sudo modprobe snd-virmidi'")
+        else:
+            for idx, name in ports:
+                print(f"  {idx}: {name}")
+        print("-" * 60)
+        return 0
+    
+    # Determine startup mode
+    if args.use_existing:
+        # Use existing port (Windows/loopMIDI mode)
+        port_idx = emulator.find_port(args.use_existing)
+        if port_idx is None:
+            return 1
+        
+        if not emulator.start_with_existing_port(port_idx):
+            return 1
+    else:
+        # Try to create virtual port (macOS/Linux mode)
+        if not emulator.start_with_virtual_port():
+            print("\nHint: Try --use-existing with a loopMIDI port name")
+            print("Example: python midicore_emulator.py --use-existing 'loopMIDI'")
+            return 1
     
     try:
         # Run test sequence
