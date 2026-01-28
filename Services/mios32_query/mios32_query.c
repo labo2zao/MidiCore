@@ -5,7 +5,7 @@
 
 #include "Services/mios32_query/mios32_query.h"
 #include "Config/module_config.h"
-#include "cmsis_os.h"  // For __get_IPSR() to detect ISR context
+#include "stm32f4xx.h"  // For __get_IPSR() CMSIS intrinsic
 
 /* Use proper module configuration macro instead of __has_include
  * to ensure correct behavior across all build configurations */
