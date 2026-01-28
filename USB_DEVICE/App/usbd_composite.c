@@ -20,6 +20,7 @@
 #endif
 
 #include <string.h>
+#include <stdio.h>  /* For snprintf() in debug traces */
 
 /* ============================================================================
  * CRITICAL FIX: Separate Class Data Storage
@@ -275,7 +276,6 @@ static uint8_t USBD_COMPOSITE_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum)
   /* Debug: Trace composite DataOut calls */
   extern void dbg_print(const char *str);
   char buf[40];
-  extern int snprintf(char *str, unsigned long size, const char *format, ...);
   snprintf(buf, sizeof(buf), "[COMP-RX] EP:%02X\r\n", epnum);
   dbg_print(buf);
 #endif
