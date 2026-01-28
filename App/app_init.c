@@ -357,13 +357,21 @@ void app_init_and_start(void)
 #endif
 
 #if MODULE_ENABLE_CLI
+  dbg_printf("[INIT] Creating CLI task...\r\n");
   // CLI task for processing terminal commands via UART
   const osThreadAttr_t cli_attr = {
     .name = "CliTask",
     .priority = osPriorityBelowNormal,
     .stack_size = 2048
   };
-  (void)osThreadNew(CliTask, NULL, &cli_attr);
+  osThreadId_t cli_handle = osThreadNew(CliTask, NULL, &cli_attr);
+  if (cli_handle == NULL) {
+    dbg_printf("[ERROR] Failed to create CLI task!\r\n");
+  } else {
+    dbg_printf("[INIT] CLI task created successfully\r\n");
+  }
+#else
+  dbg_printf("[WARNING] MODULE_ENABLE_CLI not defined - CLI disabled\r\n");
 #endif
 
   // Optional UART debug stream (raw ADC values)
@@ -508,10 +516,12 @@ static void CliTask(void *argument)
 {
   (void)argument;
   
+  dbg_printf("[CLI-TASK] CLI task function entered!\r\n");
+  
   // Wait for USB CDC to be fully enumerated if using USB CDC
   // This typically takes 2-5 seconds after boot
 #if MODULE_ENABLE_USB_CDC
-  dbg_printf("[CLI] CLI task started, waiting for USB CDC enumeration...\r\n");
+  dbg_printf("[CLI-TASK] Using USB CDC, waiting for enumeration...\r\n");
   
   // Wait up to 5 seconds for USB CDC to be ready
   uint32_t wait_count = 0;
