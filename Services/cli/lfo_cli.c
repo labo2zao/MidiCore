@@ -13,7 +13,7 @@
 // PARAMETER WRAPPERS
 // =============================================================================
 
-DEFINE_PARAM_BOOL_TRACK(lfo, enabled, lfo_get_enabled, lfo_set_enabled)
+DEFINE_PARAM_BOOL_TRACK(lfo, enabled, lfo_is_enabled, lfo_set_enabled)
 
 static int lfo_param_get_waveform(uint8_t track, param_value_t* out) {
   
@@ -28,7 +28,7 @@ static int lfo_param_set_waveform(uint8_t track, const param_value_t* val) {
   return 0;
 }
 
-DEFINE_PARAM_INT_TRACK(lfo, rate_hz, lfo_get_rate_hz, lfo_set_rate_hz)
+DEFINE_PARAM_INT_TRACK(lfo, rate_hz, lfo_get_rate, lfo_set_rate)
 
 DEFINE_PARAM_INT_TRACK(lfo, depth, lfo_get_depth, lfo_set_depth)
 
@@ -72,6 +72,15 @@ static const char* s_target_names[] = {
 };
 
 // =============================================================================
+// INIT WRAPPER
+// =============================================================================
+
+static int lfo_cli_init(void) {
+  lfo_init();
+  return 0;
+}
+
+// =============================================================================
 // MODULE DESCRIPTOR
 // =============================================================================
 
@@ -79,7 +88,7 @@ static module_descriptor_t s_lfo_descriptor = {
   .name = "lfo",
   .description = "Low Frequency Oscillator for modulation",
   .category = MODULE_CATEGORY_EFFECT,
-  .init = lfo_init,
+  .init = lfo_cli_init,
   .enable = lfo_cli_enable,
   .disable = lfo_cli_disable,
   .get_status = lfo_cli_get_status,

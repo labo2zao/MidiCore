@@ -17,33 +17,32 @@
 // For CLI, we need to provide stub wrappers that always return 0
 // In a real implementation, these would interface with a configuration system
 
-static int humanize_param_get_time_amount(uint8_t track, param_value_t* out) {
+static int humanize_stub_get_time_amount(uint8_t track) {
   (void)track;
   // TODO: Get from configuration system
-  out->int_val = 0;
   return 0;
 }
 
-static int humanize_param_set_time_amount(uint8_t track, const param_value_t* val) {
+static void humanize_stub_set_time_amount(uint8_t track, int value) {
   (void)track;
-  (void)val;
+  (void)value;
   // TODO: Set in configuration system
-  return 0;
 }
 
-static int humanize_param_get_velocity_amount(uint8_t track, param_value_t* out) {
+static int humanize_stub_get_velocity_amount(uint8_t track) {
   (void)track;
   // TODO: Get from configuration system
-  out->int_val = 0;
   return 0;
 }
 
-static int humanize_param_set_velocity_amount(uint8_t track, const param_value_t* val) {
+static void humanize_stub_set_velocity_amount(uint8_t track, int value) {
   (void)track;
-  (void)val;
+  (void)value;
   // TODO: Set in configuration system
-  return 0;
 }
+
+DEFINE_PARAM_INT_TRACK(humanize, time_amount, humanize_stub_get_time_amount, humanize_stub_set_time_amount)
+DEFINE_PARAM_INT_TRACK(humanize, velocity_amount, humanize_stub_get_velocity_amount, humanize_stub_set_velocity_amount)
 
 // =============================================================================
 // MODULE CONTROL WRAPPERS
@@ -68,11 +67,16 @@ static int humanize_cli_get_status(uint8_t track) {
 // MODULE DESCRIPTOR
 // =============================================================================
 
+static int humanize_cli_init(void) {
+  humanize_init(0);  // TODO: Pass actual instrument config
+  return 0;
+}
+
 static module_descriptor_t s_humanize_descriptor = {
   .name = "humanize",
   .description = "Humanize timing and velocity",
   .category = MODULE_CATEGORY_EFFECT,
-  .init = humanize_init,
+  .init = humanize_cli_init,
   .enable = humanize_cli_enable,
   .disable = humanize_cli_disable,
   .get_status = humanize_cli_get_status,

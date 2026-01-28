@@ -13,7 +13,7 @@
 // PARAMETER WRAPPERS
 // =============================================================================
 
-DEFINE_PARAM_BOOL_TRACK(legato, enabled, legato_get_enabled, legato_set_enabled)
+DEFINE_PARAM_BOOL_TRACK(legato, enabled, legato_is_enabled, legato_set_enabled)
 
 static int legato_param_get_priority(uint8_t track, param_value_t* out) {
   
@@ -43,7 +43,7 @@ static int legato_param_set_retrigger(uint8_t track, const param_value_t* val) {
 
 DEFINE_PARAM_INT_TRACK(legato, glide_time, legato_get_glide_time, legato_set_glide_time)
 
-DEFINE_PARAM_BOOL_TRACK(legato, mono_mode, legato_get_mono_mode, legato_set_mono_mode)
+DEFINE_PARAM_BOOL_TRACK(legato, mono_mode, legato_is_mono_mode, legato_set_mono_mode)
 
 // =============================================================================
 // MODULE CONTROL WRAPPERS
@@ -68,6 +68,15 @@ static const char* s_retrigger_names[] = {
 };
 
 // =============================================================================
+// INIT WRAPPER
+// =============================================================================
+
+static int legato_cli_init(void) {
+  legato_init();
+  return 0;
+}
+
+// =============================================================================
 // MODULE DESCRIPTOR
 // =============================================================================
 
@@ -75,7 +84,7 @@ static module_descriptor_t s_legato_descriptor = {
   .name = "legato",
   .description = "Legato/mono/priority handling",
   .category = MODULE_CATEGORY_EFFECT,
-  .init = legato_init,
+  .init = legato_cli_init,
   .enable = legato_cli_enable,
   .disable = legato_cli_disable,
   .get_status = legato_cli_get_status,
