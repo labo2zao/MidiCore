@@ -40,7 +40,7 @@ typedef struct {
 static USBD_COMPOSITE_HandleTypeDef composite_class_data;
 
 /* Helper function to switch class data pointer */
-static void *USBD_COMPOSITE_SwitchClassData(USBD_HandleTypeDef *pdev, void *new_data)
+void *USBD_COMPOSITE_SwitchClassData(USBD_HandleTypeDef *pdev, void *new_data)
 {
   void *previous = pdev->pClassData;
   pdev->pClassData = new_data;
@@ -59,7 +59,7 @@ static uint8_t *USBD_COMPOSITE_GetHSCfgDesc(uint16_t *length);
 static uint8_t *USBD_COMPOSITE_GetOtherSpeedCfgDesc(uint16_t *length);
 static uint8_t *USBD_COMPOSITE_GetDeviceQualifierDesc(uint16_t *length);
 
-static void *USBD_COMPOSITE_GetClassData(const USBD_ClassTypeDef *class_handler)
+void *USBD_COMPOSITE_GetClassData(const USBD_ClassTypeDef *class_handler)
 {
   if (class_handler == &USBD_MIDI) {
     return composite_class_data.midi_class_data;
