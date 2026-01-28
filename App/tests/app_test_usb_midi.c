@@ -125,6 +125,45 @@ static void print_usb_midi_packet(const uint8_t packet4[4])
 // =============================================================================
 
 /**
+ * @brief Debug trace for TX failures
+ */
+void test_debug_tx_trace(uint8_t code)
+{
+  dbg_print("[TX-DBG] Code:");
+  dbg_print_hex8(code);
+  
+  switch(code) {
+    case 0x01:
+      dbg_print(" Class data NULL or not ready");
+      break;
+    case 0x02:
+      dbg_print(" Queue empty");
+      break;
+    case 0x03:
+      dbg_print(" Endpoint BUSY");
+      break;
+    case 0xFF:
+      dbg_print(" Queue FULL!");
+      break;
+    default:
+      dbg_print(" Unknown");
+  }
+  dbg_print("\r\n");
+}
+
+/**
+ * @brief Debug trace for packet queueing
+ */
+void test_debug_tx_packet_queued(uint8_t cin, uint8_t b0)
+{
+  dbg_print("[TX-QUEUE] CIN:");
+  dbg_print_hex8(cin);
+  dbg_print(" B0:");
+  dbg_print_hex8(b0);
+  dbg_print("\r\n");
+}
+
+/**
  * @brief Send a test MIDI Note On message via USB
  */
 static void send_test_note_on(void)
@@ -146,9 +185,11 @@ static void send_test_note_on(void)
   dbg_print_hex8(note);
   dbg_print(" ");
   dbg_print_hex8(velocity);
-  dbg_print("\r\n");
+  dbg_print(" -> Calling usb_midi_send_packet()...\r\n");
   
   usb_midi_send_packet(cin, status, note, velocity);
+  
+  dbg_print("[TX] ...packet queued\r\n");
 #endif
 }
 
