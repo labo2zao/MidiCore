@@ -526,29 +526,13 @@ static uint8_t USBD_MIDI_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum)
     /* Process received MIDI packets (4 bytes each) */
     if (midi_fops != NULL && midi_fops->DataOut != NULL && hmidi->data_out_length > 0)
     {
-      
       uint32_t num_packets = hmidi->data_out_length / 4;
       USBD_MIDI_EventPacket_t *packets = (USBD_MIDI_EventPacket_t *)hmidi->data_out;
       
       for (uint32_t i = 0; i < num_packets; i++)
       {
-        // Display received MIDI packet (like TX format)
-        uint8_t cable = (packets[i].header >> 4) & 0x0F;
-        snprintf(debug_buf, sizeof(debug_buf), "[MIDI-RX] Cable:%u %02X %02X %02X\r\n",
-                 (unsigned int)cable, 
-                 (unsigned int)packets[i].byte1,
-                 (unsigned int)packets[i].byte2, 
-                 (unsigned int)packets[i].byte3);
-        dbg_print(debug_buf);
-        
         midi_fops->DataOut(&packets[i]);
       }
-    }
-    else
-    {
-      snprintf(debug_buf, sizeof(debug_buf), "[MIDI-RX] Callback SKIP (fops:%p len:%lu)\r\n", 
-               (void*)midi_fops, (unsigned long)hmidi->data_out_length);
-      dbg_print(debug_buf);
     }
     
     /* Prepare Out endpoint to receive next packet */

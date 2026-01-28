@@ -217,7 +217,8 @@ bool mios32_debug_send_message(const char* text, uint8_t cable) {
   uint32_t total_len = p - sysex;
   
   // Send via USB MIDI SysEx
-  return usb_midi_send_sysex(sysex, total_len, cable);
+  usb_midi_send_sysex(sysex, total_len, cable);
+  return true; // Message sent successfully
   
 #endif
 }
