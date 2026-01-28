@@ -7158,6 +7158,22 @@ void module_test_usb_device_midi_run(void)
   dbg_print("Connect USB to computer/DAW to send and receive MIDI.\r\n");
   dbg_print("This test will log received MIDI packets to UART.\r\n");
   dbg_print("Sending test Note On/Off messages every 2 seconds.\r\n");
+  
+#if MODULE_ENABLE_USB_MIDI
+  // Test MIOS Studio terminal by sending a direct message
+  dbg_print("\r\n");
+  dbg_print("Testing MIOS Studio terminal...\r\n");
+  extern bool mios32_debug_send_message(const char* text, uint8_t cable);
+  bool sent = mios32_debug_send_message("*** MIOS Studio Terminal Test ***\r\n", 0);
+  if (sent) {
+    dbg_print("MIOS Studio terminal test message sent successfully.\r\n");
+    dbg_print("If you see this in MIOS Studio terminal, it's working!\r\n");
+  } else {
+    dbg_print("WARNING: MIOS Studio terminal test message FAILED to send!\r\n");
+    dbg_print("Check MODULE_ENABLE_USB_MIDI and usb_midi_send_sysex().\r\n");
+  }
+#endif
+  
   dbg_print_separator();
   
   uint32_t last_send_time = 0;

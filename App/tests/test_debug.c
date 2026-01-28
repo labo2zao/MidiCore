@@ -163,7 +163,27 @@ void dbg_print(const char* str)
   // Secondary output: MIOS32 debug message via USB MIDI for MIOS Studio terminal
   // Send as MIOS32 SysEx: F0 00 00 7E 32 00 0D <text> F7
   extern bool mios32_debug_send_message(const char* text, uint8_t cable);
-  mios32_debug_send_message(str, 0); // Send on cable 0
+  
+  // Track success/failure for diagnostics
+  static uint32_t mios_msg_sent = 0;
+  static uint32_t mios_msg_fail = 0;
+  static bool first_attempt = true;
+  
+  bool sent = mios32_debug_send_message(str, 0); // Send on cable 0
+  
+  if (sent) {
+    mios_msg_sent++;
+  } else {
+    mios_msg_fail++;
+    // On first failure, report to CDC only (avoid recursion)
+    if (first_attempt) {
+      first_attempt = false;
+#if MODULE_ENABLE_USB_CDC
+      const char* err = "[DBG] MIOS32 debug send FAILED\r\n";
+      usb_cdc_send((const uint8_t*)err, strlen(err));
+#endif
+    }
+  }
 #endif
   
   // Also mirror to OLED if enabled (optional tertiary output)
