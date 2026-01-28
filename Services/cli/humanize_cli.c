@@ -13,9 +13,37 @@
 // PARAMETER WRAPPERS
 // =============================================================================
 
-DEFINE_PARAM_INT(humanize, time_amount, humanize_get_time_amount, humanize_set_time_amount)
+// Note: humanize module doesn't have get/set functions, it works via instrument_cfg_t
+// For CLI, we need to provide stub wrappers that always return 0
+// In a real implementation, these would interface with a configuration system
 
-DEFINE_PARAM_INT(humanize, velocity_amount, humanize_get_velocity_amount, humanize_set_velocity_amount)
+static int humanize_param_get_time_amount(uint8_t track, param_value_t* out) {
+  (void)track;
+  // TODO: Get from configuration system
+  out->int_val = 0;
+  return 0;
+}
+
+static int humanize_param_set_time_amount(uint8_t track, const param_value_t* val) {
+  (void)track;
+  (void)val;
+  // TODO: Set in configuration system
+  return 0;
+}
+
+static int humanize_param_get_velocity_amount(uint8_t track, param_value_t* out) {
+  (void)track;
+  // TODO: Get from configuration system
+  out->int_val = 0;
+  return 0;
+}
+
+static int humanize_param_set_velocity_amount(uint8_t track, const param_value_t* val) {
+  (void)track;
+  (void)val;
+  // TODO: Set in configuration system
+  return 0;
+}
 
 // =============================================================================
 // MODULE CONTROL WRAPPERS
