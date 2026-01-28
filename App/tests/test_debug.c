@@ -188,6 +188,7 @@ void dbg_print(const char* str)
   static uint32_t last_send_tick = 0;
   static uint32_t dropped_count = 0;
   static uint32_t sent_count = 0;
+  static uint32_t tx_queue_full_count = 0;  // Track TX queue full errors
   
   // Get current tick on first call
   // CRITICAL: Use HAL_GetTick() not osKernelGetTickCount() - works before RTOS starts!
@@ -240,9 +241,21 @@ void dbg_print(const char* str)
         if (sent_count % 200 == 0) {
           char stats_msg[120];
           snprintf(stats_msg, sizeof(stats_msg), 
-                   "[MIOS Stats] Sent:%lu Dropped:%lu Rate:50msg/s\r\n", 
-                   (unsigned long)sent_count, (unsigned long)dropped_count);
+                   "[MIOS Stats] Sent:%lu Dropped:%lu TxQFull:%lu Rate:50msg/s\r\n", 
+                   (unsigned long)sent_count, (unsigned long)dropped_count, 
+                   (unsigned long)tx_queue_full_count);
           usb_cdc_send((uint8_t*)stats_msg, strlen(stats_msg));
+        }
+        
+        // Report TX queue full errors immediately (only to CDC to avoid recursion)
+        if (tx_queue_full_count > 0 && (tx_queue_full_count % 10 == 0)) {
+          char tx_err_msg[120];
+          snprintf(tx_err_msg, sizeof(tx_err_msg), 
+                   "[MIOS ERROR] USB MIDI TX queue full %lu times! Packets dropped.\r\n", 
+                   (unsigned long)tx_queue_full_count);
+#if MODULE_ENABLE_USB_CDC
+          usb_cdc_send((const uint8_t*)tx_err_msg, strlen(tx_err_msg));
+#endif
         }
         
         // Report dropped messages more frequently (every 50 drops, only to CDC)
@@ -255,6 +268,9 @@ void dbg_print(const char* str)
           usb_cdc_send((const uint8_t*)drop_msg, strlen(drop_msg));
 #endif
         }
+      } else {
+        // Message failed to send - TX queue was full!
+        tx_queue_full_count++;
       }
     } else {
       // Too soon since last message, drop this one (rate limiting active)

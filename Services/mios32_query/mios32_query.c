@@ -246,8 +246,15 @@ bool mios32_debug_send_message(const char* text, uint8_t cable) {
   
   uint32_t total_len = p - sysex;
   
-  // Send via USB MIDI SysEx
-  usb_midi_send_sysex(sysex, total_len, cable);
+  // Send via USB MIDI SysEx - now returns bool indicating success
+  bool sent = usb_midi_send_sysex(sysex, total_len, cable);
+  
+  if (!sent) {
+    // TX queue was full - some packets were dropped
+    // This is reported separately by the caller (dbg_print) via CDC
+    return false;
+  }
+  
   return true; // Message sent successfully
   
 #endif

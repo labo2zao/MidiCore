@@ -19,8 +19,10 @@ extern "C" {
  * - CIN 0x07: SysEx ends with 3 bytes (last is F7)
  * 
  * Safe to call even if USB MIDI disabled (no-op).
+ * 
+ * @return true if all packets queued successfully, false if any packet dropped (TX queue full)
  */
-void usb_midi_send_sysex(const uint8_t* data, size_t len, uint8_t cable);
+bool usb_midi_send_sysex(const uint8_t* data, size_t len, uint8_t cable);
 
 #ifdef __cplusplus
 }
