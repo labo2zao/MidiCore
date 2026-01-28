@@ -60,62 +60,6 @@ static const char* get_midi_msg_type(uint8_t status)
   }
 }
 
-/**
- * @brief Print received USB MIDI packet to UART
- */
-static void print_usb_midi_packet(const uint8_t packet4[4])
-{
-  uint8_t cable = (packet4[0] >> 4) & 0x0F;
-  uint8_t cin = packet4[0] & 0x0F;
-  uint8_t status = packet4[1];
-  uint8_t data1 = packet4[2];
-  uint8_t data2 = packet4[3];
-  
-  // Print basic packet info
-  dbg_print("[RX] Cable:");
-  dbg_print_uint(cable);
-  dbg_print(" ");
-  dbg_print_hex8(status);
-  dbg_print(" ");
-  dbg_print_hex8(data1);
-  dbg_print(" ");
-  dbg_print_hex8(data2);
-  
-  // Print decoded message type
-  dbg_print(" (");
-  dbg_print(get_midi_msg_type(status));
-  
-  uint8_t channel = (status & 0x0F) + 1;  // 1-based for display
-  dbg_print(" Ch:");
-  dbg_print_uint(channel);
-  
-  // Print message-specific data
-  uint8_t msg_type = status & 0xF0;
-  if (msg_type == 0x80 || msg_type == 0x90) {
-    dbg_print(" Note:");
-    dbg_print_uint(data1);
-    dbg_print(" Vel:");
-    dbg_print_uint(data2);
-  } else if (msg_type == 0xB0) {
-    dbg_print(" CC:");
-    dbg_print_uint(data1);
-    dbg_print(" Val:");
-    dbg_print_uint(data2);
-  } else if (msg_type == 0xC0) {
-    dbg_print(" Prog:");
-    dbg_print_uint(data1);
-  } else if (msg_type == 0xD0) {
-    dbg_print(" Pressure:");
-    dbg_print_uint(data1);
-  } else if (msg_type == 0xE0) {
-    uint16_t bend_value = (uint16_t)data1 | ((uint16_t)data2 << 7);
-    dbg_print(" Bend:");
-    dbg_print_uint(bend_value);
-  }
-  
-  dbg_print(")\r\n");
-}
-
 // =============================================================================
 // USB MIDI RECEIVE CALLBACK (intercepts packets before router)
 // =============================================================================
