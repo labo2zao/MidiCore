@@ -129,8 +129,18 @@ STM32F407xx
 
 ```
 DEBUG
-MODULE_TEST_USB_DEVICE_MIDI
 ```
+
+**⚠️ IMPORTANT:** Ne pas inclure `MODULE_TEST_USB_DEVICE_MIDI` si vous voulez utiliser le CLI!
+
+Ce flag active un mode de test automatique qui:
+- Envoie des commandes MIDI en continu
+- **Bloque l'accès au terminal CLI**
+- N'est utile que pour tester USB MIDI automatiquement
+
+**Pour utiliser le CLI normalement:** Ne définissez PAS `MODULE_TEST_USB_DEVICE_MIDI`
+
+Voir **MODES_CONFIGURATION.md** pour plus de détails.
 
 ### Définitions Fonctionnalités
 
@@ -139,7 +149,9 @@ SRIO_ENABLE
 MODULE_ENABLE_USB_CDC=1
 ```
 
-### Exemple de Liste Complète (Debug)
+### Exemple de Liste Complète (Debug - CLI Accessible)
+
+**⚠️ Configuration Recommandée pour utiliser le CLI:**
 
 ```
 ┌─────────────────────────────────────┐
@@ -148,11 +160,14 @@ MODULE_ENABLE_USB_CDC=1
 │ DEBUG                               │
 │ USE_HAL_DRIVER                      │
 │ STM32F407xx                         │
-│ MODULE_TEST_USB_DEVICE_MIDI         │
 │ SRIO_ENABLE                         │
 │ MODULE_ENABLE_USB_CDC=1             │
 └─────────────────────────────────────┘
 ```
+
+**⚠️ NE PAS INCLURE:** `MODULE_TEST_USB_DEVICE_MIDI`
+
+Ce flag bloque le CLI! Voir **MODES_CONFIGURATION.md** pour explications.
 
 **Comment ajouter:**
 1. Cliquez sur le bouton **Add** (icône +)
@@ -396,20 +411,27 @@ Avant de compiler, vérifiez:
 
 ## 🎨 Configurations Prédéfinies
 
-### Configuration Debug (Test Complet)
+### Configuration Debug (CLI Accessible) ⭐ RECOMMANDÉ
 
 **Preprocessor Symbols:**
 ```
 DEBUG
 USE_HAL_DRIVER
 STM32F407xx
-MODULE_TEST_USB_DEVICE_MIDI
 SRIO_ENABLE
 MODULE_ENABLE_USB_CDC=1
 ```
 
 **Optimization:** `-O0`  
 **Debug Level:** `-g3`
+
+**✅ Avantages:**
+- CLI pleinement fonctionnel
+- Tests manuels via `test run`
+- Configuration interactive
+- Monitoring en temps réel
+
+**⚠️ Ne pas définir:** `MODULE_TEST_USB_DEVICE_MIDI` (bloque le CLI)
 
 ---
 
