@@ -13,7 +13,7 @@
 // PARAMETER WRAPPERS
 // =============================================================================
 
-DEFINE_PARAM_BOOL_TRACK(chord, enabled, chord_get_enabled, chord_set_enabled)
+DEFINE_PARAM_BOOL_TRACK(chord, enabled, chord_is_enabled, chord_set_enabled)
 
 static int chord_param_get_type(uint8_t track, param_value_t* out) {
   
