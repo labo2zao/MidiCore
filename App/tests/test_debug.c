@@ -166,11 +166,13 @@ void dbg_print(const char* str)
   // NOTE: Delayed start to avoid interfering with USB enumeration and MIOS32 queries
   extern bool mios32_debug_send_message(const char* text, uint8_t cable);
   
-  // Track success/failure for diagnostics
-  static uint32_t mios_msg_sent = 0;
-  static uint32_t mios_msg_fail = 0;
-  static bool first_attempt = true;
+  // Rate limiting to prevent flooding USB MIDI bandwidth
+  // Allow maximum 10 messages per second (100ms interval)
+  // This allows debug monitoring without blocking normal MIDI traffic
   static uint32_t start_tick = 0;
+  static uint32_t last_send_tick = 0;
+  static uint32_t dropped_count = 0;
+  static uint32_t sent_count = 0;
   
   // Get current tick on first call
   // CRITICAL: Use HAL_GetTick() not osKernelGetTickCount() - works before RTOS starts!
@@ -178,24 +180,41 @@ void dbg_print(const char* str)
     start_tick = HAL_GetTick();
   }
   
-  // Wait 3 seconds after boot before sending debug to MIOS Studio
+  uint32_t now = HAL_GetTick();
+  uint32_t elapsed_since_boot = now - start_tick;
+  
+  // Wait 3 seconds after boot before sending any debug to MIOS Studio
   // This allows USB enumeration and MIOS32 query processing to complete first
-  uint32_t elapsed = HAL_GetTick() - start_tick;
-  if (elapsed >= 3000) {  // 3 second delay
-    bool sent = mios32_debug_send_message(str, 0); // Send on cable 0
+  if (elapsed_since_boot >= 3000) {
+    // Rate limiting: Allow maximum 10 messages per second
+    // This prevents flooding USB MIDI bandwidth while still providing debug output
+    #define DEBUG_MSG_MIN_INTERVAL_MS 100  // 100ms = 10 msg/sec
     
-    if (sent) {
-      mios_msg_sent++;
-    } else {
-      mios_msg_fail++;
-      // On first failure, report to CDC only (avoid recursion)
-      if (first_attempt) {
-        first_attempt = false;
+    uint32_t elapsed_since_last = now - last_send_tick;
+    
+    if (elapsed_since_last >= DEBUG_MSG_MIN_INTERVAL_MS) {
+      // Enough time has passed, send this message
+      bool sent = mios32_debug_send_message(str, 0);
+      
+      if (sent) {
+        last_send_tick = now;
+        sent_count++;
+        
+        // If we dropped messages, report it once (only to CDC to avoid recursion)
+        if (dropped_count > 0) {
+          char drop_msg[80];
+          snprintf(drop_msg, sizeof(drop_msg), 
+                   "[DBG] %lu debug messages dropped (rate limiting)\r\n", 
+                   (unsigned long)dropped_count);
 #if MODULE_ENABLE_USB_CDC
-        const char* err = "[DBG] MIOS32 debug send FAILED\r\n";
-        usb_cdc_send((const uint8_t*)err, strlen(err));
+          usb_cdc_send((const uint8_t*)drop_msg, strlen(drop_msg));
 #endif
+          dropped_count = 0;
+        }
       }
+    } else {
+      // Too soon since last message, drop this one (rate limiting active)
+      dropped_count++;
     }
   }
 #endif
