@@ -567,3 +567,20 @@ void usb_midi_rx_packet(const uint8_t packet4[4]) {
 }
 
 #endif /* MODULE_ENABLE_USB_MIDI && USB_DEVICE_AVAILABLE */
+
+bool usb_midi_get_tx_status(uint32_t *queue_size, uint32_t *queue_used, uint32_t *queue_drops) {
+#if MODULE_ENABLE_USB_MIDI
+  USBD_MIDI_HandleTypeDef *hmidi = usb_midi_get_class_data();
+  
+  if (queue_size) *queue_size = USB_MIDI_TX_QUEUE_SIZE;
+  if (queue_used) *queue_used = tx_queue_count();
+  if (queue_drops) *queue_drops = tx_queue_drops;
+  
+  return (hmidi != NULL && hmidi->is_ready);
+#else
+  if (queue_size) *queue_size = 0;
+  if (queue_used) *queue_used = 0;
+  if (queue_drops) *queue_drops = 0;
+  return false;
+#endif
+}
