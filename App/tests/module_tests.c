@@ -7161,17 +7161,27 @@ void module_test_usb_device_midi_run(void)
   
 #if MODULE_ENABLE_USB_MIDI
   // Test MIOS Studio terminal by sending a direct message
+  // Send immediately, bypassing boot delay and rate limiting
   dbg_print("\r\n");
   dbg_print("Testing MIOS Studio terminal...\r\n");
   extern bool mios32_debug_send_message(const char* text, uint8_t cable);
-  bool sent = mios32_debug_send_message("*** MIOS Studio Terminal Test ***\r\n", 0);
-  if (sent) {
-    dbg_print("MIOS Studio terminal test message sent successfully.\r\n");
-    dbg_print("If you see this in MIOS Studio terminal, it's working!\r\n");
-  } else {
-    dbg_print("WARNING: MIOS Studio terminal test message FAILED to send!\r\n");
-    dbg_print("Check MODULE_ENABLE_USB_MIDI and usb_midi_send_sysex().\r\n");
+  
+  // Send multiple test messages to ensure at least one gets through
+  dbg_print("Sending 5 test messages directly...\r\n");
+  for (int i = 0; i < 5; i++) {
+    char test_msg[100];
+    snprintf(test_msg, sizeof(test_msg), "*** MIOS Terminal Test #%d ***\r\n", i+1);
+    bool sent = mios32_debug_send_message(test_msg, 0);
+    if (sent) {
+      dbg_printf("  Message %d sent successfully\r\n", i+1);
+    } else {
+      dbg_printf("  WARNING: Message %d FAILED to send!\r\n", i+1);
+    }
+    osDelay(50);  // Small delay between messages
   }
+  
+  dbg_print("If you see messages in MIOS Studio terminal, it's working!\r\n");
+  dbg_print("If not, check USB MIDI connection and MIOS Studio terminal window.\r\n");
 #endif
   
   dbg_print_separator();
@@ -7208,6 +7218,9 @@ void module_test_usb_device_midi_run(void)
         usb_midi_send_packet(cin, status, note, velocity);
         dbg_printf("[TX] Cable:0 %02X %02X %02X (Note On)\r\n", status, note, velocity);
         note_state = 1;
+        
+        // Also send a marker to MIOS Studio terminal to show we're alive
+        dbg_print("[MIOS TEST] Note On sent, waiting for Note Off...\r\n");
       } else {
         // Send Note Off
         uint8_t cin = 0x08;  // Cable 0, Note Off CIN
@@ -7218,6 +7231,9 @@ void module_test_usb_device_midi_run(void)
         usb_midi_send_packet(cin, status, note, velocity);
         dbg_printf("[TX] Cable:0 %02X %02X %02X (Note Off)\r\n", status, note, velocity);
         note_state = 0;
+        
+        // Also send a marker to MIOS Studio terminal
+        dbg_print("[MIOS TEST] Note Off sent, cycle complete.\r\n");
       }
     }
     
