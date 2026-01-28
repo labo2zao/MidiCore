@@ -7070,25 +7070,42 @@ static void module_test_usb_midi_print_packet(const uint8_t packet4[4])
   uint8_t data1 = packet4[2];
   uint8_t data2 = packet4[3];
   
-  dbg_printf("[RX] Cable:%d %02X %02X %02X", cable, status, data1, data2);
+  /* CRITICAL: Buffer complete message before calling dbg_print() to avoid USB CDC fragmentation
+   * Multiple dbg_print() calls can be interrupted causing message interleaving
+   * See USB_CDC_DEBUG_FRAGMENTATION_FIX.md for details
+   */
+  char buf[100];
+  int len;
   
-  // Decode message type
+  // Start with basic MIDI data
+  len = snprintf(buf, sizeof(buf), "[RX] Cable:%d %02X %02X %02X", 
+                 cable, status, data1, data2);
+  
+  // Decode message type and append to same buffer
   uint8_t msg_type = status & 0xF0;
   uint8_t channel = (status & 0x0F) + 1;
   
   if (msg_type == 0x90 && data2 > 0) {
-    dbg_printf(" (Note On Ch:%d Note:%d Vel:%d)", channel, data1, data2);
+    snprintf(buf + len, sizeof(buf) - len, " (Note On Ch:%d Note:%d Vel:%d)\r\n", 
+             channel, data1, data2);
   } else if (msg_type == 0x80 || (msg_type == 0x90 && data2 == 0)) {
-    dbg_printf(" (Note Off Ch:%d Note:%d)", channel, data1);
+    snprintf(buf + len, sizeof(buf) - len, " (Note Off Ch:%d Note:%d)\r\n", 
+             channel, data1);
   } else if (msg_type == 0xB0) {
-    dbg_printf(" (CC Ch:%d CC:%d Val:%d)", channel, data1, data2);
+    snprintf(buf + len, sizeof(buf) - len, " (CC Ch:%d CC:%d Val:%d)\r\n", 
+             channel, data1, data2);
   } else if (msg_type == 0xC0) {
-    dbg_printf(" (Prog Ch:%d Prog:%d)", channel, data1);
+    snprintf(buf + len, sizeof(buf) - len, " (Prog Ch:%d Prog:%d)\r\n", 
+             channel, data1);
   } else if (msg_type == 0xE0) {
-    dbg_printf(" (Bend Ch:%d)", channel);
+    snprintf(buf + len, sizeof(buf) - len, " (Bend Ch:%d)\r\n", channel);
+  } else {
+    // No decoding, just add newline
+    snprintf(buf + len, sizeof(buf) - len, "\r\n");
   }
   
-  dbg_print("\r\n");
+  // Single atomic call
+  dbg_print(buf);
 }
 
 /**
@@ -7099,20 +7116,9 @@ void usb_midi_rx_debug_hook(const uint8_t packet4[4])
 {
   uint8_t cin = packet4[0] & 0x0F;
   
-  // Handle SysEx packets (CIN 0x4-0x7) - special logging format
+  // Handle SysEx packets (CIN 0x4-0x7) - skip debug output
   if (cin >= 0x04 && cin <= 0x07) {
-    uint8_t cable = (packet4[0] >> 4) & 0x0F;
-    dbg_print("[RX SysEx] Cable:");
-    dbg_print_uint(cable);
-    dbg_print(" CIN:0x");
-    dbg_print_hex8(cin);
-    dbg_print(" Data:");
-    for (uint8_t i = 1; i < 4; i++) {
-      dbg_print(" ");
-      dbg_print_hex8(packet4[i]);
-    }
-    dbg_print("\r\n");
-    return; // Don't print regular format for SysEx
+    return; // Don't print SysEx messages
   }
   
   // Print regular MIDI messages using shared formatting function
@@ -7152,6 +7158,22 @@ void module_test_usb_device_midi_run(void)
   dbg_print("Connect USB to computer/DAW to send and receive MIDI.\r\n");
   dbg_print("This test will log received MIDI packets to UART.\r\n");
   dbg_print("Sending test Note On/Off messages every 2 seconds.\r\n");
+  
+#if MODULE_ENABLE_USB_MIDI
+  // Test MIOS Studio terminal by sending a direct message
+  dbg_print("\r\n");
+  dbg_print("Testing MIOS Studio terminal...\r\n");
+  extern bool mios32_debug_send_message(const char* text, uint8_t cable);
+  bool sent = mios32_debug_send_message("*** MIOS Studio Terminal Test ***\r\n", 0);
+  if (sent) {
+    dbg_print("MIOS Studio terminal test message sent successfully.\r\n");
+    dbg_print("If you see this in MIOS Studio terminal, it's working!\r\n");
+  } else {
+    dbg_print("WARNING: MIOS Studio terminal test message FAILED to send!\r\n");
+    dbg_print("Check MODULE_ENABLE_USB_MIDI and usb_midi_send_sysex().\r\n");
+  }
+#endif
+  
   dbg_print_separator();
   
   uint32_t last_send_time = 0;
@@ -7159,6 +7181,17 @@ void module_test_usb_device_midi_run(void)
   
   // Main test loop
   for (;;) {
+    // CRITICAL: Process queued RX packets from USB interrupt
+    // Without this call, RX packets are queued but never processed!
+    usb_midi_process_rx_queue();
+    
+    // CRITICAL: Process queued MIOS32 queries from task context
+    // Queries are queued from ISR, must be processed here to send responses safely
+#if MODULE_ENABLE_USB_MIDI
+    extern void mios32_query_process_queued(void);
+    mios32_query_process_queued();
+#endif
+    
     uint32_t now = osKernelGetTickCount();
     
     // Periodically send test MIDI messages

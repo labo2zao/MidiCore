@@ -5,6 +5,7 @@
 
 #include "Services/mios32_query/mios32_query.h"
 #include "Config/module_config.h"
+#include "stm32f4xx.h"  // For __get_IPSR() CMSIS intrinsic
 
 /* Use proper module configuration macro instead of __has_include
  * to ensure correct behavior across all build configurations */
@@ -25,6 +26,21 @@
 
 // Buffer for building SysEx responses (max 256 bytes)
 static uint8_t sysex_response_buffer[256];
+
+// Query queue for deferred processing from task context
+#define MIOS32_QUERY_QUEUE_SIZE 4
+#define MIOS32_QUERY_MAX_LEN 32
+
+typedef struct {
+  uint8_t data[MIOS32_QUERY_MAX_LEN];
+  uint32_t len;
+  uint8_t cable;
+  uint8_t valid;
+} mios32_query_queue_entry_t;
+
+static mios32_query_queue_entry_t query_queue[MIOS32_QUERY_QUEUE_SIZE];
+static volatile uint8_t query_queue_write = 0;
+static volatile uint8_t query_queue_read = 0;
 
 bool mios32_query_is_query_message(const uint8_t* data, uint32_t len) {
   // Minimum query: F0 00 00 7E 32 <dev_id> <cmd> F7 = 8 bytes
@@ -54,10 +70,26 @@ bool mios32_query_process(const uint8_t* data, uint32_t len, uint8_t cable) {
     return false;
   }
   
+#ifdef MODULE_TEST_USB_DEVICE_MIDI
+  // Debug: Show MIOS32 query reception
+  extern void dbg_print(const char *str);
+  char buf[80];
+  snprintf(buf, sizeof(buf), "[MIOS32-Q] Received query len:%lu cable:%u\r\n",
+           (unsigned long)len, (unsigned int)cable);
+  dbg_print(buf);
+#endif
+  
   // Extract command (byte 6 for MIOS32 protocol: F0 00 00 7E 32 <dev> <cmd>)
   uint8_t device_id = data[5];
   uint8_t command = data[6];
   uint8_t query_type = (len > 7) ? data[7] : 0x01; // Default to 0x01 if not specified
+  
+#ifdef MODULE_TEST_USB_DEVICE_MIDI
+  // Debug: Show query details
+  snprintf(buf, sizeof(buf), "[MIOS32-Q] dev_id:%02X cmd:%02X type:%02X\r\n",
+           device_id, command, query_type);
+  dbg_print(buf);
+#endif
   
   // Command 0x00: Device Info Request (MIOS Studio uses data[7]=query_type)
   // Command 0x01: Device Info Request (alternate form)
@@ -67,11 +99,31 @@ bool mios32_query_process(const uint8_t* data, uint32_t len, uint8_t cable) {
     return true;
   }
   
+#ifdef MODULE_TEST_USB_DEVICE_MIDI
+  // Debug: Unknown command
+  snprintf(buf, sizeof(buf), "[MIOS32-Q] Unknown command ignored\r\n");
+  dbg_print(buf);
+#endif
+  
   // Unknown command - ignore
   return false;
 }
 
 void mios32_query_send_response(uint8_t query_type, uint8_t device_id, uint8_t cable) {
+  // CRITICAL: Check if we're in ISR context
+  // NEVER send USB MIDI from ISR - causes reentrancy crash!
+  uint32_t ipsr = __get_IPSR();
+  if (ipsr != 0) {
+    // In ISR context - cannot send USB MIDI response
+    // Would cause USB reentrancy and crash
+    // TODO: Queue response for task context
+#ifdef MODULE_TEST_USB_DEVICE_MIDI
+    extern void dbg_print(const char *str);
+    dbg_print("[MIOS32-R] ERROR: Query response from ISR - skipped!\r\n");
+#endif
+    return;
+  }
+  
   uint8_t* p = sysex_response_buffer;
   const char* response_str = NULL;
   
@@ -110,6 +162,15 @@ void mios32_query_send_response(uint8_t query_type, uint8_t device_id, uint8_t c
       break;
   }
   
+#ifdef MODULE_TEST_USB_DEVICE_MIDI
+  // Debug: Show response being sent
+  extern void dbg_print(const char *str);
+  char buf[100];
+  snprintf(buf, sizeof(buf), "[MIOS32-R] Sending type:%02X \"%s\" cable:%u\r\n",
+           query_type, response_str, (unsigned int)cable);
+  dbg_print(buf);
+#endif
+  
   // Build response: F0 00 00 7E 32 <device_id> 0x0F <string> F7
   // Following actual MIOS32 implementation (mios32/common/mios32_midi.c)
   *p++ = 0xF0;  // SysEx start
@@ -130,6 +191,11 @@ void mios32_query_send_response(uint8_t query_type, uint8_t device_id, uint8_t c
   // Send via USB MIDI on the same cable the query came from
 #if MODULE_ENABLE_USB_MIDI
   usb_midi_send_sysex(sysex_response_buffer, p - sysex_response_buffer, cable);
+#ifdef MODULE_TEST_USB_DEVICE_MIDI
+  snprintf(buf, sizeof(buf), "[MIOS32-R] Sent %lu bytes\r\n",
+           (unsigned long)(p - sysex_response_buffer));
+  dbg_print(buf);
+#endif
 #else
   (void)cable;  // Suppress unused parameter warning
 #endif
@@ -143,4 +209,88 @@ void mios32_query_send_device_info(const char* device_name, const char* version,
   (void)version;      // Suppress unused parameter warning
   
   mios32_query_send_response(0x08, device_id, cable);
+}
+
+bool mios32_debug_send_message(const char* text, uint8_t cable) {
+  if (!text) return false;
+  
+#if !MODULE_ENABLE_USB_MIDI
+  // USB MIDI not enabled, cannot send
+  return false;
+#else
+  
+  size_t text_len = strlen(text);
+  if (text_len == 0 || text_len > 240) {
+    // Empty or too long (SysEx has ~256 byte limit, need room for header/footer)
+    return false;
+  }
+  
+  // Build MIOS32 debug message SysEx:
+  // F0 00 00 7E 32 00 0D <ascii_text> F7
+  uint8_t sysex[256];
+  uint8_t* p = sysex;
+  
+  *p++ = 0xF0;                    // SysEx start
+  *p++ = 0x00;                    // MIOS32 manufacturer ID
+  *p++ = 0x00;
+  *p++ = 0x7E;
+  *p++ = MIOS32_QUERY_DEVICE_ID;  // 0x32
+  *p++ = 0x00;                    // Device instance 0
+  *p++ = MIOS32_CMD_DEBUG_MESSAGE; // 0x0D - debug message command
+  
+  // Copy ASCII text
+  memcpy(p, text, text_len);
+  p += text_len;
+  
+  *p++ = 0xF7;                    // SysEx end
+  
+  uint32_t total_len = p - sysex;
+  
+  // Send via USB MIDI SysEx
+  usb_midi_send_sysex(sysex, total_len, cable);
+  return true; // Message sent successfully
+  
+#endif
+}
+
+bool mios32_query_queue(const uint8_t* data, uint32_t len, uint8_t cable) {
+  // ISR-safe: Queue query for later processing from task context
+  if (!data || len == 0 || len > MIOS32_QUERY_MAX_LEN) {
+    return false;
+  }
+  
+  // Check if queue has space
+  if ((query_queue_write - query_queue_read) >= MIOS32_QUERY_QUEUE_SIZE) {
+    return false;  // Queue full
+  }
+  
+  // Add to queue
+  uint8_t idx = query_queue_write % MIOS32_QUERY_QUEUE_SIZE;
+  query_queue[idx].len = len;
+  memcpy(query_queue[idx].data, data, len);
+  query_queue[idx].cable = cable;
+  query_queue[idx].valid = 1;
+  
+  // Increment write pointer (atomic on Cortex-M)
+  query_queue_write++;
+  
+  return true;
+}
+
+void mios32_query_process_queued(void) {
+  // Process all queued queries from task context (safe to send USB MIDI)
+  while (query_queue_read != query_queue_write) {
+    uint8_t idx = query_queue_read % MIOS32_QUERY_QUEUE_SIZE;
+    
+    if (query_queue[idx].valid) {
+      // Process query and send response (now safe - we're in task context)
+      mios32_query_process(query_queue[idx].data,
+                          query_queue[idx].len,
+                          query_queue[idx].cable);
+      query_queue[idx].valid = 0;
+    }
+    
+    // Increment read pointer
+    query_queue_read++;
+  }
 }

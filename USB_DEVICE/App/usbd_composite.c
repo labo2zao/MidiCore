@@ -121,16 +121,37 @@ static uint8_t USBD_COMPOSITE_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
   memset(&composite_class_data, 0, sizeof(USBD_COMPOSITE_HandleTypeDef));
   pdev->pClassData = &composite_class_data;
   
+#ifdef MODULE_TEST_USB_DEVICE_MIDI
+  extern void dbg_print(const char *str);
+  dbg_print("[COMP-Init] Starting MIDI+CDC init\r\n");
+#endif
+  
   /* Save original pClassData pointer */
   void *original_class_data = pdev->pClassData;
   
   /* Initialize MIDI class */
   if (USBD_MIDI.Init != NULL) {
+#ifdef MODULE_TEST_USB_DEVICE_MIDI
+    dbg_print("[COMP-Init] Calling USBD_MIDI.Init()\r\n");
+#endif
     ret = USBD_MIDI.Init(pdev, cfgidx);
     if (ret != USBD_OK) {
+#ifdef MODULE_TEST_USB_DEVICE_MIDI
+      dbg_print("[COMP-Init] ERROR: USBD_MIDI.Init() FAILED!\r\n");
+#endif
       return ret;
     }
     composite_class_data.midi_class_data = pdev->pClassData;
+#ifdef MODULE_TEST_USB_DEVICE_MIDI
+    char buf[60];
+    snprintf(buf, sizeof(buf), "[COMP-Init] MIDI class_data = %p\r\n", 
+             composite_class_data.midi_class_data);
+    dbg_print(buf);
+#endif
+  } else {
+#ifdef MODULE_TEST_USB_DEVICE_MIDI
+    dbg_print("[COMP-Init] WARNING: USBD_MIDI.Init is NULL!\r\n");
+#endif
   }
   
   /* Restore composite class data pointer before CDC init */
@@ -275,35 +296,11 @@ static uint8_t USBD_COMPOSITE_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum)
   /* MIDI OUT endpoint: 0x01 (EP1) */
   if (epnum == 0x01) {
     if (USBD_MIDI.DataOut != NULL && composite_class_data.midi_class_data != NULL) {
-#ifdef MODULE_TEST_USB_DEVICE_MIDI
-      /* Debug: Trace composite DataOut calls - single atomic message */
-      extern void dbg_print(const char *str);
-      char buf[40];
-      snprintf(buf, sizeof(buf), "[COMP-RX] EP:%02X MIDI_OK\r\n", epnum);
-      dbg_print(buf);
-#endif
       void *previous = USBD_COMPOSITE_SwitchClassData(pdev, composite_class_data.midi_class_data);
-      
-#ifdef MODULE_TEST_USB_DEVICE_MIDI
-      dbg_print("[COMP] Calling MIDI.DataOut\r\n");
-#endif
-      
       uint8_t status = USBD_MIDI.DataOut(pdev, epnum);
-      
-#ifdef MODULE_TEST_USB_DEVICE_MIDI
-      dbg_print("[COMP] MIDI.DataOut returned\r\n");
-#endif
-      
       (void)USBD_COMPOSITE_SwitchClassData(pdev, previous);
       return status;
     }
-#ifdef MODULE_TEST_USB_DEVICE_MIDI
-    /* Debug: MIDI routing failed */
-    extern void dbg_print(const char *str);
-    char buf[40];
-    snprintf(buf, sizeof(buf), "[COMP-RX] EP:%02X MIDI_SKIP\r\n", epnum);
-    dbg_print(buf);
-#endif
     return ret;
   }
   

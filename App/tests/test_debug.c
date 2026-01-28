@@ -10,6 +10,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <stdbool.h>
 
 #if MODULE_ENABLE_OLED
 #include "Hal/oled_ssd1322/oled_ssd1322.h"  // For oled_init_newhaven()
@@ -151,15 +152,106 @@ void dbg_print(const char* str)
   if (len == 0) return;
   
 #if MODULE_ENABLE_USB_CDC
-  // Primary output: USB CDC (virtual COM port)
+  // Primary output: USB CDC (virtual COM port) for TeraTerm, etc.
   usb_cdc_send((const uint8_t*)str, len);
 #else
   // Fallback to UART if USB CDC not available
   UART_HandleTypeDef* huart = get_debug_uart_handle();
   HAL_UART_Transmit(huart, (const uint8_t*)str, len, 1000);
 #endif
+
+#if MODULE_ENABLE_USB_MIDI
+  // Secondary output: MIOS32 debug message via USB MIDI for MIOS Studio terminal
+  // Send as MIOS32 SysEx: F0 00 00 7E 32 00 0D <text> F7
+  // NOTE: Delayed start to avoid interfering with USB enumeration and MIOS32 queries
+  extern bool mios32_debug_send_message(const char* text, uint8_t cable);
   
-  // Also mirror to OLED if enabled (optional secondary output)
+  // CRITICAL: Check if we're in interrupt context
+  // NEVER send USB MIDI from ISR - causes reentrancy issues and breaks USB stack!
+  // Check IPSR register (Interrupt Program Status Register)
+  // IPSR = 0 means thread mode (safe to send)
+  // IPSR != 0 means exception/interrupt mode (NOT safe to send)
+  uint32_t ipsr = __get_IPSR();
+  bool in_interrupt = (ipsr != 0);
+  
+  if (in_interrupt) {
+    // We're in ISR context - DO NOT send MIOS32 debug!
+    // USB MIDI transmission from ISR causes reentrancy with RX ISR and breaks USB
+    // CDC debug is fine from ISR (different mechanism)
+    return;
+  }
+  
+  // Rate limiting to prevent flooding USB MIDI bandwidth
+  // Allow maximum 10 messages per second (100ms interval)
+  // This allows debug monitoring without blocking normal MIDI traffic
+  static uint32_t start_tick = 0;
+  static uint32_t last_send_tick = 0;
+  static uint32_t dropped_count = 0;
+  static uint32_t sent_count = 0;
+  
+  // Get current tick on first call
+  // CRITICAL: Use HAL_GetTick() not osKernelGetTickCount() - works before RTOS starts!
+  if (start_tick == 0) {
+    start_tick = HAL_GetTick();
+  }
+  
+  uint32_t now = HAL_GetTick();
+  uint32_t elapsed_since_boot = now - start_tick;
+  
+  // Wait 3 seconds after boot before sending any debug to MIOS Studio
+  // This allows USB enumeration and MIOS32 query processing to complete first
+  if (elapsed_since_boot >= 3000) {
+    // Send test message once after boot delay
+    static bool test_msg_sent = false;
+    if (!test_msg_sent) {
+      mios32_debug_send_message("\r\n*** MIOS Terminal Test ***\r\n", 0);
+      test_msg_sent = true;
+      sent_count++;
+    }
+    
+    // Rate limiting: Allow maximum 10 messages per second
+    // This prevents flooding USB MIDI bandwidth while still providing debug output
+    #define DEBUG_MSG_MIN_INTERVAL_MS 100  // 100ms = 10 msg/sec
+    
+    uint32_t elapsed_since_last = now - last_send_tick;
+    
+    if (elapsed_since_last >= DEBUG_MSG_MIN_INTERVAL_MS) {
+      // Enough time has passed, send this message
+      bool sent = mios32_debug_send_message(str, 0);
+      
+      if (sent) {
+        last_send_tick = now;
+        sent_count++;
+        
+        // Report counters periodically (every 100 messages sent, only to CDC)
+        if (sent_count % 100 == 0) {
+          char stats_msg[120];
+          snprintf(stats_msg, sizeof(stats_msg), 
+                   "[MIOS Stats] Sent:%lu Dropped:%lu\r\n", 
+                   (unsigned long)sent_count, (unsigned long)dropped_count);
+          usb_cdc_send((uint8_t*)stats_msg, strlen(stats_msg));
+        }
+        
+        // If we dropped messages, report it once (only to CDC to avoid recursion)
+        if (dropped_count > 0) {
+          char drop_msg[80];
+          snprintf(drop_msg, sizeof(drop_msg), 
+                   "[DBG] %lu debug messages dropped (rate limiting)\r\n", 
+                   (unsigned long)dropped_count);
+#if MODULE_ENABLE_USB_CDC
+          usb_cdc_send((const uint8_t*)drop_msg, strlen(drop_msg));
+#endif
+          dropped_count = 0;
+        }
+      }
+    } else {
+      // Too soon since last message, drop this one (rate limiting active)
+      dropped_count++;
+    }
+  }
+#endif
+  
+  // Also mirror to OLED if enabled (optional tertiary output)
   if (oled_mirror_is_enabled()) {
     oled_mirror_print(str);
   }
