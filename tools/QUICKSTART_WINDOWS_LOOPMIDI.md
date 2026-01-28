@@ -1,8 +1,14 @@
 # MidiCore Emulator - Quick Start Guide for Windows/loopMIDI
 
-## IMPORTANT: Windows Requires --use-existing Option! ⚠️
+## GREAT NEWS: Auto-Detection on Windows! ✅
 
-Virtual port creation doesn't work on Windows. You MUST use existing loopMIDI port.
+The emulator now **auto-detects Windows** and automatically finds loopMIDI. Just run it!
+
+```bash
+python midicore_emulator.py
+```
+
+No need to type `--use-existing` anymore!
 
 ## Quick Start (Windows with loopMIDI)
 
@@ -13,16 +19,17 @@ Virtual port creation doesn't work on Windows. You MUST use existing loopMIDI po
 3. **Name it** (default "loopMIDI Port" is fine)
 4. **Keep loopMIDI running**
 
-### Step 2: Run Emulator with --use-existing
+### Step 2: Run Emulator (Auto-Detection!)
 
 ```bash
-python tools/midicore_emulator.py --use-existing "loopMIDI"
+python tools/midicore_emulator.py
 ```
 
 You'll see:
 ```
-✓ MidiCore Emulator started
-✓ Using existing MIDI port: 'loopMIDI Port'
+✓ Detected Windows - searching for loopMIDI port...
+✓ Found: loopMIDI Port
+✓ Connected successfully!
 
 ⏳ Waiting 5 seconds for you to connect MIOS Studio...
    Starting in 5 seconds...
@@ -33,7 +40,7 @@ You'll see:
 ### Step 3: Open MIOS Studio (During Countdown)
 
 1. Open MIOS Studio
-2. Look for **"loopMIDI Port"** in device list (not "MidiCore Emulator")
+2. Look for **"loopMIDI Port"** in device list
 3. Select it
 4. Click **"Query"** button
 
@@ -71,21 +78,26 @@ Press **Ctrl+C** in Python console when done.
 ## Command Line Options
 
 ```bash
-# Use existing loopMIDI port (REQUIRED for Windows)
-python tools/midicore_emulator.py --use-existing "loopMIDI"
+# Simple (auto-detects loopMIDI on Windows)
+python tools/midicore_emulator.py
+
+# Use specific port (override auto-detection)
+python tools/midicore_emulator.py --use-existing "My Port Name"
 
 # List available MIDI ports
 python tools/midicore_emulator.py --list
 
 # Verbose mode (shows raw MIDI)
-python tools/midicore_emulator.py --use-existing "loopMIDI" --verbose
+python tools/midicore_emulator.py --verbose
 ```
 
 ## What You'll See
 
 ### Python Console:
 ```
-✓ MidiCore Emulator started
+✓ Detected Windows - searching for loopMIDI port...
+✓ Found: loopMIDI Port
+✓ Connected successfully!
 ✓ Using existing MIDI port: 'loopMIDI Port'
 
 [SENT] [Test #1] MIOS Studio terminal receiving messages OK

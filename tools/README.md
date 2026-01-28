@@ -8,36 +8,38 @@ Python script to test MIOS Studio terminal functionality by emulating MidiCore f
 
 ### Platform-Specific Usage
 
-**Windows (with loopMIDI):**
+**Windows (auto-detects loopMIDI):**
 ```bash
-# 1. Create a loopMIDI port first
-# 2. Then run:
-python midicore_emulator.py --use-existing "loopMIDI"
+# Just run it - finds loopMIDI automatically!
+python midicore_emulator.py
 ```
 
 **macOS:**
 ```bash
-# Virtual ports work automatically
+# Creates virtual port automatically
 python midicore_emulator.py
 ```
 
 **Linux:**
 ```bash
-# Virtual ports work automatically
+# Creates virtual port automatically
 python midicore_emulator.py
 ```
 
 ### Quick Commands
 
 ```bash
+# Simple (auto-detects on all platforms)
+python midicore_emulator.py
+
 # List available MIDI ports
 python midicore_emulator.py --list
 
-# Use existing port (REQUIRED for Windows)
-python midicore_emulator.py --use-existing "loopMIDI"
+# Use specific port (override auto-detection)
+python midicore_emulator.py --use-existing "My Port"
 
 # Verbose mode
-python midicore_emulator.py --use-existing "loopMIDI" --verbose
+python midicore_emulator.py --verbose
 
 # Help
 python midicore_emulator.py --help
@@ -55,37 +57,42 @@ pip install python-rtmidi
 - ✅ Sends debug messages (SysEx 0x0D)
 - ✅ 5-second countdown before messages
 - ✅ Continuous test messages every 2 seconds
-- ✅ Works on Windows (with --use-existing), macOS, Linux
+- ✅ Auto-detects Windows and finds loopMIDI
+- ✅ Works on all platforms (Windows, macOS, Linux)
 
 ### Windows Setup
 
 1. **Install loopMIDI** (if not already)
 2. **Open loopMIDI** application
 3. **Create port** - Click '+' button
-4. **Run emulator:**
+4. **Keep loopMIDI running**
+5. **Run emulator:**
    ```bash
-   python midicore_emulator.py --use-existing "loopMIDI"
+   python midicore_emulator.py
    ```
-5. **Connect MIOS Studio** to loopMIDI port
-6. **Open Terminal** window in MIOS Studio
-7. **Watch messages** appear!
+   (Auto-finds loopMIDI - no flags needed!)
+6. **Connect MIOS Studio** to loopMIDI port
+7. **Open Terminal** window in MIOS Studio
+8. **Watch messages** appear!
 
 See `QUICKSTART_WINDOWS_LOOPMIDI.md` for detailed Windows instructions.
 
 ### Troubleshooting
 
-**"ERROR creating virtual port"**
-- On Windows: Use `--use-existing "loopMIDI"` instead
-- On macOS/Linux: Check python-rtmidi installation
+**"ERROR: loopMIDI port not found"** (Windows)
+- Open loopMIDI application
+- Create a port (click '+' button)
+- Keep loopMIDI running
+- Run emulator again
 
-**"ERROR: No MIDI ports found"**
-- On Windows: Create a loopMIDI port first
+**"ERROR creating virtual port"** (macOS/Linux)
 - On macOS: Enable IAC Driver in Audio MIDI Setup
 - On Linux: Run `sudo modprobe snd-virmidi`
+- Or use: `python midicore_emulator.py --use-existing "Port Name"`
 
 **"Device doesn't appear in MIOS Studio"**
 - Make sure emulator is running
-- On Windows: Select "loopMIDI Port" not "MidiCore Emulator"
+- On Windows: Select "loopMIDI Port" in MIOS Studio
 - Refresh MIOS Studio device list
 - Restart MIOS Studio
 
