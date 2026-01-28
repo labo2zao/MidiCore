@@ -126,41 +126,49 @@ static void print_usb_midi_packet(const uint8_t packet4[4])
 
 /**
  * @brief Debug trace for TX failures
+ * 
+ * Note: This is called from interrupt context, so we build the complete
+ * message in a buffer and send it as a single atomic write to avoid
+ * fragmentation when using USB CDC.
  */
 void test_debug_tx_trace(uint8_t code)
 {
-  dbg_print("[TX-DBG] Code:");
-  dbg_print_hex8(code);
+  char buffer[80];
+  const char* msg;
   
   switch(code) {
-    case 0x01:
-      dbg_print(" Class data NULL or not ready");
-      break;
-    case 0x02:
-      dbg_print(" Queue empty");
-      break;
-    case 0x03:
-      dbg_print(" Endpoint BUSY");
-      break;
-    case 0xFF:
-      dbg_print(" Queue FULL!");
-      break;
-    default:
-      dbg_print(" Unknown");
+    case 0x01: msg = "Class data NULL or not ready"; break;
+    case 0x02: msg = "Queue empty"; break;
+    case 0x03: msg = "Endpoint BUSY"; break;
+    case 0xFF: msg = "Queue FULL!"; break;
+    default: msg = "Unknown"; break;
   }
-  dbg_print("\r\n");
+  
+  // Build complete message in buffer for atomic send
+  int len = snprintf(buffer, sizeof(buffer), "[TX-DBG] Code:%02X %s\r\n", code, msg);
+  
+  if (len > 0 && len < (int)sizeof(buffer)) {
+    dbg_print(buffer);
+  }
 }
 
 /**
  * @brief Debug trace for packet queueing
+ * 
+ * Note: This is called from interrupt context, so we build the complete
+ * message in a buffer and send it as a single atomic write to avoid
+ * fragmentation when using USB CDC.
  */
 void test_debug_tx_packet_queued(uint8_t cin, uint8_t b0)
 {
-  dbg_print("[TX-QUEUE] CIN:");
-  dbg_print_hex8(cin);
-  dbg_print(" B0:");
-  dbg_print_hex8(b0);
-  dbg_print("\r\n");
+  char buffer[40];
+  
+  // Build complete message in buffer for atomic send
+  int len = snprintf(buffer, sizeof(buffer), "[TX-QUEUE] CIN:%02X B0:%02X\r\n", cin, b0);
+  
+  if (len > 0 && len < (int)sizeof(buffer)) {
+    dbg_print(buffer);
+  }
 }
 
 /**
