@@ -165,7 +165,6 @@ void dbg_print(const char* str)
   // Send as MIOS32 SysEx: F0 00 00 7E 32 00 0D <text> F7
   // NOTE: Delayed start to avoid interfering with USB enumeration and MIOS32 queries
   extern bool mios32_debug_send_message(const char* text, uint8_t cable);
-  extern uint32_t osKernelGetTickCount(void);
   
   // Track success/failure for diagnostics
   static uint32_t mios_msg_sent = 0;
@@ -174,13 +173,14 @@ void dbg_print(const char* str)
   static uint32_t start_tick = 0;
   
   // Get current tick on first call
+  // CRITICAL: Use HAL_GetTick() not osKernelGetTickCount() - works before RTOS starts!
   if (start_tick == 0) {
-    start_tick = osKernelGetTickCount();
+    start_tick = HAL_GetTick();
   }
   
   // Wait 3 seconds after boot before sending debug to MIOS Studio
   // This allows USB enumeration and MIOS32 query processing to complete first
-  uint32_t elapsed = osKernelGetTickCount() - start_tick;
+  uint32_t elapsed = HAL_GetTick() - start_tick;
   if (elapsed >= 3000) {  // 3 second delay
     bool sent = mios32_debug_send_message(str, 0); // Send on cable 0
     
