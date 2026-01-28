@@ -49,8 +49,12 @@ extern "C" {
 typedef enum {
   TEST_STATUS_IDLE = 0,       // No test running
   TEST_STATUS_RUNNING,        // Test in progress
+  TEST_STATUS_PAUSED,         // Test paused
+  TEST_STATUS_STOPPING,       // Test stop requested
+  TEST_STATUS_STOPPED,        // Test stopped gracefully
   TEST_STATUS_PASSED,         // Test passed
   TEST_STATUS_FAILED,         // Test failed
+  TEST_STATUS_TIMEOUT,        // Test timed out
   TEST_STATUS_ERROR           // Test error
 } test_status_t;
 
@@ -61,8 +65,12 @@ typedef struct {
   char test_name[TEST_MAX_NAME_LEN];
   test_status_t status;
   uint32_t start_time_ms;
+  uint32_t end_time_ms;
   uint32_t duration_ms;
   uint32_t iteration_count;
+  uint32_t assertions_total;
+  uint32_t assertions_passed;
+  uint32_t assertions_failed;
   char error_message[TEST_MAX_DESCRIPTION_LEN];
 } test_result_t;
 
@@ -105,16 +113,42 @@ uint8_t test_is_initialized(void);
 int test_run(const char* test_name, int32_t duration_ms);
 
 /**
- * @brief Stop currently running test
+ * @brief Stop currently running test gracefully
+ * Sets stop flag that tests should check periodically
  * @return 0 on success, negative on error
  */
 int test_stop(void);
+
+/**
+ * @brief Pause currently running test
+ * @return 0 on success, negative on error
+ */
+int test_pause(void);
+
+/**
+ * @brief Resume paused test
+ * @return 0 on success, negative on error
+ */
+int test_resume(void);
 
 /**
  * @brief Check if a test is currently running
  * @return 1 if running, 0 if not
  */
 uint8_t test_is_running(void);
+
+/**
+ * @brief Check if test stop has been requested
+ * Tests should call this periodically and exit gracefully if true
+ * @return 1 if stop requested, 0 otherwise
+ */
+uint8_t test_is_stop_requested(void);
+
+/**
+ * @brief Check if test is paused
+ * @return 1 if paused, 0 otherwise
+ */
+uint8_t test_is_paused(void);
 
 // =============================================================================
 // API - TEST STATUS & RESULTS
