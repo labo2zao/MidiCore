@@ -166,6 +166,21 @@ void dbg_print(const char* str)
   // NOTE: Delayed start to avoid interfering with USB enumeration and MIOS32 queries
   extern bool mios32_debug_send_message(const char* text, uint8_t cable);
   
+  // CRITICAL: Check if we're in interrupt context
+  // NEVER send USB MIDI from ISR - causes reentrancy issues and breaks USB stack!
+  // Check IPSR register (Interrupt Program Status Register)
+  // IPSR = 0 means thread mode (safe to send)
+  // IPSR != 0 means exception/interrupt mode (NOT safe to send)
+  uint32_t ipsr = __get_IPSR();
+  bool in_interrupt = (ipsr != 0);
+  
+  if (in_interrupt) {
+    // We're in ISR context - DO NOT send MIOS32 debug!
+    // USB MIDI transmission from ISR causes reentrancy with RX ISR and breaks USB
+    // CDC debug is fine from ISR (different mechanism)
+    return;
+  }
+  
   // Rate limiting to prevent flooding USB MIDI bandwidth
   // Allow maximum 10 messages per second (100ms interval)
   // This allows debug monitoring without blocking normal MIDI traffic
