@@ -2,14 +2,14 @@
 
 ## Purpose
 
-This Python script **EMULATES MidiCore** to test if MIOS Studio terminal is working correctly. Instead of testing the real firmware, this script acts as a virtual MidiCore device that sends test messages to MIOS Studio.
+This Python script **EMULATES MidiCore** and **creates a virtual MIDI port** that MIOS Studio can connect to. This tests if MIOS Studio terminal is working correctly without needing actual hardware.
 
-## Why Use This?
+## Key Features
 
-✅ Test if MIOS Studio terminal works without hardware  
-✅ Isolate MIOS Studio issues from firmware issues  
-✅ Quick verification before debugging firmware  
-✅ Works on any computer with Python  
+✅ **Creates its own virtual MIDI port** - No manual setup needed!  
+✅ **5-second delay** - Time to connect MIOS Studio before messages start  
+✅ **Automatic countdown** - Shows when messages will start  
+✅ **Works like real hardware** - MIOS Studio sees it as a device  
 
 ## Requirements
 
@@ -17,87 +17,58 @@ This Python script **EMULATES MidiCore** to test if MIOS Studio terminal is work
 pip install python-rtmidi
 ```
 
-**Plus you need a virtual MIDI port:**
-
-- **Windows:** Install [loopMIDI](https://www.tobias-erichsen.de/software/loopmidi.html)
-- **macOS:** Enable IAC Driver (Audio MIDI Setup → MIDI Studio → IAC Driver)
-- **Linux:** `sudo modprobe snd-virmidi`
+**Platform Support:**
+- **macOS:** Works natively ✅
+- **Linux:** Works natively ✅  
+- **Windows:** May need virtual MIDI driver (loopMIDI recommended)
 
 ## Quick Start
 
-### Step 1: Create Virtual MIDI Port
-
-**Windows (loopMIDI):**
-1. Download and install loopMIDI
-2. Open loopMIDI
-3. Click "+" to create a port (e.g., "loopMIDI Port")
-
-**macOS (IAC Driver):**
-1. Open "Audio MIDI Setup"
-2. Window → Show MIDI Studio
-3. Double-click "IAC Driver"
-4. Check "Device is online"
-
-**Linux:**
-```bash
-sudo modprobe snd-virmidi
-# Creates virtual MIDI ports
-```
-
-### Step 2: Start Emulator
+### Step 1: Start Emulator
 
 ```bash
 python tools/midicore_emulator.py
 ```
 
-Or specify port:
-```bash
-python tools/midicore_emulator.py --port "loopMIDI"
-```
-
 Output:
 ```
-✓ MidiCore Emulator started on: loopMIDI Port
+✓ MidiCore Emulator started
+✓ Created virtual MIDI port: 'MidiCore Emulator'
 
-Connect MIOS Studio to this port and open Terminal window.
-You should see test messages appearing in MIOS Studio terminal.
+In MIOS Studio:
+  1. Device 'MidiCore Emulator' should appear in device list
+  2. Select it and click 'Query'
+  3. Open Terminal window (View → Terminal)
+  4. You should see test messages!
 
 ============================================================
 STARTING TEST SEQUENCE
 ============================================================
-Sending test messages to MIOS Studio terminal...
-Watch MIOS Studio Terminal window for these messages:
-============================================================
 
-[SENT] *** MidiCore Emulator Started ***
-[SENT] MIOS Studio Terminal Test
-[SENT] If you see this, terminal is WORKING!
-[SENT] Test Message #1
-[SENT] Test Message #2
-[SENT] Test Message #3
-[SENT] Test Message #4
-[SENT] Test Message #5
-[SENT] All test messages sent!
+⏳ Waiting 5 seconds for you to connect MIOS Studio...
+   1. Open MIOS Studio
+   2. Select 'MidiCore Emulator' device
+   3. Click 'Query' button
+   4. Open Terminal window (View → Terminal)
 
-Initial test sequence complete!
-Sent 11 messages.
-
-Now sending periodic heartbeat messages every 5 seconds...
-Press Ctrl+C to stop.
-
-[SENT] [Heartbeat #1] Terminal alive, sent 12 messages
+   Starting in 5 seconds...
+   Starting in 4 seconds...
+   Starting in 3 seconds...
+   ...
 ```
 
-### Step 3: Connect MIOS Studio
+### Step 2: Connect MIOS Studio
 
-1. Open MIOS Studio
-2. Device should appear in device list (as "loopMIDI Port" or "IAC Driver")
-3. Select the device
-4. Open Terminal window: **View → Terminal**
+During the 5-second countdown:
 
-### Step 4: Check Result
+1. **Open MIOS Studio**
+2. **Look for "MidiCore Emulator"** in device list
+3. **Select it** and click **"Query"** button
+4. **Open Terminal window:** View → Terminal
 
-**✅ If Terminal WORKS:**
+### Step 3: Watch Messages Appear
+
+After countdown, MIOS Studio Terminal should show:
 ```
 *** MidiCore Emulator Started ***
 MIOS Studio Terminal Test
@@ -116,26 +87,192 @@ If you see all 5 messages above, terminal is working perfectly.
 [Heartbeat #2] Terminal alive, sent 13 messages
 ```
 
-**❌ If Terminal BLANK:**
-- Messages show in Python script output
-- But nothing appears in MIOS Studio terminal
-- This means MIOS Studio has a problem, NOT your firmware!
+### Step 4: Interpret Results
+
+**✅ If Messages Appear in Terminal:**
+- MIOS Studio terminal is WORKING perfectly!
+- The problem is in your MidiCore firmware
+- Use the firmware debug tool to diagnose
+
+**❌ If Terminal is Blank:**
+- MIOS Studio terminal has an issue
+- Not a firmware problem
+- Try updating MIOS Studio or contact support
 
 ## Command Line Options
 
 ```bash
-# List available MIDI ports
-python tools/midicore_emulator.py --list
+# Default - creates port named "MidiCore Emulator"
+python tools/midicore_emulator.py
 
-# Use specific port
-python tools/midicore_emulator.py --port "loopMIDI"
+# Custom device name
+python tools/midicore_emulator.py --name "My Test Device"
 
-# Verbose mode (shows raw MIDI)
+# Verbose mode (shows raw MIDI messages)
 python tools/midicore_emulator.py --verbose
 
 # Help
 python tools/midicore_emulator.py --help
 ```
+
+## How It Works
+
+1. **Creates Virtual MIDI Ports**
+   - Input port: Receives queries from MIOS Studio
+   - Output port: Sends responses and debug messages
+   - Both named "MidiCore Emulator" (or custom name)
+
+2. **Responds to Queries**
+   - Like real MidiCore firmware
+   - Returns device info, version, etc.
+
+3. **Sends Debug Messages**
+   - MIOS32 SysEx format (0x0D command)
+   - Test messages to verify terminal
+
+4. **5-Second Countdown**
+   - Gives you time to connect
+   - Clear instructions shown
+
+## Verbose Mode
+
+```bash
+python tools/midicore_emulator.py --verbose
+```
+
+Shows raw MIDI data:
+```
+[RX] F0 00 00 7E 32 00 00 01 F7
+[QUERY] Type=0x01 (OS)
+[TX RESPONSE] MIOS32
+[TX] F0 00 00 7E 32 00 0F 4D 49 4F 53 33 32 F7
+[TX DEBUG] '*** MidiCore Emulator Started ***\r\n'
+[TX] F0 00 00 7E 32 00 0D 2A 2A 2A ... F7
+```
+
+## Platform-Specific Notes
+
+### macOS
+Works out of the box! Virtual MIDI ports are natively supported.
+
+### Linux
+Works out of the box! ALSA supports virtual MIDI ports.
+
+### Windows
+May need a virtual MIDI driver like **loopMIDI**:
+1. Download from: https://www.tobias-erichsen.de/software/loopmidi.html
+2. Install loopMIDI
+3. Run the emulator
+4. Should work!
+
+## Troubleshooting
+
+### "ERROR starting emulator"
+
+**Problem:** Virtual MIDI port creation failed
+
+**Solutions:**
+- **Windows:** Install loopMIDI driver
+- **Linux:** Check ALSA is installed (`sudo apt-get install libasound2-dev`)
+- **macOS:** Should work, check System Preferences → Security
+
+### "Device doesn't appear in MIOS Studio"
+
+**Problem:** MIOS Studio can't see virtual port
+
+**Solutions:**
+- Restart MIOS Studio after starting emulator
+- Check MIOS Studio MIDI settings
+- Try verbose mode to see if queries are received
+
+### "Terminal shows nothing"
+
+**Problem:** This is what we're testing!
+
+**If Python shows messages sent but MIOS Studio terminal is blank:**
+→ MIOS Studio terminal has a problem
+
+**Solutions:**
+- Update MIOS Studio (need v2.4+)
+- Check Terminal window is open
+- Check device is selected
+- Try on different computer
+
+## Comparison with Real Firmware
+
+| Feature | Real MidiCore | Emulator |
+|---------|---------------|----------|
+| MIOS32 Queries | ✅ | ✅ |
+| Debug Messages | ✅ | ✅ |
+| Query Responses | ✅ | ✅ |
+| Message Format | ✅ | ✅ |
+| Heartbeat | ✅ | ✅ |
+| 5s Delay | ❌ | ✅ NEW! |
+| Virtual Port | ❌ | ✅ NEW! |
+| Hardware I/O | ✅ | ❌ |
+
+## What Changed (v2.0)
+
+**OLD Version (v1.0):**
+- Required manual virtual MIDI port setup (loopMIDI/IAC)
+- Connected to existing port
+- Started sending immediately
+- Complex setup
+
+**NEW Version (v2.0):**
+- ✅ Creates virtual port automatically
+- ✅ 5-second countdown before messages
+- ✅ Simpler usage
+- ✅ Better user experience
+
+## Examples
+
+### Basic Usage
+```bash
+$ python tools/midicore_emulator.py
+
+✓ MidiCore Emulator started
+✓ Created virtual MIDI port: 'MidiCore Emulator'
+...
+⏳ Waiting 5 seconds for you to connect MIOS Studio...
+   Starting in 5 seconds...
+```
+
+### Custom Name
+```bash
+$ python tools/midicore_emulator.py --name "Test Device 123"
+
+✓ MidiCore Emulator started
+✓ Created virtual MIDI port: 'Test Device 123'
+```
+
+### Debug Mode
+```bash
+$ python tools/midicore_emulator.py --verbose
+
+[TX DEBUG] '*** MidiCore Emulator Started ***\r\n'
+[TX] F0 00 00 7E 32 00 0D 2A 2A 2A 20 4D 69 64 69 43 6F 72 65 ...
+```
+
+## Files
+
+- `midicore_emulator.py` - Main emulator script
+- `README_MIDICORE_EMULATOR.md` - This documentation
+
+## Support
+
+If terminal works with emulator but not real firmware:
+→ Firmware issue - use firmware debug tool
+
+If terminal doesn't work with emulator:
+→ MIOS Studio issue - update or contact support
+
+---
+
+**Author:** GitHub Copilot  
+**Date:** 2026-01-28  
+**Version:** 2.0 (with auto virtual port + 5s delay)
+
 
 ## Features
 
