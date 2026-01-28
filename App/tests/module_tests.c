@@ -7070,25 +7070,42 @@ static void module_test_usb_midi_print_packet(const uint8_t packet4[4])
   uint8_t data1 = packet4[2];
   uint8_t data2 = packet4[3];
   
-  dbg_printf("[RX] Cable:%d %02X %02X %02X", cable, status, data1, data2);
+  /* CRITICAL: Buffer complete message before calling dbg_print() to avoid USB CDC fragmentation
+   * Multiple dbg_print() calls can be interrupted causing message interleaving
+   * See USB_CDC_DEBUG_FRAGMENTATION_FIX.md for details
+   */
+  char buf[100];
+  int len;
   
-  // Decode message type
+  // Start with basic MIDI data
+  len = snprintf(buf, sizeof(buf), "[RX] Cable:%d %02X %02X %02X", 
+                 cable, status, data1, data2);
+  
+  // Decode message type and append to same buffer
   uint8_t msg_type = status & 0xF0;
   uint8_t channel = (status & 0x0F) + 1;
   
   if (msg_type == 0x90 && data2 > 0) {
-    dbg_printf(" (Note On Ch:%d Note:%d Vel:%d)", channel, data1, data2);
+    snprintf(buf + len, sizeof(buf) - len, " (Note On Ch:%d Note:%d Vel:%d)\r\n", 
+             channel, data1, data2);
   } else if (msg_type == 0x80 || (msg_type == 0x90 && data2 == 0)) {
-    dbg_printf(" (Note Off Ch:%d Note:%d)", channel, data1);
+    snprintf(buf + len, sizeof(buf) - len, " (Note Off Ch:%d Note:%d)\r\n", 
+             channel, data1);
   } else if (msg_type == 0xB0) {
-    dbg_printf(" (CC Ch:%d CC:%d Val:%d)", channel, data1, data2);
+    snprintf(buf + len, sizeof(buf) - len, " (CC Ch:%d CC:%d Val:%d)\r\n", 
+             channel, data1, data2);
   } else if (msg_type == 0xC0) {
-    dbg_printf(" (Prog Ch:%d Prog:%d)", channel, data1);
+    snprintf(buf + len, sizeof(buf) - len, " (Prog Ch:%d Prog:%d)\r\n", 
+             channel, data1);
   } else if (msg_type == 0xE0) {
-    dbg_printf(" (Bend Ch:%d)", channel);
+    snprintf(buf + len, sizeof(buf) - len, " (Bend Ch:%d)\r\n", channel);
+  } else {
+    // No decoding, just add newline
+    snprintf(buf + len, sizeof(buf) - len, "\r\n");
   }
   
-  dbg_print("\r\n");
+  // Single atomic call
+  dbg_print(buf);
 }
 
 /**
