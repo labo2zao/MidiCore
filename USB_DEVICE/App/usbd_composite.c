@@ -283,7 +283,17 @@ static uint8_t USBD_COMPOSITE_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum)
       dbg_print(buf);
 #endif
       void *previous = USBD_COMPOSITE_SwitchClassData(pdev, composite_class_data.midi_class_data);
+      
+#ifdef MODULE_TEST_USB_DEVICE_MIDI
+      dbg_print("[COMP] Calling MIDI.DataOut\r\n");
+#endif
+      
       uint8_t status = USBD_MIDI.DataOut(pdev, epnum);
+      
+#ifdef MODULE_TEST_USB_DEVICE_MIDI
+      dbg_print("[COMP] MIDI.DataOut returned\r\n");
+#endif
+      
       (void)USBD_COMPOSITE_SwitchClassData(pdev, previous);
       return status;
     }
