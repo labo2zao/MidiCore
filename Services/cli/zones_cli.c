@@ -134,8 +134,7 @@ static module_descriptor_t s_zones_descriptor = {
   .disable = zones_cli_disable,
   .get_status = zones_cli_get_status,
   .has_per_track_state = 1,
-  .is_global = 0,
-  .max_tracks = ZONES_MAX
+  .is_global = 0
 };
 
 // =============================================================================

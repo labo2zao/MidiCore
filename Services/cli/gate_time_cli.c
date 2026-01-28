@@ -47,6 +47,15 @@ static const char* s_mode_names[] = {
 };
 
 // =============================================================================
+// INIT WRAPPER
+// =============================================================================
+
+static int gate_time_cli_init(void) {
+  gate_time_init();
+  return 0;
+}
+
+// =============================================================================
 // MODULE DESCRIPTOR
 // =============================================================================
 
@@ -54,7 +63,7 @@ static module_descriptor_t s_gate_time_descriptor = {
   .name = "gate_time",
   .description = "Note length/gate time control",
   .category = MODULE_CATEGORY_EFFECT,
-  .init = gate_time_init,
+  .init = gate_time_cli_init,
   .enable = gate_time_cli_enable,
   .disable = gate_time_cli_disable,
   .get_status = gate_time_cli_get_status,

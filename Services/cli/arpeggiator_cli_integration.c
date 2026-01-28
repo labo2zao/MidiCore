@@ -145,7 +145,7 @@ static module_descriptor_t s_arp_descriptor = {
     },
     {
       .name = "pattern",
-      .description = "Arpeggio pattern (0=UP, 1=DOWN, 2=UP_DOWN, 3=RANDOM, 4=AS_PLAYED)",
+      .description = "Pattern (0=UP 1=DOWN 2=UP_DOWN 3=RANDOM 4=AS_PLAYED)",
       .type = PARAM_TYPE_ENUM,
       .min = 0,
       .max = ARP_PATTERN_COUNT - 1,

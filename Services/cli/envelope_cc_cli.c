@@ -34,6 +34,15 @@ DEFINE_PARAM_INT_TRACK(envelope_cc, release, envelope_cc_get_release, envelope_c
 DEFINE_MODULE_CONTROL_TRACK(envelope_cc, envelope_cc_set_enabled, envelope_cc_is_enabled)
 
 // =============================================================================
+// INIT WRAPPER
+// =============================================================================
+
+static int envelope_cc_cli_init(void) {
+  envelope_cc_init();
+  return 0;
+}
+
+// =============================================================================
 // MODULE DESCRIPTOR
 // =============================================================================
 
@@ -41,7 +50,7 @@ static module_descriptor_t s_envelope_cc_descriptor = {
   .name = "envelope_cc",
   .description = "ADSR envelope to CC output",
   .category = MODULE_CATEGORY_EFFECT,
-  .init = envelope_cc_init,
+  .init = envelope_cc_cli_init,
   .enable = envelope_cc_cli_enable,
   .disable = envelope_cc_cli_disable,
   .get_status = envelope_cc_cli_get_status,

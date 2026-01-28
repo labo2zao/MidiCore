@@ -82,6 +82,15 @@ static const char* s_interval_names[] = {
 };
 
 // =============================================================================
+// INIT WRAPPER
+// =============================================================================
+
+static int harmonizer_cli_init(void) {
+  harmonizer_init();
+  return 0;
+}
+
+// =============================================================================
 // MODULE DESCRIPTOR
 // =============================================================================
 
@@ -89,7 +98,7 @@ static module_descriptor_t s_harmonizer_descriptor = {
   .name = "harmonizer",
   .description = "MIDI harmonizer - adds harmony notes",
   .category = MODULE_CATEGORY_EFFECT,
-  .init = harmonizer_init,
+  .init = harmonizer_cli_init,
   .enable = harmonizer_cli_enable,
   .disable = harmonizer_cli_disable,
   .get_status = harmonizer_cli_get_status,

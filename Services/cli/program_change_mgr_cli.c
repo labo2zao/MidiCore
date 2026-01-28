@@ -110,8 +110,7 @@ static module_descriptor_t s_pc_mgr_descriptor = {
   .disable = pc_mgr_cli_disable,
   .get_status = pc_mgr_cli_get_status,
   .has_per_track_state = 1,  // Per-slot configuration
-  .is_global = 0,
-  .max_tracks = PROGRAM_CHANGE_MAX_SLOTS
+  .is_global = 0
 };
 
 // =============================================================================

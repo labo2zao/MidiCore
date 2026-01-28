@@ -111,6 +111,15 @@ static const char* s_curve_names[] = {
 };
 
 // =============================================================================
+// INIT WRAPPER
+// =============================================================================
+
+static int expression_cli_init(void) {
+  expression_init();
+  return 0;
+}
+
+// =============================================================================
 // MODULE DESCRIPTOR
 // =============================================================================
 
@@ -118,7 +127,7 @@ static module_descriptor_t s_expression_descriptor = {
   .name = "expression",
   .description = "Expression/breath controller with filtering",
   .category = MODULE_CATEGORY_INPUT,
-  .init = expression_init,
+  .init = expression_cli_init,
   .enable = expression_cli_enable,
   .disable = expression_cli_disable,
   .get_status = expression_cli_get_status,

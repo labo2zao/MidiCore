@@ -93,8 +93,7 @@ static module_descriptor_t s_performance_descriptor = {
   .disable = perf_cli_disable,
   .get_status = perf_cli_get_status,
   .has_per_track_state = 1,  // Per-metric data
-  .is_global = 0,
-  .max_tracks = PERF_MONITOR_MAX_METRICS
+  .is_global = 0
 };
 
 // =============================================================================

@@ -71,8 +71,7 @@ static module_descriptor_t s_ofc_descriptor = {
   .disable = ofc_cli_disable,
   .get_status = ofc_cli_get_status,
   .has_per_track_state = 1,
-  .is_global = 0,
-  .max_tracks = ONE_FINGER_MAX_TRACKS
+  .is_global = 0
 };
 
 // =============================================================================
