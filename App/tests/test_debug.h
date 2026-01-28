@@ -4,7 +4,14 @@
  * 
  * This module provides debug print functions compatible with MIOS32 hardware.
  * 
- * **Test Mode Debug Configuration:**
+ * **USB CDC Debug Mode (when MODULE_ENABLE_USB_CDC=1 - RECOMMENDED):**
+ * - Debug output routed to USB CDC (Virtual COM port)
+ * - No UART reconfiguration needed - all MIDI DIN ports stay at 31250 baud
+ * - Works with MIOS Studio terminal or any serial terminal software
+ * - Cleaner hardware setup - no separate UART cable needed
+ * - All 4 MIDI DIN ports available for MIDI @ 31250 baud
+ * 
+ * **Test Mode UART Debug (when MODULE_ENABLE_USB_CDC=0):**
  * - Debug UART: UART5 (PC12/PD2) reconfigured to 115200 baud in test mode
  * - Production: All UARTs at 31250 baud for MIDI
  * - Test mode: test_debug_init() changes debug UART to 115200 baud
@@ -12,10 +19,9 @@
  * - PA9/PA10 (USART1) reserved for USB OTG
  * - Baud rate automatically configured by test_debug_init()
  * 
- * **OLED Debug Mode (when MODULE_ENABLE_OLED active - RECOMMENDED):**
- * - Debug output goes to OLED display (no UART required)
- * - 3 MIDI DIN ports available for MIDI @ 31250 baud (DIN1, DIN2, DIN4)
- * - PA9/PA10 (USART1) reserved for USB OTG
+ * **OLED Debug Mode (when MODULE_ENABLE_OLED active - OPTIONAL):**
+ * - Debug output ALSO mirrored to OLED display
+ * - Works with both USB CDC and UART modes
  * - Call dbg_mirror_update() periodically to refresh OLED
  * 
  * **Production Mode - 3 MIDI DIN ports @ 31250 baud:**
@@ -24,7 +30,10 @@
  * - Port 2 (DIN3): Reserved for USB OTG (PA9/PA10)
  * - Port 3 (DIN4): UART5  PC12=TX, PD2=RX   @ 31250 baud [MIOS32 UART4]
  * 
- * **Important**: Do NOT call test_debug_init() in production mode!
+ * **Important**: 
+ * - When USB CDC is enabled, test_debug_init() is optional (no UART reconfig needed)
+ * - When USB CDC is disabled, call test_debug_init() before using debug functions
+ * - Do NOT call test_debug_init() in production mode!
  */
 
 #ifndef TEST_DEBUG_H
@@ -103,14 +112,20 @@ extern "C" {
 /**
  * @brief Initialize debug output system
  * 
- * Call this ONLY in test mode before using dbg_print functions.
- * DO NOT call in production mode!
+ * **When MODULE_ENABLE_USB_CDC=1 (Recommended):**
+ * - Debug output automatically routed to USB CDC (Virtual COM port)
+ * - This function is optional - no UART reconfiguration needed
+ * - Call it if you want OLED mirroring or startup messages
  * 
- * **Behavior:**
+ * **When MODULE_ENABLE_USB_CDC=0 (Fallback):**
  * - Reconfigures TEST_DEBUG_UART_PORT to 115200 baud for debug output
  * - All other UARTs remain at 31250 baud for MIDI
- * - If MODULE_ENABLE_OLED is active, also mirrors output to OLED display
- * - UART debug is ALWAYS active (OLED is optional secondary output)
+ * - MUST call this before using dbg_print() functions
+ * 
+ * **Behavior:**
+ * - USB CDC mode: Prints confirmation message via USB CDC
+ * - UART mode: Reconfigures UART to 115200 baud, then prints confirmation
+ * - If MODULE_ENABLE_OLED is active, also initializes OLED mirroring
  * 
  * **Production Mode**: Do not call this function! Leave all UARTs at 31250 baud.
  * 
@@ -119,8 +134,13 @@ extern "C" {
 int test_debug_init(void);
 
 /**
- * @brief Print a string to debug UART (MIOS32-compatible)
+ * @brief Print a string to debug output (MIOS32-compatible)
  * @param str String to print (null-terminated)
+ * 
+ * Output routing:
+ * - When MODULE_ENABLE_USB_CDC=1: Sends to USB CDC (Virtual COM port)
+ * - When MODULE_ENABLE_USB_CDC=0: Sends to TEST_DEBUG_UART_PORT
+ * - When MODULE_ENABLE_OLED=1: Also mirrors to OLED display
  * 
  * Example:
  *   dbg_print("AINSER64 test started\n");
@@ -128,9 +148,14 @@ int test_debug_init(void);
 void dbg_print(const char* str);
 
 /**
- * @brief Print formatted string to debug UART (printf-style)
+ * @brief Print formatted string to debug output (printf-style)
  * @param format Printf-style format string
  * @param ... Variable arguments
+ * 
+ * Output routing:
+ * - When MODULE_ENABLE_USB_CDC=1: Sends to USB CDC (Virtual COM port)
+ * - When MODULE_ENABLE_USB_CDC=0: Sends to TEST_DEBUG_UART_PORT
+ * - When MODULE_ENABLE_OLED=1: Also mirrors to OLED display
  * 
  * Example:
  *   dbg_printf("Channel %d: value=%d\n", ch, val);
@@ -138,8 +163,13 @@ void dbg_print(const char* str);
 void dbg_printf(const char* format, ...);
 
 /**
- * @brief Print a single character to debug UART
+ * @brief Print a single character to debug output
  * @param c Character to print
+ * 
+ * Output routing:
+ * - When MODULE_ENABLE_USB_CDC=1: Sends to USB CDC (Virtual COM port)
+ * - When MODULE_ENABLE_USB_CDC=0: Sends to TEST_DEBUG_UART_PORT
+ * - When MODULE_ENABLE_OLED=1: Also mirrors to OLED display
  */
 void dbg_putc(char c);
 
