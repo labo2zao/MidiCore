@@ -5,6 +5,7 @@
 
 #include "Services/mios32_query/mios32_query.h"
 #include "Config/module_config.h"
+#include "cmsis_os.h"  // For __get_IPSR() to detect ISR context
 
 /* Use proper module configuration macro instead of __has_include
  * to ensure correct behavior across all build configurations */
@@ -94,6 +95,20 @@ bool mios32_query_process(const uint8_t* data, uint32_t len, uint8_t cable) {
 }
 
 void mios32_query_send_response(uint8_t query_type, uint8_t device_id, uint8_t cable) {
+  // CRITICAL: Check if we're in ISR context
+  // NEVER send USB MIDI from ISR - causes reentrancy crash!
+  uint32_t ipsr = __get_IPSR();
+  if (ipsr != 0) {
+    // In ISR context - cannot send USB MIDI response
+    // Would cause USB reentrancy and crash
+    // TODO: Queue response for task context
+#ifdef MODULE_TEST_USB_DEVICE_MIDI
+    extern void dbg_print(const char *str);
+    dbg_print("[MIOS32-R] ERROR: Query response from ISR - skipped!\r\n");
+#endif
+    return;
+  }
+  
   uint8_t* p = sysex_response_buffer;
   const char* response_str = NULL;
   
