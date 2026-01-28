@@ -198,20 +198,33 @@ void dbg_print(const char* str)
   uint32_t now = HAL_GetTick();
   uint32_t elapsed_since_boot = now - start_tick;
   
-  // Wait 3 seconds after boot before sending any debug to MIOS Studio
+  // Wait 1 second after boot before sending any debug to MIOS Studio
   // This allows USB enumeration and MIOS32 query processing to complete first
-  if (elapsed_since_boot >= 3000) {
+  // Reduced from 3s to 1s so users see output sooner after connecting MIOS Studio
+  if (elapsed_since_boot >= 1000) {
     // Send test message once after boot delay
     static bool test_msg_sent = false;
     if (!test_msg_sent) {
-      mios32_debug_send_message("\r\n*** MIOS Terminal Test ***\r\n", 0);
+      mios32_debug_send_message("\r\n*** MIOS Terminal Ready ***\r\n", 0);
       test_msg_sent = true;
       sent_count++;
     }
     
-    // Rate limiting: Allow maximum 10 messages per second
-    // This prevents flooding USB MIDI bandwidth while still providing debug output
-    #define DEBUG_MSG_MIN_INTERVAL_MS 100  // 100ms = 10 msg/sec
+    // Send periodic heartbeat message every 10 seconds so users know terminal is alive
+    static uint32_t last_heartbeat = 0;
+    if ((now - last_heartbeat) >= 10000) {
+      char heartbeat[60];
+      snprintf(heartbeat, sizeof(heartbeat), 
+               "[MIOS] Terminal active (sent:%lu)\r\n", 
+               (unsigned long)sent_count);
+      mios32_debug_send_message(heartbeat, 0);
+      last_heartbeat = now;
+    }
+    
+    // Rate limiting: Allow maximum 50 messages per second
+    // Increased from 10 msg/sec to 50 msg/sec for better terminal responsiveness
+    // Still prevents flooding USB MIDI bandwidth
+    #define DEBUG_MSG_MIN_INTERVAL_MS 20  // 20ms = 50 msg/sec
     
     uint32_t elapsed_since_last = now - last_send_tick;
     
@@ -223,25 +236,24 @@ void dbg_print(const char* str)
         last_send_tick = now;
         sent_count++;
         
-        // Report counters periodically (every 100 messages sent, only to CDC)
-        if (sent_count % 100 == 0) {
+        // Report counters periodically (every 200 messages sent, only to CDC)
+        if (sent_count % 200 == 0) {
           char stats_msg[120];
           snprintf(stats_msg, sizeof(stats_msg), 
-                   "[MIOS Stats] Sent:%lu Dropped:%lu\r\n", 
+                   "[MIOS Stats] Sent:%lu Dropped:%lu Rate:50msg/s\r\n", 
                    (unsigned long)sent_count, (unsigned long)dropped_count);
           usb_cdc_send((uint8_t*)stats_msg, strlen(stats_msg));
         }
         
-        // If we dropped messages, report it once (only to CDC to avoid recursion)
-        if (dropped_count > 0) {
-          char drop_msg[80];
+        // Report dropped messages more frequently (every 50 drops, only to CDC)
+        if (dropped_count > 0 && (dropped_count % 50 == 0)) {
+          char drop_msg[100];
           snprintf(drop_msg, sizeof(drop_msg), 
-                   "[DBG] %lu debug messages dropped (rate limiting)\r\n", 
+                   "[DBG] %lu messages dropped (rate limit 50msg/s). Increase limit if needed.\r\n", 
                    (unsigned long)dropped_count);
 #if MODULE_ENABLE_USB_CDC
           usb_cdc_send((const uint8_t*)drop_msg, strlen(drop_msg));
 #endif
-          dropped_count = 0;
         }
       }
     } else {
