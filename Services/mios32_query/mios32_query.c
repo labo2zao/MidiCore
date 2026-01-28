@@ -6,6 +6,7 @@
 #include "Services/mios32_query/mios32_query.h"
 #include "Config/module_config.h"
 #include "stm32f4xx.h"  // For __get_IPSR() CMSIS intrinsic
+#include "stm32f4xx_hal.h"  // For HAL_Delay() in retry logic
 
 /* Use proper module configuration macro instead of __has_include
  * to ensure correct behavior across all build configurations */
@@ -190,11 +191,26 @@ void mios32_query_send_response(uint8_t query_type, uint8_t device_id, uint8_t c
   
   // Send via USB MIDI on the same cable the query came from
 #if MODULE_ENABLE_USB_MIDI
-  usb_midi_send_sysex(sysex_response_buffer, p - sysex_response_buffer, cable);
+  // CRITICAL: Query response must succeed for MIOS Studio to detect device
+  // Retry a few times if TX queue is full
+  bool sent = false;
+  for (int retry = 0; retry < 5 && !sent; retry++) {
+    sent = usb_midi_send_sysex(sysex_response_buffer, p - sysex_response_buffer, cable);
+    if (!sent && retry < 4) {
+      // TX queue full - wait a bit for it to drain
+      // Use HAL_Delay since queries are rare and detection is critical
+      HAL_Delay(2);  // 2ms delay between retries
+    }
+  }
+  
 #ifdef MODULE_TEST_USB_DEVICE_MIDI
-  snprintf(buf, sizeof(buf), "[MIOS32-R] Sent %lu bytes\r\n",
-           (unsigned long)(p - sysex_response_buffer));
+  snprintf(buf, sizeof(buf), "[MIOS32-R] Sent %lu bytes (success=%d)\r\n",
+           (unsigned long)(p - sysex_response_buffer), sent);
   dbg_print(buf);
+  
+  if (!sent) {
+    dbg_print("[MIOS32-R] ERROR: Failed to send query response! TX queue full.\r\n");
+  }
 #endif
 #else
   (void)cable;  // Suppress unused parameter warning
@@ -246,7 +262,8 @@ bool mios32_debug_send_message(const char* text, uint8_t cable) {
   
   uint32_t total_len = p - sysex;
   
-  // Send via USB MIDI SysEx - now returns bool indicating success
+  // Send via USB MIDI SysEx - returns bool indicating success
+  // Debug messages are non-critical, so don't retry if TX queue full
   bool sent = usb_midi_send_sysex(sysex, total_len, cable);
   
   if (!sent) {
