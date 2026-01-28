@@ -160,9 +160,12 @@ void dbg_print(const char* str)
   HAL_UART_Transmit(huart, (const uint8_t*)str, len, 1000);
 #endif
 
-#if MODULE_ENABLE_USB_MIDI
+#if MODULE_ENABLE_USB_MIDI && MIOS32_ENABLE_DEBUG_OUTPUT
   // Secondary output: MIOS32 debug message via USB MIDI for MIOS Studio terminal
   // Send as MIOS32 SysEx: F0 00 00 7E 32 00 0D <text> F7
+  // NOTE: This is DISABLED by default because too many debug messages during
+  // boot interfere with MIOS32 query processing and device recognition.
+  // Enable MIOS32_ENABLE_DEBUG_OUTPUT in mios32_query.h when needed.
   extern bool mios32_debug_send_message(const char* text, uint8_t cable);
   
   // Track success/failure for diagnostics
