@@ -170,11 +170,21 @@ class MidiCoreEmulator:
             ports.append((i, name))
         return ports
     
+    def normalize_port_name(self, name: str) -> str:
+        """Normalize port name by removing rtmidi's numeric suffix
+        
+        rtmidi appends port index to names (e.g., "loopMIDI Port" → "loopMIDI Port 5")
+        This strips the trailing " N" to get the base port name for matching.
+        """
+        import re
+        # Strip trailing space + digits (e.g., " 5", " 123")
+        return re.sub(r'\s+\d+$', '', name)
+    
     def find_port_name(self, pattern: str = None) -> Optional[str]:
         """Find MIDI port name by pattern that exists in BOTH input and output
         
-        Returns the port name (not index) that exists in both input and output lists.
-        This is critical on Windows where input/output port lists can differ!
+        Returns the base port name (without rtmidi suffix) that can be used to
+        find the port in both input and output lists.
         """
         # Get both input and output port lists
         input_ports = self.list_ports('input')
@@ -193,45 +203,152 @@ class MidiCoreEmulator:
             print("  4. Run this script again with: --use-existing 'loopMIDI'")
             return None
         
-        # Create sets of port names for easy comparison
-        input_names = {name for idx, name in input_ports}
-        output_names = {name for idx, name in output_ports}
+        # Normalize port names to match despite rtmidi suffixes
+        # Map: normalized name -> (input_name, output_name)
+        port_map = {}
+        
+        # Build map of normalized names to actual names
+        for idx, name in input_ports:
+            norm = self.normalize_port_name(name)
+            if norm not in port_map:
+                port_map[norm] = {'input': name, 'output': None}
+            else:
+                port_map[norm]['input'] = name
+        
+        for idx, name in output_ports:
+            norm = self.normalize_port_name(name)
+            if norm not in port_map:
+                port_map[norm] = {'input': None, 'output': name}
+            else:
+                port_map[norm]['output'] = name
         
         # Find ports that exist in BOTH lists
-        common_ports = input_names & output_names
+        common_ports = {norm: names for norm, names in port_map.items() 
+                       if names['input'] and names['output']}
         
         if not common_ports:
             print("ERROR: No MIDI ports found that exist in BOTH input and output!")
             print("\nInput ports:")
             for idx, name in input_ports:
-                print(f"  {idx}: {name}")
+                print(f"  {idx}: {name} (base: {self.normalize_port_name(name)})")
             print("\nOutput ports:")
             for idx, name in output_ports:
-                print(f"  {idx}: {name}")
+                print(f"  {idx}: {name} (base: {self.normalize_port_name(name)})")
             print("\nNote: The emulator needs a port that works for both input AND output.")
+            print("\nTry interactive selection? (y/n): ", end='', flush=True)
+            
+            try:
+                choice = input().strip().lower()
+                if choice == 'y':
+                    return self.interactive_port_selection(input_ports, output_ports)
+            except (EOFError, KeyboardInterrupt):
+                print("\nAborted.")
             return None
         
-        # If no pattern, return first common port
+        # If no pattern, return first common port (the base name)
         if pattern is None:
-            return sorted(common_ports)[0]
+            base_name = sorted(common_ports.keys())[0]
+            print(f"✓ Found common port: {base_name}")
+            print(f"  Input: {common_ports[base_name]['input']}")
+            print(f"  Output: {common_ports[base_name]['output']}")
+            return base_name
         
         # Search for matching port in common ports
         pattern_lower = pattern.lower()
-        for name in sorted(common_ports):
-            if pattern_lower in name.lower():
-                return name
+        for base_name in sorted(common_ports.keys()):
+            if pattern_lower in base_name.lower():
+                print(f"✓ Found matching port: {base_name}")
+                print(f"  Input: {common_ports[base_name]['input']}")
+                print(f"  Output: {common_ports[base_name]['output']}")
+                return base_name
         
-        print(f"ERROR: Port matching '{pattern}' not found in common ports!")
-        print("\nPorts available for BOTH input and output:")
-        for name in sorted(common_ports):
-            print(f"  - {name}")
+        # Pattern not found in common ports
+        print(f"ERROR: No port matching '{pattern}' found in common ports!")
+        print(f"\nAvailable common ports:")
+        for base_name in sorted(common_ports.keys()):
+            print(f"  - {base_name}")
+            print(f"      Input: {common_ports[base_name]['input']}")
+            print(f"      Output: {common_ports[base_name]['output']}")
         return None
     
+    def interactive_port_selection(self, input_ports, output_ports):
+        """Let user manually select a port"""
+        # Build list of potential port pairs
+        port_pairs = []
+        
+        # Try to find pairs by normalized name
+        input_by_norm = {}
+        for idx, name in input_ports:
+            norm = self.normalize_port_name(name)
+            input_by_norm[norm] = (idx, name)
+        
+        output_by_norm = {}
+        for idx, name in output_ports:
+            norm = self.normalize_port_name(name)
+            output_by_norm[norm] = (idx, name)
+        
+        # Find all unique base names
+        all_norms = set(input_by_norm.keys()) | set(output_by_norm.keys())
+        
+        print("\n" + "="*60)
+        print("INTERACTIVE PORT SELECTION")
+        print("="*60)
+        print("\nAvailable ports (select by number):\n")
+        
+        for i, norm in enumerate(sorted(all_norms), 1):
+            in_port = input_by_norm.get(norm)
+            out_port = output_by_norm.get(norm)
+            
+            status = ""
+            if in_port and out_port:
+                status = "✓ BOTH"
+            elif in_port:
+                status = "⚠ INPUT ONLY"
+            elif out_port:
+                status = "⚠ OUTPUT ONLY"
+            
+            print(f"  {i}. {norm:30s} [{status}]")
+            if in_port:
+                print(f"      Input:  {in_port[1]}")
+            if out_port:
+                print(f"      Output: {out_port[1]}")
+            print()
+            
+            port_pairs.append((norm, in_port, out_port))
+        
+        print("Enter port number (or 'q' to quit): ", end='', flush=True)
+        
+        try:
+            choice = input().strip()
+            if choice.lower() == 'q':
+                return None
+            
+            choice_num = int(choice)
+            if 1 <= choice_num <= len(port_pairs):
+                selected = port_pairs[choice_num - 1]
+                base_name, in_port, out_port = selected
+                
+                if not in_port or not out_port:
+                    print(f"\n⚠ WARNING: Port '{base_name}' doesn't have both input and output!")
+                    print("The emulator may not work correctly.")
+                    print("Continue anyway? (y/n): ", end='', flush=True)
+                    confirm = input().strip().lower()
+                    if confirm != 'y':
+                        return None
+                
+                return base_name
+            else:
+                print(f"ERROR: Invalid selection (must be 1-{len(port_pairs)})")
+                return None
+        except (ValueError, EOFError, KeyboardInterrupt):
+            print("\nAborted.")
+            return None
+    
     def find_port_index(self, port_name: str, port_type='output') -> Optional[int]:
-        """Find port index by exact name
+        """Find port index by name (normalized or exact)
         
         Args:
-            port_name: Exact port name to find
+            port_name: Port name to find (can be base name without rtmidi suffix)
             port_type: 'input' or 'output'
         
         Returns:
@@ -239,14 +356,22 @@ class MidiCoreEmulator:
         """
         ports = self.list_ports(port_type)
         
+        # First try exact match
         for idx, name in ports:
             if name == port_name:
+                return idx
+        
+        # If no exact match, try normalized match
+        # (user may provide base name like "loopMIDI Port" instead of "loopMIDI Port 5")
+        port_name_normalized = self.normalize_port_name(port_name)
+        for idx, name in ports:
+            if self.normalize_port_name(name) == port_name_normalized:
                 return idx
         
         print(f"ERROR: {port_type.capitalize()} port '{port_name}' not found!")
         print(f"Available {port_type} ports:")
         for idx, name in ports:
-            print(f"  {idx}: {name}")
+            print(f"  {idx}: {name} (base: {self.normalize_port_name(name)})")
         return None
     
     def start_with_existing_port(self, port_name: str) -> bool:
