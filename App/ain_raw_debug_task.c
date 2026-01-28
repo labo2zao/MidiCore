@@ -2,10 +2,13 @@
 
 #include "cmsis_os.h"
 #include "stm32f4xx_hal.h"
-#include "main.h"
-extern UART_HandleTypeDef huart1;
 #include "Services/ain/ain.h"
 #include "Config/project_config.h"
+#include "Config/module_config.h"
+
+#if MODULE_ENABLE_USB_CDC
+#include "Services/usb_cdc/usb_cdc.h"
+#endif
 
 #include <stdarg.h>
 #include <stdio.h>
@@ -33,11 +36,17 @@ static int buf_append(char* buf, size_t buf_sz, int len, const char* fmt, ...) {
 
 static osThreadId_t s_task = NULL;
 
-static void uart_write(const char* s) {
+static void debug_write(const char* s) {
   if (!s) return;
   const size_t n = strlen(s);
   if (n == 0) return;
+#if MODULE_ENABLE_USB_CDC
+  usb_cdc_send((const uint8_t*)s, (uint16_t)n);
+#else
+  // Fallback to UART if CDC not enabled (requires external UART handle)
+  extern UART_HandleTypeDef huart1;
   (void)HAL_UART_Transmit(&huart1, (uint8_t*)s, (uint16_t)n, 100);
+#endif
 }
 
 static void AinRawDebugTask(void* argument) {
@@ -46,7 +55,7 @@ static void AinRawDebugTask(void* argument) {
   uint16_t raw[AIN_NUM_KEYS];
   char line[240];
 
-  uart_write("AIN raw debug: ON\r\n");
+  debug_write("AIN raw debug: ON\r\n");
 
   for (;;) {
     ain_debug_get_raw(raw, AIN_NUM_KEYS);
@@ -60,10 +69,10 @@ static void AinRawDebugTask(void* argument) {
         len = buf_append(line, sizeof(line), len, " A%u=%4u", (unsigned)a, (unsigned)raw[key]);
       }
       len = buf_append(line, sizeof(line), len, "\r\n");
-      (void)HAL_UART_Transmit(&huart1, (uint8_t*)line, (uint16_t)len, 100);
+      debug_write(line);
     }
 
-    uart_write("\r\n");
+    debug_write("\r\n");
     osDelay(DEBUG_AIN_RAW_DUMP_PERIOD_MS);
   }
 }
