@@ -515,6 +515,10 @@ static uint8_t USBD_MIDI_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum)
   */
 static uint8_t USBD_MIDI_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum)
 {
+  // UNCONDITIONAL trace to verify function is called
+  extern void dbg_print(const char *str);
+  dbg_print("[MIDI-DataOut] ENTRY\r\n");
+  
   USBD_MIDI_HandleTypeDef *hmidi = (USBD_MIDI_HandleTypeDef *)pdev->pClassData;
   
   if (epnum == (MIDI_OUT_EP & 0x7F))
