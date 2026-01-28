@@ -301,27 +301,43 @@ class MidiCoreEmulator:
         
         print("\nInitial test sequence complete!")
         print(f"Sent {self.message_count} messages.")
-        print("\nNow sending periodic heartbeat messages every 5 seconds...")
-        print("Press Ctrl+C to stop.\n")
+        print("\nIf you saw the 5 numbered test messages in MIOS Studio terminal,")
+        print("then terminal is WORKING! Now starting continuous test...\n")
     
     def run(self):
         """Main emulator loop"""
         # Send initial test sequence
         self.run_test_sequence()
         
-        # Send periodic heartbeat messages
-        heartbeat_count = 0
+        # Send continuous test messages
+        test_count = 0
         try:
+            print("\n" + "="*60)
+            print("CONTINUOUS TEST MODE")
+            print("="*60)
+            print("Sending test messages continuously every 2 seconds...")
+            print("Press Ctrl+C to stop.")
+            print("="*60 + "\n")
+            
             while self.running:
-                time.sleep(5)
-                heartbeat_count += 1
-                self.send_debug_message(f"[Heartbeat #{heartbeat_count}] Terminal alive, sent {self.message_count} messages\r\n")
+                time.sleep(2)
+                test_count += 1
+                
+                # Alternate between different message types
+                if test_count % 3 == 0:
+                    self.send_debug_message(f"[Test #{test_count}] Continuous terminal test - all working!\r\n")
+                elif test_count % 3 == 1:
+                    self.send_debug_message(f"[Test #{test_count}] MIOS Studio terminal receiving messages OK\r\n")
+                else:
+                    self.send_debug_message(f"[Test #{test_count}] Heartbeat - {self.message_count} messages sent\r\n")
         
         except KeyboardInterrupt:
             print("\n\nStopping emulator...")
         
         finally:
             print(f"\nTotal messages sent: {self.message_count}")
+            print(f"Test messages: {test_count}")
+            print(f"Duration: ~{test_count * 2} seconds")
 
 
 def main():
@@ -332,6 +348,9 @@ def main():
 This script EMULATES MidiCore to test MIOS Studio terminal.
 
 The emulator creates a virtual MIDI port that MIOS Studio can connect to.
+
+**For Windows users with loopMIDI:** This works great! The emulator creates
+a virtual port that MIOS Studio can discover.
 
 Setup:
   1. Run this script: python midicore_emulator.py
