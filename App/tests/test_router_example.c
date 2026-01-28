@@ -11,7 +11,14 @@
  * 
  * NOTE: This is a TEMPLATE/EXAMPLE file showing how to refactor tests.
  * The actual test_router.c would be extracted from module_tests.c
+ * 
+ * Note: This entire module is excluded from production builds.
+ *       Set MODULE_ENABLE_TEST=1 in module_config.h to enable.
  */
+
+#include "Config/module_config.h"
+
+#if MODULE_ENABLE_TEST
 
 #include "tests_common.h"
 #include "Services/router/router.h"
@@ -201,3 +208,5 @@ const test_descriptor_t* test_router_get_descriptor(void) {
   };
   return &descriptor;
 }
+
+#endif  // MODULE_ENABLE_TEST

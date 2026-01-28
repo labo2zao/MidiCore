@@ -17,11 +17,18 @@
  * 1. Call test_init() during system initialization
  * 2. Use CLI commands: "test run <module>", "test status", "test list"
  * 3. Test results are reported via UART
+ * 
+ * Note: This entire module is excluded from production builds.
+ *       Set MODULE_ENABLE_TEST=1 in module_config.h to enable.
  */
 
 #pragma once
 
 #include <stdint.h>
+#include "Config/module_config.h"
+
+// Test module is only available when MODULE_ENABLE_TEST is enabled
+#if MODULE_ENABLE_TEST
 
 #ifdef __cplusplus
 extern "C" {
@@ -251,6 +258,27 @@ uint32_t test_get_timeout(void);
  * @return 0 on success, negative on error
  */
 int test_register_with_registry(void);
+
+#else  // !MODULE_ENABLE_TEST
+
+// Provide stub functions when test module is disabled
+static inline int test_init(void) { return 0; }
+static inline uint8_t test_is_initialized(void) { return 0; }
+static inline int test_run(const char* test_name, int32_t duration_ms) { (void)test_name; (void)duration_ms; return -1; }
+static inline int test_stop(void) { return -1; }
+static inline uint8_t test_is_running(void) { return 0; }
+static inline uint32_t test_get_count(void) { return 0; }
+static inline const char* test_get_name(uint32_t index) { (void)index; return NULL; }
+static inline const char* test_get_description(const char* test_name) { (void)test_name; return NULL; }
+static inline int test_set_enabled(uint8_t enabled) { (void)enabled; return -1; }
+static inline uint8_t test_get_enabled(void) { return 0; }
+static inline int test_set_verbose(uint8_t verbose) { (void)verbose; return -1; }
+static inline uint8_t test_get_verbose(void) { return 0; }
+static inline int test_set_timeout(uint32_t timeout_ms) { (void)timeout_ms; return -1; }
+static inline uint32_t test_get_timeout(void) { return 0; }
+static inline int test_register_with_registry(void) { return 0; }
+
+#endif  // MODULE_ENABLE_TEST
 
 #ifdef __cplusplus
 }

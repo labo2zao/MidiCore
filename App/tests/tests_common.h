@@ -4,11 +4,18 @@
  * 
  * Provides shared functionality for all test modules to reduce duplication
  * and ensure consistent test patterns.
+ * 
+ * Note: This entire module is excluded from production builds.
+ *       Set MODULE_ENABLE_TEST=1 in module_config.h to enable.
  */
 
 #pragma once
 
 #include <stdint.h>
+#include "Config/module_config.h"
+
+#if MODULE_ENABLE_TEST
+
 #include "Services/test/test.h"
 #include "Services/log/log.h"
 
@@ -210,6 +217,8 @@ static inline uint32_t test_perf_avg(const test_perf_t* perf) {
     if (cleanup_func) cleanup_func(); \
     TEST_LOG_PASS(#name " test completed"); \
   }
+
+#endif  // MODULE_ENABLE_TEST
 
 #ifdef __cplusplus
 }
