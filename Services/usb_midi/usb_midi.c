@@ -40,8 +40,13 @@ static sysex_buffer_t sysex_buffers[4] __attribute__((aligned(4))); // 4 cables,
  * trying to send packets in microseconds, causing all but the first packet to be dropped.
  * 
  * Solution: Queue packets and send them as TX completes (flow control).
+ * 
+ * QUEUE SIZE: Increased from 32 to 64 packets to handle debug message bursts.
+ * - Each debug SysEx message = ~8-10 packets
+ * - 64 packets = ~6-8 complete debug messages can be queued
+ * - Prevents drops during high-volume debug output (e.g., MIOS Studio terminal)
  */
-#define USB_MIDI_TX_QUEUE_SIZE 32  // Power of 2 for efficient modulo with & mask
+#define USB_MIDI_TX_QUEUE_SIZE 64  // Power of 2 for efficient modulo with & mask
 typedef struct {
   uint8_t packet[4];  // CIN + 3 data bytes
 } tx_packet_t;
@@ -50,6 +55,7 @@ static tx_packet_t tx_queue[USB_MIDI_TX_QUEUE_SIZE] __attribute__((aligned(4)));
 static volatile uint8_t tx_queue_head = 0;  // Next position to write
 static volatile uint8_t tx_queue_tail = 0;  // Next position to read
 static volatile uint8_t tx_in_progress = 0; // Flag: transmission active
+static volatile uint32_t tx_queue_drops = 0; // Count of dropped packets due to queue full
 
 /* TX Queue helper functions */
 static inline uint8_t tx_queue_is_full(void) {
@@ -58,6 +64,14 @@ static inline uint8_t tx_queue_is_full(void) {
 
 static inline uint8_t tx_queue_is_empty(void) {
   return tx_queue_head == tx_queue_tail;
+}
+
+static inline uint8_t tx_queue_count(void) {
+  if (tx_queue_head >= tx_queue_tail) {
+    return tx_queue_head - tx_queue_tail;
+  } else {
+    return USB_MIDI_TX_QUEUE_SIZE - tx_queue_tail + tx_queue_head;
+  }
 }
 
 static void tx_queue_send_next(void);
@@ -150,11 +164,29 @@ static void tx_queue_send_next(void) {
   extern void test_debug_tx_trace(uint8_t code);
   #endif
   
+  /* DIAGNOSTIC: Track why TX might fail */
+  static uint32_t diagnostic_counter = 0;
+  diagnostic_counter++;
+  
   /* Check if interface is ready */
   if (hmidi == NULL || !hmidi->is_ready) {
     #ifdef MODULE_TEST_USB_DEVICE_MIDI
     test_debug_tx_trace(0x01); // Class data NULL or not ready
     #endif
+    
+    /* CRITICAL DIAGNOSTIC: Report NULL class data or not ready */
+    if (diagnostic_counter % 1000 == 0) {  // Report every 1000 attempts
+      #if MODULE_ENABLE_USB_CDC
+      extern void usb_cdc_send(const uint8_t* data, size_t len);
+      char diag[100];
+      int len = snprintf(diag, sizeof(diag),
+                        "[TX-FAIL] hmidi=%p ready=%d attempts=%lu\r\n",
+                        (void*)hmidi, hmidi ? hmidi->is_ready : -1,
+                        (unsigned long)diagnostic_counter);
+      if (len > 0) usb_cdc_send((uint8_t*)diag, len);
+      #endif
+    }
+    
     tx_in_progress = 0;
     return;
   }
@@ -174,6 +206,21 @@ static void tx_queue_send_next(void) {
     test_debug_tx_trace(0x03); // Endpoint busy
     #endif
     /* Endpoint busy - keep tx_in_progress flag set, will retry on next TX complete */
+    
+    /* DIAGNOSTIC: Report endpoint busy condition */
+    if (diagnostic_counter % 5000 == 0) {  // Report every 5000 attempts
+      #if MODULE_ENABLE_USB_CDC
+      extern void usb_cdc_send(const uint8_t* data, size_t len);
+      char diag[80];
+      int len = snprintf(diag, sizeof(diag),
+                        "[TX-BUSY] Endpoint busy, queue=%d items\r\n",
+                        (tx_queue_head >= tx_queue_tail) ? 
+                         (tx_queue_head - tx_queue_tail) :
+                         (USB_MIDI_TX_QUEUE_SIZE - tx_queue_tail + tx_queue_head));
+      if (len > 0) usb_cdc_send((uint8_t*)diag, len);
+      #endif
+    }
+    
     return;
   }
   
@@ -188,7 +235,7 @@ static void tx_queue_send_next(void) {
   USBD_LL_Transmit(&hUsbDeviceFS, MIDI_IN_EP, pkt->packet, 4);
 }
 
-void usb_midi_send_packet(uint8_t cin, uint8_t b0, uint8_t b1, uint8_t b2) {
+bool usb_midi_send_packet(uint8_t cin, uint8_t b0, uint8_t b1, uint8_t b2) {
   /* CRITICAL FIX: Queue packets instead of sending directly
    * 
    * Problem: Calling USBD_LL_Transmit() in a tight loop causes packet drops because
@@ -196,6 +243,8 @@ void usb_midi_send_packet(uint8_t cin, uint8_t b0, uint8_t b1, uint8_t b2) {
    * 
    * Solution: Buffer packets in queue, send as TX completes (flow control).
    * This ensures reliable multi-packet message delivery (SysEx, etc.)
+   * 
+   * Returns true if packet queued, false if queue full (caller can implement backpressure)
    */
   
   /* DEBUG: Trace packet arrival */
@@ -210,8 +259,9 @@ void usb_midi_send_packet(uint8_t cin, uint8_t b0, uint8_t b1, uint8_t b2) {
     extern void test_debug_tx_trace(uint8_t code);
     test_debug_tx_trace(0xFF); // Queue full!
     #endif
-    /* Queue full - drop packet (should rarely happen with 32-deep queue) */
-    return;
+    /* Queue full - return false so caller knows packet was dropped */
+    tx_queue_drops++;  // Track drops
+    return false;
   }
   
   /* Add packet to queue */
@@ -226,6 +276,8 @@ void usb_midi_send_packet(uint8_t cin, uint8_t b0, uint8_t b1, uint8_t b2) {
   if (!tx_in_progress) {
     tx_queue_send_next();
   }
+  
+  return true;  /* Packet queued successfully */
 }
 
 /* CRITICAL FIX: Queue RX packet for deferred processing
@@ -503,9 +555,10 @@ void usb_midi_init(void) {
   /* USB Device MIDI not available - either disabled or CubeMX files not generated yet */
 }
 
-void usb_midi_send_packet(uint8_t cin, uint8_t b0, uint8_t b1, uint8_t b2) {
+bool usb_midi_send_packet(uint8_t cin, uint8_t b0, uint8_t b1, uint8_t b2) {
   (void)cin; (void)b0; (void)b1; (void)b2;
   /* Stub: USB Device MIDI not enabled or CubeMX files not generated */
+  return false;  /* Cannot send */
 }
 
 void usb_midi_rx_packet(const uint8_t packet4[4]) {
@@ -514,3 +567,20 @@ void usb_midi_rx_packet(const uint8_t packet4[4]) {
 }
 
 #endif /* MODULE_ENABLE_USB_MIDI && USB_DEVICE_AVAILABLE */
+
+bool usb_midi_get_tx_status(uint32_t *queue_size, uint32_t *queue_used, uint32_t *queue_drops) {
+#if MODULE_ENABLE_USB_MIDI
+  USBD_MIDI_HandleTypeDef *hmidi = usb_midi_get_class_data();
+  
+  if (queue_size) *queue_size = USB_MIDI_TX_QUEUE_SIZE;
+  if (queue_used) *queue_used = tx_queue_count();
+  if (queue_drops) *queue_drops = tx_queue_drops;
+  
+  return (hmidi != NULL && hmidi->is_ready);
+#else
+  if (queue_size) *queue_size = 0;
+  if (queue_used) *queue_used = 0;
+  if (queue_drops) *queue_drops = 0;
+  return false;
+#endif
+}

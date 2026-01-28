@@ -1,5 +1,6 @@
 #pragma once
 #include <stdint.h>
+#include <stdbool.h>
 
 /**
  * @file usb_midi.h
@@ -42,8 +43,10 @@ void usb_midi_init(void);
  * 
  * Example: Send CC (cable 2, channel 3)
  *   usb_midi_send_packet(0x2B, 0xB2, 0x07, 0x64);
+ * 
+ * @return true if packet was queued successfully, false if TX queue full (packet dropped)
  */
-void usb_midi_send_packet(uint8_t cin, uint8_t b0, uint8_t b1, uint8_t b2);
+bool usb_midi_send_packet(uint8_t cin, uint8_t b0, uint8_t b1, uint8_t b2);
 
 /**
  * @brief Process received USB MIDI packet (internal callback - called from interrupt)

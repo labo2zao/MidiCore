@@ -4,6 +4,17 @@
 #ifdef ENABLE_USBD_MIDI
 #include "Services/usb_midi/usb_midi.h"
 #include "Services/usb_midi/usb_midi_sysex.h"
+/* NOTE: usb_midi_send_packet() and usb_midi_send_sysex() now return bool
+ * Return value indicates success (true) or failure due to TX queue full (false)
+ * 
+ * For normal MIDI routing (this file), we don't check return values because:
+ * 1. MIDI traffic is continuous and lossy by nature
+ * 2. Missing one note in thousands is acceptable
+ * 3. TX queue drops are tracked globally and reported via diagnostics
+ * 
+ * For CRITICAL messages (MIOS32 queries), return value MUST be checked
+ * and retries implemented - see Services/mios32_query/mios32_query.c
+ */
 #endif
 
 #if defined(ENABLE_USBH_MIDI) && (ENABLE_USBH_MIDI)

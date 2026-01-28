@@ -9,20 +9,22 @@
 // 0x5: SysEx ends with 1 byte (single byte OR ends with 1 byte containing F7)
 // 0x6: SysEx ends with 2 bytes (last byte is F7)
 // 0x7: SysEx ends with 3 bytes (last byte is F7)
-void usb_midi_send_sysex(const uint8_t* data, size_t len, uint8_t cable) {
-  if (!data || len == 0) return;
+bool usb_midi_send_sysex(const uint8_t* data, size_t len, uint8_t cable) {
+  if (!data || len == 0) return false;
   
   // Validate cable number (0-3)
   if (cable > 3) cable = 0;
   
   // Validate: must start with F0
-  if (data[0] != 0xF0) return;
+  if (data[0] != 0xF0) return false;
   
   // Validate: must end with F7
-  if (data[len-1] != 0xF7) return;
+  if (data[len-1] != 0xF7) return false;
   
   // Build cable-specific CIN (cable in upper 4 bits)
   uint8_t cable_nibble = (cable << 4);
+  
+  bool all_sent = true;  // Track if all packets sent successfully
 
   size_t i = 0;
   while (i < len) {
@@ -42,38 +44,46 @@ void usb_midi_send_sysex(const uint8_t* data, size_t len, uint8_t cable) {
 
     if (found_f7) {
       // This is the final packet - use appropriate end CIN
+      bool sent = false;
       if (f7_pos == 1) {
         // F7 is first byte: SysEx ends with 1 byte
-        usb_midi_send_packet(cable_nibble | 0x05, data[i], 0, 0);
+        sent = usb_midi_send_packet(cable_nibble | 0x05, data[i], 0, 0);
       } else if (f7_pos == 2) {
         // F7 is second byte: SysEx ends with 2 bytes
-        usb_midi_send_packet(cable_nibble | 0x06, data[i], data[i+1], 0);
+        sent = usb_midi_send_packet(cable_nibble | 0x06, data[i], data[i+1], 0);
       } else { // f7_pos == 3
         // F7 is third byte: SysEx ends with 3 bytes
-        usb_midi_send_packet(cable_nibble | 0x07, data[i], data[i+1], data[i+2]);
+        sent = usb_midi_send_packet(cable_nibble | 0x07, data[i], data[i+1], data[i+2]);
       }
-      return; // Done
+      if (!sent) all_sent = false;
+      return all_sent; // Done - return overall success status
     }
 
     // No F7 in next 3 bytes: send as continue packet
     if (rem >= 3) {
-      usb_midi_send_packet(cable_nibble | 0x04, data[i], data[i+1], data[i+2]);
+      bool sent = usb_midi_send_packet(cable_nibble | 0x04, data[i], data[i+1], data[i+2]);
+      if (!sent) all_sent = false;
       i += 3;
     } else {
       // This shouldn't happen if SysEx is properly formed (ends with F7)
       // But handle gracefully: send remaining bytes as end packet
+      bool sent = false;
       if (rem == 1) {
-        usb_midi_send_packet(cable_nibble | 0x05, data[i], 0, 0);
+        sent = usb_midi_send_packet(cable_nibble | 0x05, data[i], 0, 0);
       } else { // rem == 2
-        usb_midi_send_packet(cable_nibble | 0x06, data[i], data[i+1], 0);
+        sent = usb_midi_send_packet(cable_nibble | 0x06, data[i], data[i+1], 0);
       }
-      return;
+      if (!sent) all_sent = false;
+      return all_sent;
     }
   }
+  
+  return all_sent;
 }
 
 #else
-void usb_midi_send_sysex(const uint8_t* data, size_t len, uint8_t cable) { 
+bool usb_midi_send_sysex(const uint8_t* data, size_t len, uint8_t cable) { 
   (void)data; (void)len; (void)cable; 
+  return false;  /* USB MIDI disabled - cannot send */
 }
 #endif
