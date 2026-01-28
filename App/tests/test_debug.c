@@ -201,6 +201,14 @@ void dbg_print(const char* str)
   // Wait 3 seconds after boot before sending any debug to MIOS Studio
   // This allows USB enumeration and MIOS32 query processing to complete first
   if (elapsed_since_boot >= 3000) {
+    // Send test message once after boot delay
+    static bool test_msg_sent = false;
+    if (!test_msg_sent) {
+      mios32_debug_send_message("\r\n*** MIOS Terminal Test ***\r\n", 0);
+      test_msg_sent = true;
+      sent_count++;
+    }
+    
     // Rate limiting: Allow maximum 10 messages per second
     // This prevents flooding USB MIDI bandwidth while still providing debug output
     #define DEBUG_MSG_MIN_INTERVAL_MS 100  // 100ms = 10 msg/sec
@@ -214,6 +222,15 @@ void dbg_print(const char* str)
       if (sent) {
         last_send_tick = now;
         sent_count++;
+        
+        // Report counters periodically (every 100 messages sent, only to CDC)
+        if (sent_count % 100 == 0) {
+          char stats_msg[120];
+          snprintf(stats_msg, sizeof(stats_msg), 
+                   "[MIOS Stats] Sent:%lu Dropped:%lu\r\n", 
+                   (unsigned long)sent_count, (unsigned long)dropped_count);
+          usb_cdc_send((uint8_t*)stats_msg, strlen(stats_msg));
+        }
         
         // If we dropped messages, report it once (only to CDC to avoid recursion)
         if (dropped_count > 0) {
