@@ -56,11 +56,16 @@ static const char* s_mode_names[] = {
 // MODULE DESCRIPTOR
 // =============================================================================
 
+static int cc_smoother_cli_init(void) { 
+  cc_smoother_init(); 
+  return 0; 
+}
+
 static module_descriptor_t s_cc_smoother_descriptor = {
   .name = "cc_smoother",
   .description = "MIDI CC smoother - eliminate zipper noise",
   .category = MODULE_CATEGORY_EFFECT,
-  .init = cc_smoother_init,
+  .init = cc_smoother_cli_init,
   .enable = cc_smoother_cli_enable,
   .disable = cc_smoother_cli_disable,
   .get_status = cc_smoother_cli_get_status,

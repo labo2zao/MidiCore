@@ -22,7 +22,7 @@ static int bootloader_param_get_version(uint8_t track, param_value_t* out) {
            BOOTLOADER_VERSION_MAJOR,
            BOOTLOADER_VERSION_MINOR,
            BOOTLOADER_VERSION_PATCH);
-  out->str_val = s_version_string;
+  out->string_val = s_version_string;
   return 0;
 }
 

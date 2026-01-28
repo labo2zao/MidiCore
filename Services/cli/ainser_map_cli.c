@@ -51,14 +51,14 @@ static int ainser_map_param_set_curve(uint8_t track, const param_value_t* val) {
 static int ainser_map_param_get_deadband(uint8_t track, param_value_t* out) {
   const AINSER_MapEntry* table = ainser_map_get_table();
   if (track >= 64) return -1;
-  out->int_val = table[track].deadband;
+  out->int_val = table[track].threshold;
   return 0;
 }
 
 static int ainser_map_param_set_deadband(uint8_t track, const param_value_t* val) {
   AINSER_MapEntry* table = (AINSER_MapEntry*)ainser_map_get_table();
-  if (track >= 64 || val->int_val < 0 || val->int_val > 255) return -1;
-  table[track].deadband = (uint8_t)val->int_val;
+  if (track >= 64 || val->int_val < 0 || val->int_val > 4095) return -1;
+  table[track].threshold = (uint16_t)val->int_val;
   return 0;
 }
 
@@ -124,17 +124,21 @@ static const char* s_curve_names[] = {
 // MODULE DESCRIPTOR
 // =============================================================================
 
+static int ainser_map_cli_init(void) { 
+  ainser_map_init_defaults(); 
+  return 0; 
+}
+
 static module_descriptor_t s_ainser_map_descriptor = {
   .name = "ainser",
   .description = "AINSER64 analog input mapping (64 channels, 12-bit ADC)",
   .category = MODULE_CATEGORY_INPUT,
-  .init = ainser_map_init_defaults,
+  .init = ainser_map_cli_init,
   .enable = ainser_map_cli_enable,
   .disable = ainser_map_cli_disable,
   .get_status = ainser_map_cli_get_status,
   .has_per_track_state = 1,  // Per-channel configuration
-  .is_global = 0,
-  .max_tracks = 64  // 64 analog channels
+  .is_global = 0
 };
 
 // =============================================================================
@@ -177,10 +181,10 @@ static void setup_ainser_map_parameters(void) {
     },
     {
       .name = "deadband",
-      .description = "Noise deadband (0-255)",
+      .description = "Noise deadband (0-4095)",
       .type = PARAM_TYPE_INT,
       .min = 0,
-      .max = 255,
+      .max = 4095,
       .read_only = 0,
       .get_value = ainser_map_param_get_deadband,
       .set_value = ainser_map_param_set_deadband

@@ -18,7 +18,7 @@ static char s_config_path[128] = CONFIG_FILE_PATH;
 
 static int config_io_param_get_path(uint8_t track, param_value_t* out) {
   (void)track;
-  out->str_val = s_config_path;
+  out->string_val = s_config_path;
   return 0;
 }
 
@@ -51,11 +51,16 @@ static int config_io_cli_get_status(uint8_t track) {
 // MODULE DESCRIPTOR
 // =============================================================================
 
+static int config_io_cli_init(void) { 
+  config_io_init(); 
+  return 0; 
+}
+
 static module_descriptor_t s_config_io_descriptor = {
   .name = "config_io",
   .description = "NGC configuration file I/O",
   .category = MODULE_CATEGORY_SYSTEM,
-  .init = config_io_init,
+  .init = config_io_cli_init,
   .enable = config_io_cli_enable,
   .disable = config_io_cli_disable,
   .get_status = config_io_cli_get_status,

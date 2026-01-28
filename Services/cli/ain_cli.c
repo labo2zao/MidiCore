@@ -10,18 +10,6 @@
 #include <string.h>
 
 // =============================================================================
-// PARAMETER WRAPPERS
-// =============================================================================
-
-DEFINE_PARAM_BOOL(ain, enable, ain_get_enable, ain_set_enable)
-
-DEFINE_PARAM_BOOL(ain, velocity_enable, ain_get_velocity_enable, ain_set_velocity_enable)
-
-DEFINE_PARAM_INT(ain, scan_ms, ain_get_scan_ms, ain_set_scan_ms)
-
-DEFINE_PARAM_INT(ain, deadband, ain_get_deadband, ain_set_deadband)
-
-// =============================================================================
 // MODULE CONTROL WRAPPERS
 // =============================================================================
 
@@ -44,11 +32,16 @@ static int ain_cli_get_status(uint8_t track) {
 // MODULE DESCRIPTOR
 // =============================================================================
 
+static int ain_cli_init(void) { 
+  ain_init(); 
+  return 0; 
+}
+
 static module_descriptor_t s_ain_descriptor = {
   .name = "ain",
   .description = "Analog input (Hall sensor keyboard)",
   .category = MODULE_CATEGORY_INPUT,
-  .init = ain_init,
+  .init = ain_cli_init,
   .enable = ain_cli_enable,
   .disable = ain_cli_disable,
   .get_status = ain_cli_get_status,
@@ -61,15 +54,8 @@ static module_descriptor_t s_ain_descriptor = {
 // =============================================================================
 
 static void setup_ain_parameters(void) {
-  module_param_t params[] = {
-    PARAM_BOOL(ain, enable, "Enable AIN scanning"),
-    PARAM_BOOL(ain, velocity_enable, "Enable velocity sensing"),
-    PARAM_INT(ain, scan_ms, "Scan interval (ms)", 1, 50),
-    PARAM_INT(ain, deadband, "ADC deadband", 0, 100),
-  };
-  
-  s_ain_descriptor.param_count = sizeof(params) / sizeof(params[0]);
-  memcpy(s_ain_descriptor.params, params, sizeof(params));
+  // AIN module has no runtime parameters, all config is compile-time
+  s_ain_descriptor.param_count = 0;
 }
 
 // =============================================================================

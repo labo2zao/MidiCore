@@ -76,11 +76,16 @@ static const char* s_voicing_names[] = {
 // MODULE DESCRIPTOR
 // =============================================================================
 
+static int chord_cli_init(void) { 
+  chord_init(); 
+  return 0; 
+}
+
 static module_descriptor_t s_chord_descriptor = {
   .name = "chord",
   .description = "Chord trigger - single note to chord",
   .category = MODULE_CATEGORY_EFFECT,
-  .init = chord_init,
+  .init = chord_cli_init,
   .enable = chord_cli_enable,
   .disable = chord_cli_disable,
   .get_status = chord_cli_get_status,

@@ -54,11 +54,16 @@ static const char* s_mode_names[] = {
 // MODULE DESCRIPTOR
 // =============================================================================
 
+static int channelizer_cli_init(void) { 
+  channelizer_init(); 
+  return 0; 
+}
+
 static module_descriptor_t s_channelizer_descriptor = {
   .name = "channelizer",
   .description = "Intelligent channel mapping and voice management",
   .category = MODULE_CATEGORY_EFFECT,
-  .init = channelizer_init,
+  .init = channelizer_cli_init,
   .enable = channelizer_cli_enable,
   .disable = channelizer_cli_disable,
   .get_status = channelizer_cli_get_status,

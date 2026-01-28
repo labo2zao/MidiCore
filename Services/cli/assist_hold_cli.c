@@ -14,65 +14,61 @@
 // =============================================================================
 
 static int assist_hold_param_get_mode(uint8_t track, param_value_t* out) {
-  (void)track;
-  out->int_val = assist_hold_get_mode();
+  out->int_val = assist_hold_get_mode(track);
   return 0;
 }
 
 static int assist_hold_param_set_mode(uint8_t track, const param_value_t* val) {
-  (void)track;
-  if (val->int_val < 0 || val->int_val >= 3) return -1;
-  assist_hold_set_mode((uint8_t)val->int_val);
+  if (val->int_val < 0 || val->int_val >= 5) return -1;
+  assist_hold_set_mode(track, (hold_mode_t)val->int_val);
   return 0;
 }
 
-DEFINE_PARAM_INT(assist_hold, duration_ms, assist_hold_get_duration_ms, assist_hold_set_duration_ms)
+DEFINE_PARAM_INT_TRACK(assist_hold, duration_ms, assist_hold_get_duration_ms, assist_hold_set_duration_ms)
 
-DEFINE_PARAM_INT(assist_hold, velocity_threshold, assist_hold_get_velocity_threshold, assist_hold_set_velocity_threshold)
+DEFINE_PARAM_INT_TRACK(assist_hold, velocity_threshold, assist_hold_get_velocity_threshold, assist_hold_set_velocity_threshold)
+
+DEFINE_PARAM_BOOL_TRACK(assist_hold, mono_mode, assist_hold_is_mono_mode, assist_hold_set_mono_mode)
 
 // =============================================================================
 // MODULE CONTROL WRAPPERS
 // =============================================================================
 
-static int assist_hold_cli_enable(uint8_t track) {
-  (void)track;
-  return 0;
-}
+DEFINE_MODULE_CONTROL_TRACK(assist_hold, assist_hold_set_mode, assist_hold_get_mode)
 
-static int assist_hold_cli_disable(uint8_t track) {
-  (void)track;
-  return 0;
-}
-
-static int assist_hold_cli_get_status(uint8_t track) {
-  (void)track;
-  return MODULE_STATUS_ENABLED;
-}
+// Note: enable/disable uses mode as the toggle mechanism
 
 // =============================================================================
 // ENUM STRINGS
 // =============================================================================
 
 static const char* s_mode_names[] = {
-  "OFF",
-  "PERMANENT",
+  "DISABLED",
+  "LATCH",
   "TIMED",
+  "NEXT_NOTE",
+  "INFINITE",
 };
 
 // =============================================================================
 // MODULE DESCRIPTOR
 // =============================================================================
 
+static int assist_hold_cli_init(void) { 
+  assist_hold_init(); 
+  return 0; 
+}
+
 static module_descriptor_t s_assist_hold_descriptor = {
   .name = "assist_hold",
   .description = "Auto-hold for motor disabilities",
-  .category = MODULE_CATEGORY_ACCESSIBILITY,
-  .init = assist_hold_init,
+  .category = MODULE_CATEGORY_ACCORDION,
+  .init = assist_hold_cli_init,
   .enable = assist_hold_cli_enable,
   .disable = assist_hold_cli_disable,
   .get_status = assist_hold_cli_get_status,
-  .has_per_track_state = 0,
-  .is_global = 1
+  .has_per_track_state = 1,
+  .is_global = 0
 };
 
 // =============================================================================
@@ -86,15 +82,16 @@ static void setup_assist_hold_parameters(void) {
       .description = "Hold mode",
       .type = PARAM_TYPE_ENUM,
       .min = 0,
-      .max = 2,
+      .max = 4,
       .enum_values = s_mode_names,
-      .enum_count = 3,
+      .enum_count = 5,
       .read_only = 0,
       .get_value = assist_hold_param_get_mode,
       .set_value = assist_hold_param_set_mode
     },
-    PARAM_INT(assist_hold, duration_ms, "Hold duration (ms, timed mode)", 0, 10000),
+    PARAM_INT(assist_hold, duration_ms, "Hold duration (ms, timed mode)", 100, 10000),
     PARAM_INT(assist_hold, velocity_threshold, "Min velocity to hold (1-127)", 1, 127),
+    PARAM_BOOL(assist_hold, mono_mode, "Mono mode (one note at a time)"),
   };
   
   s_assist_hold_descriptor.param_count = sizeof(params) / sizeof(params[0]);

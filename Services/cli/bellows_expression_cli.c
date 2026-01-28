@@ -14,25 +14,50 @@
 // =============================================================================
 
 static int bellows_expression_param_get_curve(uint8_t track, param_value_t* out) {
-  (void)track;
-  out->int_val = bellows_expression_get_curve();
+  out->int_val = bellows_get_curve(track);
   return 0;
 }
 
 static int bellows_expression_param_set_curve(uint8_t track, const param_value_t* val) {
-  (void)track;
   if (val->int_val < 0 || val->int_val >= 4) return -1;
-  bellows_expression_set_curve((uint8_t)val->int_val);
+  bellows_set_curve(track, (bellows_curve_t)val->int_val);
   return 0;
 }
 
-DEFINE_PARAM_INT(bellows_expression, min_pa, bellows_expression_get_min_pa, bellows_expression_set_min_pa)
+// Note: pressure range uses two values, needs custom wrappers
+static int bellows_expression_param_get_min_pa(uint8_t track, param_value_t* out) {
+  int32_t min_pa, max_pa;
+  bellows_get_pressure_range(track, &min_pa, &max_pa);
+  out->int_val = min_pa;
+  return 0;
+}
 
-DEFINE_PARAM_INT(bellows_expression, max_pa, bellows_expression_get_max_pa, bellows_expression_set_max_pa)
+static int bellows_expression_param_set_min_pa(uint8_t track, const param_value_t* val) {
+  int32_t min_pa, max_pa;
+  bellows_get_pressure_range(track, &min_pa, &max_pa);
+  bellows_set_pressure_range(track, val->int_val, max_pa);
+  return 0;
+}
 
-DEFINE_PARAM_BOOL(bellows_expression, bidirectional, bellows_expression_get_bidirectional, bellows_expression_set_bidirectional)
+static int bellows_expression_param_get_max_pa(uint8_t track, param_value_t* out) {
+  int32_t min_pa, max_pa;
+  bellows_get_pressure_range(track, &min_pa, &max_pa);
+  out->int_val = max_pa;
+  return 0;
+}
 
-DEFINE_PARAM_INT(bellows_expression, expression_cc, bellows_expression_get_expression_cc, bellows_expression_set_expression_cc)
+static int bellows_expression_param_set_max_pa(uint8_t track, const param_value_t* val) {
+  int32_t min_pa, max_pa;
+  bellows_get_pressure_range(track, &min_pa, &max_pa);
+  bellows_set_pressure_range(track, min_pa, val->int_val);
+  return 0;
+}
+
+DEFINE_PARAM_BOOL_TRACK(bellows_expression, bidirectional, bellows_is_bidirectional, bellows_set_bidirectional)
+
+DEFINE_PARAM_INT_TRACK(bellows_expression, expression_cc, bellows_get_expression_cc, bellows_set_expression_cc)
+
+DEFINE_PARAM_INT_TRACK(bellows_expression, smoothing, bellows_get_smoothing, bellows_set_smoothing)
 
 // =============================================================================
 // MODULE CONTROL WRAPPERS
@@ -68,16 +93,21 @@ static const char* s_curve_names[] = {
 // MODULE DESCRIPTOR
 // =============================================================================
 
+static int bellows_expression_cli_init(void) { 
+  bellows_init(); 
+  return 0; 
+}
+
 static module_descriptor_t s_bellows_expression_descriptor = {
   .name = "bellows_expression",
   .description = "Bellows pressure sensor",
   .category = MODULE_CATEGORY_ACCORDION,
-  .init = bellows_expression_init,
+  .init = bellows_expression_cli_init,
   .enable = bellows_expression_cli_enable,
   .disable = bellows_expression_cli_disable,
   .get_status = bellows_expression_cli_get_status,
-  .has_per_track_state = 0,
-  .is_global = 1
+  .has_per_track_state = 1,
+  .is_global = 0
 };
 
 // =============================================================================
@@ -98,10 +128,11 @@ static void setup_bellows_expression_parameters(void) {
       .get_value = bellows_expression_param_get_curve,
       .set_value = bellows_expression_param_set_curve
     },
-    PARAM_INT(bellows_expression, min_pa, "Minimum pressure (Pa)", 0, 5000),
-    PARAM_INT(bellows_expression, max_pa, "Maximum pressure (Pa)", 0, 5000),
+    PARAM_INT(bellows_expression, min_pa, "Minimum pressure (Pa)", -2000, 2000),
+    PARAM_INT(bellows_expression, max_pa, "Maximum pressure (Pa)", -2000, 2000),
     PARAM_BOOL(bellows_expression, bidirectional, "Push/pull detection"),
     PARAM_INT(bellows_expression, expression_cc, "Expression CC (0-127)", 0, 127),
+    PARAM_INT(bellows_expression, smoothing, "Smoothing (0-100%)", 0, 100),
   };
   
   s_bellows_expression_descriptor.param_count = sizeof(params) / sizeof(params[0]);

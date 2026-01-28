@@ -14,21 +14,19 @@
 // =============================================================================
 
 static int bass_chord_system_param_get_layout(uint8_t track, param_value_t* out) {
-  
-  out->int_val = bass_chord_system_get_layout(track);
+  out->int_val = bass_chord_get_layout(track);
   return 0;
 }
 
 static int bass_chord_system_param_set_layout(uint8_t track, const param_value_t* val) {
-  
   if (val->int_val < 0 || val->int_val >= 5) return -1;
-  bass_chord_system_set_layout(track, (uint8_t)val->int_val);
+  bass_chord_set_layout(track, (bass_layout_t)val->int_val);
   return 0;
 }
 
-DEFINE_PARAM_INT_TRACK(bass_chord_system, base_note, bass_chord_system_get_base_note, bass_chord_system_set_base_note)
+DEFINE_PARAM_INT_TRACK(bass_chord_system, base_note, bass_chord_get_base_note, bass_chord_set_base_note)
 
-DEFINE_PARAM_BOOL_TRACK(bass_chord_system, octave_doubling, bass_chord_system_get_octave_doubling, bass_chord_system_set_octave_doubling)
+DEFINE_PARAM_BOOL_TRACK(bass_chord_system, octave_doubling, bass_chord_is_octave_doubling, bass_chord_set_octave_doubling)
 
 // =============================================================================
 // MODULE CONTROL WRAPPERS
@@ -65,11 +63,16 @@ static const char* s_layout_names[] = {
 // MODULE DESCRIPTOR
 // =============================================================================
 
+static int bass_chord_system_cli_init(void) { 
+  bass_chord_init(); 
+  return 0; 
+}
+
 static module_descriptor_t s_bass_chord_system_descriptor = {
   .name = "bass_chord_system",
   .description = "Stradella bass for accordion",
   .category = MODULE_CATEGORY_ACCORDION,
-  .init = bass_chord_system_init,
+  .init = bass_chord_system_cli_init,
   .enable = bass_chord_system_cli_enable,
   .disable = bass_chord_system_cli_disable,
   .get_status = bass_chord_system_cli_get_status,
