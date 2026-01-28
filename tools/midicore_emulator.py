@@ -171,14 +171,20 @@ class MidiCoreEmulator:
         return ports
     
     def find_port_name(self, pattern: str = None) -> Optional[str]:
-        """Find MIDI port name by pattern
+        """Find MIDI port name by pattern that exists in BOTH input and output
         
-        Returns the port name (not index) to handle input/output differences
+        Returns the port name (not index) that exists in both input and output lists.
+        This is critical on Windows where input/output port lists can differ!
         """
-        # Check output ports first
-        ports = self.list_ports('output')
+        # Get both input and output port lists
+        input_ports = self.list_ports('input')
+        output_ports = self.list_ports('output')
         
-        if not ports:
+        if not input_ports:
+            print("ERROR: No MIDI input ports found!")
+            return None
+        
+        if not output_ports:
             print("ERROR: No MIDI output ports found!")
             print("\nOn Windows, you need to create a loopMIDI port first:")
             print("  1. Open loopMIDI application")
@@ -187,20 +193,38 @@ class MidiCoreEmulator:
             print("  4. Run this script again with: --use-existing 'loopMIDI'")
             return None
         
-        # If no pattern, return first port name
-        if pattern is None:
-            return ports[0][1]
+        # Create sets of port names for easy comparison
+        input_names = {name for idx, name in input_ports}
+        output_names = {name for idx, name in output_ports}
         
-        # Search for matching port
+        # Find ports that exist in BOTH lists
+        common_ports = input_names & output_names
+        
+        if not common_ports:
+            print("ERROR: No MIDI ports found that exist in BOTH input and output!")
+            print("\nInput ports:")
+            for idx, name in input_ports:
+                print(f"  {idx}: {name}")
+            print("\nOutput ports:")
+            for idx, name in output_ports:
+                print(f"  {idx}: {name}")
+            print("\nNote: The emulator needs a port that works for both input AND output.")
+            return None
+        
+        # If no pattern, return first common port
+        if pattern is None:
+            return sorted(common_ports)[0]
+        
+        # Search for matching port in common ports
         pattern_lower = pattern.lower()
-        for idx, name in ports:
+        for name in sorted(common_ports):
             if pattern_lower in name.lower():
                 return name
         
-        print(f"ERROR: Port matching '{pattern}' not found!")
-        print("Available output ports:")
-        for idx, name in ports:
-            print(f"  {idx}: {name}")
+        print(f"ERROR: Port matching '{pattern}' not found in common ports!")
+        print("\nPorts available for BOTH input and output:")
+        for name in sorted(common_ports):
+            print(f"  - {name}")
         return None
     
     def find_port_index(self, port_name: str, port_type='output') -> Optional[int]:
