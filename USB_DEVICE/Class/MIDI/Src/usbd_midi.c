@@ -543,6 +543,16 @@ static uint8_t USBD_MIDI_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum)
       
       for (uint32_t i = 0; i < num_packets; i++)
       {
+        #ifdef MODULE_TEST_USB_DEVICE_MIDI
+        // Display received MIDI packet (like TX format)
+        snprintf(debug_buf, sizeof(debug_buf), "[MIDI-RX] Cable:%u %02X %02X %02X\r\n",
+                 (unsigned int)packets[i].cable, 
+                 (unsigned int)packets[i].midi[0],
+                 (unsigned int)packets[i].midi[1], 
+                 (unsigned int)packets[i].midi[2]);
+        dbg_print(debug_buf);
+        #endif
+        
         midi_fops->DataOut(&packets[i]);
       }
     }
