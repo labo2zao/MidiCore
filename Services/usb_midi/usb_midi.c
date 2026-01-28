@@ -271,6 +271,16 @@ void usb_midi_rx_packet(const uint8_t packet4[4]) {
 void usb_midi_process_rx_queue(void) {
   /* TASK CONTEXT - Safe to do heavy processing and TX operations */
   
+#ifdef MODULE_TEST_USB_DEVICE_MIDI
+  /* Debug: Show queue status when non-empty */
+  if (!rx_queue_is_empty()) {
+    uint8_t count = ((rx_queue_head - rx_queue_tail) & (USB_MIDI_RX_QUEUE_SIZE - 1));
+    char buf[50];
+    snprintf(buf, sizeof(buf), "[RX-TASK] Processing %d packet(s)\r\n", count);
+    dbg_print(buf);
+  }
+#endif
+  
   /* Process all queued packets */
   while (!rx_queue_is_empty()) {
     /* Get next packet from queue */
