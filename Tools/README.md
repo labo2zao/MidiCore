@@ -1,5 +1,52 @@
 # MidiCore Tools
 
+## Diagnostic Tools
+
+### MIDI Loopback Test (`test_midi_loopback.py`)
+
+**NEW:** Simple diagnostic tool to test if USB MIDI is working at all.
+
+Tests three things:
+1. **Simple SysEx** - Basic USB MIDI RX/TX test
+2. **Note On/Off** - MIDI routing test
+3. **MIOS32 Query** - Query handler test
+
+**Usage:**
+```bash
+pip install python-rtmidi
+python3 test_midi_loopback.py
+```
+
+**When to use:**
+- MIOS32 queries are not responding
+- Need to isolate if issue is USB MIDI or query handler
+- Want to verify firmware is actually running
+
+**Results:**
+- Simple SysEx FAILS → USB driver/hardware issue
+- Simple SysEx PASS but MIOS32 FAILS → Firmware doesn't have query handler (need to flash)
+- All PASS → Firmware is correct, issue elsewhere
+
+### MIOS32 Recognition Test (`test_mios32_recognition.py`)
+
+Tests all 9 MIOS32 query types (as used by MIOS Studio).
+
+**Usage:**
+```bash
+pip install python-rtmidi
+python3 test_mios32_recognition.py
+```
+
+### CDC Terminal Test (`test_cdc_terminal.py`)
+
+Tests USB CDC (Virtual COM port) communication.
+
+**Usage:**
+```bash
+pip install pyserial
+python3 test_cdc_terminal.py
+```
+
 ## Firmware Upload Tool
 
 The `upload_firmware.py` script allows you to upload new firmware to MidiCore devices via USB MIDI using the bootloader.
