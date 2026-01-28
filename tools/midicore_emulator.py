@@ -153,21 +153,33 @@ class MidiCoreEmulator:
             0x09: "v1.0",             # App Name Line 2
         }
     
-    def list_ports(self) -> List[tuple]:
-        """List available MIDI ports"""
-        midi_out = rtmidi.MidiOut()
+    def list_ports(self, port_type='output') -> List[tuple]:
+        """List available MIDI ports
+        
+        Args:
+            port_type: 'input' or 'output'
+        """
+        if port_type == 'input':
+            midi_port = rtmidi.MidiIn()
+        else:
+            midi_port = rtmidi.MidiOut()
+        
         ports = []
-        for i in range(midi_out.get_port_count()):
-            name = midi_out.get_port_name(i)
+        for i in range(midi_port.get_port_count()):
+            name = midi_port.get_port_name(i)
             ports.append((i, name))
         return ports
     
-    def find_port(self, pattern: str = None) -> Optional[int]:
-        """Find MIDI port by name pattern"""
-        ports = self.list_ports()
+    def find_port_name(self, pattern: str = None) -> Optional[str]:
+        """Find MIDI port name by pattern
+        
+        Returns the port name (not index) to handle input/output differences
+        """
+        # Check output ports first
+        ports = self.list_ports('output')
         
         if not ports:
-            print("ERROR: No MIDI ports found!")
+            print("ERROR: No MIDI output ports found!")
             print("\nOn Windows, you need to create a loopMIDI port first:")
             print("  1. Open loopMIDI application")
             print("  2. Click '+' to create a new port")
@@ -175,41 +187,76 @@ class MidiCoreEmulator:
             print("  4. Run this script again with: --use-existing 'loopMIDI'")
             return None
         
-        # If no pattern, return first port
+        # If no pattern, return first port name
         if pattern is None:
-            return 0
+            return ports[0][1]
         
         # Search for matching port
         pattern_lower = pattern.lower()
         for idx, name in ports:
             if pattern_lower in name.lower():
-                return idx
+                return name
         
         print(f"ERROR: Port matching '{pattern}' not found!")
-        print("Available ports:")
+        print("Available output ports:")
         for idx, name in ports:
             print(f"  {idx}: {name}")
         return None
     
-    def start_with_existing_port(self, port_idx: int) -> bool:
-        """Start emulator using existing MIDI port (e.g., loopMIDI on Windows)"""
+    def find_port_index(self, port_name: str, port_type='output') -> Optional[int]:
+        """Find port index by exact name
+        
+        Args:
+            port_name: Exact port name to find
+            port_type: 'input' or 'output'
+        
+        Returns:
+            Port index or None if not found
+        """
+        ports = self.list_ports(port_type)
+        
+        for idx, name in ports:
+            if name == port_name:
+                return idx
+        
+        print(f"ERROR: {port_type.capitalize()} port '{port_name}' not found!")
+        print(f"Available {port_type} ports:")
+        for idx, name in ports:
+            print(f"  {idx}: {name}")
+        return None
+    
+    def start_with_existing_port(self, port_name: str) -> bool:
+        """Start emulator using existing MIDI port (e.g., loopMIDI on Windows)
+        
+        Args:
+            port_name: Exact name of the MIDI port to use
+        """
         try:
-            # Open existing input port
-            self.midi_in = rtmidi.MidiIn()
-            if port_idx >= self.midi_in.get_port_count():
-                print(f"ERROR: Port index {port_idx} out of range!")
+            # Find input port index
+            input_idx = self.find_port_index(port_name, 'input')
+            if input_idx is None:
+                print(f"\nERROR: Could not find input port '{port_name}'")
                 return False
             
-            port_name = self.midi_in.get_port_name(port_idx)
-            self.midi_in.open_port(port_idx)
+            # Find output port index (may be different from input!)
+            output_idx = self.find_port_index(port_name, 'output')
+            if output_idx is None:
+                print(f"\nERROR: Could not find output port '{port_name}'")
+                return False
+            
+            # Open input port
+            self.midi_in = rtmidi.MidiIn()
+            self.midi_in.open_port(input_idx)
             self.midi_in.set_callback(self._midi_callback)
             
-            # Open existing output port
+            # Open output port
             self.midi_out = rtmidi.MidiOut()
-            self.midi_out.open_port(port_idx)
+            self.midi_out.open_port(output_idx)
             
             print(f"✓ MidiCore Emulator started")
             print(f"✓ Using existing MIDI port: '{port_name}'")
+            print(f"  - Input port index: {input_idx}")
+            print(f"  - Output port index: {output_idx}")
             print(f"\nIn MIOS Studio:")
             print(f"  1. Device '{port_name}' should appear in device list")
             print(f"  2. Select it and click 'Query'")
@@ -221,6 +268,8 @@ class MidiCoreEmulator:
             
         except Exception as e:
             print(f"ERROR connecting to port: {e}")
+            import traceback
+            traceback.print_exc()
             return False
     
     def start_with_virtual_port(self) -> bool:
@@ -496,32 +545,43 @@ Examples:
     if args.list:
         print("\nAvailable MIDI Ports:")
         print("-" * 60)
-        ports = emulator.list_ports()
+        print("\nOutput Ports:")
+        ports = emulator.list_ports('output')
         if not ports:
-            print("  No ports found!")
-            print("\nOn Windows: Create a loopMIDI port first")
-            print("On macOS: Enable IAC Driver in Audio MIDI Setup")
-            print("On Linux: Run 'sudo modprobe snd-virmidi'")
+            print("  No output ports found!")
         else:
             for idx, name in ports:
                 print(f"  {idx}: {name}")
+        
+        print("\nInput Ports:")
+        ports = emulator.list_ports('input')
+        if not ports:
+            print("  No input ports found!")
+        else:
+            for idx, name in ports:
+                print(f"  {idx}: {name}")
+        
+        if not emulator.list_ports('output') and not emulator.list_ports('input'):
+            print("\nOn Windows: Create a loopMIDI port first")
+            print("On macOS: Enable IAC Driver in Audio MIDI Setup")
+            print("On Linux: Run 'sudo modprobe snd-virmidi'")
         print("-" * 60)
         return 0
     
     # Determine startup mode
     if args.use_existing:
         # Explicit flag - use specified port
-        port_idx = emulator.find_port(args.use_existing)
-        if port_idx is None:
+        port_name = emulator.find_port_name(args.use_existing)
+        if port_name is None:
             return 1
         
-        if not emulator.start_with_existing_port(port_idx):
+        if not emulator.start_with_existing_port(port_name):
             return 1
     elif platform.system() == 'Windows':
         # Windows - auto-detect loopMIDI (virtual ports don't work on Windows)
         print("✓ Detected Windows - searching for loopMIDI port...")
-        port_idx = emulator.find_port("loop")
-        if port_idx is None:
+        port_name = emulator.find_port_name("loop")
+        if port_name is None:
             print("\n" + "=" * 60)
             print("ERROR: loopMIDI port not found!")
             print("=" * 60)
@@ -535,7 +595,8 @@ Examples:
             print("=" * 60)
             return 1
         
-        if not emulator.start_with_existing_port(port_idx):
+        print(f"✓ Found: {port_name}")
+        if not emulator.start_with_existing_port(port_name):
             return 1
     else:
         # macOS/Linux - try to create virtual port
