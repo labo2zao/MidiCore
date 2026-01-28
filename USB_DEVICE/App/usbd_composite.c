@@ -271,14 +271,29 @@ static uint8_t USBD_COMPOSITE_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum)
 {
   uint8_t ret = USBD_OK;
   
+#ifdef MODULE_TEST_USB_DEVICE_MIDI
+  /* Debug: Trace composite DataOut calls */
+  extern void dbg_print(const char *str);
+  char buf[40];
+  extern int snprintf(char *str, unsigned long size, const char *format, ...);
+  snprintf(buf, sizeof(buf), "[COMP-RX] EP:%02X\r\n", epnum);
+  dbg_print(buf);
+#endif
+  
   /* MIDI OUT endpoint: 0x01 (EP1) */
   if (epnum == 0x01) {
     if (USBD_MIDI.DataOut != NULL && composite_class_data.midi_class_data != NULL) {
+#ifdef MODULE_TEST_USB_DEVICE_MIDI
+      dbg_print("[COMP-RX] MIDI OK\r\n");
+#endif
       void *previous = USBD_COMPOSITE_SwitchClassData(pdev, composite_class_data.midi_class_data);
       uint8_t status = USBD_MIDI.DataOut(pdev, epnum);
       (void)USBD_COMPOSITE_SwitchClassData(pdev, previous);
       return status;
     }
+#ifdef MODULE_TEST_USB_DEVICE_MIDI
+    dbg_print("[COMP-RX] MIDI SKIP\r\n");
+#endif
     return ret;
   }
   
