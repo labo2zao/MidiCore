@@ -118,6 +118,10 @@
 #include "Services/usb_midi/usb_midi.h"
 #endif
 
+#if MODULE_ENABLE_USB_CDC
+#include "Services/usb_cdc/usb_cdc.h"
+#endif
+
 #include "App/midi_io_task.h"
 
 #include "cmsis_os2.h"
@@ -129,6 +133,14 @@ static void OledDemoTask(void *argument);
 static void CliTask(void *argument);
 #endif
 static uint8_t boot_shift_held(uint8_t active_low);
+
+#if MODULE_ENABLE_USB_CDC
+// CDC terminal echo callback for MIOS Studio terminal
+static void cdc_terminal_echo(const uint8_t *data, uint32_t len) {
+  // Echo back what was received (simple terminal test)
+  usb_cdc_send(data, len);
+}
+#endif
 
 void app_init_and_start(void)
 {
@@ -161,6 +173,12 @@ void app_init_and_start(void)
 
 #if MODULE_ENABLE_USB_MIDI
   usb_midi_init();
+#endif
+
+#if MODULE_ENABLE_USB_CDC
+  usb_cdc_init();
+  // Register CDC terminal echo callback for MIOS Studio terminal
+  usb_cdc_register_receive_callback(cdc_terminal_echo);
 #endif
 
 #if MODULE_ENABLE_PATCH

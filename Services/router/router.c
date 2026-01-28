@@ -93,19 +93,21 @@ void router_process(uint8_t in_node, const router_msg_t* msg) {
   if (!msg || in_node >= ROUTER_NUM_NODES) return;
   if (!g_send) return;
   
-  // Filter MIOS Studio bootloader protocol SysEx messages (F0 00 00 7E 32/40 ...)
-  // These are sent automatically by MIOS Studio and can interfere with normal operation
+  // Filter MIOS Studio bootloader protocol SysEx messages (F0 00 00 7E 40 ...)
+  // Block bootloader messages (0x40) but allow query messages (0x32) to pass through
   if (msg->type == ROUTER_MSG_SYSEX && msg->data && msg->len >= 5) {
     // Check for MIOS32/Bootloader manufacturer ID: F0 00 00 7E
     if (msg->data[0] == 0xF0 && msg->data[1] == 0x00 && 
         msg->data[2] == 0x00 && msg->data[3] == 0x7E) {
       // Check device ID byte
       uint8_t device_id = msg->data[4];
-      // 0x32 = MIOS32 query/response, 0x40 = Bootloader protocol
-      if (device_id == 0x32 || device_id == 0x40) {
-        // Block these messages from routing (they're only for bootloader/debug)
+      // 0x32 = MIOS32 query/response (ALLOW - MIOS Studio needs responses)
+      // 0x40 = Bootloader protocol (BLOCK - only for bootloader mode)
+      if (device_id == 0x40) {
+        // Block bootloader messages from routing (they're only for bootloader mode)
         return;
       }
+      // Let 0x32 (query) messages pass through - they need to be handled/responded to
     }
   }
 
@@ -133,6 +135,19 @@ void router_process(uint8_t in_node, const router_msg_t* msg) {
       if (in_port == out_port) {
         // Block same-port loopback: DIN_IN1→DIN_OUT1, DIN_IN2→DIN_OUT2, etc.
         // This prevents infinite loops if hardware has MIDI cables connecting output back to input
+        continue;
+      }
+    }
+    
+    // CRITICAL FIX: Prevent USB loopback - don't route USB_PORTx back to itself
+    // USB ports are bidirectional, so routing USB_PORT0→USB_PORT0 would echo messages
+    // back to MIOS Studio, causing crashes or infinite loops
+    // Example: MIOS Studio sends query → MidiCore routes back → MIOS Studio receives corrupted echo → crash
+    if (in_node >= ROUTER_NODE_USB_PORT0 && in_node <= ROUTER_NODE_USB_PORT3 &&
+        out >= ROUTER_NODE_USB_PORT0 && out <= ROUTER_NODE_USB_PORT3) {
+      if (in_node == out) {
+        // Block USB self-loopback: USB_PORT0→USB_PORT0, USB_PORT1→USB_PORT1, etc.
+        // This prevents MIOS Studio queries from being echoed back
         continue;
       }
     }

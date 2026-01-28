@@ -487,14 +487,25 @@ static uint8_t USBD_MIDI_Setup(USBD_HandleTypeDef *pdev, USBD_SetupReqTypedef *r
 }
 
 /**
-  * @brief  Handle data IN stage
+  * @brief  Handle data IN stage (TX Complete callback)
+  * 
+  * CRITICAL: This callback is invoked when USB hardware finishes transmitting a packet.
+  * We use this to trigger sending the next packet from the TX queue.
   */
 static uint8_t USBD_MIDI_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum)
 {
-  UNUSED(pdev);
-  UNUSED(epnum);
+  /* Verify this is our MIDI IN endpoint */
+  if (epnum == (MIDI_IN_EP & 0x7F))
+  {
+    /* TX Complete - notify application layer to send next packet from queue
+     * 
+     * The HAL has already cleared the BUSY status for this endpoint.
+     * Call the external handler to send next queued packet.
+     */
+    extern void usb_midi_tx_complete(void);  /* Defined in Services/usb_midi/usb_midi.c */
+    usb_midi_tx_complete();
+  }
   
-  /* TX Complete - ready for next packet */
   return USBD_OK;
 }
 
