@@ -533,12 +533,15 @@ static void CliTask(void *argument)
   osDelay(10);
   
   dbg_printf("[CLI-TASK] Step 1: Checking USB CDC mode...\r\n");
-  osDelay(10);
+  
+  // REMOVE osDelay before checking #if - it might be blocking
+  // osDelay(10);
   
   // Wait for USB CDC to be fully enumerated if using USB CDC
   // This typically takes 2-5 seconds after boot
 #if MODULE_ENABLE_USB_CDC
   dbg_printf("[CLI-TASK] Step 2: MODULE_ENABLE_USB_CDC is defined\r\n");
+  osDelay(10);
   osDelay(10);
   dbg_printf("[CLI-TASK] Using USB CDC, waiting for enumeration...\r\n");
   
@@ -557,6 +560,7 @@ static void CliTask(void *argument)
   }
   
   dbg_printf("[CLI] USB CDC initialization period complete\r\n");
+  osDelay(10);
 #else
   dbg_printf("[CLI-TASK] Step 2: MODULE_ENABLE_USB_CDC is NOT defined\r\n");
   osDelay(10);
