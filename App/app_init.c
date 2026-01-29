@@ -378,12 +378,17 @@ void app_init_and_start(void)
   dbg_printf("[WARNING] MODULE_ENABLE_CLI not defined - CLI disabled\r\n");
 #endif
 
+  dbg_printf("[INIT] About to start MIDI IO task...\r\n");
+  
   // Optional UART debug stream (raw ADC values)
 #if MODULE_ENABLE_AIN_RAW_DEBUG
   ain_raw_debug_task_create();
 #endif
 
   app_start_midi_io_task();
+  
+  dbg_printf("[INIT] MIDI IO task started\r\n");
+  dbg_printf("[INIT] app_init_and_start() complete - returning to scheduler\r\n");
 }
 
 static void AinTask(void *argument)
@@ -520,7 +525,9 @@ static void CliTask(void *argument)
 {
   (void)argument;
   
-  dbg_printf("[CLI-TASK] CLI task function entered!\r\n");
+  // This is the VERY FIRST thing the task does
+  // If this doesn't appear, the task never started
+  dbg_printf("[CLI-TASK] *** ENTRY POINT *** CLI task function entered!\r\n");
   
   // Wait for USB CDC to be fully enumerated if using USB CDC
   // This typically takes 2-5 seconds after boot
