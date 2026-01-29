@@ -598,7 +598,7 @@ static void CliTask(void *argument)
   cli_printf("\r\n");
   cli_printf("=== MidiCore System Ready ===\r\n");
   cli_printf("Boot reason: %d\r\n", (int)boot_reason_get());
-  cli_printf("CLI commands: %lu registered\r\n", (unsigned long)s_command_count);
+  cli_printf("CLI commands: %lu registered\r\n", (unsigned long)cli_get_command_count());
   cli_printf("\r\n");
 #endif
   
