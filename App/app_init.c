@@ -529,9 +529,17 @@ static void CliTask(void *argument)
   // If this doesn't appear, the task never started
   dbg_printf("[CLI-TASK] *** ENTRY POINT *** CLI task function entered!\r\n");
   
+  // Add explicit delay to ensure dbg_printf completes
+  osDelay(10);
+  
+  dbg_printf("[CLI-TASK] Step 1: Checking USB CDC mode...\r\n");
+  osDelay(10);
+  
   // Wait for USB CDC to be fully enumerated if using USB CDC
   // This typically takes 2-5 seconds after boot
 #if MODULE_ENABLE_USB_CDC
+  dbg_printf("[CLI-TASK] Step 2: MODULE_ENABLE_USB_CDC is defined\r\n");
+  osDelay(10);
   dbg_printf("[CLI-TASK] Using USB CDC, waiting for enumeration...\r\n");
   
   // Wait up to 5 seconds for USB CDC to be ready
@@ -550,19 +558,36 @@ static void CliTask(void *argument)
   
   dbg_printf("[CLI] USB CDC initialization period complete\r\n");
 #else
+  dbg_printf("[CLI-TASK] Step 2: MODULE_ENABLE_USB_CDC is NOT defined\r\n");
+  osDelay(10);
   dbg_printf("[CLI] CLI task started using UART\r\n");
   osDelay(100);  // Small delay to let system stabilize
 #endif
   
   // Now print welcome banner - USB CDC should be ready
+  dbg_printf("[CLI] Step 3: About to print welcome banner...\r\n");
+  osDelay(10);
   dbg_printf("[CLI] Printing welcome banner...\r\n");
+  osDelay(10);
   cli_print_banner();
+  dbg_printf("[CLI] Banner printed, now printing prompt...\r\n");
+  osDelay(10);
   cli_print_prompt();
-  dbg_printf("[CLI] CLI ready for commands\r\n");
+  dbg_printf("[CLI] Prompt printed\r\n");
+  osDelay(10);
+  dbg_printf("[CLI] CLI ready for commands - entering main loop\r\n");
   
   // CLI processing loop
+  uint32_t loop_count = 0;
   for (;;) {
+    if (loop_count == 0) {
+      dbg_printf("[CLI] Entering cli_task() for first time...\r\n");
+    }
     cli_task();
+    if (loop_count == 0) {
+      dbg_printf("[CLI] First cli_task() call completed\r\n");
+      loop_count = 1;
+    }
     osDelay(10);  // 10ms polling interval
   }
 }
