@@ -306,12 +306,17 @@ void app_init_and_start(void)
 
 #if MODULE_ENABLE_CLI
   dbg_printf("[INIT] CLI step 1: calling cli_init...\r\n");
+  osDelay(5);  // Small delay to let USB CDC transmit
   cli_init();
   dbg_printf("[INIT] CLI step 2: cli_init returned OK\r\n");
+  osDelay(5);
   dbg_printf("[INIT] CLI step 3: calling cli_module_commands_init...\r\n");
+  osDelay(5);
   int cli_cmd_result = cli_module_commands_init();
   dbg_printf("[INIT] CLI step 4: cli_module_commands_init returned %d\r\n", cli_cmd_result);
+  osDelay(5);
   dbg_printf("[INIT] CLI step 5: CLI system ready\r\n");
+  osDelay(5);
 #else
   dbg_printf("[INIT] MODULE_ENABLE_CLI is NOT defined - CLI will not be available\r\n");
 #endif
@@ -362,6 +367,7 @@ void app_init_and_start(void)
 
 #if MODULE_ENABLE_CLI
   dbg_printf("[INIT] Creating CLI task...\r\n");
+  osDelay(5);
   // CLI task for processing terminal commands via UART
   const osThreadAttr_t cli_attr = {
     .name = "CliTask",
@@ -374,11 +380,13 @@ void app_init_and_start(void)
   } else {
     dbg_printf("[INIT] CLI task created successfully\r\n");
   }
+  osDelay(5);
 #else
   dbg_printf("[WARNING] MODULE_ENABLE_CLI not defined - CLI disabled\r\n");
 #endif
 
   dbg_printf("[INIT] About to start MIDI IO task...\r\n");
+  osDelay(5);
   
   // Optional UART debug stream (raw ADC values)
 #if MODULE_ENABLE_AIN_RAW_DEBUG
@@ -388,7 +396,9 @@ void app_init_and_start(void)
   app_start_midi_io_task();
   
   dbg_printf("[INIT] MIDI IO task started\r\n");
+  osDelay(5);
   dbg_printf("[INIT] app_init_and_start() complete - returning to scheduler\r\n");
+  osDelay(5);
 }
 
 static void AinTask(void *argument)
@@ -542,25 +552,35 @@ static void CliTask(void *argument)
 #if MODULE_ENABLE_USB_CDC
   dbg_printf("[CLI-TASK] Step 2: MODULE_ENABLE_USB_CDC is defined\r\n");
   osDelay(10);
-  osDelay(10);
-  dbg_printf("[CLI-TASK] Using USB CDC, waiting for enumeration...\r\n");
+  dbg_printf("[CLI-TASK] Waiting for USB CDC connection (terminal must open port)...\r\n");
   
-  // Wait up to 5 seconds for USB CDC to be ready
+  // Import usb_cdc_is_connected function
+  extern uint8_t usb_cdc_is_connected(void);
+  
+  // Wait for terminal to actually connect (DTR asserted)
   uint32_t wait_count = 0;
-  while (wait_count < 500) {  // 500 x 10ms = 5 seconds
-    osDelay(10);
-    wait_count++;
-    
-    // Check if USB CDC is responding (simple test)
-    // After enumeration, USB CDC should accept data
-    // We just wait the full timeout to be safe
-    if (wait_count >= 200) {  // Minimum 2 seconds
+  uint8_t is_connected = 0;
+  
+  while (wait_count < 1000) {  // Wait up to 10 seconds max
+    if (usb_cdc_is_connected()) {
+      is_connected = 1;
+      dbg_printf("[CLI-TASK] USB CDC connected! Terminal is ready.\r\n");
       break;
     }
+    osDelay(10);  // Check every 10ms
+    wait_count++;
   }
   
-  dbg_printf("[CLI] USB CDC initialization period complete\r\n");
-  osDelay(10);
+  if (!is_connected) {
+    dbg_printf("[CLI-TASK] WARNING: No terminal connected after 10s\r\n");
+    dbg_printf("[CLI-TASK] Messages may have been lost during boot\r\n");
+    dbg_printf("[CLI-TASK] Connect terminal and press RESET or type 'status'\r\n");
+  }
+  
+  // Small stabilization delay
+  osDelay(100);
+  
+  dbg_printf("[CLI] USB CDC initialization complete\r\n");
 #else
   dbg_printf("[CLI-TASK] Step 2: MODULE_ENABLE_USB_CDC is NOT defined\r\n");
   osDelay(10);
@@ -571,6 +591,17 @@ static void CliTask(void *argument)
   // Now print welcome banner - USB CDC should be ready
   dbg_printf("[CLI] Step 3: About to print welcome banner...\r\n");
   osDelay(10);
+  
+#if MODULE_ENABLE_USB_CDC
+  // If USB CDC just connected, repeat important boot info that was likely lost
+  extern uint8_t boot_reason_get(void);
+  cli_printf("\r\n");
+  cli_printf("=== MidiCore System Ready ===\r\n");
+  cli_printf("Boot reason: %d\r\n", (int)boot_reason_get());
+  cli_printf("CLI commands: %lu registered\r\n", (unsigned long)s_command_count);
+  cli_printf("\r\n");
+#endif
+  
   dbg_printf("[CLI] Printing welcome banner...\r\n");
   osDelay(10);
   cli_print_banner();
