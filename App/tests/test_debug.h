@@ -73,7 +73,7 @@ extern "C" {
  * - All other MIDI DIN ports run at 31250 baud for MIDI
  */
 #ifndef TEST_DEBUG_UART_PORT
-#define TEST_DEBUG_UART_PORT 1  // USART3 (PD8/PD9) - MIOS32 compatible terminal port
+#define TEST_DEBUG_UART_PORT 3  // UART5 (PC12/PD2) - User's debug port configuration
 #endif
 
 /**
