@@ -129,6 +129,8 @@
 #include "App/midi_io_task.h"
 
 #include "cmsis_os2.h"
+#include "FreeRTOS.h"
+#include "task.h"
 #include <string.h>
 
 static void AinTask(void *argument);
