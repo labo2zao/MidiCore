@@ -146,11 +146,14 @@ static uint8_t boot_shift_held(uint8_t active_low);
 
 void app_init_and_start(void)
 {
+  // NOTE: spibus_init() is called in main.c BEFORE osKernelStart()
+  // DO NOT call it again here! Second call would reset g_spi1_mutex and g_spi3_mutex to NULL
+  // after they were already created by spibus_begin(), causing NULL pointer access crashes!
+  // See: docs/ROOT_CAUSE_DOUBLE_SPIBUS_INIT.md
+  
   // Init shared services
 #if MODULE_ENABLE_SPI_BUS
-  spibus_init();
-  // Stack monitoring is handled by stack_monitor module
-  dbg_printf("[INIT] spibus_init complete\r\n");
+  dbg_printf("[INIT] SPI bus already initialized in main.c\r\n");
 #endif
 
 #if MODULE_ENABLE_AINSER64
