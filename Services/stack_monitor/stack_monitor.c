@@ -124,10 +124,21 @@ static void stack_monitor_task(void* argument)
   (void)argument;
 
   dbg_printf("[STACK] Monitor task started\r\n");
-
-  // Initial check after short delay
-  osDelay(1000);
+  
+  // CRITICAL: Allow debug output to flush before continuing
+  // Prevents output corruption and UART buffer overflow
+  osDelay(100);
+  
+  dbg_printf("[STACK] Waiting for system stabilization...\r\n");
+  
+  // Longer initial delay to ensure all tasks are created and scheduler is stable
+  // CRITICAL: Was 1000ms, increased to 3000ms to prevent freeze
+  // System needs time for USB enumeration, CLI task startup, etc.
+  osDelay(3000);
+  
+  dbg_printf("[STACK] Performing initial check...\r\n");
   check_all_tasks();
+  dbg_printf("[STACK] Initial check complete\r\n");
 
   while (1) {
     osDelay(s_interval_ms);
@@ -243,11 +254,19 @@ int stack_monitor_get_all_tasks(stack_info_t* info_array, uint32_t max_tasks, ui
   // Enumerate all threads
   osThreadId_t threads[STACK_MONITOR_MAX_TASKS];
   uint32_t thread_count = osThreadEnumerate(threads, STACK_MONITOR_MAX_TASKS);
+  
+  // Safety check: osThreadEnumerate might return 0 if called too early
+  if (thread_count == 0) {
+    *num_tasks = 0;
+    return 0;  // Not an error, just no threads yet
+  }
 
   *num_tasks = (thread_count < max_tasks) ? thread_count : max_tasks;
 
   for (uint32_t i = 0; i < *num_tasks; i++) {
-    stack_monitor_get_info(threads[i], &info_array[i]);
+    if (threads[i] != NULL) {
+      stack_monitor_get_info(threads[i], &info_array[i]);
+    }
   }
 
   return 0;
