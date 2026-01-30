@@ -648,11 +648,13 @@ static uint8_t boot_shift_held(uint8_t active_low) {
 
 #if MODULE_ENABLE_CLI
 /**
- * @brief CLI task for processing UART terminal commands
+ * @brief CLI task for processing terminal commands
  * 
- * This task continuously calls cli_task() to process incoming
- * commands from the UART terminal (MIOS Studio compatible).
- * Commands are parsed and executed in real-time.
+ * Output routing controlled by MODULE_CLI_OUTPUT:
+ * - CLI_OUTPUT_USB_CDC: USB CDC only (immediate)
+ * - CLI_OUTPUT_UART: Hardware UART  
+ * - CLI_OUTPUT_MIOS: USB CDC with connection wait (MIOS32 compatible)
+ * - CLI_OUTPUT_DEBUG: Follow MODULE_DEBUG_OUTPUT setting
  */
 static void CliTask(void *argument)
 {
@@ -664,10 +666,31 @@ static void CliTask(void *argument)
   osDelay(50);
   dbg_printf("[CLI-TASK] Initial delay complete\r\n");
   
-  // CLI now uses debug output system (dbg_print) which routes to user's
-  // chosen terminal (UART/SWV/USB CDC via MODULE_DEBUG_OUTPUT).
-  // No need to wait for USB CDC - CLI works immediately on debug terminal.
-  dbg_printf("[CLI-TASK] CLI uses debug output terminal\r\n");
+#if MODULE_CLI_OUTPUT == CLI_OUTPUT_MIOS
+  // MIOS terminal mode - wait for USB CDC connection (standard MIOS32 behavior)
+  dbg_printf("[CLI-TASK] Waiting for USB CDC connection (MIOS mode)...\r\n");
+  
+  uint32_t timeout = 100;  // 10 seconds (100 * 100ms)
+  while (!usb_cdc_is_connected() && timeout > 0) {
+    osDelay(100);
+    timeout--;
+  }
+  
+  if (usb_cdc_is_connected()) {
+    dbg_printf("[CLI-TASK] USB CDC connected!\r\n");
+  } else {
+    dbg_printf("[CLI-TASK] USB CDC timeout, proceeding anyway\r\n");
+  }
+#else
+  // Other modes: start immediately without waiting
+  #if MODULE_CLI_OUTPUT == CLI_OUTPUT_USB_CDC
+    dbg_printf("[CLI-TASK] CLI uses USB CDC terminal\r\n");
+  #elif MODULE_CLI_OUTPUT == CLI_OUTPUT_UART  
+    dbg_printf("[CLI-TASK] CLI uses UART terminal\r\n");
+  #elif MODULE_CLI_OUTPUT == CLI_OUTPUT_DEBUG
+    dbg_printf("[CLI-TASK] CLI uses debug output terminal\r\n");
+  #endif
+#endif
   
   // Print welcome message
   cli_printf("\r\n");

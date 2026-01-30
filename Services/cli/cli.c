@@ -336,16 +336,40 @@ void cli_task(void)
 // OUTPUT HELPERS
 // =============================================================================
 
-// CLI output function - routes through debug system
-// This ensures CLI appears on the same output as debug messages
-// (UART/SWV/USB CDC based on MODULE_DEBUG_OUTPUT setting)
+// CLI output function - routes based on MODULE_CLI_OUTPUT configuration
+// Allows user to choose CLI terminal independently from debug output
 static void cli_print(const char* str)
 {
-  // Use debug output system so CLI appears where user is monitoring
-  // This allows CLI to be seen on UART terminal during debugging
-  if (str && strlen(str) > 0) {
-    dbg_print(str);
+  if (!str || strlen(str) == 0) {
+    return;
   }
+
+#if MODULE_CLI_OUTPUT == CLI_OUTPUT_USB_CDC
+  // Route to USB CDC only
+  usb_cdc_send((const uint8_t*)str, strlen(str));
+  
+#elif MODULE_CLI_OUTPUT == CLI_OUTPUT_UART
+  // Route to UART (force UART mode for CLI)
+  #if MODULE_DEBUG_OUTPUT == DEBUG_OUTPUT_UART
+    // Already UART mode, use normal debug print
+    dbg_print(str);
+  #else
+    // Not in UART mode, need to send directly to UART
+    // This is a fallback - normally use DEBUG_OUTPUT_UART
+    dbg_print(str);  // Will go to current debug output
+  #endif
+  
+#elif MODULE_CLI_OUTPUT == CLI_OUTPUT_MIOS
+  // MIOS terminal mode - use USB CDC
+  usb_cdc_send((const uint8_t*)str, strlen(str));
+  
+#elif MODULE_CLI_OUTPUT == CLI_OUTPUT_DEBUG
+  // Follow MODULE_DEBUG_OUTPUT setting
+  dbg_print(str);
+  
+#else
+  #error "Invalid MODULE_CLI_OUTPUT setting"
+#endif
 }
 
 void cli_printf(const char* fmt, ...)

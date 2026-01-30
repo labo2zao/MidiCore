@@ -187,6 +187,42 @@ extern "C" {
 #endif
 // ============================================================================
 
+// =============================================================================
+// CLI TERMINAL SELECTION  
+// =============================================================================
+/**
+ * Choose where CLI output appears:
+ * 
+ * CLI_OUTPUT_USB_CDC (1):
+ *   - CLI on USB CDC terminal (MIOS Studio)
+ *   - Works immediately, no wait
+ *   - Best for production with MIOS Studio
+ * 
+ * CLI_OUTPUT_UART (2):
+ *   - CLI on hardware UART terminal  
+ *   - Best for hardware debugging
+ *   - Independent of USB
+ * 
+ * CLI_OUTPUT_MIOS (3):
+ *   - CLI on MIOS terminal (CDC + waits for connection)
+ *   - Standard MIOS32 behavior
+ *   - Waits up to 10s for USB CDC connection
+ *   - Best for full MIOS Studio compatibility
+ * 
+ * CLI_OUTPUT_DEBUG (4):
+ *   - CLI follows MODULE_DEBUG_OUTPUT setting
+ *   - CLI appears on same terminal as debug messages
+ *   - Simple unified output
+ */
+#define CLI_OUTPUT_USB_CDC    1
+#define CLI_OUTPUT_UART       2
+#define CLI_OUTPUT_MIOS       3
+#define CLI_OUTPUT_DEBUG      4
+
+#ifndef MODULE_CLI_OUTPUT
+#define MODULE_CLI_OUTPUT  CLI_OUTPUT_MIOS  // Default: MIOS terminal (standard behavior)
+#endif
+
 /** @brief Enable USB CDC (Virtual COM Port / ACM) - MIOS32 & MIOS Studio compatible
  * 
  * When enabled (MODULE_ENABLE_USB_CDC=1):
