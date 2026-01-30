@@ -6,14 +6,39 @@
 #include "Services/expression/expression.h"
 #include "Services/usb_midi/usb_midi.h"
 #include "Services/usb_cdc/usb_cdc.h"
+#include "App/tests/test_debug.h"
 
 // Call this from app_init_and_start() if you want a dedicated task.
 static void MidiIOTask(void *argument) {
   (void)argument;
-  uint32_t ui_ms = 0;
+  
+  dbg_printf("[MIDI-TASK] MidiIOTask started\r\n");
+  osDelay(10);
+  
+  dbg_printf("[MIDI-TASK] Calling midi_delayq_init()...\r\n");
+  osDelay(10);
   midi_delayq_init();
+  dbg_printf("[MIDI-TASK] midi_delayq_init() complete\r\n");
+  osDelay(10);
+  
+  dbg_printf("[MIDI-TASK] Calling expression_init()...\r\n");
+  osDelay(10);
   expression_init();
+  dbg_printf("[MIDI-TASK] expression_init() complete\r\n");
+  osDelay(10);
+  
+  dbg_printf("[MIDI-TASK] Entering main loop...\r\n");
+  osDelay(10);
+  
+  uint32_t ui_ms = 0;
+  uint32_t loop_count = 0;
+  
   for (;;) {
+    if (loop_count == 0) {
+      dbg_printf("[MIDI-TASK] First loop iteration starting...\r\n");
+      osDelay(10);
+    }
+    
     /* CRITICAL: Process USB MIDI RX queue in task context (NOT interrupt!)
      * This handles MIOS32 queries, router processing, and TX responses safely */
     usb_midi_process_rx_queue();
@@ -29,6 +54,12 @@ static void MidiIOTask(void *argument) {
     osDelay(1);
     ui_ms++;
     if ((ui_ms % 20u) == 0u) ui_tick_20ms();
+    
+    if (loop_count == 0) {
+      dbg_printf("[MIDI-TASK] First loop iteration completed successfully\r\n");
+      osDelay(10);
+    }
+    loop_count++;
   }
 }
 
