@@ -208,41 +208,44 @@ void app_init_and_start(void)
   safe_mode_set_sd_ok(sd_ok ? 1u : 0u);
 #endif
 
-  config_t global_cfg;
-  config_set_defaults(&global_cfg);
+  // Static config structures to avoid stack overflow
+  // These were moved from local to static to prevent ~1000+ bytes on stack
+  // See: STACK_ANALYSIS.md for rationale
+  static config_t s_global_cfg;
+  config_set_defaults(&s_global_cfg);
   
 #if MODULE_ENABLE_PATCH
   if (sd_ok) {
-    (void)config_load_from_sd(&global_cfg, "0:/cfg/global.ngc");
+    (void)config_load_from_sd(&s_global_cfg, "0:/cfg/global.ngc");
 
 #if MODULE_ENABLE_INSTRUMENT
-    instrument_cfg_t icfg; 
-    instrument_cfg_defaults(&icfg);
-    if (sd_ok) { (void)instrument_cfg_load_sd(&icfg, "0:/cfg/instrument.ngc"); }
-    instrument_cfg_set(&icfg);
+    static instrument_cfg_t s_icfg; 
+    instrument_cfg_defaults(&s_icfg);
+    if (sd_ok) { (void)instrument_cfg_load_sd(&s_icfg, "0:/cfg/instrument.ngc"); }
+    instrument_cfg_set(&s_icfg);
 #endif
 
 #if MODULE_ENABLE_ZONES
-    zones_cfg_t zcfg; 
-    zones_cfg_defaults(&zcfg);
-    if (sd_ok) { (void)zones_cfg_load_sd(&zcfg, "0:/cfg/zones.ngc"); }
-    zones_cfg_set(&zcfg);
+    static zones_cfg_t s_zcfg; 
+    zones_cfg_defaults(&s_zcfg);
+    if (sd_ok) { (void)zones_cfg_load_sd(&s_zcfg, "0:/cfg/zones.ngc"); }
+    zones_cfg_set(&s_zcfg);
 #endif
 
 #if MODULE_ENABLE_EXPRESSION
-    expr_cfg_t ecfg; 
-    expression_cfg_defaults(&ecfg);
-    if (sd_ok) { (void)expression_cfg_load_sd(&ecfg, "0:/cfg/expression.ngc"); }
-    expression_set_cfg(&ecfg);
+    static expr_cfg_t s_ecfg; 
+    expression_cfg_defaults(&s_ecfg);
+    if (sd_ok) { (void)expression_cfg_load_sd(&s_ecfg, "0:/cfg/expression.ngc"); }
+    expression_set_cfg(&s_ecfg);
 #endif
 
 #if MODULE_ENABLE_PRESSURE
-    pressure_cfg_t pcfg; 
-    pressure_defaults(&pcfg);
-    if (sd_ok) { (void)pressure_load_sd(&pcfg, "0:/cfg/pressure.ngc"); }
-    pressure_set_cfg(&pcfg);
+    static pressure_cfg_t s_pcfg; 
+    pressure_defaults(&s_pcfg);
+    if (sd_ok) { (void)pressure_load_sd(&s_pcfg, "0:/cfg/pressure.ngc"); }
+    pressure_set_cfg(&s_pcfg);
     // Debug: scan I2C bus to confirm pressure sensor address
-    app_i2c_scan_and_log(pcfg.i2c_bus);
+    app_i2c_scan_and_log(s_pcfg.i2c_bus);
 #endif
 
 #if MODULE_ENABLE_HUMANIZE
@@ -252,10 +255,10 @@ void app_init_and_start(void)
 #endif
 
 // Hold SHIFT at boot to force SAFE_MODE
-  uint8_t shift_held = boot_shift_held(global_cfg.global_shift_active_low);
+  uint8_t shift_held = boot_shift_held(s_global_cfg.global_shift_active_low);
 #if MODULE_ENABLE_SAFE_MODE
   safe_mode_set_forced(shift_held ? 1u : 0u);
-  safe_mode_set_cfg(global_cfg.global_safe_mode ? 1u : 0u);
+  safe_mode_set_cfg(s_global_cfg.global_safe_mode ? 1u : 0u);
 #endif
 
 // SD/FATFS mount + load patch then apply router rules from [router]
