@@ -176,8 +176,8 @@ standard names. */
 /* Variables needed for FreeRTOS Thread Aware Debugging in CubeIDE */
 /* These allow the debugger to see task list and current task */
 #ifdef __GNUC__
-  /* Ensure pxCurrentTCB is visible to debugger */
-  extern void *pxCurrentTCB;
+  /* pxCurrentTCB is already defined in tasks.c with correct type */
+  /* No need to redeclare - debugger will see it with debug symbols */
   
   /* uxTopUsedPriority is used by OpenOCD FreeRTOS support */
   /* Already defined in tasks.c, just declare for visibility */
