@@ -161,16 +161,19 @@ void app_init_and_start(void)
   // Print early heap diagnostics to help identify allocation issues
   // This helps diagnose if tasks fail to create due to heap exhaustion
   {
+    size_t heap_total = configTOTAL_HEAP_SIZE;
     size_t free_heap = xPortGetFreeHeapSize();
     size_t min_ever = xPortGetMinimumEverFreeHeapSize();
     dbg_printf("\r\n");
     dbg_printf("========================================\r\n");
     dbg_printf("   EARLY HEAP DIAGNOSTICS\r\n");
+    dbg_printf("   Function: app_init_and_start()\r\n");
     dbg_printf("========================================\r\n");
-    dbg_printf("Heap total:       %lu bytes (36KB)\r\n", (unsigned long)(36*1024));
+    dbg_printf("Heap total:       %lu bytes (%luKB)\r\n", 
+               (unsigned long)heap_total, (unsigned long)(heap_total/1024));
     dbg_printf("Heap free now:    %lu bytes\r\n", (unsigned long)free_heap);
     dbg_printf("Heap min ever:    %lu bytes\r\n", (unsigned long)min_ever);
-    dbg_printf("Heap used:        %lu bytes\r\n", (unsigned long)((36*1024) - free_heap));
+    dbg_printf("Heap used:        %lu bytes\r\n", (unsigned long)(heap_total - free_heap));
     dbg_printf("========================================\r\n");
     dbg_printf("\r\n");
   }
@@ -363,7 +366,9 @@ void app_init_and_start(void)
   // Print heap status after stack monitor init
   {
     size_t free_heap = xPortGetFreeHeapSize();
-    dbg_printf("[HEAP] After stack monitor: %lu bytes free\r\n", (unsigned long)free_heap);
+    dbg_printf("[HEAP] stack_monitor_init() complete - Free: %lu / %lu bytes (%lu KB total)\r\n", 
+               (unsigned long)free_heap, (unsigned long)configTOTAL_HEAP_SIZE,
+               (unsigned long)(configTOTAL_HEAP_SIZE/1024));
   }
 #endif
 
@@ -489,6 +494,30 @@ void app_init_and_start(void)
     dbg_printf("[HEAP] After MIDI IO task: %lu bytes free\r\n", (unsigned long)free_after);
   }
   dbg_printf("[INIT] MIDI IO task started\r\n");
+  // Final heap summary before returning
+  {
+    size_t heap_total = configTOTAL_HEAP_SIZE;
+    size_t free_heap = xPortGetFreeHeapSize();
+    size_t min_ever = xPortGetMinimumEverFreeHeapSize();
+    dbg_printf("\r\n");
+    dbg_printf("========================================\r\n");
+    dbg_printf("   FINAL HEAP STATUS\r\n");
+    dbg_printf("   Function: app_init_and_start()\r\n");
+    dbg_printf("========================================\r\n");
+    dbg_printf("Heap total:       %lu bytes (%luKB)\r\n", 
+               (unsigned long)heap_total, (unsigned long)(heap_total/1024));
+    dbg_printf("Heap free now:    %lu bytes\r\n", (unsigned long)free_heap);
+    dbg_printf("Heap min ever:    %lu bytes\r\n", (unsigned long)min_ever);
+    dbg_printf("Heap used:        %lu bytes (%lu%%)\r\n", 
+               (unsigned long)(heap_total - free_heap),
+               (unsigned long)((heap_total - free_heap) * 100 / heap_total));
+    dbg_printf("Lowest free:      %lu bytes (%lu%% used at peak)\r\n",
+               (unsigned long)min_ever,
+               (unsigned long)((heap_total - min_ever) * 100 / heap_total));
+    dbg_printf("========================================\r\n");
+    dbg_printf("\r\n");
+  }
+  
   dbg_printf("[INIT] app_init_and_start() complete - returning to scheduler\r\n");
 }
 
@@ -632,39 +661,8 @@ static void CliTask(void *argument)
   osDelay(50);
   dbg_printf("[CLI-TASK] Initial delay complete\r\n");
   
-#if MODULE_ENABLE_USB_CDC
-  // Wait for USB CDC to be ready (with timeout)
-  dbg_printf("[CLI-TASK] Waiting for USB CDC connection...\r\n");
-  
-  uint32_t timeout = 100; // 10 seconds max wait (100 x 100ms)
-  while (!usb_cdc_is_connected() && timeout > 0) {
-    osDelay(100);  // Check every 100ms
-    timeout--;
-  }
-  
-  if (usb_cdc_is_connected()) {
-    dbg_printf("[CLI-TASK] USB CDC connected!\r\n");
-    
-    // Give host a moment to open the port
-    osDelay(100);
-    
-    // Print welcome message
-    cli_printf("\r\n");
-    cli_printf("=== MidiCore System Ready ===\r\n");
-    extern uint8_t boot_reason_get(void);
-    cli_printf("Boot reason: %d | Commands: %lu\r\n", 
-               (int)boot_reason_get(), (unsigned long)cli_get_command_count());
-    cli_printf("\r\n");
-  } else {
-    dbg_printf("[CLI-TASK] USB CDC not connected (timeout)\r\n");
-    dbg_printf("[CLI-TASK] CLI will wait for connection...\r\n");
-  }
-#else
-  dbg_printf("[CLI-TASK] UART mode (no USB CDC)\r\n");
-  osDelay(50);
-#endif
-  
-  // Print CLI banner and prompt
+  // Print CLI banner and prompt immediately - don't wait for USB CDC
+  // USB CDC will connect eventually, and output will appear when it does
   dbg_printf("[CLI-TASK] Printing banner and prompt\r\n");
   cli_print_banner();
   cli_print_prompt();
