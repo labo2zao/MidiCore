@@ -3,6 +3,7 @@
  * @brief CLI commands for module control implementation
  */
 
+#include "Config/module_config.h"
 #include "cli_module_commands.h"
 #include "cli.h"
 #include "Services/module_registry/module_registry.h"
@@ -241,5 +242,13 @@ int cli_module_commands_init(void)
                               "module <list|info|enable|disable|status|get|set|params> [args...]",
                               "modules");
   dbg_printf("[CLI-MOD] cli_register_command returned %d\r\n", result);
+  
+  // Register stack monitor CLI commands
+#if MODULE_ENABLE_STACK_MONITOR
+  extern int stack_monitor_cli_init(void);
+  dbg_printf("[CLI-MOD] Registering stack monitor CLI commands\r\n");
+  stack_monitor_cli_init();
+#endif
+  
   return result;
 }

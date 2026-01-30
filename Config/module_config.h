@@ -354,6 +354,21 @@ extern "C" {
 #define MODULE_ENABLE_MODULE_REGISTRY 1
 #endif
 
+/** @brief Enable Stack Monitor (FreeRTOS stack usage monitoring)
+ * 
+ * When enabled:
+ * - Provides runtime monitoring of task stack usage
+ * - Detects stack overflows via 0xA5 pattern checking
+ * - Configurable warning/critical thresholds
+ * - CLI commands for stack inspection (stack, stack_all, stack_monitor)
+ * - Minimal overhead (~512 bytes RAM for monitor task)
+ * 
+ * Recommended for development and production monitoring.
+ */
+#ifndef MODULE_ENABLE_STACK_MONITOR
+#define MODULE_ENABLE_STACK_MONITOR 1
+#endif
+
 /** @brief Enable Test Module (runtime module testing via CLI)
  * 
  * WARNING: This module is deprecated and incomplete.

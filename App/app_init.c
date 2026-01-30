@@ -80,6 +80,10 @@
 #include "Services/test/test_cli.h"
 #endif
 
+#if MODULE_ENABLE_STACK_MONITOR
+#include "Services/stack_monitor/stack_monitor.h"
+#endif
+
 #if MODULE_ENABLE_INSTRUMENT
 #include "Services/instrument/instrument_cfg.h"
 #endif
@@ -326,6 +330,11 @@ void app_init_and_start(void)
 #if MODULE_ENABLE_TEST
   test_init();
   test_cli_init();
+#endif
+
+#if MODULE_ENABLE_STACK_MONITOR
+  dbg_printf("[INIT] Initializing stack monitor...\r\n");
+  stack_monitor_init();
 #endif
 
   // Default routing examples
