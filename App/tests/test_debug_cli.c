@@ -17,8 +17,8 @@
 
 #include "test_debug.h"
 #include "test_debug_cli.h"
-#include "cli.h"
-#include "module_config.h"
+#include "Services/cli/cli.h"
+#include "Config/module_config.h"
 #include <stdio.h>
 #include <string.h>
 

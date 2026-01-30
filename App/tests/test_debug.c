@@ -21,6 +21,17 @@
 #endif
 
 // =============================================================================
+// GLOBAL GDB-VISIBLE DIAGNOSTIC VARIABLES
+// =============================================================================
+// These variables are always accessible in GDB for debugging
+// They persist after test_debug_init() returns
+
+volatile uint32_t g_debug_uart_port = 0;
+volatile void* g_debug_uart_instance = NULL;
+volatile uint32_t g_debug_uart_baud_before = 0;
+volatile uint32_t g_debug_uart_baud_after = 0;
+
+// =============================================================================
 // SWV/ITM SUPPORT
 // =============================================================================
 
@@ -76,9 +87,9 @@ static inline void dbg_itm_putchar(char c)
  * 2. Configure → Port 0: ☑ Enabled
  * 3. Start Trace (red button)
  */
+#if MODULE_DEBUG_OUTPUT == DEBUG_OUTPUT_SWV
 static void dbg_itm_init(void)
 {
-#if MODULE_DEBUG_OUTPUT == DEBUG_OUTPUT_SWV
   // ITM is controlled by debugger - just check if it's enabled
   if ((ITM->TCR & ITM_TCR_ITMENA_Msk) == 0) {
     // ITM not enabled by debugger
@@ -92,8 +103,11 @@ static void dbg_itm_init(void)
   for (const char* p = banner; *p; p++) {
     dbg_itm_putchar(*p);
   }
-#endif
 }
+#else
+// Stub for non-SWV builds to avoid unused function warning
+static void dbg_itm_init(void) { }
+#endif
 
 // External UART handles from main.c
 extern UART_HandleTypeDef huart1; // USART1 - MIDI DIN3 (PA9/PA10) or Debug in test mode
