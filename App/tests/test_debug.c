@@ -149,11 +149,11 @@ int test_debug_init(void)
   
   UART_HandleTypeDef* huart = get_debug_uart_handle();
   
-  // DIAGNOSTIC: Print port info for GDB verification
-  // These variables are visible in GDB for debugging
-  volatile uint32_t debug_uart_port = TEST_DEBUG_UART_PORT;  // Port number (0-3)
-  volatile void* debug_uart_instance = (void*)huart->Instance;  // UART peripheral address
-  volatile uint32_t debug_uart_before_baud = huart->Init.BaudRate;  // Baud before reconfig
+  // DIAGNOSTIC: Store configuration in GLOBAL variables for GDB inspection
+  // These remain accessible after function returns, visible at any breakpoint
+  g_debug_uart_port = TEST_DEBUG_UART_PORT;
+  g_debug_uart_instance = (void*)huart->Instance;
+  g_debug_uart_baud_before = huart->Init.BaudRate;
   
   // CRITICAL: Reconfigure to 115200 BEFORE any dbg_print() calls!
   // Do NOT call dbg_print() before this reconfiguration!
@@ -169,12 +169,8 @@ int test_debug_init(void)
     Error_Handler();
   }
   
-  // DIAGNOSTIC: Capture final configuration for GDB inspection
-  volatile uint32_t debug_uart_after_baud = huart->Init.BaudRate;  // Should be 115200
-  (void)debug_uart_after_baud;  // Prevent compiler optimization
-  (void)debug_uart_before_baud;
-  (void)debug_uart_instance;
-  (void)debug_uart_port;
+  // DIAGNOSTIC: Capture final configuration (should be 115200)
+  g_debug_uart_baud_after = huart->Init.BaudRate;
   
   // NOW we can print at 115200 baud
   dbg_print("\r\n==============================================\r\n");
@@ -273,31 +269,13 @@ void dbg_print(const char* str)
 {
   if (!str) return;
   
-  size_t len = strlen(str);
-  if (len == 0) return;
-  
-#if MODULE_DEBUG_OUTPUT == DEBUG_OUTPUT_SWV
-  // Output via SWV/ITM
-  for (size_t i = 0; i < len; i++) {
-    dbg_itm_putchar(str[i]);
+  // OPTIMIZED: Use character-by-character output via dbg_putc()
+  // This is more reliable than bulk transfers for debug output
+  // and avoids timing/corruption issues seen with HAL_UART_Transmit
+  while (*str) {
+    dbg_putc(*str++);
   }
-  
-#elif MODULE_DEBUG_OUTPUT == DEBUG_OUTPUT_USB_CDC
-  // Output via USB CDC (virtual COM port)
-  #if MODULE_ENABLE_USB_CDC
-  usb_cdc_send((const uint8_t*)str, len);
-  #endif
-  
-#elif MODULE_DEBUG_OUTPUT == DEBUG_OUTPUT_UART
-  // Output via Hardware UART
-  UART_HandleTypeDef* huart = get_debug_uart_handle();
-  HAL_UART_Transmit(huart, (const uint8_t*)str, len, 1000);
-  
-#else // DEBUG_OUTPUT_NONE
-  // No debug output
-  (void)str;
-  (void)len;
-#endif
+
 
 #if MODULE_ENABLE_USB_MIDI
   // Secondary output: MIOS32 debug message via USB MIDI for MIOS Studio terminal
