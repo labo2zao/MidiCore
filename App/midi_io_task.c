@@ -73,12 +73,21 @@ static void MidiIOTask(void *argument) {
     usb_cdc_process_rx_queue();
     
     midi_din_tick();
-    looper_tick_1ms();
-    midi_delayq_tick_1ms();
-    expression_tick_1ms();
-    osDelay(1);
-    ui_ms++;
-    if ((ui_ms % 20u) == 0u) ui_tick_20ms();
+    
+    /* Call 1ms tick functions 10 times to maintain timing accuracy
+     * while using 10ms loop delay (matches test mode for MIOS Studio compatibility) */
+    for (int i = 0; i < 10; i++) {
+      looper_tick_1ms();
+      midi_delayq_tick_1ms();
+      expression_tick_1ms();
+      ui_ms++;
+      if ((ui_ms % 20u) == 0u) ui_tick_20ms();
+    }
+    
+    /* CRITICAL: 10ms delay matches MODULE_TEST_USB_DEVICE_MIDI timing
+     * This is REQUIRED for MIOS Studio recognition to work reliably.
+     * 1ms delay causes USB TX queue timing issues and recognition failure. */
+    osDelay(10);
     
     // Periodic diagnostic output (every 10 seconds)
     diagnostic_counter++;
