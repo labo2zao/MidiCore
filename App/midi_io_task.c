@@ -65,12 +65,18 @@ static void MidiIOTask(void *argument) {
     usb_midi_process_rx_queue();
     
     /* CRITICAL: Process MidiCore queries queued from ISR
-     * This enables MIOS Studio detection and terminal communication */
+     * This enables MIOS Studio detection and terminal communication
+     * MUST match test mode - only call if MODULE_ENABLE_USB_MIDI enabled */
+#if MODULE_ENABLE_USB_MIDI
     midicore_query_process_queued();
+#endif
     
     /* CRITICAL: Process USB CDC RX queue in task context (NOT interrupt!)
-     * This handles MIOS Studio terminal data safely */
+     * This handles MIOS Studio terminal data safely
+     * MUST match test mode - only call if MODULE_ENABLE_USB_CDC enabled */
+#if MODULE_ENABLE_USB_CDC
     usb_cdc_process_rx_queue();
+#endif
     
     midi_din_tick();
     
