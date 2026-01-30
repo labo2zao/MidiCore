@@ -336,21 +336,16 @@ void cli_task(void)
 // OUTPUT HELPERS
 // =============================================================================
 
-// CLI output function - ALWAYS goes to USB CDC (MIOS terminal)
-// This ensures CLI banner/prompt/output appears on the terminal
-// regardless of MODULE_DEBUG_OUTPUT setting
+// CLI output function - routes through debug system
+// This ensures CLI appears on the same output as debug messages
+// (UART/SWV/USB CDC based on MODULE_DEBUG_OUTPUT setting)
 static void cli_print(const char* str)
 {
-#if MODULE_ENABLE_USB_CDC
-  // CLI output ALWAYS goes to USB CDC (MIOS terminal)
-  // This is independent of debug output routing
+  // Use debug output system so CLI appears where user is monitoring
+  // This allows CLI to be seen on UART terminal during debugging
   if (str && strlen(str) > 0) {
-    usb_cdc_send((const uint8_t*)str, strlen(str));
+    dbg_print(str);
   }
-#else
-  // Fallback to debug output if no USB CDC available
-  dbg_print(str);
-#endif
 }
 
 void cli_printf(const char* fmt, ...)
