@@ -71,7 +71,7 @@ bool mios32_query_process(const uint8_t* data, uint32_t len, uint8_t cable) {
     return false;
   }
   
-#ifdef MODULE_TEST_USB_DEVICE_MIDI
+#if defined(MODULE_TEST_USB_DEVICE_MIDI) || MODULE_DEBUG_MIOS32_QUERIES
   // Debug: Show MIOS32 query reception
   extern void dbg_print(const char *str);
   char buf[80];
@@ -85,7 +85,7 @@ bool mios32_query_process(const uint8_t* data, uint32_t len, uint8_t cable) {
   uint8_t command = data[6];
   uint8_t query_type = (len > 7) ? data[7] : 0x01; // Default to 0x01 if not specified
   
-#ifdef MODULE_TEST_USB_DEVICE_MIDI
+#if defined(MODULE_TEST_USB_DEVICE_MIDI) || MODULE_DEBUG_MIOS32_QUERIES
   // Debug: Show query details
   snprintf(buf, sizeof(buf), "[MIOS32-Q] dev_id:%02X cmd:%02X type:%02X\r\n",
            device_id, command, query_type);
@@ -100,7 +100,7 @@ bool mios32_query_process(const uint8_t* data, uint32_t len, uint8_t cable) {
     return true;
   }
   
-#ifdef MODULE_TEST_USB_DEVICE_MIDI
+#if defined(MODULE_TEST_USB_DEVICE_MIDI) || MODULE_DEBUG_MIOS32_QUERIES
   // Debug: Unknown command
   snprintf(buf, sizeof(buf), "[MIOS32-Q] Unknown command ignored\r\n");
   dbg_print(buf);
@@ -118,7 +118,7 @@ void mios32_query_send_response(uint8_t query_type, uint8_t device_id, uint8_t c
     // In ISR context - cannot send USB MIDI response
     // Would cause USB reentrancy and crash
     // TODO: Queue response for task context
-#ifdef MODULE_TEST_USB_DEVICE_MIDI
+#if defined(MODULE_TEST_USB_DEVICE_MIDI) || MODULE_DEBUG_MIOS32_QUERIES
     extern void dbg_print(const char *str);
     dbg_print("[MIOS32-R] ERROR: Query response from ISR - skipped!\r\n");
 #endif
@@ -163,7 +163,7 @@ void mios32_query_send_response(uint8_t query_type, uint8_t device_id, uint8_t c
       break;
   }
   
-#ifdef MODULE_TEST_USB_DEVICE_MIDI
+#if defined(MODULE_TEST_USB_DEVICE_MIDI) || MODULE_DEBUG_MIOS32_QUERIES
   // Debug: Show response being sent
   extern void dbg_print(const char *str);
   char buf[100];
@@ -203,7 +203,7 @@ void mios32_query_send_response(uint8_t query_type, uint8_t device_id, uint8_t c
     }
   }
   
-#ifdef MODULE_TEST_USB_DEVICE_MIDI
+#if defined(MODULE_TEST_USB_DEVICE_MIDI) || MODULE_DEBUG_MIOS32_QUERIES
   snprintf(buf, sizeof(buf), "[MIOS32-R] Sent %lu bytes (success=%d)\r\n",
            (unsigned long)(p - sysex_response_buffer), sent);
   dbg_print(buf);

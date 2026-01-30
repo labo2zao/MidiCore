@@ -459,6 +459,31 @@ extern "C" {
 #define MODULE_ENABLE_CLI 1
 #endif
 
+/** @brief Enable MIOS32 query debug messages in production mode
+ * 
+ * When enabled (MODULE_DEBUG_MIOS32_QUERIES=1):
+ * - MIOS32 query processing debug messages are output via debug system
+ * - Shows query reception, processing, and response sending
+ * - Useful for debugging MIOS Studio terminal connection issues
+ * - Output destination depends on MODULE_DEBUG_OUTPUT setting
+ * 
+ * Debug messages include:
+ * - [MIOS32-Q] Received query len:X cable:Y
+ * - [MIOS32-Q] dev_id:XX cmd:XX type:XX
+ * - [MIOS32-R] Sending type:XX "text" cable:Y
+ * - [MIOS32-R] Sent X bytes (success=1/0)
+ * - [MIOS32-R] ERROR messages if sending fails
+ * 
+ * When disabled (MODULE_DEBUG_MIOS32_QUERIES=0):
+ * - No MIOS32 query debug output (saves code space)
+ * - Query processing still works normally
+ * 
+ * Recommended: Enable for development/troubleshooting, can disable for production
+ */
+#ifndef MODULE_DEBUG_MIOS32_QUERIES
+#define MODULE_DEBUG_MIOS32_QUERIES 1
+#endif
+
 /** @brief Enable Module Registry (required for CLI module control) */
 #ifndef MODULE_ENABLE_MODULE_REGISTRY
 #define MODULE_ENABLE_MODULE_REGISTRY 1
