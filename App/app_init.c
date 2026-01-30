@@ -367,10 +367,12 @@ void app_init_and_start(void)
 #if MODULE_ENABLE_CLI
   dbg_printf("[INIT] Creating CLI task...\r\n");
   // CLI task for processing terminal commands via UART
+  // Stack size increased to 4KB to prevent overflow in debug mode
+  // CLI uses multiple 256-byte buffers on stack (cli_execute, cli_printf, etc)
   const osThreadAttr_t cli_attr = {
     .name = "CliTask",
     .priority = osPriorityBelowNormal,
-    .stack_size = 2048
+    .stack_size = 4096  // 4KB - was 2KB, increased for debug mode stability
   };
   osThreadId_t cli_handle = osThreadNew(CliTask, NULL, &cli_attr);
   if (cli_handle == NULL) {
