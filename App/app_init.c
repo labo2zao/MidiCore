@@ -664,37 +664,18 @@ static void CliTask(void *argument)
   osDelay(50);
   dbg_printf("[CLI-TASK] Initial delay complete\r\n");
   
-#if MODULE_ENABLE_USB_CDC
-  // Wait for USB CDC to be ready (with timeout)
-  dbg_printf("[CLI-TASK] Waiting for USB CDC connection...\r\n");
+  // CLI now uses debug output system (dbg_print) which routes to user's
+  // chosen terminal (UART/SWV/USB CDC via MODULE_DEBUG_OUTPUT).
+  // No need to wait for USB CDC - CLI works immediately on debug terminal.
+  dbg_printf("[CLI-TASK] CLI uses debug output terminal\r\n");
   
-  uint32_t timeout = 100; // 10 seconds max wait (100 x 100ms)
-  while (!usb_cdc_is_connected() && timeout > 0) {
-    osDelay(100);  // Check every 100ms
-    timeout--;
-  }
-  
-  if (usb_cdc_is_connected()) {
-    dbg_printf("[CLI-TASK] USB CDC connected!\r\n");
-    
-    // Give host a moment to open the port
-    osDelay(100);
-    
-    // Print welcome message
-    cli_printf("\r\n");
-    cli_printf("=== MidiCore System Ready ===\r\n");
-    extern uint8_t boot_reason_get(void);
-    cli_printf("Boot reason: %d | Commands: %lu\r\n", 
-               (int)boot_reason_get(), (unsigned long)cli_get_command_count());
-    cli_printf("\r\n");
-  } else {
-    dbg_printf("[CLI-TASK] USB CDC not connected (timeout)\r\n");
-    dbg_printf("[CLI-TASK] CLI will wait for connection...\r\n");
-  }
-#else
-  dbg_printf("[CLI-TASK] UART mode (no USB CDC)\r\n");
-  osDelay(50);
-#endif
+  // Print welcome message
+  cli_printf("\r\n");
+  cli_printf("=== MidiCore System Ready ===\r\n");
+  extern uint8_t boot_reason_get(void);
+  cli_printf("Boot reason: %d | Commands: %lu\r\n", 
+             (int)boot_reason_get(), (unsigned long)cli_get_command_count());
+  cli_printf("\r\n");
   
   // Print CLI banner and prompt
   dbg_printf("[CLI-TASK] Printing banner and prompt\r\n");
