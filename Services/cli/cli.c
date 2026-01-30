@@ -336,6 +336,23 @@ void cli_task(void)
 // OUTPUT HELPERS
 // =============================================================================
 
+// CLI output function - ALWAYS goes to USB CDC (MIOS terminal)
+// This ensures CLI banner/prompt/output appears on the terminal
+// regardless of MODULE_DEBUG_OUTPUT setting
+static void cli_print(const char* str)
+{
+#if MODULE_ENABLE_USB_CDC
+  // CLI output ALWAYS goes to USB CDC (MIOS terminal)
+  // This is independent of debug output routing
+  if (str && strlen(str) > 0) {
+    usb_cdc_send((const uint8_t*)str, strlen(str));
+  }
+#else
+  // Fallback to debug output if no USB CDC available
+  dbg_print(str);
+#endif
+}
+
 void cli_printf(const char* fmt, ...)
 {
   char buffer[256];
@@ -345,7 +362,7 @@ void cli_printf(const char* fmt, ...)
   vsnprintf(buffer, sizeof(buffer), fmt, args);
   va_end(args);
 
-  dbg_print(buffer);
+  cli_print(buffer);  // Use cli_print() instead of dbg_print()
 }
 
 void cli_error(const char* fmt, ...)
@@ -358,7 +375,7 @@ void cli_error(const char* fmt, ...)
   vsnprintf(buffer, sizeof(buffer), fmt, args);
   va_end(args);
 
-  dbg_print(buffer);
+  cli_print(buffer);  // Use cli_print() for consistency
 }
 
 void cli_success(const char* fmt, ...)
@@ -371,7 +388,7 @@ void cli_success(const char* fmt, ...)
   vsnprintf(buffer, sizeof(buffer), fmt, args);
   va_end(args);
 
-  dbg_print(buffer);
+  cli_print(buffer);  // Use cli_print() for consistency
 }
 
 void cli_warning(const char* fmt, ...)
@@ -384,7 +401,7 @@ void cli_warning(const char* fmt, ...)
   vsnprintf(buffer, sizeof(buffer), fmt, args);
   va_end(args);
 
-  dbg_print(buffer);
+  cli_print(buffer);  // Use cli_print() for consistency
 }
 
 // =============================================================================
