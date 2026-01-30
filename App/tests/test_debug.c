@@ -35,8 +35,11 @@
  * Window → Show View → SWV → SWV ITM Data Console
  * 
  * ITM Port 0 is used for debug output (standard practice).
+ * 
+ * Note: We use our own implementation instead of CMSIS ITM_SendChar()
+ * to add port checking and avoid linker issues.
  */
-static inline void ITM_SendChar(uint32_t c)
+static inline void dbg_itm_putchar(char c)
 {
 #if MODULE_DEBUG_OUTPUT == DEBUG_OUTPUT_SWV
   // Check if ITM is enabled and Port 0 is enabled
@@ -73,7 +76,7 @@ static inline void ITM_SendChar(uint32_t c)
  * 2. Configure → Port 0: ☑ Enabled
  * 3. Start Trace (red button)
  */
-static void ITM_Init(void)
+static void dbg_itm_init(void)
 {
 #if MODULE_DEBUG_OUTPUT == DEBUG_OUTPUT_SWV
   // ITM is controlled by debugger - just check if it's enabled
@@ -87,7 +90,7 @@ static void ITM_Init(void)
   // ITM enabled - send banner
   const char* banner = "\r\n=== SWV Debug Output Active ===\r\n";
   for (const char* p = banner; *p; p++) {
-    ITM_SendChar(*p);
+    dbg_itm_putchar(*p);
   }
 #endif
 }
@@ -124,7 +127,7 @@ int test_debug_init(void)
 {
 #if MODULE_DEBUG_OUTPUT == DEBUG_OUTPUT_SWV
   // Initialize SWV/ITM
-  ITM_Init();
+  dbg_itm_init();
   dbg_print("\r\n==============================================\r\n");
   dbg_print("Debug output: SWV (Serial Wire Viewer)\r\n");
   dbg_print("View in STM32CubeIDE: SWV ITM Data Console\r\n");
@@ -216,7 +219,7 @@ void dbg_putc(char c)
 {
 #if MODULE_DEBUG_OUTPUT == DEBUG_OUTPUT_SWV
   // Primary output: SWV/ITM via ST-Link
-  ITM_SendChar(c);
+  dbg_itm_putchar(c);
   
 #elif MODULE_DEBUG_OUTPUT == DEBUG_OUTPUT_USB_CDC
   // Primary output: USB CDC (virtual COM port)
