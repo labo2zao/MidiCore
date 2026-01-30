@@ -156,6 +156,36 @@ static cli_result_t cmd_stack_monitor(int argc, char* argv[])
   return CLI_OK;
 }
 
+/**
+ * @brief stack_free command - Show free stack space for all tasks (quick view)
+ * Usage: stack_free
+ */
+static cli_result_t cmd_stack_free(int argc, char* argv[])
+{
+  (void)argc;
+  (void)argv;
+  
+  stack_info_t tasks[STACK_MONITOR_MAX_TASKS];
+  uint32_t count = 0;
+  
+  if (stack_monitor_get_all_tasks(tasks, STACK_MONITOR_MAX_TASKS, &count) != 0) {
+    cli_error("Failed to get task list\r\n");
+    return CLI_ERROR;
+  }
+  
+  cli_printf("\r\nTask Stack Free Space:\r\n");
+  for (uint32_t i = 0; i < count; i++) {
+    cli_printf("  %-15s: %5lu / %5lu bytes (%lu%% free)\r\n",
+               tasks[i].task_name,
+               (unsigned long)tasks[i].free_bytes,
+               (unsigned long)tasks[i].stack_size_bytes,
+               (unsigned long)tasks[i].free_percent);
+  }
+  cli_printf("\r\n");
+  
+  return CLI_OK;
+}
+
 // =============================================================================
 // REGISTRATION
 // =============================================================================
@@ -178,6 +208,11 @@ int stack_monitor_cli_init(void)
   cli_register_command("stack_monitor", cmd_stack_monitor,
                        "Control stack monitor",
                        "stack_monitor <start|stop|stats|config|check|export>",
+                       "system");
+
+  cli_register_command("stack_free", cmd_stack_free,
+                       "Show free stack space (quick view)",
+                       "stack_free",
                        "system");
 
   return 0;

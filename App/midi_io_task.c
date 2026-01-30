@@ -50,7 +50,7 @@ void app_start_midi_io_task(void) {
   const osThreadAttr_t attr = {
     .name = "MidiIO",
     .priority = osPriorityAboveNormal,
-    .stack_size = 1024
+    .stack_size = 2048  // 2KB - processes multiple queues (USB MIDI, CDC, MIOS32 queries)
   };
   (void)osThreadNew(MidiIOTask, NULL, &attr);
 }
