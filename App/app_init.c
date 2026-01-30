@@ -367,13 +367,13 @@ void app_init_and_start(void)
 #if MODULE_ENABLE_CLI
   dbg_printf("[INIT] Creating CLI task...\r\n");
   // CLI task for processing terminal commands via UART
-  // Stack size optimized: With reduced buffers (128B vs 256B) and no history, 3KB sufficient
-  // CLI uses nested calls but with smaller buffers now (cli_execute, cli_printf, cmd_xxx)
-  // MIOS32 style: 3KB provides adequate margin while saving RAM
+  // Stack size: 5KB balanced for optimized CLI (buffers 128B, no history)
+  // With nested calls (cli_execute→cmd_xxx→cli_printf) need ~3KB + debug margin
+  // 5KB provides stability while still saving 3KB vs original 8KB
   const osThreadAttr_t cli_attr = {
     .name = "CliTask",
     .priority = osPriorityBelowNormal,
-    .stack_size = 3072  // 3KB - Optimized from 8KB (history removed, buffers reduced)
+    .stack_size = 5120  // 5KB - Balanced (was 3KB=too small, 8KB=too much)
   };
   osThreadId_t cli_handle = osThreadNew(CliTask, NULL, &cli_attr);
   if (cli_handle == NULL) {
