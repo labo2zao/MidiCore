@@ -5,6 +5,7 @@
 
 #include "cli.h"
 #include "App/tests/test_debug.h"
+#include "Config/module_config.h"  // For MODULE_CLI_OUTPUT and DEBUG_OUTPUT modes
 #include "main.h"  // For UART handle
 #include <string.h>
 #include <stdio.h>
@@ -252,38 +253,84 @@ cli_result_t cli_execute_argv(int argc, char* argv[])
 // INPUT PROCESSING
 // =============================================================================
 
+/**
+ * @brief Get one character from CLI input (respects MODULE_CLI_OUTPUT setting)
+ * @param ch Pointer to store received character
+ * @return 1 if character available, 0 if no character
+ * 
+ * Reads CLI input from appropriate source based on MODULE_CLI_OUTPUT:
+ * - CLI_OUTPUT_USB_CDC / CLI_OUTPUT_MIOS: Read from USB CDC
+ * - CLI_OUTPUT_UART: Read from UART
+ * - CLI_OUTPUT_DEBUG: Read based on MODULE_DEBUG_OUTPUT setting
+ */
+static uint8_t cli_get_input_char(uint8_t *ch)
+{
+#if MODULE_CLI_OUTPUT == CLI_OUTPUT_USB_CDC || MODULE_CLI_OUTPUT == CLI_OUTPUT_MIOS
+  // USB CDC input modes
+  #if MODULE_ENABLE_USB_CDC
+    return cli_getchar(ch);  // Read from USB CDC callback buffer
+  #else
+    return 0;  // USB CDC not available
+  #endif
+  
+#elif MODULE_CLI_OUTPUT == CLI_OUTPUT_UART
+  // UART input mode - read from debug UART
+  extern UART_HandleTypeDef huart5;  // User's debug UART (PC12/PD2)
+  UART_HandleTypeDef* uart = &huart5;
+  
+  if (HAL_UART_Receive(uart, ch, 1, 0) == HAL_OK) {
+    // Character received - echo it back (UART terminals often don't echo locally)
+    HAL_UART_Transmit(uart, ch, 1, 10);
+    return 1;
+  }
+  return 0;  // No character available
+  
+#elif MODULE_CLI_OUTPUT == CLI_OUTPUT_DEBUG
+  // Follow MODULE_DEBUG_OUTPUT setting
+  #if MODULE_DEBUG_OUTPUT == DEBUG_OUTPUT_UART
+    // UART mode - read from debug UART
+    extern UART_HandleTypeDef huart5;
+    UART_HandleTypeDef* uart = &huart5;
+    
+    if (HAL_UART_Receive(uart, ch, 1, 0) == HAL_OK) {
+      // Echo character for UART terminals
+      HAL_UART_Transmit(uart, ch, 1, 10);
+      return 1;
+    }
+    return 0;
+    
+  #elif MODULE_DEBUG_OUTPUT == DEBUG_OUTPUT_USB_CDC
+    // USB CDC mode
+    #if MODULE_ENABLE_USB_CDC
+      return cli_getchar(ch);
+    #else
+      return 0;
+    #endif
+    
+  #else
+    // SWV or other modes - no input available
+    return 0;
+  #endif
+  
+#else
+  #error "Invalid MODULE_CLI_OUTPUT setting"
+#endif
+}
+
 void cli_task(void)
 {
   if (!s_initialized) {
     return;
   }
 
-  // Get one character (non-blocking)
+  // Get one character (non-blocking) from appropriate input source
   uint8_t ch;
-  
-#if MODULE_ENABLE_USB_CDC
-  // USB CDC input via callback buffer
-  if (!cli_getchar(&ch)) {
+  if (!cli_get_input_char(&ch)) {
     return; // No character available
   }
   
-  // NOTE: Do NOT echo character here!
-  // MIOS Studio and other terminal emulators handle echo locally.
-  // Echoing from firmware causes conflicts and character loss.
-  // This is standard MIOS32 behavior - terminals handle their own echo.
-  
-#else
-  // Fallback to UART (for non-USB debug builds)
-  extern UART_HandleTypeDef huart5;
-  UART_HandleTypeDef* uart = &huart5;
-  
-  if (HAL_UART_Receive(uart, &ch, 1, 0) != HAL_OK) {
-    return; // No character available
-  }
-  
-  // For direct UART, echo is acceptable since terminal might not handle it
-  HAL_UART_Transmit(uart, &ch, 1, 10);
-#endif
+  // NOTE: Echo handling is done in cli_get_input_char() for UART modes.
+  // USB CDC modes rely on terminal emulator echo (standard MIOS32 behavior).
   
   // Handle special characters
   if (ch == '\r' || ch == '\n') {
@@ -325,8 +372,11 @@ void cli_task(void)
     if (s_input_pos < CLI_MAX_LINE_LEN - 1) {
       s_input_line[s_input_pos++] = (char)ch;
       s_input_line[s_input_pos] = '\0';
-      // Echo the character (terminal needs to see what was typed)
+      // Echo only for non-UART modes (UART already echoed in cli_get_input_char)
+#if MODULE_CLI_OUTPUT == CLI_OUTPUT_USB_CDC || MODULE_CLI_OUTPUT == CLI_OUTPUT_MIOS || \
+    (MODULE_CLI_OUTPUT == CLI_OUTPUT_DEBUG && MODULE_DEBUG_OUTPUT != DEBUG_OUTPUT_UART)
       cli_printf("%c", ch);
+#endif
     }
   }
   // Ignore other control characters for now (arrows, etc.)
