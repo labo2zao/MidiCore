@@ -351,6 +351,14 @@ void app_init_and_start(void)
   int cli_cmd_result = cli_module_commands_init();
   dbg_printf("[INIT] CLI step 4: cli_module_commands_init returned %d\r\n", cli_cmd_result);
   dbg_printf("[INIT] CLI step 5: CLI system ready\r\n");
+  
+  // Initialize MIOS32 terminal hooks for thread-safe I/O
+  dbg_printf("[INIT] CLI step 6: Initializing MIOS32 terminal hooks...\r\n");
+  if (mios32_hooks_init()) {
+    dbg_printf("[INIT] CLI step 7: MIOS32 hooks initialized successfully\r\n");
+  } else {
+    dbg_printf("[INIT] CLI step 7: ERROR - MIOS32 hooks initialization failed!\r\n");
+  }
 #else
   dbg_printf("[INIT] MODULE_ENABLE_CLI is NOT defined - CLI will not be available\r\n");
 #endif
