@@ -550,61 +550,45 @@ static void CliTask(void *argument)
   // Diagnostic trace: numbered checkpoints to identify exact blocking point
   dbg_printf("[CLI-TASK-01] Entry point reached\r\n");
   
-  dbg_printf("[CLI-TASK-02] Before first osDelay(10)\r\n");
-  osDelay(10);
-  dbg_printf("[CLI-TASK-03] After first osDelay(10) - SUCCESS\r\n");
+  // Short delay to let system stabilize
+  osDelay(50);  // Reduced from 10ms - just enough for context switch
+  dbg_printf("[CLI-TASK-02] Initial delay complete\r\n");
   
-  // Wait for USB CDC to be fully enumerated if using USB CDC
-  // This typically takes 2-5 seconds after boot
+  // Wait for USB CDC to be ready - but much shorter than before
+  // USB enumeration is fast (50-200ms typically)
 #if MODULE_ENABLE_USB_CDC
-  dbg_printf("[CLI-TASK-04] USB CDC mode - before osDelay(2000)\r\n");
-  osDelay(2000);  // 2 seconds for USB CDC to fully enumerate
-  dbg_printf("[CLI-TASK-05] USB CDC mode - after osDelay(2000) - SUCCESS\r\n");
+  dbg_printf("[CLI-TASK-03] USB CDC mode - waiting for enumeration\r\n");
+  // Reduced from 2000ms to 200ms - USB enumeration is typically < 200ms
+  // MIOS32 doesn't wait this long, we shouldn't either
+  osDelay(200);  
+  dbg_printf("[CLI-TASK-04] USB CDC enumeration complete\r\n");
 #else
-  dbg_printf("[CLI-TASK-04] UART mode - before osDelay(100)\r\n");
-  osDelay(100);  // Small delay to let UART stabilize
-  dbg_printf("[CLI-TASK-05] UART mode - after osDelay(100) - SUCCESS\r\n");
+  dbg_printf("[CLI-TASK-03] UART mode\r\n");
+  osDelay(50);  // Minimal delay for UART
+  dbg_printf("[CLI-TASK-04] UART ready\r\n");
 #endif
   
-  // Now print welcome banner - USB CDC should be ready
+  // Now print welcome banner
 #if MODULE_ENABLE_USB_CDC
-  // If USB CDC just connected, repeat important boot info that was likely lost
+  // If USB CDC just connected, print system info
   extern uint8_t boot_reason_get(void);
-  dbg_printf("[CLI-TASK-06] Before cli_printf system ready\r\n");
+  dbg_printf("[CLI-TASK-05] Printing system info\r\n");
+  cli_printf("\r\n=== MidiCore System Ready ===\r\n");
+  cli_printf("Boot reason: %d | Commands: %lu\r\n", 
+             (int)boot_reason_get(), (unsigned long)cli_get_command_count());
   cli_printf("\r\n");
-  cli_printf("=== MidiCore System Ready ===\r\n");
-  cli_printf("Boot reason: %d\r\n", (int)boot_reason_get());
-  cli_printf("CLI commands: %lu registered\r\n", (unsigned long)cli_get_command_count());
-  cli_printf("\r\n");
-  dbg_printf("[CLI-TASK-07] After cli_printf system ready - SUCCESS\r\n");
 #endif
   
-  dbg_printf("[CLI-TASK-08] Before cli_print_banner()\r\n");
+  dbg_printf("[CLI-TASK-06] Printing banner and prompt\r\n");
   cli_print_banner();
-  dbg_printf("[CLI-TASK-09] After cli_print_banner() - SUCCESS\r\n");
-  
-  dbg_printf("[CLI-TASK-10] Before cli_print_prompt()\r\n");
   cli_print_prompt();
-  dbg_printf("[CLI-TASK-11] After cli_print_prompt() - SUCCESS\r\n");
   
-  dbg_printf("[CLI-TASK-12] Entering main command processing loop\r\n");
+  dbg_printf("[CLI-TASK-07] Entering command processing loop\r\n");
   
-  // CLI processing loop
-  uint32_t loop_count = 0;
+  // CLI processing loop - process commands as they arrive
   for (;;) {
-    if (loop_count == 0) {
-      dbg_printf("[CLI-TASK-13] First loop iteration - calling cli_task()\r\n");
-    }
-    
     cli_task();
-    
-    if (loop_count == 0) {
-      dbg_printf("[CLI-TASK-14] First cli_task() call completed - SUCCESS\r\n");
-      dbg_printf("[CLI-TASK-15] CLI fully operational - entering normal operation\r\n");
-    }
-    
     osDelay(10);  // 10ms polling interval
-    loop_count++;
   }
 }
 #endif
