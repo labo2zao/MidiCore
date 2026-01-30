@@ -21,8 +21,8 @@
 #define MIDICORE_DEVICE_NAME "MidiCore"
 #endif
 
-#ifndef MIOS32_DEVICE_VERSION
-#define MIOS32_DEVICE_VERSION "1.0.0"
+#ifndef MIDICORE_DEVICE_VERSION
+#define MIDICORE_DEVICE_VERSION "1.0.0"  // Fixed: Was MIOS32_DEVICE_VERSION (copyright compliance)
 #endif
 
 // Buffer for building SysEx responses (max 256 bytes)
@@ -131,7 +131,7 @@ void midicore_query_send_response(uint8_t query_type, uint8_t device_id, uint8_t
   // Determine response string based on query type
   switch (query_type) {
     case 0x01: // Operating system
-      response_str = "MIOS32";
+      response_str = "MidiCore";  // Fixed: Was "MIOS32" (copyright compliance)
       break;
     case 0x02: // Board
       response_str = "STM32F407VGT6";
@@ -155,7 +155,7 @@ void midicore_query_send_response(uint8_t query_type, uint8_t device_id, uint8_t
       response_str = MIDICORE_DEVICE_NAME;
       break;
     case 0x09: // Application name line 2
-      response_str = MIOS32_DEVICE_VERSION;
+      response_str = MIDICORE_DEVICE_VERSION;  // Fixed: Was MIOS32_DEVICE_VERSION (copyright compliance)
       break;
     default:
       // Unknown query type - send application name as default
