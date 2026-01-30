@@ -41,9 +41,25 @@ void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName) {
 }
 
 void vApplicationMallocFailedHook(void) {
+  // Compteur pour détecter les échecs répétés
+  static volatile uint32_t s_malloc_fail_count = 0;
+  s_malloc_fail_count++;
+  
+  dbg_printf("[FATAL] Malloc failed! Count: %lu\r\n", (unsigned long)s_malloc_fail_count);
+  dbg_printf("[FATAL] FreeRTOS heap exhausted - check configTOTAL_HEAP_SIZE\r\n");
+  
+  // Breakpoint automatique
+  __BKPT(0);
+  
   panic_set(PANIC_MALLOC_FAILED);
   safe_mode_set_forced(1u);
   ui_set_status_line("PANIC MAL");
   watchdog_panic();
+  
+  // Si multiple échecs, forcer reset
+  if (s_malloc_fail_count > 3) {
+    NVIC_SystemReset();
+  }
+  
   for(;;) { }
 }

@@ -230,8 +230,14 @@ int main(void)
   /* Create the thread(s) */
   /* creation of defaultTask */
   defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
-
+  
   /* USER CODE BEGIN RTOS_THREADS */
+  /* Verify DefaultTask was created successfully */
+  if (defaultTaskHandle == NULL) {
+    /* CRITICAL: DefaultTask creation failed - likely heap exhaustion */
+    /* This will be caught before scheduler starts */
+    Error_Handler();
+  }
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
 

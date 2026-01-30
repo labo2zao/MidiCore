@@ -22,7 +22,7 @@ This document provides a comprehensive analysis of FreeRTOS task stack usage in 
 From `Core/Inc/FreeRTOSConfig.h`:
 
 ```c
-#define configTOTAL_HEAP_SIZE                    ((size_t)(15*1024))  // 15KB
+#define configTOTAL_HEAP_SIZE                    ((size_t)(30*1024))  // 30KB
 #define configMINIMAL_STACK_SIZE                 ((uint16_t)128)       // 512 bytes
 #define configCHECK_FOR_STACK_OVERFLOW           2                     // Method 2 ✓
 #define configUSE_TRACE_FACILITY                 1                     // ✓
@@ -37,6 +37,13 @@ From `Core/Inc/FreeRTOSConfig.h`:
 - Verifies stack overflow pattern (0xA5A5A5A5) not corrupted
 - Triggers `vApplicationStackOverflowHook()` on overflow
 - More thorough than method 1, minimal performance impact
+
+**Critical Heap Sizing:**
+- FreeRTOS allocates task stacks from heap (not BSS)
+- Minimum heap = sum of all task stacks + overhead
+- With 26KB stacks needed, 30KB heap provides safety margin
+- **Previous 15KB heap prevented ANY tasks from starting**
+- Insufficient heap causes silent osThreadNew() failures
 
 ## Task Inventory
 
@@ -67,13 +74,75 @@ From `Core/Inc/FreeRTOSConfig.h`:
 
 **Debug Total**: +5.3 KB (if all enabled)
 
-### USB Host Task (External Library)
+### Critical Dependencies
 
-| Task Name | Stack Size | Priority | Condition | Purpose |
-|-----------|------------|----------|-----------|---------|
-| **USBH_Process** | Variable | Normal | USB Host enabled | USB Host stack processing |
+**IMPORTANT:** FreeRTOS allocates task stacks from heap, not from BSS.
+
+**Minimum Heap Requirement:**
+```
+DefaultTask:     12.0 KB
+CliTask:          8.0 KB
+AinTask:          1.0 KB
+MidiIOTask:       1.0 KB
+CalibrationTask:  1.4 KB
+AinMidiTask:      1.0 KB
+PressureTask:     0.8 KB
+OledDemo:         1.0 KB
+StackMon:         0.5 KB
+Timer Service:    1.0 KB
+------------------------------
+Total Stacks:    ~27.7 KB
+Overhead (~10%):  ~2.8 KB
+------------------------------
+MINIMUM HEAP:    ~30 KB ✓
+```
+
+**Failure Mode if Heap Too Small:**
+- `osThreadNew()` returns NULL silently
+- No tasks start, system appears frozen
+- No debug output (USB/UART not initialized)
+- Appears as complete system hang
 
 ## Critical Stack Issues & Fixes
+
+### Issue 0: FreeRTOS Heap Exhaustion [FIXED - CRITICAL]
+
+**Problem:**
+System appeared completely frozen - no tasks starting, looping in `prvCheckTasksWaitingTermination`.
+
+**Root Cause:**
+FreeRTOS heap (configTOTAL_HEAP_SIZE) was 15KB, but task stacks required 27KB minimum. Task creation failed immediately.
+
+**Math Error:**
+```
+Previous:  configTOTAL_HEAP_SIZE = 15 KB
+Required:  Task stacks = 27 KB
+Result:    15 KB < 27 KB → All osThreadNew() calls FAIL
+```
+
+**Fix Applied:**
+Increased heap to 30KB in `Core/Inc/FreeRTOSConfig.h`:
+
+```c
+#define configTOTAL_HEAP_SIZE  ((size_t)(30*1024))  // 30KB (was 15KB)
+```
+
+**Verification:**
+Added NULL check after DefaultTask creation in `Core/Src/main.c`:
+
+```c
+defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
+if (defaultTaskHandle == NULL) {
+    Error_Handler();  // Catch heap exhaustion immediately
+}
+```
+
+**Impact:**
+- +15KB heap allocation (from 15KB to 30KB)
+- RAM usage increases but system now functional
+- All tasks now create successfully
+
+**Reference:** User report "no freertos task are started"
 
 ### Issue 1: Large Local Variables in app_init_and_start() [FIXED]
 
@@ -257,8 +326,8 @@ void MyTask(void* arg) {
 
 | Region | Size | Usage |
 |--------|------|-------|
-| **Stack (all tasks)** | ~24 KB | Task stacks + FreeRTOS overhead |
-| **Heap (FreeRTOS)** | 15 KB | Dynamic allocations via pvPortMalloc |
+| **Stack (all tasks)** | ~26 KB | Task stacks + FreeRTOS overhead |
+| **Heap (FreeRTOS)** | 30 KB | Dynamic allocations + task stack memory |
 | **.bss (globals)** | ~60 KB | Global variables, static data |
 | **.data (initialized)** | ~5 KB | Initialized global variables |
 | **Looper buffers** | ~20 KB | CCMRAM (separate 64KB region) |
