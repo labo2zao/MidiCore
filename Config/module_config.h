@@ -197,22 +197,45 @@ extern "C" {
  *   - CLI on USB CDC terminal (MIOS Studio)
  *   - Works immediately, no wait
  *   - Best for production with MIOS Studio
+ *   - Separates CLI from debug output (clean)
  * 
  * CLI_OUTPUT_UART (2):
  *   - CLI on hardware UART terminal  
  *   - Best for hardware debugging
  *   - Independent of USB
+ *   - NOTE: If MODULE_DEBUG_OUTPUT also UART, CLI shares terminal with debug
+ *           (CLI prompt adds newline to avoid overwriting debug messages)
  * 
  * CLI_OUTPUT_MIOS (3):
  *   - CLI on MIOS terminal (CDC + waits for connection)
  *   - Standard MIOS32 behavior
  *   - Waits up to 10s for USB CDC connection
  *   - Best for full MIOS Studio compatibility
+ *   - Separates CLI from debug output
  * 
  * CLI_OUTPUT_DEBUG (4):
  *   - CLI follows MODULE_DEBUG_OUTPUT setting
  *   - CLI appears on same terminal as debug messages
  *   - Simple unified output
+ *   - NOTE: CLI prompt adds newline when MODULE_DEBUG_MIOS32_QUERIES active
+ *           to avoid overwriting MIOS32 query debug messages
+ * 
+ * RECOMMENDED CONFIGURATIONS:
+ * 
+ * For MIOS Studio Production:
+ *   #define MODULE_DEBUG_OUTPUT  DEBUG_OUTPUT_UART    (debug on UART)
+ *   #define MODULE_CLI_OUTPUT    CLI_OUTPUT_MIOS      (CLI on USB CDC)
+ *   → Debug messages on UART, CLI on MIOS terminal (separate, clean)
+ * 
+ * For Hardware Debugging:
+ *   #define MODULE_DEBUG_OUTPUT  DEBUG_OUTPUT_UART    (debug on UART)
+ *   #define MODULE_CLI_OUTPUT    CLI_OUTPUT_UART      (CLI also on UART)
+ *   → Everything on UART (unified, CLI adds newlines for separation)
+ * 
+ * For Minimal Setup:
+ *   #define MODULE_DEBUG_OUTPUT  DEBUG_OUTPUT_UART
+ *   #define MODULE_CLI_OUTPUT    CLI_OUTPUT_DEBUG     (follow debug)
+ *   → CLI follows debug output (unified, auto newline separation)
  */
 #define CLI_OUTPUT_USB_CDC    1
 #define CLI_OUTPUT_UART       2

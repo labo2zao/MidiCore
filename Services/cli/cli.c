@@ -549,7 +549,22 @@ void cli_print_banner(void)
 
 void cli_print_prompt(void)
 {
-  cli_printf("midicore> ");
+  // Add newline before prompt when CLI shares terminal with debug output
+  // This prevents CLI prompt from overwriting MIOS32 query debug messages
+  #if (MODULE_CLI_OUTPUT == CLI_OUTPUT_DEBUG) || \
+      (MODULE_CLI_OUTPUT == CLI_OUTPUT_UART && MODULE_DEBUG_OUTPUT == DEBUG_OUTPUT_UART)
+    // CLI and debug on same terminal - add newline for separation
+    #if MODULE_DEBUG_MIOS32_QUERIES
+      // MIOS32 debug active - ensure clean line for prompt
+      cli_printf("\r\nmidicore> ");
+    #else
+      // No MIOS32 debug - normal prompt
+      cli_printf("midicore> ");
+    #endif
+  #else
+    // CLI on separate terminal from debug - normal prompt
+    cli_printf("midicore> ");
+  #endif
 }
 
 // =============================================================================
