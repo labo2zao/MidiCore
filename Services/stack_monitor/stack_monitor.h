@@ -55,9 +55,21 @@ extern "C" {
 #define STACK_MONITOR_PRIORITY osPriorityBelowNormal
 #endif
 
-/** @brief Stack monitor task stack size (bytes) */
+/** @brief Stack monitor task stack size (bytes)
+ * 
+ * CRITICAL: Must be large enough for:
+ * - osThreadEnumerate() array (~64 bytes for 16 tasks)
+ * - Local variables and task_info structs (~200 bytes)
+ * - dbg_printf() formatting buffers (~256 bytes) 
+ * - Function call stack frames (~100 bytes)
+ * - Stack guard 0xA5 pattern (~100 bytes)
+ * - Safety margin for diagnostics (~300 bytes)
+ * Total minimum: ~1020 bytes
+ * 
+ * WARNING: 512 bytes causes stack overflow in monitor task itself!
+ */
 #ifndef STACK_MONITOR_STACK_SIZE
-#define STACK_MONITOR_STACK_SIZE 512
+#define STACK_MONITOR_STACK_SIZE 1024  // Increased from 512 to prevent overflow
 #endif
 
 /** @brief Monitoring interval in milliseconds */
