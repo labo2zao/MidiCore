@@ -13,32 +13,16 @@ static void MidiIOTask(void *argument) {
   (void)argument;
   
   dbg_printf("[MIDI-TASK] MidiIOTask started\r\n");
-  osDelay(10);
   
-  dbg_printf("[MIDI-TASK] Calling midi_delayq_init()...\r\n");
-  osDelay(10);
+  // Initialize delay queue and expression
   midi_delayq_init();
-  dbg_printf("[MIDI-TASK] midi_delayq_init() complete\r\n");
-  osDelay(10);
-  
-  dbg_printf("[MIDI-TASK] Calling expression_init()...\r\n");
-  osDelay(10);
   expression_init();
-  dbg_printf("[MIDI-TASK] expression_init() complete\r\n");
-  osDelay(10);
   
-  dbg_printf("[MIDI-TASK] Entering main loop...\r\n");
-  osDelay(10);
+  dbg_printf("[MIDI-TASK] Init complete, entering main loop\r\n");
   
   uint32_t ui_ms = 0;
-  uint32_t loop_count = 0;
   
   for (;;) {
-    if (loop_count == 0) {
-      dbg_printf("[MIDI-TASK] First loop iteration starting...\r\n");
-      osDelay(10);
-    }
-    
     /* CRITICAL: Process USB MIDI RX queue in task context (NOT interrupt!)
      * This handles MIOS32 queries, router processing, and TX responses safely */
     usb_midi_process_rx_queue();
@@ -54,12 +38,6 @@ static void MidiIOTask(void *argument) {
     osDelay(1);
     ui_ms++;
     if ((ui_ms % 20u) == 0u) ui_tick_20ms();
-    
-    if (loop_count == 0) {
-      dbg_printf("[MIDI-TASK] First loop iteration completed successfully\r\n");
-      osDelay(10);
-    }
-    loop_count++;
   }
 }
 
