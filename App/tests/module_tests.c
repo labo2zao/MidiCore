@@ -7252,8 +7252,8 @@ void module_test_usb_device_midi_run(void)
     // CRITICAL: Process queued MidiCore queries from task context
     // Queries are queued from ISR, must be processed here to send responses safely
 #if MODULE_ENABLE_USB_MIDI
-    extern void mios32_query_process_queued(void);
-    mios32_query_process_queued();
+    extern void midicore_query_process_queued(void);
+    midicore_query_process_queued();
 #endif
     
     uint32_t now = osKernelGetTickCount();

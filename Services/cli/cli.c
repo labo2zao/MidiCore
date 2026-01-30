@@ -17,7 +17,7 @@
 #endif
 
 #if MODULE_CLI_OUTPUT == CLI_OUTPUT_MIOS
-#include "Services/mios32_query/mios32_query.h"  // For SysEx terminal protocol
+#include "Services/midicore_query/midicore_query.h"  // For SysEx terminal protocol
 #endif
 
 // =============================================================================
