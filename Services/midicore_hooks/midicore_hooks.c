@@ -136,8 +136,8 @@ bool midicore_hooks_lock(uint32_t timeout_ms)
   }
 
   // Check if already locked by this task (contention detection)
-  TaskHandle_t current_task = xTaskGetCurrentTaskHandle();
-  TaskHandle_t mutex_owner = osMutexGetOwner(g_terminal_mutex);
+  osThreadId_t current_task = osThreadGetId();
+  osThreadId_t mutex_owner = osMutexGetOwner(g_terminal_mutex);
   
   if (mutex_owner != NULL && mutex_owner != current_task) {
     g_contention_count++;
