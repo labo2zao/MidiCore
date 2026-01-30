@@ -26,7 +26,10 @@
 #endif
 
 // Buffer for building SysEx responses (max 256 bytes)
-static uint8_t sysex_response_buffer[256];
+#define SYSEX_BUFFER_SIZE 256
+#define SYSEX_HEADER_SIZE 8  // F0 00 00 7E 32 device_id cmd F7 = 8 bytes overhead
+#define MAX_RESPONSE_STRING (SYSEX_BUFFER_SIZE - SYSEX_HEADER_SIZE - 1)  // -1 for safety
+static uint8_t sysex_response_buffer[SYSEX_BUFFER_SIZE];
 
 // Query queue for deferred processing from task context
 #define MIDICORE_QUERY_QUEUE_SIZE 4
@@ -182,10 +185,23 @@ void midicore_query_send_response(uint8_t query_type, uint8_t device_id, uint8_t
   *p++ = device_id;  // Device instance ID (echo query)
   *p++ = 0x0F;  // Command: 0x0F = ACK response
   
-  // Copy response string (NO null terminator in SysEx stream!)
-  while (*response_str && (p < sysex_response_buffer + 250)) {
-    *p++ = *response_str++;
+  // CRITICAL: Validate and safely copy response string with bounds checking
+  // Buffer overflow here can crash MIOS Studio or corrupt firmware memory!
+  size_t str_len = strlen(response_str);
+  if (str_len > MAX_RESPONSE_STRING) {
+#if defined(MODULE_TEST_USB_DEVICE_MIDI) || MODULE_DEBUG_MIDICORE_QUERIES
+    extern void dbg_print(const char *str);
+    char warn_buf[80];
+    snprintf(warn_buf, sizeof(warn_buf), "[MIDICORE-R] WARNING: Response truncated! len=%u max=%u\r\n",
+             (unsigned int)str_len, (unsigned int)MAX_RESPONSE_STRING);
+    dbg_print(warn_buf);
+#endif
+    str_len = MAX_RESPONSE_STRING;  // Truncate to safe length
   }
+  
+  // Safe copy with validated length (NO null terminator in SysEx stream!)
+  memcpy(p, response_str, str_len);
+  p += str_len;
   
   *p++ = 0xF7;  // SysEx end
   
