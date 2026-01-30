@@ -2,7 +2,7 @@
 /////////////////////////////////////////////////////////////////////////////
 //! \defgroup SRIO
 //!
-//! SRIO Driver for MidiCore - Based on MIOS32 SRIO Driver
+//! SRIO Driver for MidiCore - Based on MidiCore SRIO Driver
 //!
 //! Copyright (C) 2008 Thorsten Klose (tk@midibox.org)
 //! Adapted for MidiCore by labodezao
@@ -12,12 +12,12 @@
 //! - 74HC595 shift registers for Digital Outputs (DOUT) - LEDs, relays
 //!
 //! Features:
-//! - Full MIOS32 hardware compatibility
+//! - Full MidiCore hardware compatibility
 //! - Bulk SPI transfer for efficiency
 //! - Change detection with debouncing
 //! - Independent DIN/DOUT operation
 //!
-//! Hardware connections (MIOS32 mbhp_dinx4):
+//! Hardware connections (MidiCore mbhp_dinx4):
 //!   74HC165 (DIN):
 //!     Pin 1  (/PL)  → STM32 PD10 (RC2)
 //!     Pin 2  (CLK)  → STM32 PB13 (SPI2 SCK)

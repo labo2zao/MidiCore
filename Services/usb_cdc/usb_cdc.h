@@ -125,7 +125,7 @@ uint8_t usb_cdc_is_connected(void);
  * ============================================================================
  * 
  * This API provides terminal/debugging functionality compatible with MIOS Studio
- * and other USB CDC terminal applications, without using any MIOS32 code.
+ * and other USB CDC terminal applications, without using any MidiCore code.
  * 
  * Designed for commercial use with clean-room implementation.
  */

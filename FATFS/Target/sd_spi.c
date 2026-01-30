@@ -54,7 +54,7 @@ static uint8_t sd_wait_ready(uint32_t timeout_ms)
   uint8_t res;
   uint32_t start_tick = HAL_GetTick();
   
-  // MIOS32 pattern: Poll continuously without artificial delays
+  // MidiCore pattern: Poll continuously without artificial delays
   // The SPI transfer itself provides sufficient spacing between polls
   // At 42MHz SPI, each spi_transfer_byte takes ~190ns which is adequate
   do {
@@ -113,7 +113,7 @@ static uint8_t sd_send_cmd(uint8_t cmd, uint32_t arg)
     res = spi_transfer_byte( 0xFF);
   } while ((res & 0x80) && --n);
   
-  // For most commands, send a dummy byte after response for timing (MIOS32 pattern)
+  // For most commands, send a dummy byte after response for timing (MidiCore pattern)
   // Skip dummy byte for:
   //  - CMD0 (initial reset)
   //  - CMD12 (stop during multi-block)
@@ -151,7 +151,7 @@ static int sd_read_datablock(uint8_t *buff, uint32_t btr)
   }
   
   // Wait for data packet (start token 0xFE)
-  // MIOS32 pattern: poll continuously for up to 65536 iterations
+  // MidiCore pattern: poll continuously for up to 65536 iterations
   // SD spec allows up to 100ms for card to respond with data token
   for (i = 0; i < 65536; ++i) {
     token = spi_transfer_byte(0xFF);
@@ -172,7 +172,7 @@ static int sd_read_datablock(uint8_t *buff, uint32_t btr)
   spi_transfer_byte(0xFF);
   spi_transfer_byte(0xFF);
   
-  // Required for clocking (MIOS32 pattern - see spec)
+  // Required for clocking (MidiCore pattern - see spec)
   spi_transfer_byte(0xFF);
   
   return 1;
@@ -206,7 +206,7 @@ static int sd_write_datablock(const BYTE *buff, BYTE token)
     // CRITICAL: Card may take several clock cycles to respond
     // Wait for: NOT 0xFF (card idle) AND NOT 0x00 (card busy)
     // Valid response has pattern xxx0xxx1 (bit 0 = 1, bit 7 = 0)
-    // MIOS32 pattern: Poll until valid data response received
+    // MidiCore pattern: Poll until valid data response received
     uint16_t timeout = 0xFFFF;
     do {
       resp = spi_transfer_byte(0xFF);
@@ -221,7 +221,7 @@ static int sd_write_datablock(const BYTE *buff, BYTE token)
     
     // CRITICAL: Wait for card to finish writing (becomes ready again)
     // Card will be busy (0x00) during flash write, then return 0xFF when done
-    // This matches MIOS32 pattern and is required for reliable SD card writes
+    // This matches MidiCore pattern and is required for reliable SD card writes
     if (sd_wait_ready(SD_TIMEOUT_MS) != 0xFF) return 0;
   }
   
@@ -441,7 +441,7 @@ DRESULT sd_spi_read(BYTE *buff, DWORD sector, UINT count)
       // Stop transmission
       sd_send_cmd(SD_CMD12, 0);
       
-      // Required for clocking after stop (MIOS32 pattern)
+      // Required for clocking after stop (MidiCore pattern)
       spi_transfer_byte(0xFF);
       
       // Update count to reflect actual blocks read
@@ -451,7 +451,7 @@ DRESULT sd_spi_read(BYTE *buff, DWORD sector, UINT count)
   
   // CRITICAL: Send 8 dummy clocks before deasserting CS
   // This ensures card completes internal processing
-  // MIOS32 pattern - required for reliable operation at full speed
+  // MidiCore pattern - required for reliable operation at full speed
   spi_transfer_byte(0xFF);
   
   spibus_end(SPIBUS_DEV_SD);
@@ -514,17 +514,17 @@ DRESULT sd_spi_write(const BYTE *buff, DWORD sector, UINT count)
   spibus_begin(SPIBUS_DEV_SD);
   
   // Small delay to ensure card is ready for write operation
-  // This matches MIOS32 timing and prevents issues at full speed
+  // This matches MidiCore timing and prevents issues at full speed
   spi_transfer_byte(0xFF);
   
   if (count == 1) {
-    // Single block write - MIOS32 pattern
+    // Single block write - MidiCore pattern
     // CMD24: WRITE_BLOCK
     dbg_printf("[SD_WRITE_DBG] Single block: sending CMD24...\r\n");
     cmd_res = sd_send_cmd(SD_CMD24, sector);
     dbg_printf("[SD_WRITE_DBG] CMD24 response: 0x%02X (0x00=OK)\r\n", cmd_res);
     if (cmd_res == 0) {
-      // CMD24 accepted, add small delay before data block (MIOS32 timing)
+      // CMD24 accepted, add small delay before data block (MidiCore timing)
       spi_transfer_byte(0xFF);
       // Now send data block
       dbg_printf("[SD_WRITE_DBG] Sending data block...\r\n");
@@ -538,7 +538,7 @@ DRESULT sd_spi_write(const BYTE *buff, DWORD sector, UINT count)
       dbg_printf("[SD_WRITE_DBG] FAIL: CMD24 rejected\r\n");
     }
   } else {
-    // Multiple block write - MIOS32 pattern
+    // Multiple block write - MidiCore pattern
     // First send ACMD23 to set number of blocks to pre-erase
     if (sd_card_type != SD_TYPE_UNKNOWN) {
       // Send CMD55 to indicate next command is application-specific
@@ -570,7 +570,7 @@ DRESULT sd_spi_write(const BYTE *buff, DWORD sector, UINT count)
   
   // CRITICAL: Send 8 dummy clocks before deasserting CS
   // This ensures card completes internal processing
-  // MIOS32 pattern - required for reliable operation at full speed
+  // MidiCore pattern - required for reliable operation at full speed
   spi_transfer_byte(0xFF);
   
   spibus_end(SPIBUS_DEV_SD);

@@ -79,12 +79,12 @@ void usb_msc_register_mount_callback(usb_msc_mount_callback_t callback);
 uint8_t usb_msc_can_access_sd(void);
 
 /* ============================================================================
- * MIOS32 Compatibility Shims
+ * MidiCore Compatibility Shims
  * ============================================================================ */
 
 /**
  * @brief MIOS32-compatible initialization
- * @return 0 on success (MIOS32 convention)
+ * @return 0 on success (MidiCore convention)
  */
 static inline int32_t MIOS32_USB_MSC_Init(void) {
   usb_msc_init();

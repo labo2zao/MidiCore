@@ -334,7 +334,7 @@ void cli_task(void)
   }
   
   // NOTE: Echo handling is done in cli_get_input_char() for UART modes.
-  // USB CDC modes rely on terminal emulator echo (standard MIOS32 behavior).
+  // USB CDC modes rely on terminal emulator echo (standard MidiCore behavior).
   
   // Handle special characters
   if (ch == '\r' || ch == '\n') {
@@ -416,7 +416,7 @@ static void cli_print(const char* str)
 #elif MODULE_CLI_OUTPUT == CLI_OUTPUT_MIOS
   // MIOS terminal mode - use MIDI SysEx protocol (NOT USB CDC)
   // MIOS Studio terminal receives text via SysEx debug messages
-  mios32_debug_send_message(str, 0);  // Cable 0
+  midicore_debug_send_message(str, 0);  // Cable 0
   
 #elif MODULE_CLI_OUTPUT == CLI_OUTPUT_DEBUG
   // Follow MODULE_DEBUG_OUTPUT setting
@@ -555,15 +555,15 @@ void cli_print_banner(void)
 void cli_print_prompt(void)
 {
   // Add newline before prompt when CLI shares terminal with debug output
-  // This prevents CLI prompt from overwriting MIOS32 query debug messages
+  // This prevents CLI prompt from overwriting MidiCore query debug messages
   #if (MODULE_CLI_OUTPUT == CLI_OUTPUT_DEBUG) || \
       (MODULE_CLI_OUTPUT == CLI_OUTPUT_UART && MODULE_DEBUG_OUTPUT == DEBUG_OUTPUT_UART)
     // CLI and debug on same terminal - add newline for separation
-    #if MODULE_DEBUG_MIOS32_QUERIES
-      // MIOS32 debug active - ensure clean line for prompt
+    #if MODULE_DEBUG_MIDICORE_QUERIES
+      // MidiCore debug active - ensure clean line for prompt
       cli_printf("\r\nmidicore> ");
     #else
-      // No MIOS32 debug - normal prompt
+      // No MidiCore debug - normal prompt
       cli_printf("midicore> ");
     #endif
   #else

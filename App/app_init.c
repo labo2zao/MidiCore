@@ -193,7 +193,7 @@ void app_init_and_start(void)
 
 #if MODULE_ENABLE_OLED
   // Production: Use complete Newhaven NHD-3.12 init (LoopA production code)
-  // oled_init() is a simple MIOS32 test init, not suitable for production
+  // oled_init() is a simple MidiCore test init, not suitable for production
   oled_init_newhaven();
 #endif
 
@@ -352,12 +352,12 @@ void app_init_and_start(void)
   dbg_printf("[INIT] CLI step 4: cli_module_commands_init returned %d\r\n", cli_cmd_result);
   dbg_printf("[INIT] CLI step 5: CLI system ready\r\n");
   
-  // Initialize MIOS32 terminal hooks for thread-safe I/O
-  dbg_printf("[INIT] CLI step 6: Initializing MIOS32 terminal hooks...\r\n");
-  if (mios32_hooks_init()) {
-    dbg_printf("[INIT] CLI step 7: MIOS32 hooks initialized successfully\r\n");
+  // Initialize MidiCore terminal hooks for thread-safe I/O
+  dbg_printf("[INIT] CLI step 6: Initializing MidiCore terminal hooks...\r\n");
+  if (midicore_hooks_init()) {
+    dbg_printf("[INIT] CLI step 7: MidiCore hooks initialized successfully\r\n");
   } else {
-    dbg_printf("[INIT] CLI step 7: ERROR - MIOS32 hooks initialization failed!\r\n");
+    dbg_printf("[INIT] CLI step 7: ERROR - MidiCore hooks initialization failed!\r\n");
   }
 #else
   dbg_printf("[INIT] MODULE_ENABLE_CLI is NOT defined - CLI will not be available\r\n");
@@ -661,7 +661,7 @@ static uint8_t boot_shift_held(uint8_t active_low) {
  * Output routing controlled by MODULE_CLI_OUTPUT:
  * - CLI_OUTPUT_USB_CDC: USB CDC only (immediate)
  * - CLI_OUTPUT_UART: Hardware UART  
- * - CLI_OUTPUT_MIOS: USB CDC with connection wait (MIOS32 compatible)
+ * - CLI_OUTPUT_MIOS: USB CDC with connection wait (MidiCore compatible)
  * - CLI_OUTPUT_DEBUG: Follow MODULE_DEBUG_OUTPUT setting
  */
 static void CliTask(void *argument)

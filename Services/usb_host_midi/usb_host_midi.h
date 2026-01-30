@@ -26,7 +26,7 @@ extern "C" {
  *  - Connect OTG adapter + USB MIDI device
  *  - Power via USB Debug socket (important for Host mode!)
  * 
- * MIOS32 Compatibility:
+ * MidiCore Compatibility:
  *  - Similar to MIOS32_USB_MIDI Host mode
  *  - Automatic packet reception and routing
  *  - Cable number support (can be extended)

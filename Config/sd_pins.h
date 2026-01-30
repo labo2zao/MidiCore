@@ -3,11 +3,11 @@
 
 // SD card SPI pin configuration
 //
-// Hardware connections (MIOS32 STM32F4 standard):
+// Hardware connections (MidiCore STM32F4 standard):
 // - PA5 = CLK  (SPI1 SCK)
 // - PA6 = DAT0 (SPI1 MISO) 
 // - PA7 = CMD  (SPI1 MOSI)
-// - PA4 = CS   (Chip Select - MIOS32 default for SD card)
+// - PA4 = CS   (Chip Select - MidiCore default for SD card)
 // - PB2 = CD   (Card Detect - optional, hardware sense)
 //
 // Note: SD cards in SPI mode require a CS pin for slave select.
@@ -19,7 +19,7 @@
 extern SPI_HandleTypeDef hspi1;
 
 // Chip Select pin (required for SPI communication)
-// MIOS32 default: PA4 for SD card CS
+// MidiCore default: PA4 for SD card CS
 #ifndef SD_CS_GPIO_Port
 #define SD_CS_GPIO_Port GPIOA
 #define SD_CS_Pin       GPIO_PIN_4

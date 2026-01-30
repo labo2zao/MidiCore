@@ -5,7 +5,7 @@
 // Enable by adding compiler symbol: SRIO_ENABLE
 // MODULE_TEST_SRIO automatically enables SRIO when running the module test.
 //
-// IMPORTANT: MIOS32 SPI numbering is different from STM32 SPI numbering!
+// IMPORTANT: MidiCore SPI numbering is different from STM32 SPI numbering!
 // SRIO uses MIOS32_SPI1 which maps to:
 //   - SPI2 for SCK/MISO/MOSI: PB13(SCK) PB14(MISO) PB15(MOSI)
 //   - RC1 (74HC595 RCLK for DOUT): PB12 (SRIO_DOUT_RCLK_Pin in main.h)
@@ -27,7 +27,7 @@ extern SPI_HandleTypeDef hspi2;
 #define SRIO_SPI_HANDLE (&hspi2)
 
 #ifndef SRIO_SPI_PRESCALER
-// Match MIOS32 default: CLK1_PHASE1 with prescaler 128.
+// Match MidiCore default: CLK1_PHASE1 with prescaler 128.
 #define SRIO_SPI_PRESCALER SPI_BAUDRATEPRESCALER_128
 #endif
 
@@ -37,7 +37,7 @@ extern SPI_HandleTypeDef hspi2;
 #endif
 
 #ifndef SRIO_SPI_CPOL
-// MIOS32 SRIO default: CLK1_PHASE1 = CPOL=1 (HIGH), CPHA=1 (2EDGE).
+// MidiCore SRIO default: CLK1_PHASE1 = CPOL=1 (HIGH), CPHA=1 (2EDGE).
 #define SRIO_SPI_CPOL SPI_POLARITY_HIGH
 #endif
 
@@ -45,7 +45,7 @@ extern SPI_HandleTypeDef hspi2;
 #define SRIO_SPI_CPHA SPI_PHASE_2EDGE
 #endif
 
-// 74HC165 /PL is active-low in MIOS32 wiring. Set to 0 if your board inverts RC2.
+// 74HC165 /PL is active-low in MidiCore wiring. Set to 0 if your board inverts RC2.
 #ifndef SRIO_DIN_PL_ACTIVE_LOW
 #define SRIO_DIN_PL_ACTIVE_LOW 1
 #endif

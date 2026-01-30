@@ -2,7 +2,7 @@
  * @file midi_monitor.h
  * @brief MIDI Monitor Service - Real-time MIDI message inspection
  * 
- * Inspired by MIOS32 MIDI Monitor functionality.
+ * Inspired by MidiCore MIDI Monitor functionality.
  * Captures and displays MIDI messages from all sources (DIN, USB, etc.)
  * with comprehensive decoding and filtering capabilities.
  * 

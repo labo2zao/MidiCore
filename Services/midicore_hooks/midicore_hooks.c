@@ -1,12 +1,12 @@
 /**
- * @file mios32_hooks.c
+ * @file midicore_hooks.c
  * @brief MIOS32-Style Terminal Hooks Implementation
  */
 
-#include "mios32_hooks.h"
+#include "midicore_hooks.h"
 #include "cmsis_os2.h"
 #include "Config/module_config.h"
-#include "Services/mios32_query/mios32_query.h"
+#include "Services/midicore_query/midicore_query.h"
 #include "Services/usb_cdc/usb_cdc.h"
 #include "App/tests/test_debug.h"
 
@@ -22,9 +22,9 @@ static volatile uint32_t g_timeout_count = 0;
 static volatile uint32_t g_contention_count = 0;
 
 /**
- * @brief Initialize MIOS32 terminal hooks system
+ * @brief Initialize MidiCore terminal hooks system
  */
-bool mios32_hooks_init(void)
+bool midicore_hooks_init(void)
 {
   if (g_hooks_initialized) {
     return true;  // Already initialized
@@ -40,13 +40,13 @@ bool mios32_hooks_init(void)
 
   g_terminal_mutex = osMutexNew(&mutex_attr);
   if (g_terminal_mutex == NULL) {
-    dbg_printf("[MIOS-HOOKS] ERROR: Failed to create terminal mutex\r\n");
+    dbg_printf("[MIDICORE-HOOKS] ERROR: Failed to create terminal mutex\r\n");
     return false;
   }
 
   g_hooks_initialized = true;
-  dbg_printf("[MIOS-HOOKS] Terminal hooks initialized\r\n");
-  dbg_printf("[MIOS-HOOKS] Mutex: %p (recursive)\r\n", (void*)g_terminal_mutex);
+  dbg_printf("[MIDICORE-HOOKS] Terminal hooks initialized\r\n");
+  dbg_printf("[MIDICORE-HOOKS] Mutex: %p (recursive)\r\n", (void*)g_terminal_mutex);
 
   return true;
 }
@@ -54,7 +54,7 @@ bool mios32_hooks_init(void)
 /**
  * @brief Write data to terminal with mutex protection
  */
-size_t mios32_hooks_write(const char* data, size_t len)
+size_t midicore_hooks_write(const char* data, size_t len)
 {
   if (!g_hooks_initialized || data == NULL || len == 0) {
     return 0;
@@ -73,7 +73,7 @@ size_t mios32_hooks_write(const char* data, size_t len)
   // Route to appropriate terminal based on CLI configuration
 #if MODULE_CLI_OUTPUT == CLI_OUTPUT_MIOS
   // MIOS Studio terminal - use SysEx protocol
-  if (mios32_debug_send_message(data, 0)) {
+  if (midicore_debug_send_message(data, 0)) {
     written = len;
   }
 #elif MODULE_CLI_OUTPUT == CLI_OUTPUT_USB_CDC
@@ -100,7 +100,7 @@ size_t mios32_hooks_write(const char* data, size_t len)
 /**
  * @brief Read data from terminal with mutex protection
  */
-size_t mios32_hooks_read(char* buffer, size_t max_len)
+size_t midicore_hooks_read(char* buffer, size_t max_len)
 {
   if (!g_hooks_initialized || buffer == NULL || max_len == 0) {
     return 0;
@@ -129,7 +129,7 @@ size_t mios32_hooks_read(char* buffer, size_t max_len)
 /**
  * @brief Acquire terminal mutex for exclusive access
  */
-bool mios32_hooks_lock(uint32_t timeout_ms)
+bool midicore_hooks_lock(uint32_t timeout_ms)
 {
   if (!g_hooks_initialized) {
     return false;
@@ -156,7 +156,7 @@ bool mios32_hooks_lock(uint32_t timeout_ms)
 /**
  * @brief Release terminal mutex
  */
-void mios32_hooks_unlock(void)
+void midicore_hooks_unlock(void)
 {
   if (g_hooks_initialized) {
     osMutexRelease(g_terminal_mutex);
@@ -166,7 +166,7 @@ void mios32_hooks_unlock(void)
 /**
  * @brief Check if terminal hooks are initialized
  */
-bool mios32_hooks_is_initialized(void)
+bool midicore_hooks_is_initialized(void)
 {
   return g_hooks_initialized;
 }
@@ -174,7 +174,7 @@ bool mios32_hooks_is_initialized(void)
 /**
  * @brief Get terminal mutex statistics
  */
-void mios32_hooks_get_stats(uint32_t* lock_count, uint32_t* timeout_count, uint32_t* contention_count)
+void midicore_hooks_get_stats(uint32_t* lock_count, uint32_t* timeout_count, uint32_t* contention_count)
 {
   if (lock_count) {
     *lock_count = g_lock_count;

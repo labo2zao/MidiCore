@@ -2,7 +2,7 @@
  * @file test_debug.h
  * @brief MIOS32-compatible debug output for module tests
  * 
- * This module provides debug print functions compatible with MIOS32 hardware.
+ * This module provides debug print functions compatible with MidiCore hardware.
  * 
  * **USB CDC Debug Mode (when MODULE_ENABLE_USB_CDC=1 - RECOMMENDED):**
  * - Debug output routed to USB CDC (Virtual COM port)
@@ -25,10 +25,10 @@
  * - Call dbg_mirror_update() periodically to refresh OLED
  * 
  * **Production Mode - 3 MIDI DIN ports @ 31250 baud:**
- * - Port 0 (DIN1): USART2 PA2=TX,  PA3=RX   @ 31250 baud [MIOS32 UART1]
- * - Port 1 (DIN2): USART3 PD8=TX,  PD9=RX   @ 31250 baud [MIOS32 UART2]
+ * - Port 0 (DIN1): USART2 PA2=TX,  PA3=RX   @ 31250 baud [MidiCore UART1]
+ * - Port 1 (DIN2): USART3 PD8=TX,  PD9=RX   @ 31250 baud [MidiCore UART2]
  * - Port 2 (DIN3): Reserved for USB OTG (PA9/PA10)
- * - Port 3 (DIN4): UART5  PC12=TX, PD2=RX   @ 31250 baud [MIOS32 UART4]
+ * - Port 3 (DIN4): UART5  PC12=TX, PD2=RX   @ 31250 baud [MidiCore UART4]
  * 
  * **Important**: 
  * - When USB CDC is enabled, test_debug_init() is optional (no UART reconfig needed)
@@ -48,20 +48,20 @@ extern "C" {
 #include <stdarg.h>
 
 // =============================================================================
-// UART PORT CONFIGURATION (MIOS32 Compatible)
+// UART PORT CONFIGURATION (MidiCore Compatible)
 // =============================================================================
 
 /**
  * @brief UART port used for debug output (dbg_print)
  * 
  * STM32F4 Discovery UART Mapping:
- * 0 = USART2 - PA2/PA3   - MIDI DIN1 [MIOS32 UART1]
- * 1 = USART3 - PD8/PD9   - MIDI DIN2 [MIOS32 UART2] - **RECOMMENDED FOR DEBUG**
+ * 0 = USART2 - PA2/PA3   - MIDI DIN1 [MidiCore UART1]
+ * 1 = USART3 - PD8/PD9   - MIDI DIN2 [MidiCore UART2] - **RECOMMENDED FOR DEBUG**
  * 2 = USART1 - PA9/PA10  - USB OTG (not available for MIDI/debug)
- * 3 = UART5  - PC12/PD2  - MIDI DIN4 [MIOS32 UART4]
+ * 3 = UART5  - PC12/PD2  - MIDI DIN4 [MidiCore UART4]
  * 
- * **MIOS32 COMPATIBILITY: Port 1 (USART3, PD8/PD9) is recommended**
- * - Matches MIOS32 terminal configuration (avoids MIDI port conflicts)
+ * **MidiCore COMPATIBILITY: Port 1 (USART3, PD8/PD9) is recommended**
+ * - Matches MidiCore terminal configuration (avoids MIDI port conflicts)
  * - USART2 (PA2/PA3) would also work but is typically used for MIDI DIN
  * - Configure at 115200 baud at compile time for best results
  * 
@@ -79,7 +79,7 @@ extern "C" {
 /**
  * @brief UART port used for MIDI DIN communication
  * 
- * MIOS32 UART Mapping (same as above)
+ * MidiCore UART Mapping (same as above)
  * 
  * Default: UART1 (port 0) for MIDI DIN
  */
@@ -227,7 +227,7 @@ void dbg_print_bytes(const uint8_t* data, uint16_t len, char separator);
 void dbg_println(void);
 
 // =============================================================================
-// MIOS32 COMPATIBILITY MACROS
+// MidiCore COMPATIBILITY MACROS
 // =============================================================================
 
 /**

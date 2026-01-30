@@ -40,7 +40,7 @@ extern "C" {
 
 /** @brief SRIO DOUT LED polarity configuration
  * Set to 0 if LEDs are ACTIVE HIGH (1=ON, 0=OFF)
- * Set to 1 if LEDs are ACTIVE LOW  (0=ON, 1=OFF) - MIOS32 default
+ * Set to 1 if LEDs are ACTIVE LOW  (0=ON, 1=OFF) - MidiCore default
  */
 #ifndef SRIO_DOUT_LED_ACTIVE_LOW
 #define SRIO_DOUT_LED_ACTIVE_LOW 1
@@ -208,8 +208,8 @@ extern "C" {
  * 
  * CLI_OUTPUT_MIOS (3):
  *   - CLI on MIOS terminal via MIDI SysEx protocol
- *   - Uses mios32_debug_send_message() SysEx (NOT USB CDC text)
- *   - Standard MIOS32 behavior for MIOS Studio compatibility
+ *   - Uses midicore_debug_send_message() SysEx (NOT USB CDC text)
+ *   - Standard MidiCore behavior for MIOS Studio compatibility
  *   - Format: F0 00 00 7E 32 00 0D 40 <text> F7
  *   - Best for production with MIOS Studio
  *   - IMPORTANT: Device recognition via USB MIDI queries (handled by MidiIOTask)
@@ -220,8 +220,8 @@ extern "C" {
  *   - CLI follows MODULE_DEBUG_OUTPUT setting
  *   - CLI appears on same terminal as debug messages
  *   - Simple unified output
- *   - NOTE: CLI prompt adds newline when MODULE_DEBUG_MIOS32_QUERIES active
- *           to avoid overwriting MIOS32 query debug messages
+ *   - NOTE: CLI prompt adds newline when MODULE_DEBUG_MIDICORE_QUERIES active
+ *           to avoid overwriting MidiCore query debug messages
  * 
  * RECOMMENDED CONFIGURATIONS:
  * 
@@ -249,7 +249,7 @@ extern "C" {
 #define MODULE_CLI_OUTPUT  CLI_OUTPUT_MIOS  // Default: MIOS terminal (standard behavior)
 #endif
 
-/** @brief Enable USB CDC (Virtual COM Port / ACM) - MIOS32 & MIOS Studio compatible
+/** @brief Enable USB CDC (Virtual COM Port / ACM) - MidiCore & MIOS Studio compatible
  * 
  * When enabled (MODULE_ENABLE_USB_CDC=1):
  * - Adds CDC ACM interface to USB device (composite with MIDI)
@@ -521,29 +521,29 @@ extern "C" {
 #define MODULE_ENABLE_CLI 1
 #endif
 
-/** @brief Enable MIOS32 query debug messages in production mode
+/** @brief Enable MidiCore query debug messages in production mode
  * 
- * When enabled (MODULE_DEBUG_MIOS32_QUERIES=1):
- * - MIOS32 query processing debug messages are output via debug system
+ * When enabled (MODULE_DEBUG_MIDICORE_QUERIES=1):
+ * - MidiCore query processing debug messages are output via debug system
  * - Shows query reception, processing, and response sending
  * - Useful for debugging MIOS Studio terminal connection issues
  * - Output destination depends on MODULE_DEBUG_OUTPUT setting
  * 
  * Debug messages include:
- * - [MIOS32-Q] Received query len:X cable:Y
- * - [MIOS32-Q] dev_id:XX cmd:XX type:XX
- * - [MIOS32-R] Sending type:XX "text" cable:Y
- * - [MIOS32-R] Sent X bytes (success=1/0)
- * - [MIOS32-R] ERROR messages if sending fails
+ * - [MIDICORE-Q] Received query len:X cable:Y
+ * - [MIDICORE-Q] dev_id:XX cmd:XX type:XX
+ * - [MIDICORE-R] Sending type:XX "text" cable:Y
+ * - [MIDICORE-R] Sent X bytes (success=1/0)
+ * - [MIDICORE-R] ERROR messages if sending fails
  * 
- * When disabled (MODULE_DEBUG_MIOS32_QUERIES=0):
- * - No MIOS32 query debug output (saves code space)
+ * When disabled (MODULE_DEBUG_MIDICORE_QUERIES=0):
+ * - No MidiCore query debug output (saves code space)
  * - Query processing still works normally
  * 
  * Recommended: Enable for development/troubleshooting, can disable for production
  */
-#ifndef MODULE_DEBUG_MIOS32_QUERIES
-#define MODULE_DEBUG_MIOS32_QUERIES 1
+#ifndef MODULE_DEBUG_MIDICORE_QUERIES
+#define MODULE_DEBUG_MIDICORE_QUERIES 1
 #endif
 
 /** @brief Enable Module Registry (required for CLI module control) */
@@ -650,7 +650,7 @@ extern "C" {
  * 
  * When enabled (MODULE_TEST_OLED=1):
  * - Compiles OLED test functions for hardware verification
- * - oled_init() - Simple MIOS32 test init
+ * - oled_init() - Simple MidiCore test init
  * - oled_init_progressive() - Step-by-step debug init
  * - oled_test_*() - Test patterns (checkerboard, gradients, etc.)
  * - ui_page_oled_test - Complete OLED test UI page

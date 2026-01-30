@@ -3,7 +3,7 @@
  * @brief Clip Library Management for MidiCore Looper
  * 
  * Provides functionality to save, load, and manage reusable loop clips.
- * Inspired by MIOS32 LoopA's clip management system.
+ * Inspired by MidiCore LoopA's clip management system.
  * 
  * Features:
  * - Save track loops as named clips to SD card

@@ -11,15 +11,15 @@
 // CCMRAM allocation: g_tr(17KB) + OLED_fb(8KB) + active(24KB) = 49KB / 64KB ✅
 static uint8_t fb[OLED_W * OLED_H / 2] __attribute__((section(".ccmram")));
 
-// Software SPI bit-bang implementation (MIOS32 compatible)
+// Software SPI bit-bang implementation (MidiCore compatible)
 // CS is hardwired to GND, so no CS control needed
 //
-// CRITICAL: SPI Mode 0 (CPOL=0, CPHA=0) per MIOS32 convention
+// CRITICAL: SPI Mode 0 (CPOL=0, CPHA=0) per MidiCore convention
 // - Clock idle = LOW (CPOL=0)
 // - Data sampled on RISING edge (CPHA=0, first edge)
 // - Data changes on FALLING edge
 //
-// MIOS32 uses dual clock pins (E1=PC8, E2=PC9) for dual COM mode
+// MidiCore uses dual clock pins (E1=PC8, E2=PC9) for dual COM mode
 #define SCL_LOW() do { \
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_8, GPIO_PIN_RESET); \
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9, GPIO_PIN_RESET); \
@@ -30,12 +30,12 @@ static uint8_t fb[OLED_W * OLED_H / 2] __attribute__((section(".ccmram")));
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_9, GPIO_PIN_SET); \
 } while(0)
 
-// MIOS32 uses GPIO write repetition for timing (not explicit delays!)
+// MidiCore uses GPIO write repetition for timing (not explicit delays!)
 // Each GPIO write takes ~2-3 cycles @ 168 MHz
-// MIOS32 timing: 5x SCLK_0 (setup) + 3x SCLK_1 (hold)
+// MidiCore timing: 5x SCLK_0 (setup) + 3x SCLK_1 (hold)
 //
 // For stability testing, we can slow down by adding more GPIO writes
-#define SPI_TIMING_MIOS32      // EXACT MIOS32 timing (5 setup + 3 hold)
+#define SPI_TIMING_MidiCore      // EXACT MidiCore timing (5 setup + 3 hold)
 //#define SPI_TIMING_MEDIUM    // 2x slower (10 setup + 6 hold)
 //#define SPI_TIMING_SLOW      // 4x slower (20 setup + 12 hold)
 
@@ -45,14 +45,14 @@ static uint8_t fb[OLED_W * OLED_H / 2] __attribute__((section(".ccmram")));
 #elif defined(SPI_TIMING_SLOW)
   #define SPI_SETUP_REPS  20   // 4x slower than MIOS32
   #define SPI_HOLD_REPS   12
-#else // SPI_TIMING_MIOS32 (default - EXACT MIOS32)
+#else // SPI_TIMING_MidiCore (default - EXACT MIOS32)
   #define SPI_SETUP_REPS  5    // EXACT MIOS32: 5x SCLK_0
   #define SPI_HOLD_REPS   3    // EXACT MIOS32: 3x SCLK_1
 #endif
 
 static inline void spi_write_byte(uint8_t byte) {
-  // EXACT MIOS32 bit-bang sequence using GPIO write repetition for timing
-  // MIOS32 does: 5x SCLK_0 (setup) + 3x SCLK_1 (hold) + 2x SCLK_0 (cleanup)
+  // EXACT MidiCore bit-bang sequence using GPIO write repetition for timing
+  // MidiCore does: 5x SCLK_0 (setup) + 3x SCLK_1 (hold) + 2x SCLK_0 (cleanup)
   // Clock starts at idle LOW, data is sampled on rising edge (Mode 0)
   
   for (uint8_t i = 0; i < 8; i++) {
@@ -62,13 +62,13 @@ static inline void spi_write_byte(uint8_t byte) {
     else
       HAL_GPIO_WritePin(OLED_SDA_GPIO_Port, OLED_SDA_Pin, GPIO_PIN_RESET);
 
-    // 2. Setup time: MIOS32 does 5x SCLK_0 (5 GPIO writes with clock LOW)
+    // 2. Setup time: MidiCore does 5x SCLK_0 (5 GPIO writes with clock LOW)
     //    Each GPIO write provides natural delay from CPU instruction execution
     for (uint8_t j = 0; j < SPI_SETUP_REPS; j++) {
       SCL_LOW();
     }
 
-    // 3. Hold time: MIOS32 does 3x SCLK_1 (3 GPIO writes with clock HIGH)
+    // 3. Hold time: MidiCore does 3x SCLK_1 (3 GPIO writes with clock HIGH)
     //    Rising edge occurs on first SCLK_1 - display samples data here
     for (uint8_t j = 0; j < SPI_HOLD_REPS; j++) {
       SCL_HIGH();
@@ -77,7 +77,7 @@ static inline void spi_write_byte(uint8_t byte) {
     byte <<= 1;  // shift to next bit (MSB first)
   }
 
-  // 4. Cleanup: MIOS32 does 2x SCLK_0 to return clock to idle LOW state
+  // 4. Cleanup: MidiCore does 2x SCLK_0 to return clock to idle LOW state
   SCL_LOW();
   SCL_LOW();
 }
@@ -85,14 +85,14 @@ static inline void spi_write_byte(uint8_t byte) {
 // Send command (DC=0) byte
 static void cmd(uint8_t c) {
   HAL_GPIO_WritePin(OLED_DC_GPIO_Port, OLED_DC_Pin, GPIO_PIN_RESET);  // DC=0 (command mode)
-  // No explicit delay - MIOS32 doesn't add delay between DC set and data shift
+  // No explicit delay - MidiCore doesn't add delay between DC set and data shift
   spi_write_byte(c);
 }
 
 // Send data (DC=1) byte
 static void data(uint8_t d) {
   HAL_GPIO_WritePin(OLED_DC_GPIO_Port, OLED_DC_Pin, GPIO_PIN_SET);  // DC=1 (data mode)
-  // No explicit delay - MIOS32 doesn't add delay between DC set and data shift
+  // No explicit delay - MidiCore doesn't add delay between DC set and data shift
   spi_write_byte(d);
 }
 
@@ -112,7 +112,7 @@ void oled_init_progressive(uint8_t max_step) {
   DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
 
   // Set initial SPI lines states for Mode 0 (CPOL=0, CPHA=0):
-  // CRITICAL: MIOS32 uses SPI Mode 0, clock must idle LOW (not HIGH)
+  // CRITICAL: MidiCore uses SPI Mode 0, clock must idle LOW (not HIGH)
   SCL_LOW();  // clock idle low (required for Mode 0)
   HAL_GPIO_WritePin(OLED_SDA_GPIO_Port, OLED_SDA_Pin, GPIO_PIN_RESET);  // data line low
   HAL_GPIO_WritePin(OLED_DC_GPIO_Port, OLED_DC_Pin, GPIO_PIN_SET);      // DC high (defaults to data mode)
@@ -145,7 +145,7 @@ void oled_init_progressive(uint8_t max_step) {
   }
 
   // Step 2: + Column Address
-  // CRITICAL: During INIT, MIOS32 sends 2 bytes to set full window range!
+  // CRITICAL: During INIT, MidiCore sends 2 bytes to set full window range!
   cmd(0x15); data(0x1C); data(0x5B);  // Set Column Address (start=0x1C, end=0x5B)
   if (max_step == 2) {
     cmd(0xAF); cmd(0xA5);
@@ -153,7 +153,7 @@ void oled_init_progressive(uint8_t max_step) {
   }
 
   // Step 3: + Row Address  
-  // CRITICAL: During INIT, MIOS32 sends 2 bytes to set full window range!
+  // CRITICAL: During INIT, MidiCore sends 2 bytes to set full window range!
   cmd(0x75); data(0x00); data(0x3F);  // Set Row Address (start=0x00, end=0x3F)
   if (max_step == 3) {
     cmd(0xAF); cmd(0xA5);
@@ -196,10 +196,10 @@ void oled_init_progressive(uint8_t max_step) {
   }
 
   // Step 9: + Linear gray scale table
-  // MIOS32 INCLUDES cmd(0x00) after cmd(0xB9) despite "OLD" comment!
-  // This is what actually works on hardware - following MIOS32 exactly
+  // MidiCore INCLUDES cmd(0x00) after cmd(0xB9) despite "OLD" comment!
+  // This is what actually works on hardware - following MidiCore exactly
   cmd(0xB9);                  // Set_Linear_Gray_Scale_Table
-  cmd(0x00);                  // Enable gray scale table (MIOS32 includes this!)
+  cmd(0x00);                  // Enable gray scale table (MidiCore includes this!)
   if (max_step == 9) {
     cmd(0xAF); cmd(0xA5);
     return;
@@ -241,7 +241,7 @@ void oled_init_progressive(uint8_t max_step) {
   }
 
   // Step 15: Full init with SIMPLE WHITE SCREEN TEST
-  // EXACT MIOS32 SEQUENCE:
+  // EXACT MidiCore SEQUENCE:
   // 1. Set normal display mode (0xA6)
   // 2. Clear/write to RAM (display still OFF)
   // 3. Turn display ON (0xAF)
@@ -249,8 +249,8 @@ void oled_init_progressive(uint8_t max_step) {
   // Set normal display mode (0xA6) - display still OFF
   cmd(0xA4 | 0x02);  // Normal display mode (0xA6 - matches MIOS32)
   
-  // Write white screen to RAM (MIOS32 does this while display is OFF!)
-  // MIOS32 sequence: 1 byte address + 128 bytes data per row
+  // Write white screen to RAM (MidiCore does this while display is OFF!)
+  // MidiCore sequence: 1 byte address + 128 bytes data per row
   for (uint8_t row = 0; row < 64; ++row) {
     cmd(0x15);                 // Set Column Address
     data(0x1C);                // Column start ONLY (1 byte like MIOS32)
@@ -258,14 +258,14 @@ void oled_init_progressive(uint8_t max_step) {
     data(row);                 // Row start ONLY (1 byte like MIOS32)
     cmd(0x5C);                 // Write RAM command
     // CRITICAL: Data MUST immediately follow 0x5C per datasheet!
-    // MIOS32 writes 128 bytes per row (64 iterations × 2 bytes)
+    // MidiCore writes 128 bytes per row (64 iterations × 2 bytes)
     for (uint16_t i = 0; i < 64; ++i) {
       data(0xFF);              // White pixels
       data(0xFF);              // White pixels (128 bytes total)
     }
   }
   
-  // NOW turn display ON (after RAM write - EXACT MIOS32 sequence!)
+  // NOW turn display ON (after RAM write - EXACT MidiCore sequence!)
   cmd(0xAE | 1);  // Display ON (0xAF)
 
   delay_us(1000000);  // Wait 1 second to see white screen
@@ -299,7 +299,7 @@ void oled_init(void) {
     delay_us(1000);
   }
 
-  // EXACT MIOS32 APP_LCD_Init() sequence:
+  // EXACT MidiCore APP_LCD_Init() sequence:
   cmd(0xfd); data(0x12);                          // Unlock
   cmd(0xae | 0);                                  // Display OFF
   cmd(0x15); data(0x1c); data(0x5b);             // Column Address
@@ -310,7 +310,7 @@ void oled_init(void) {
   cmd(0xc1); data(0xff);                         // Contrast Current
   cmd(0xc7); data(0x0f);                         // Master Current
   cmd(0xb9);                                     // Linear Gray Scale Table
-  cmd(0x00);                                     // Enable gray scale (MIOS32 has this!)
+  cmd(0x00);                                     // Enable gray scale (MidiCore has this!)
   cmd(0xb1); data(0x56);                         // Phase Length
   cmd(0xbb); data(0x0);                          // Precharge Voltage
   cmd(0xb6); data(0x08);                         // Precharge Period
@@ -342,7 +342,7 @@ void oled_init(void) {
 
 // Newhaven NHD-3.12 datasheet initialization (LoopA production code)
 // Source: LoopA app_lcd.c - active "Initialize display (NHD 3.12 datasheet)" section
-// This is MORE COMPLETE than the simple MIOS32 test init above
+// This is MORE COMPLETE than the simple MidiCore test init above
 void oled_init_newhaven(void) {
   // Ensure DWT cycle counter is initialized
   CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
@@ -458,7 +458,7 @@ void oled_init_newhaven(void) {
 
 void oled_flush(void) {
   // Transfer the local framebuffer to OLED GDDRAM (SSD1322 VRAM)
-  // EXACT MIOS32 sequence: 1 byte address + 128 bytes data per row
+  // EXACT MidiCore sequence: 1 byte address + 128 bytes data per row
   for (uint8_t row = 0; row < 64; ++row) {
     cmd(0x15);                // Set Column Address
     data(0x1C);               // Column start ONLY (1 byte like MIOS32)
@@ -495,7 +495,7 @@ void oled_test_mios32_pattern(void) {
   uint16_t x = 0;
   uint16_t y = 0;
 
-  // EXACT MIOS32 testScreen() replication
+  // EXACT MidiCore testScreen() replication
   for (y = 0; y < 64; y++) {
     // APP_LCD_Cmd(0x15); APP_LCD_Data(0x1c);
     cmd(0x15);
@@ -512,7 +512,7 @@ void oled_test_mios32_pattern(void) {
     for (x = 0; x < 64; x++) {
       if (x < 32) {
         // Left half: pattern
-        // MIOS32 original: if (x || 4 == 0 || y || 4 == 0) - always true
+        // MidiCore original: if (x || 4 == 0 || y || 4 == 0) - always true
         // APP_LCD_Data(y & 0x0f); APP_LCD_Data(0);
         data(y & 0x0f);
         data(0);
@@ -530,7 +530,7 @@ void oled_test_mios32_pattern(void) {
 }
 
 // ============================================================================
-// Enhanced OLED Test Functions - Beyond basic MIOS32 test
+// Enhanced OLED Test Functions - Beyond basic MidiCore test
 // ============================================================================
 
 /**

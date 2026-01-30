@@ -7,7 +7,7 @@
 #include "cli_module_commands.h"
 #include "cli.h"
 #include "Services/module_registry/module_registry.h"
-#include "Services/mios32_hooks/mios32_hooks.h"
+#include "Services/midicore_hooks/midicore_hooks.h"
 #include <string.h>
 #include <stdlib.h>
 

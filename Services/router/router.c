@@ -112,7 +112,7 @@ void router_process(uint8_t in_node, const router_msg_t* msg) {
         msg->data[2] == 0x00 && msg->data[3] == 0x7E) {
       // Check device ID byte
       uint8_t device_id = msg->data[4];
-      // 0x32 = MIOS32 query/response (ALLOW - MIOS Studio needs responses)
+      // 0x32 = MidiCore query/response (ALLOW - MIOS Studio needs responses)
       // 0x40 = Bootloader protocol (BLOCK - only for bootloader mode)
       if (device_id == 0x40) {
         // Block bootloader messages from routing (they're only for bootloader mode)

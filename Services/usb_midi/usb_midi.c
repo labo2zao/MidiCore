@@ -1,6 +1,6 @@
 #include "Services/usb_midi/usb_midi.h"
 #include "Services/router/router.h"
-#include "Services/mios32_query/mios32_query.h"
+#include "Services/midicore_query/midicore_query.h"
 #include "Config/module_config.h"
 #include <string.h>
 
@@ -283,10 +283,10 @@ bool usb_midi_send_packet(uint8_t cin, uint8_t b0, uint8_t b1, uint8_t b2) {
 /* CRITICAL FIX: Queue RX packet for deferred processing
  * 
  * This function is called from USB interrupt context. We MUST NOT do heavy processing
- * here (router, MIOS32 queries, TX operations). Instead, queue the packet and return
+ * here (router, MidiCore queries, TX operations). Instead, queue the packet and return
  * immediately. Processing happens in task context via usb_midi_process_rx_queue().
  * 
- * This fixes the freeze issue where MIOS32 query responses were being sent from
+ * This fixes the freeze issue where MidiCore query responses were being sent from
  * RX interrupt, violating USB protocol and causing race conditions.
  */
 void usb_midi_rx_packet(const uint8_t packet4[4]) {
@@ -314,7 +314,7 @@ void usb_midi_rx_packet(const uint8_t packet4[4]) {
 /* Process RX queue - MUST be called from task context (NOT interrupt!)
  * 
  * Call this from main loop or dedicated USB MIDI task. It processes all queued
- * RX packets, assembles SysEx messages, handles MIOS32 queries, and routes to
+ * RX packets, assembles SysEx messages, handles MidiCore queries, and routes to
  * the MIDI router.
  * 
  * This function contains the actual processing logic that was previously in
@@ -385,10 +385,10 @@ void usb_midi_process_rx_queue(void) {
           
           /* Fast SysEx validation (check start and end markers) */
           if (buf->pos >= 2 && buf->buffer[0] == 0xF0 && buf->buffer[buf->pos-1] == 0xF7) {
-            /* Check if this is a MIOS32 query message - queue for task processing */
-            if (mios32_query_is_query_message(buf->buffer, buf->pos)) {
+            /* Check if this is a MidiCore query message - queue for task processing */
+            if (midicore_query_is_query_message(buf->buffer, buf->pos)) {
               // Queue for processing from task context (ISR-safe, no USB TX from ISR!)
-              mios32_query_queue(buf->buffer, buf->pos, cable);
+              midicore_query_queue(buf->buffer, buf->pos, cable);
               // Don't route query messages - they'll be processed from queue
             } else {
               /* Only route if not in test mode with APP_TEST_USB_MIDI */
@@ -428,10 +428,10 @@ void usb_midi_process_rx_queue(void) {
           
           /* Fast SysEx validation */
           if (buf->pos >= 2 && buf->buffer[0] == 0xF0 && buf->buffer[buf->pos-1] == 0xF7) {
-            /* Check if this is a MIOS32 query message - queue for task processing */
-            if (mios32_query_is_query_message(buf->buffer, buf->pos)) {
+            /* Check if this is a MidiCore query message - queue for task processing */
+            if (midicore_query_is_query_message(buf->buffer, buf->pos)) {
               // Queue for processing from task context (ISR-safe, no USB TX from ISR!)
-              mios32_query_queue(buf->buffer, buf->pos, cable);
+              midicore_query_queue(buf->buffer, buf->pos, cable);
               // Don't route query messages - they'll be processed from queue
             } else {
               #ifndef APP_TEST_USB_MIDI
@@ -470,10 +470,10 @@ void usb_midi_process_rx_queue(void) {
           
           /* Fast SysEx validation */
           if (buf->pos >= 2 && buf->buffer[0] == 0xF0 && buf->buffer[buf->pos-1] == 0xF7) {
-            /* Check if this is a MIOS32 query message - queue for task processing */
-            if (mios32_query_is_query_message(buf->buffer, buf->pos)) {
+            /* Check if this is a MidiCore query message - queue for task processing */
+            if (midicore_query_is_query_message(buf->buffer, buf->pos)) {
               // Queue for processing from task context (ISR-safe, no USB TX from ISR!)
-              mios32_query_queue(buf->buffer, buf->pos, cable);
+              midicore_query_queue(buf->buffer, buf->pos, cable);
               // Don't route query messages - they'll be processed from queue
             } else {
               #ifndef APP_TEST_USB_MIDI

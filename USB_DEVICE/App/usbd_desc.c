@@ -22,7 +22,7 @@
 #define USBD_PID_FS                   0x0489  /* MIDI Device PID */
 #define USBD_LANGID_STRING            1033    /* English (United States) */
 #define USBD_MANUFACTURER_STRING      "MidiCore"
-#define USBD_PRODUCT_STRING_FS        "MidiCore 4x4"  /* Like MIOS32 MBHP_CORE_STM32F4 */
+#define USBD_PRODUCT_STRING_FS        "MidiCore 4x4"  /* Like MidiCore MBHP_CORE_STM32F4 */
 #define USBD_CONFIGURATION_STRING_FS  "MIDI Config"
 #define USBD_INTERFACE_STRING_FS      "MIDI Interface"
 

@@ -6,7 +6,7 @@
  * @brief Error recovery and fault detection for USB MIDI
  * 
  * Provides timeout detection, buffer overflow handling, and automatic
- * recovery mechanisms following MIOS32 defensive programming patterns.
+ * recovery mechanisms following MidiCore defensive programming patterns.
  */
 
 #ifdef __cplusplus

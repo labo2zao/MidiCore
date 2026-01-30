@@ -7,7 +7,7 @@
 // - the 74HC595 latch is wired to the ADC CS (RC) line, so each CS rising edge
 //   updates the multiplexer address lines (A0..A2) and the green "LINK" LED.
 //
-// This file intentionally mimics the logic found in MIOS32 modules/ainser/ainser.c
+// This file intentionally mimics the logic found in MidiCore modules/ainser/ainser.c
 // (see https://github.com/midibox/mios32 ) while keeping a simpler public API.
 
 #pragma once
@@ -29,7 +29,7 @@ int32_t hal_ainser64_init(void);
 // 
 // IMPORTANT: Call this function continuously without delays between steps to maintain
 // stable ADC readings. Delays between steps can cause discontinuous values and noise.
-// This matches MIOS32 behavior where all channels are scanned in rapid succession.
+// This matches MidiCore behavior where all channels are scanned in rapid succession.
 // The LED will also exhibit smooth PWM breathing when scanned continuously.
 //
 // Returns 0 on success.
@@ -40,7 +40,7 @@ int32_t hal_ainser64_read_bank_step(uint8_t module, uint8_t step, uint16_t out8[
 void hal_ainser64_set_link_led_enable(uint8_t enable);
 
 // Optional: set the mux step->connector mapping.
-// If map is NULL, the default MIOS32 mapping is restored.
+// If map is NULL, the default MidiCore mapping is restored.
 // map[step] gives the logical "port" index 0..7 for this mux address.
 void hal_ainser64_set_mux_port_map(const uint8_t map[8]);
 

@@ -36,7 +36,7 @@ bool bootloader_app_is_bootloader_sysex(const uint8_t* data, uint32_t len) {
       data[1] == 0x00 &&
       data[2] == 0x00 &&
       data[3] == 0x7E &&
-      (data[4] == 0x40 || data[4] == 0x4E)) {  // Accept both MIOS32 standard and legacy
+      (data[4] == 0x40 || data[4] == 0x4E)) {  // Accept both MidiCore standard and legacy
     return true;
   }
   

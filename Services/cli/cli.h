@@ -40,7 +40,7 @@ extern "C" {
 // =============================================================================
 
 #ifndef CLI_MAX_COMMANDS
-#define CLI_MAX_COMMANDS 32  // Maximum number of registered commands (MIOS32 style - reduced from 128)
+#define CLI_MAX_COMMANDS 32  // Maximum number of registered commands (MidiCore style - reduced from 128)
 #endif
 
 #ifndef CLI_MAX_COMMAND_LEN
@@ -48,7 +48,7 @@ extern "C" {
 #endif
 
 #ifndef CLI_MAX_LINE_LEN
-#define CLI_MAX_LINE_LEN 128  // Maximum input line length (MIOS32 style - reduced from 256)
+#define CLI_MAX_LINE_LEN 128  // Maximum input line length (MidiCore style - reduced from 256)
 #endif
 
 #ifndef CLI_MAX_ARGS

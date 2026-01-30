@@ -64,7 +64,7 @@ static void AinRawDebugTask(void* argument) {
     for (uint8_t port = 0; port < 8; ++port) {
       int len = snprintf(line, sizeof(line), "J%u:", (unsigned)(port + 6));
       for (uint8_t a = 0; a < 8; ++a) {
-        // In MIOS32 mapping, the channel order is reversed inside a port.
+        // In MidiCore mapping, the channel order is reversed inside a port.
         const uint8_t key = (uint8_t)(port * 8 + (7 - a));
         len = buf_append(line, sizeof(line), len, " A%u=%4u", (unsigned)a, (unsigned)raw[key]);
       }

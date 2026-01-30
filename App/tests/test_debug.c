@@ -125,10 +125,10 @@ static UART_HandleTypeDef* get_debug_uart_handle(void)
   // MIDI DIN ports (0-3): USART2, USART3, USART1, UART5
   // Port 2 (USART1) can be used for either MIDI DIN3 or Debug
   switch (TEST_DEBUG_UART_PORT) {
-    case 0: return &huart2;  // USART2 PA2/PA3   [MIDI DIN1 - MIOS32 UART1]
-    case 1: return &huart3;  // USART3 PD8/PD9   [MIDI DIN2 - MIOS32 UART2]
-    case 2: return &huart1;  // USART1 PA9/PA10  [MIDI DIN3 - MIOS32 UART3 / Debug]
-    case 3: return &huart5;  // UART5  PC12/PD2  [MIDI DIN4 - MIOS32 UART4]
+    case 0: return &huart2;  // USART2 PA2/PA3   [MIDI DIN1 - MidiCore UART1]
+    case 1: return &huart3;  // USART3 PD8/PD9   [MIDI DIN2 - MidiCore UART2]
+    case 2: return &huart1;  // USART1 PA9/PA10  [MIDI DIN3 - MidiCore UART3 / Debug]
+    case 3: return &huart5;  // UART5  PC12/PD2  [MIDI DIN4 - MidiCore UART4]
     default: return &huart1; // Default to USART1 for debug
   }
 }
@@ -292,10 +292,10 @@ void dbg_print(const char* str)
 
 
 #if MODULE_ENABLE_USB_MIDI
-  // Secondary output: MIOS32 debug message via USB MIDI for MIOS Studio terminal
-  // Send as MIOS32 SysEx: F0 00 00 7E 32 00 0D <text> F7
-  // NOTE: Delayed start to avoid interfering with USB enumeration and MIOS32 queries
-  extern bool mios32_debug_send_message(const char* text, uint8_t cable);
+  // Secondary output: MidiCore debug message via USB MIDI for MIOS Studio terminal
+  // Send as MidiCore SysEx: F0 00 00 7E 32 00 0D <text> F7
+  // NOTE: Delayed start to avoid interfering with USB enumeration and MidiCore queries
+  extern bool midicore_debug_send_message(const char* text, uint8_t cable);
   
   // CRITICAL: Check if we're in interrupt context
   // NEVER send USB MIDI from ISR - causes reentrancy issues and breaks USB stack!
@@ -306,7 +306,7 @@ void dbg_print(const char* str)
   bool in_interrupt = (ipsr != 0);
   
   if (in_interrupt) {
-    // We're in ISR context - DO NOT send MIOS32 debug!
+    // We're in ISR context - DO NOT send MidiCore debug!
     // USB MIDI transmission from ISR causes reentrancy with RX ISR and breaks USB
     // CDC debug is fine from ISR (different mechanism)
     return;
@@ -331,13 +331,13 @@ void dbg_print(const char* str)
   uint32_t elapsed_since_boot = now - start_tick;
   
   // Wait 1 second after boot before sending any debug to MIOS Studio
-  // This allows USB enumeration and MIOS32 query processing to complete first
+  // This allows USB enumeration and MidiCore query processing to complete first
   // Reduced from 3s to 1s so users see output sooner after connecting MIOS Studio
   if (elapsed_since_boot >= 1000) {
     // Send test message once after boot delay
     static bool test_msg_sent = false;
     if (!test_msg_sent) {
-      mios32_debug_send_message("\r\n*** MIOS Terminal Ready ***\r\n", 0);
+      midicore_debug_send_message("\r\n*** MIOS Terminal Ready ***\r\n", 0);
       test_msg_sent = true;
       sent_count++;
     }
@@ -349,7 +349,7 @@ void dbg_print(const char* str)
       snprintf(heartbeat, sizeof(heartbeat), 
                "[MIOS] Terminal active (sent:%lu)\r\n", 
                (unsigned long)sent_count);
-      mios32_debug_send_message(heartbeat, 0);
+      midicore_debug_send_message(heartbeat, 0);
       last_heartbeat = now;
     }
     
@@ -362,7 +362,7 @@ void dbg_print(const char* str)
     
     if (elapsed_since_last >= DEBUG_MSG_MIN_INTERVAL_MS) {
       // Enough time has passed, send this message
-      bool sent = mios32_debug_send_message(str, 0);
+      bool sent = midicore_debug_send_message(str, 0);
       
       if (sent) {
         last_send_tick = now;
@@ -536,7 +536,7 @@ void dbg_print_test_header(const char* test_name)
 
 void dbg_print_config_info(void)
 {
-  dbg_print("UART Configuration (MIOS32 Compatible):");
+  dbg_print("UART Configuration (MidiCore Compatible):");
   dbg_println();
   dbg_print("  Debug UART:    UART");
   dbg_print_uint(TEST_DEBUG_UART_PORT + 1);
@@ -557,7 +557,7 @@ void dbg_print_config_info(void)
   dbg_println();
   dbg_println();
   
-  dbg_print("MIOS32 UART Mapping:");
+  dbg_print("MidiCore UART Mapping:");
   dbg_println();
   dbg_print("  Port 0 = UART1 (USART1) - PA9/PA10  - MIDI OUT1/IN1");
   dbg_println();

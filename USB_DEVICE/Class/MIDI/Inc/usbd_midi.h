@@ -52,7 +52,7 @@ extern "C" {
 #define MIDI_DATA_FS_MAX_PACKET_SIZE            64  /* Full Speed: 64 bytes max */
 #define MIDI_DATA_HS_MAX_PACKET_SIZE            512 /* High Speed: 512 bytes max */
 
-/* Number of MIDI Ports (Cables) - 4x4 interface like MIOS32 */
+/* Number of MIDI Ports (Cables) - 4x4 interface like MidiCore */
 #define MIDI_NUM_PORTS                          4
 
 /* MIDI Endpoints */

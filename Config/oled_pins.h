@@ -2,7 +2,7 @@
 #include "stm32f4xx_hal.h"
 
 // OLED SSD1322 - Software SPI (bit-bang)
-// Pin assignments from LoopA hardware (MIOS32 compatible):
+// Pin assignments from LoopA hardware (MidiCore compatible):
 // 
 // Only 3 signals connected from STM32 to OLED:
 // LCD_RS (Data/Command)    -> PA8  (this is the DC signal, also called RS)

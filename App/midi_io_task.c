@@ -6,7 +6,7 @@
 #include "Services/expression/expression.h"
 #include "Services/usb_midi/usb_midi.h"
 #include "Services/usb_cdc/usb_cdc.h"
-#include "Services/mios32_query/mios32_query.h"
+#include "Services/midicore_query/midicore_query.h"
 #include "App/tests/test_debug.h"
 
 // Call this from app_init_and_start() if you want a dedicated task.
@@ -40,7 +40,7 @@ static void MidiIOTask(void *argument) {
     dbg_printf("[MIDI-TASK] WARNING: USB MIDI not ready! Check USB enumeration.\r\n");
   }
   
-  dbg_printf("[MIDI-TASK] MIOS32 query processing enabled\r\n");
+  dbg_printf("[MIDI-TASK] MidiCore query processing enabled\r\n");
   dbg_printf("[MIDI-TASK] For MIOS Studio recognition:\r\n");
   dbg_printf("  1. Connect USB cable\r\n");
   dbg_printf("  2. Open MIOS Studio\r\n");
@@ -49,7 +49,7 @@ static void MidiIOTask(void *argument) {
   
   // Send test message to MIOS Studio terminal to verify communication
   dbg_printf("[MIDI-TASK] Sending test message to MIOS Studio terminal...\r\n");
-  bool test_sent = mios32_debug_send_message("*** MidiCore MIOS Terminal Test ***\r\n", 0);
+  bool test_sent = midicore_debug_send_message("*** MidiCore MIOS Terminal Test ***\r\n", 0);
   if (test_sent) {
     dbg_printf("[MIDI-TASK] Test message sent successfully\r\n");
     dbg_printf("[MIDI-TASK] Check MIOS Studio Terminal window for the message\r\n");
@@ -61,12 +61,12 @@ static void MidiIOTask(void *argument) {
   
   for (;;) {
     /* CRITICAL: Process USB MIDI RX queue in task context (NOT interrupt!)
-     * This handles MIOS32 queries, router processing, and TX responses safely */
+     * This handles MidiCore queries, router processing, and TX responses safely */
     usb_midi_process_rx_queue();
     
-    /* CRITICAL: Process MIOS32 queries queued from ISR
+    /* CRITICAL: Process MidiCore queries queued from ISR
      * This enables MIOS Studio detection and terminal communication */
-    mios32_query_process_queued();
+    midicore_query_process_queued();
     
     /* CRITICAL: Process USB CDC RX queue in task context (NOT interrupt!)
      * This handles MIOS Studio terminal data safely */
@@ -115,7 +115,7 @@ void app_start_midi_io_task(void) {
   const osThreadAttr_t attr = {
     .name = "MidiIO",
     .priority = osPriorityAboveNormal,
-    .stack_size = 2048  // 2KB - processes multiple queues (USB MIDI, CDC, MIOS32 queries)
+    .stack_size = 2048  // 2KB - processes multiple queues (USB MIDI, CDC, MidiCore queries)
   };
   (void)osThreadNew(MidiIOTask, NULL, &attr);
 }

@@ -2,7 +2,7 @@
  * @file usb_midi_error_recovery.c
  * @brief Error recovery implementation for USB MIDI
  * 
- * Following MIOS32 defensive programming patterns with timeout detection
+ * Following MidiCore defensive programming patterns with timeout detection
  * and automatic recovery mechanisms.
  */
 
