@@ -30,6 +30,62 @@ static char s_history[CLI_HISTORY_SIZE][CLI_MAX_LINE_LEN];
 static uint8_t s_history_count = 0;
 static uint8_t s_history_index = 0;
 
+#if MODULE_ENABLE_USB_CDC
+// =============================================================================
+// USB CDC INPUT BUFFER (ISR-safe circular buffer)
+// =============================================================================
+// USB CDC uses callbacks from ISR, not polling.
+// We buffer input here and process in cli_task().
+
+#define CLI_INPUT_BUFFER_SIZE 256
+
+static uint8_t s_input_buffer[CLI_INPUT_BUFFER_SIZE];
+static volatile uint16_t s_input_head = 0;
+static volatile uint16_t s_input_tail = 0;
+
+/**
+ * @brief USB CDC RX callback - called from ISR context
+ * @param buf Received data buffer
+ * @param len Number of bytes received
+ * 
+ * CRITICAL: Called from USB interrupt! Keep it fast!
+ * Just buffer the data and return immediately.
+ */
+static void cli_usb_cdc_rx_callback(const uint8_t *buf, uint32_t len)
+{
+  // Queue all received bytes into circular buffer
+  for (uint32_t i = 0; i < len; i++) {
+    uint16_t next_head = (s_input_head + 1) % CLI_INPUT_BUFFER_SIZE;
+    
+    // Check if buffer full (drop character if full)
+    if (next_head != s_input_tail) {
+      s_input_buffer[s_input_head] = buf[i];
+      s_input_head = next_head;
+    }
+    // If buffer full, character is silently dropped (overflow protection)
+  }
+}
+
+/**
+ * @brief Get one character from input buffer (non-blocking)
+ * @param ch Pointer to store received character
+ * @return 1 if character available, 0 if buffer empty
+ */
+static uint8_t cli_getchar(uint8_t *ch)
+{
+  // Check if buffer empty
+  if (s_input_head == s_input_tail) {
+    return 0;  // No data available
+  }
+  
+  // Get character from buffer
+  *ch = s_input_buffer[s_input_tail];
+  s_input_tail = (s_input_tail + 1) % CLI_INPUT_BUFFER_SIZE;
+  
+  return 1;  // Character retrieved
+}
+#endif
+
 // =============================================================================
 // FORWARD DECLARATIONS
 // =============================================================================
@@ -71,6 +127,16 @@ int cli_init(void)
   cli_register_command("uptime", cmd_uptime, "Show uptime", "uptime", "system");
   cli_register_command("status", cmd_status, "Show status", "status", "system");
   cli_register_command("reboot", cmd_reboot, "Reboot system", "reboot", "system");
+
+#if MODULE_ENABLE_USB_CDC
+  // Register USB CDC receive callback for CLI input
+  // This is CRITICAL - without this, CLI receives no input!
+  dbg_printf("[CLI] Registering USB CDC receive callback...\r\n");
+  usb_cdc_register_receive_callback(cli_usb_cdc_rx_callback);
+  s_input_head = 0;
+  s_input_tail = 0;
+  dbg_printf("[CLI] USB CDC callback registered\r\n");
+#endif
 
   s_initialized = 1;
 
@@ -192,19 +258,22 @@ void cli_task(void)
     return;
   }
 
-  // Poll for available character (non-blocking)
+  // Get one character (non-blocking)
   uint8_t ch;
   
 #if MODULE_ENABLE_USB_CDC
-  // Use USB CDC for CLI input
-  if (usb_cdc_receive(&ch, 1) != 1) {
+  // USB CDC input via callback buffer
+  if (!cli_getchar(&ch)) {
     return; // No character available
   }
   
-  // Echo character back via USB CDC
-  usb_cdc_send(&ch, 1);
+  // NOTE: Do NOT echo character here!
+  // MIOS Studio and other terminal emulators handle echo locally.
+  // Echoing from firmware causes conflicts and character loss.
+  // This is standard MIOS32 behavior - terminals handle their own echo.
+  
 #else
-  // Fallback to UART
+  // Fallback to UART (for non-USB debug builds)
   extern UART_HandleTypeDef huart5;
   UART_HandleTypeDef* uart = &huart5;
   
@@ -212,7 +281,7 @@ void cli_task(void)
     return; // No character available
   }
   
-  // Echo character back to terminal
+  // For direct UART, echo is acceptable since terminal might not handle it
   HAL_UART_Transmit(uart, &ch, 1, 10);
 #endif
   
@@ -256,6 +325,8 @@ void cli_task(void)
     if (s_input_pos < CLI_MAX_LINE_LEN - 1) {
       s_input_line[s_input_pos++] = (char)ch;
       s_input_line[s_input_pos] = '\0';
+      // Echo the character (terminal needs to see what was typed)
+      cli_printf("%c", ch);
     }
   }
   // Ignore other control characters for now (arrows, etc.)
