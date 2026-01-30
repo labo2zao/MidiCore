@@ -45,12 +45,21 @@ void router_init(router_send_fn_t send_cb) {
       g_routes[i][j].chmask = ROUTER_CHMASK_ALL;
     }
   }
-  const osMutexAttr_t attr = { .name = "router" };
-  g_router_mutex = osMutexNew(&attr);
+  // Lazy creation: mutex will be created on first use (after scheduler starts)
+  g_router_mutex = NULL;
+}
+
+// Helper: ensure mutex is created (call before first use)
+static inline void ensure_mutex(void) {
+  if (g_router_mutex == NULL) {
+    const osMutexAttr_t attr = { .name = "router" };
+    g_router_mutex = osMutexNew(&attr);
+  }
 }
 
 void router_set_route(uint8_t in_node, uint8_t out_node, uint8_t enable) {
   if (in_node >= ROUTER_NUM_NODES || out_node >= ROUTER_NUM_NODES) return;
+  ensure_mutex();
   if (g_router_mutex) osMutexAcquire(g_router_mutex, osWaitForever);
   g_routes[in_node][out_node].enabled = enable ? 1 : 0;
   if (g_router_mutex) osMutexRelease(g_router_mutex);
@@ -63,6 +72,7 @@ uint8_t router_get_route(uint8_t in_node, uint8_t out_node) {
 
 void router_set_chanmask(uint8_t in_node, uint8_t out_node, uint16_t chmask) {
   if (in_node >= ROUTER_NUM_NODES || out_node >= ROUTER_NUM_NODES) return;
+  ensure_mutex();
   if (g_router_mutex) osMutexAcquire(g_router_mutex, osWaitForever);
   g_routes[in_node][out_node].chmask = chmask;
   if (g_router_mutex) osMutexRelease(g_router_mutex);
@@ -76,6 +86,7 @@ uint16_t router_get_chanmask(uint8_t in_node, uint8_t out_node) {
 void router_set_label(uint8_t in_node, uint8_t out_node, const char* label) {
   if (in_node >= ROUTER_NUM_NODES || out_node >= ROUTER_NUM_NODES) return;
   if (!label) label = "";
+  ensure_mutex();
   if (g_router_mutex) osMutexAcquire(g_router_mutex, osWaitForever);
   strncpy(g_routes[in_node][out_node].label, label, ROUTER_LABEL_MAX-1);
   g_routes[in_node][out_node].label[ROUTER_LABEL_MAX-1] = '\0';
@@ -117,6 +128,7 @@ void router_process(uint8_t in_node, const router_msg_t* msg) {
 
   route_t snap[ROUTER_NUM_NODES];
 
+  ensure_mutex();
   if (g_router_mutex) osMutexAcquire(g_router_mutex, osWaitForever);
   for (uint8_t out=0; out<ROUTER_NUM_NODES; out++) snap[out] = g_routes[in_node][out];
   if (g_router_mutex) osMutexRelease(g_router_mutex);
