@@ -552,48 +552,55 @@ static void CliTask(void *argument)
 {
   (void)argument;
   
-  // Diagnostic trace: numbered checkpoints to identify exact blocking point
-  dbg_printf("[CLI-TASK-01] Entry point reached\r\n");
+  dbg_printf("[CLI-TASK] Entry point reached\r\n");
   
-  // Short delay to let system stabilize
-  osDelay(50);  // Reduced from 10ms - just enough for context switch
-  dbg_printf("[CLI-TASK-02] Initial delay complete\r\n");
+  // Short initial delay for system stabilization
+  osDelay(50);
+  dbg_printf("[CLI-TASK] Initial delay complete\r\n");
   
-  // Wait for USB CDC to be ready - but much shorter than before
-  // USB enumeration is fast (50-200ms typically)
 #if MODULE_ENABLE_USB_CDC
-  dbg_printf("[CLI-TASK-03] USB CDC mode - waiting for enumeration\r\n");
-  // Reduced from 2000ms to 200ms - USB enumeration is typically < 200ms
-  // MIOS32 doesn't wait this long, we shouldn't either
-  osDelay(200);  
-  dbg_printf("[CLI-TASK-04] USB CDC enumeration complete\r\n");
+  // Wait for USB CDC to be ready (with timeout)
+  dbg_printf("[CLI-TASK] Waiting for USB CDC connection...\r\n");
+  
+  uint32_t timeout = 100; // 10 seconds max wait (100 x 100ms)
+  while (!usb_cdc_is_connected() && timeout > 0) {
+    osDelay(100);  // Check every 100ms
+    timeout--;
+  }
+  
+  if (usb_cdc_is_connected()) {
+    dbg_printf("[CLI-TASK] USB CDC connected!\r\n");
+    
+    // Give host a moment to open the port
+    osDelay(100);
+    
+    // Print welcome message
+    cli_printf("\r\n");
+    cli_printf("=== MidiCore System Ready ===\r\n");
+    extern uint8_t boot_reason_get(void);
+    cli_printf("Boot reason: %d | Commands: %lu\r\n", 
+               (int)boot_reason_get(), (unsigned long)cli_get_command_count());
+    cli_printf("\r\n");
+  } else {
+    dbg_printf("[CLI-TASK] USB CDC not connected (timeout)\r\n");
+    dbg_printf("[CLI-TASK] CLI will wait for connection...\r\n");
+  }
 #else
-  dbg_printf("[CLI-TASK-03] UART mode\r\n");
-  osDelay(50);  // Minimal delay for UART
-  dbg_printf("[CLI-TASK-04] UART ready\r\n");
+  dbg_printf("[CLI-TASK] UART mode (no USB CDC)\r\n");
+  osDelay(50);
 #endif
   
-  // Now print welcome banner
-#if MODULE_ENABLE_USB_CDC
-  // If USB CDC just connected, print system info
-  extern uint8_t boot_reason_get(void);
-  dbg_printf("[CLI-TASK-05] Printing system info\r\n");
-  cli_printf("\r\n=== MidiCore System Ready ===\r\n");
-  cli_printf("Boot reason: %d | Commands: %lu\r\n", 
-             (int)boot_reason_get(), (unsigned long)cli_get_command_count());
-  cli_printf("\r\n");
-#endif
-  
-  dbg_printf("[CLI-TASK-06] Printing banner and prompt\r\n");
+  // Print CLI banner and prompt
+  dbg_printf("[CLI-TASK] Printing banner and prompt\r\n");
   cli_print_banner();
   cli_print_prompt();
   
-  dbg_printf("[CLI-TASK-07] Entering command processing loop\r\n");
+  dbg_printf("[CLI-TASK] Entering command processing loop\r\n");
   
   // CLI processing loop - process commands as they arrive
   for (;;) {
     cli_task();
-    osDelay(10);  // 10ms polling interval
+    osDelay(5);  // 5ms polling for responsive CLI
   }
 }
 #endif
