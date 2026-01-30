@@ -149,6 +149,12 @@ int test_debug_init(void)
   
   UART_HandleTypeDef* huart = get_debug_uart_handle();
   
+  // DIAGNOSTIC: Print port info for GDB verification
+  // These variables are visible in GDB for debugging
+  volatile uint32_t debug_uart_port = TEST_DEBUG_UART_PORT;  // Port number (0-3)
+  volatile void* debug_uart_instance = (void*)huart->Instance;  // UART peripheral address
+  volatile uint32_t debug_uart_before_baud = huart->Init.BaudRate;  // Baud before reconfig
+  
   // CRITICAL: Reconfigure to 115200 BEFORE any dbg_print() calls!
   // Do NOT call dbg_print() before this reconfiguration!
   HAL_UART_DeInit(huart);
@@ -163,9 +169,26 @@ int test_debug_init(void)
     Error_Handler();
   }
   
+  // DIAGNOSTIC: Capture final configuration for GDB inspection
+  volatile uint32_t debug_uart_after_baud = huart->Init.BaudRate;  // Should be 115200
+  (void)debug_uart_after_baud;  // Prevent compiler optimization
+  (void)debug_uart_before_baud;
+  (void)debug_uart_instance;
+  (void)debug_uart_port;
+  
   // NOW we can print at 115200 baud
   dbg_print("\r\n==============================================\r\n");
   dbg_print("Debug output: UART at 115200 baud\r\n");
+  
+  // Print diagnostic info (visible in terminal AND GDB)
+  char port_info[128];
+  const char* uart_names[] = {"USART2", "USART3", "USART1", "UART5"};
+  const char* uart_pins[] = {"PA2/PA3", "PD8/PD9", "PA9/PA10", "PC12/PD2"};
+  snprintf(port_info, sizeof(port_info), "Port: %s (port %lu) on pins %s\r\n", 
+           uart_names[TEST_DEBUG_UART_PORT], 
+           (unsigned long)TEST_DEBUG_UART_PORT,
+           uart_pins[TEST_DEBUG_UART_PORT]);
+  dbg_print(port_info);
   dbg_print("==============================================\r\n");
   
 #else // DEBUG_OUTPUT_NONE
