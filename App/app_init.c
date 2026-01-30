@@ -531,56 +531,64 @@ static void CliTask(void *argument)
 {
   (void)argument;
   
-  // This is the VERY FIRST thing the task does
-  // If this doesn't appear, the task never started
-  dbg_printf("[CLI-TASK] *** ENTRY POINT *** CLI task function entered!\r\n");
+  // Diagnostic trace: numbered checkpoints to identify exact blocking point
+  dbg_printf("[CLI-TASK-01] Entry point reached\r\n");
   
-  // Add explicit delay to ensure dbg_printf completes
+  dbg_printf("[CLI-TASK-02] Before first osDelay(10)\r\n");
   osDelay(10);
-  
-  dbg_printf("[CLI-TASK] CLI task started\r\n");
-  osDelay(10);
+  dbg_printf("[CLI-TASK-03] After first osDelay(10) - SUCCESS\r\n");
   
   // Wait for USB CDC to be fully enumerated if using USB CDC
   // This typically takes 2-5 seconds after boot
 #if MODULE_ENABLE_USB_CDC
-  dbg_printf("[CLI-TASK] Waiting for USB CDC enumeration (2 seconds)...\r\n");
-  osDelay(10);
+  dbg_printf("[CLI-TASK-04] USB CDC mode - before osDelay(2000)\r\n");
   osDelay(2000);  // 2 seconds for USB CDC to fully enumerate
-  dbg_printf("[CLI-TASK] USB CDC initialization complete\r\n");
-  osDelay(10);
+  dbg_printf("[CLI-TASK-05] USB CDC mode - after osDelay(2000) - SUCCESS\r\n");
 #else
-  dbg_printf("[CLI-TASK] Using UART mode\r\n");
-  osDelay(10);
+  dbg_printf("[CLI-TASK-04] UART mode - before osDelay(100)\r\n");
   osDelay(100);  // Small delay to let UART stabilize
+  dbg_printf("[CLI-TASK-05] UART mode - after osDelay(100) - SUCCESS\r\n");
 #endif
   
   // Now print welcome banner - USB CDC should be ready
-  dbg_printf("[CLI] Printing welcome banner...\r\n");
-  osDelay(10);
-  
 #if MODULE_ENABLE_USB_CDC
   // If USB CDC just connected, repeat important boot info that was likely lost
   extern uint8_t boot_reason_get(void);
+  dbg_printf("[CLI-TASK-06] Before cli_printf system ready\r\n");
   cli_printf("\r\n");
   cli_printf("=== MidiCore System Ready ===\r\n");
   cli_printf("Boot reason: %d\r\n", (int)boot_reason_get());
   cli_printf("CLI commands: %lu registered\r\n", (unsigned long)cli_get_command_count());
   cli_printf("\r\n");
-  osDelay(10);
+  dbg_printf("[CLI-TASK-07] After cli_printf system ready - SUCCESS\r\n");
 #endif
   
+  dbg_printf("[CLI-TASK-08] Before cli_print_banner()\r\n");
   cli_print_banner();
-  osDelay(10);
+  dbg_printf("[CLI-TASK-09] After cli_print_banner() - SUCCESS\r\n");
+  
+  dbg_printf("[CLI-TASK-10] Before cli_print_prompt()\r\n");
   cli_print_prompt();
-  osDelay(10);
-  dbg_printf("[CLI] CLI ready for commands\r\n");
-  osDelay(10);
+  dbg_printf("[CLI-TASK-11] After cli_print_prompt() - SUCCESS\r\n");
+  
+  dbg_printf("[CLI-TASK-12] Entering main command processing loop\r\n");
   
   // CLI processing loop
+  uint32_t loop_count = 0;
   for (;;) {
+    if (loop_count == 0) {
+      dbg_printf("[CLI-TASK-13] First loop iteration - calling cli_task()\r\n");
+    }
+    
     cli_task();
+    
+    if (loop_count == 0) {
+      dbg_printf("[CLI-TASK-14] First cli_task() call completed - SUCCESS\r\n");
+      dbg_printf("[CLI-TASK-15] CLI fully operational - entering normal operation\r\n");
+    }
+    
     osDelay(10);  // 10ms polling interval
+    loop_count++;
   }
 }
 #endif
