@@ -666,30 +666,17 @@ static void CliTask(void *argument)
   osDelay(50);
   dbg_printf("[CLI-TASK] Initial delay complete\r\n");
   
+  // Report CLI output mode
 #if MODULE_CLI_OUTPUT == CLI_OUTPUT_MIOS
-  // MIOS terminal mode - wait for USB CDC connection (standard MIOS32 behavior)
-  dbg_printf("[CLI-TASK] Waiting for USB CDC connection (MIOS mode)...\r\n");
-  
-  uint32_t timeout = 100;  // 10 seconds (100 * 100ms)
-  while (!usb_cdc_is_connected() && timeout > 0) {
-    osDelay(100);
-    timeout--;
-  }
-  
-  if (usb_cdc_is_connected()) {
-    dbg_printf("[CLI-TASK] USB CDC connected!\r\n");
-  } else {
-    dbg_printf("[CLI-TASK] USB CDC timeout, proceeding anyway\r\n");
-  }
-#else
-  // Other modes: start immediately without waiting
-  #if MODULE_CLI_OUTPUT == CLI_OUTPUT_USB_CDC
-    dbg_printf("[CLI-TASK] CLI uses USB CDC terminal\r\n");
-  #elif MODULE_CLI_OUTPUT == CLI_OUTPUT_UART  
-    dbg_printf("[CLI-TASK] CLI uses UART terminal\r\n");
-  #elif MODULE_CLI_OUTPUT == CLI_OUTPUT_DEBUG
-    dbg_printf("[CLI-TASK] CLI uses debug output terminal\r\n");
-  #endif
+  dbg_printf("[CLI-TASK] CLI uses MIOS Studio terminal (SysEx protocol)\r\n");
+  dbg_printf("[CLI-TASK] NOTE: Device queries handled independently by MidiIOTask\r\n");
+  dbg_printf("[CLI-TASK] NOTE: MIOS Studio will recognize device via USB MIDI queries\r\n");
+#elif MODULE_CLI_OUTPUT == CLI_OUTPUT_USB_CDC
+  dbg_printf("[CLI-TASK] CLI uses USB CDC terminal\r\n");
+#elif MODULE_CLI_OUTPUT == CLI_OUTPUT_UART  
+  dbg_printf("[CLI-TASK] CLI uses UART terminal\r\n");
+#elif MODULE_CLI_OUTPUT == CLI_OUTPUT_DEBUG
+  dbg_printf("[CLI-TASK] CLI uses debug output terminal\r\n");
 #endif
   
   // Print welcome message

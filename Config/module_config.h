@@ -212,7 +212,9 @@ extern "C" {
  *   - Standard MIOS32 behavior for MIOS Studio compatibility
  *   - Format: F0 00 00 7E 32 00 0D 40 <text> F7
  *   - Best for production with MIOS Studio
- *   - Separates CLI from debug output
+ *   - IMPORTANT: Device recognition via USB MIDI queries (handled by MidiIOTask)
+ *   - CLI terminal is separate and independent from queries
+ *   - No wait for USB CDC - starts immediately
  * 
  * CLI_OUTPUT_DEBUG (4):
  *   - CLI follows MODULE_DEBUG_OUTPUT setting
