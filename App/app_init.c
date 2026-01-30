@@ -310,17 +310,12 @@ void app_init_and_start(void)
 
 #if MODULE_ENABLE_CLI
   dbg_printf("[INIT] CLI step 1: calling cli_init...\r\n");
-  osDelay(5);  // Small delay to let USB CDC transmit
   cli_init();
   dbg_printf("[INIT] CLI step 2: cli_init returned OK\r\n");
-  osDelay(5);
   dbg_printf("[INIT] CLI step 3: calling cli_module_commands_init...\r\n");
-  osDelay(5);
   int cli_cmd_result = cli_module_commands_init();
   dbg_printf("[INIT] CLI step 4: cli_module_commands_init returned %d\r\n", cli_cmd_result);
-  osDelay(5);
   dbg_printf("[INIT] CLI step 5: CLI system ready\r\n");
-  osDelay(5);
 #else
   dbg_printf("[INIT] MODULE_ENABLE_CLI is NOT defined - CLI will not be available\r\n");
 #endif
@@ -371,7 +366,6 @@ void app_init_and_start(void)
 
 #if MODULE_ENABLE_CLI
   dbg_printf("[INIT] Creating CLI task...\r\n");
-  osDelay(5);
   // CLI task for processing terminal commands via UART
   const osThreadAttr_t cli_attr = {
     .name = "CliTask",
@@ -384,13 +378,11 @@ void app_init_and_start(void)
   } else {
     dbg_printf("[INIT] CLI task created successfully\r\n");
   }
-  osDelay(5);
 #else
   dbg_printf("[WARNING] MODULE_ENABLE_CLI not defined - CLI disabled\r\n");
 #endif
 
   dbg_printf("[INIT] About to start MIDI IO task...\r\n");
-  osDelay(5);
   
   // Optional UART debug stream (raw ADC values)
 #if MODULE_ENABLE_AIN_RAW_DEBUG
@@ -400,9 +392,7 @@ void app_init_and_start(void)
   app_start_midi_io_task();
   
   dbg_printf("[INIT] MIDI IO task started\r\n");
-  osDelay(5);
   dbg_printf("[INIT] app_init_and_start() complete - returning to scheduler\r\n");
-  osDelay(5);
 }
 
 static void AinTask(void *argument)
