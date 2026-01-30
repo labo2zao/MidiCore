@@ -121,7 +121,7 @@ static uint8_t USBD_COMPOSITE_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
   memset(&composite_class_data, 0, sizeof(USBD_COMPOSITE_HandleTypeDef));
   pdev->pClassData = &composite_class_data;
   
-#ifdef MODULE_TEST_USB_DEVICE_MIDI
+#if defined(MODULE_TEST_USB_DEVICE_MIDI) || MODULE_DEBUG_MIDICORE_QUERIES
   extern void dbg_print(const char *str);
   dbg_print("[COMP-Init] Starting MIDI+CDC init\r\n");
 #endif
@@ -131,25 +131,25 @@ static uint8_t USBD_COMPOSITE_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
   
   /* Initialize MIDI class */
   if (USBD_MIDI.Init != NULL) {
-#ifdef MODULE_TEST_USB_DEVICE_MIDI
+#if defined(MODULE_TEST_USB_DEVICE_MIDI) || MODULE_DEBUG_MIDICORE_QUERIES
     dbg_print("[COMP-Init] Calling USBD_MIDI.Init()\r\n");
 #endif
     ret = USBD_MIDI.Init(pdev, cfgidx);
     if (ret != USBD_OK) {
-#ifdef MODULE_TEST_USB_DEVICE_MIDI
+#if defined(MODULE_TEST_USB_DEVICE_MIDI) || MODULE_DEBUG_MIDICORE_QUERIES
       dbg_print("[COMP-Init] ERROR: USBD_MIDI.Init() FAILED!\r\n");
 #endif
       return ret;
     }
     composite_class_data.midi_class_data = pdev->pClassData;
-#ifdef MODULE_TEST_USB_DEVICE_MIDI
+#if defined(MODULE_TEST_USB_DEVICE_MIDI) || MODULE_DEBUG_MIDICORE_QUERIES
     char buf[60];
     snprintf(buf, sizeof(buf), "[COMP-Init] MIDI class_data = %p\r\n", 
              composite_class_data.midi_class_data);
     dbg_print(buf);
 #endif
   } else {
-#ifdef MODULE_TEST_USB_DEVICE_MIDI
+#if defined(MODULE_TEST_USB_DEVICE_MIDI) || MODULE_DEBUG_MIDICORE_QUERIES
     dbg_print("[COMP-Init] WARNING: USBD_MIDI.Init is NULL!\r\n");
 #endif
   }
