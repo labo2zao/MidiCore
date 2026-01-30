@@ -173,10 +173,40 @@ int test_debug_init(void)
   return 0;
 #endif
   
-  // NOTE: OLED initialization removed from here - it was causing debug output
-  // to fail if OLED hardware was not present. OLED should be initialized
-  // separately by the application if needed. Debug output should work
-  // independently of display hardware.
+#if MODULE_ENABLE_OLED
+  // Always initialize OLED for debug mirroring (enabled by default)
+  // This provides visual feedback even if UART debug is not connected
+  
+  dbg_print("Initializing OLED hardware (NHD-3.12-25664)...\r\n");
+  
+  // Initialize OLED hardware (production-grade Newhaven NHD-3.12-25664 init)
+  oled_init_newhaven();
+  
+  dbg_print("OLED hardware initialized, initializing text display...\r\n");
+  
+  // Initialize mirroring (framebuffer-based text display)
+  oled_mirror_init();
+  oled_mirror_set_enabled(1);  // Enable for text output
+  
+  dbg_print("OLED mirroring initialized, printing test text...\r\n");
+  
+  // Print test text directly to OLED
+  oled_mirror_print("*** MidiCore OLED Test ***\r\n");
+  oled_mirror_print("Hardware: STM32F407VGT6\r\n");
+  oled_mirror_print("Display: NHD-3.12-25664\r\n");
+  oled_mirror_print("Status: READY\r\n");
+  oled_mirror_print("Debug output active...\r\n");
+  oled_mirror_print("\r\n");
+  oled_mirror_print("You should see this text!\r\n");
+  
+  // Update the display to show the text
+  dbg_mirror_update();
+  
+  dbg_print("OLED test text displayed, debug mirroring ready\r\n");
+#else
+  // OLED not compiled in - debug output only via UART
+  dbg_print("OLED disabled (MODULE_ENABLE_OLED=0), using UART debug only\r\n");
+#endif
   
   return 0; // Success
 }
