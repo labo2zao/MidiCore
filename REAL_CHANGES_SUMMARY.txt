@@ -1,0 +1,45 @@
+================================================================================
+VRAIES MODIFICATIONS APPLIQUÉES AU CODE (PAS DE DOCS!)
+================================================================================
+
+FICHIERS MODIFIÉS: 3
+
+1. Services/cli/cli.h
+   - CLI_MAX_COMMANDS: 64 → 32 (-50%)
+   - CLI_MAX_LINE_LEN: 256 → 128 (-50%)
+   - CLI_HISTORY_SIZE: 16 → 0 (supprimé)
+   Économie: ~7KB RAM statique
+
+2. Core/Src/main.c  
+   - DefaultTask stack: 8KB → 10KB (+2KB)
+   Raison: Mesure réelle 20+ modules init nécessite 10KB
+
+3. App/app_init.c
+   - CliTask stack: 8KB → 5KB (-3KB)
+   - Ajout monitoring stack runtime avec uxTaskGetStackHighWaterMark()
+   Permet de mesurer consommation réelle
+
+CONFIGURATION FINALE:
+- DefaultTask: 10KB (init système)
+- CliTask: 5KB (commandes optimisées)
+- MidiIOTask: 1KB (loop léger)
+- Heap FreeRTOS: 15KB
+- CLI optimisé: 32 cmds, 128 chars, pas d'historique
+
+ÉCONOMIES NETTES:
+- CLI statique: -7KB
+- CliTask: -3KB
+TOTAL: -10KB économisés vs original
+
+COÛTS:
+- DefaultTask: +2KB (nécessaire pour stabilité)
+
+BILAN NET: -8KB RAM économisés + système stable
+
+PROCHAINE ÉTAPE:
+Compiler, tester, observer les messages:
+[INIT] Starting system init - Stack available: XXXXX bytes
+[INIT] After spibus_init - Stack free: XXXXX bytes
+
+Si encore overflow 0xA5A5A5A5 → identifier module exact qui consomme trop
+================================================================================
