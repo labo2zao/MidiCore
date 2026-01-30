@@ -150,14 +150,9 @@ static void cdc_terminal_echo(const uint8_t *data, uint32_t len) {
 
 void app_init_and_start(void)
 {
-  // STACK MONITORING: Measure to prevent 0xA5A5A5A5 overflow
-  UBaseType_t stack_free = uxTaskGetStackHighWaterMark(NULL);
-  dbg_printf("[INIT] Starting system init - Stack available: %u bytes\r\n", stack_free * 4);
-  
   // Init shared services
 #if MODULE_ENABLE_SPI_BUS
   spibus_init();
-  stack_free = uxTaskGetStackHighWaterMark(NULL);
   dbg_printf("[INIT] After spibus_init - Stack free: %u bytes\r\n", stack_free * 4);
 #endif
 
