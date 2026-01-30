@@ -1,6 +1,6 @@
 /**
  * @file FirmwareUpdater.h
- * @brief Firmware Update Tool - MIOS32-compatible bootloader interface
+ * @brief Firmware Update Tool - MidiCore-compatible bootloader interface
  */
 
 #pragma once

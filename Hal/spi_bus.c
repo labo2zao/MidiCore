@@ -6,7 +6,7 @@
 static osMutexId_t g_spi1_mutex;
 static osMutexId_t g_spi3_mutex;
 
-// Safe defaults (tuned to match MIOS32)
+// Safe defaults (tuned to match MidiCore)
 // SD Card: Use slow speed for initialization (400 kHz), then can switch to faster
 // For STM32F407 @ 168 MHz APB2:
 //   - Prescaler 256 = 168/256 = 656 kHz (safe for init)
