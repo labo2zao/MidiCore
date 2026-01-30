@@ -158,6 +158,23 @@ void app_init_and_start(void)
   // For USB CDC mode: prints startup banner
   test_debug_init();
   
+  // Print early heap diagnostics to help identify allocation issues
+  // This helps diagnose if tasks fail to create due to heap exhaustion
+  {
+    size_t free_heap = xPortGetFreeHeapSize();
+    size_t min_ever = xPortGetMinimumEverFreeHeapSize();
+    dbg_printf("\r\n");
+    dbg_printf("========================================\r\n");
+    dbg_printf("   EARLY HEAP DIAGNOSTICS\r\n");
+    dbg_printf("========================================\r\n");
+    dbg_printf("Heap total:       %lu bytes (36KB)\r\n", (unsigned long)(36*1024));
+    dbg_printf("Heap free now:    %lu bytes\r\n", (unsigned long)free_heap);
+    dbg_printf("Heap min ever:    %lu bytes\r\n", (unsigned long)min_ever);
+    dbg_printf("Heap used:        %lu bytes\r\n", (unsigned long)((36*1024) - free_heap));
+    dbg_printf("========================================\r\n");
+    dbg_printf("\r\n");
+  }
+  
   // Init shared services
 #if MODULE_ENABLE_SPI_BUS
   dbg_printf("[INIT] SPI bus already initialized in main.c\r\n");
@@ -343,6 +360,11 @@ void app_init_and_start(void)
 #if MODULE_ENABLE_STACK_MONITOR
   dbg_printf("[INIT] Initializing stack monitor...\r\n");
   stack_monitor_init();
+  // Print heap status after stack monitor init
+  {
+    size_t free_heap = xPortGetFreeHeapSize();
+    dbg_printf("[HEAP] After stack monitor: %lu bytes free\r\n", (unsigned long)free_heap);
+  }
 #endif
 
   // Default routing examples
@@ -385,6 +407,12 @@ void app_init_and_start(void)
 #endif
 
 #if MODULE_ENABLE_CLI
+  // Print heap status BEFORE creating CLI task
+  {
+    size_t free_before = xPortGetFreeHeapSize();
+    dbg_printf("[HEAP] Before CLI task: %lu bytes free\r\n", (unsigned long)free_before);
+  }
+  
   dbg_printf("[INIT] Creating CLI task...\r\n");
   // CLI task for processing terminal commands via UART
   // Stack size: 8KB REQUIRED - measured via stack_monitor
@@ -398,8 +426,14 @@ void app_init_and_start(void)
   osThreadId_t cli_handle = osThreadNew(CliTask, NULL, &cli_attr);
   if (cli_handle == NULL) {
     dbg_printf("[ERROR] Failed to create CLI task!\r\n");
+    dbg_printf("[ERROR] Heap exhausted? Check heap size in FreeRTOSConfig.h\r\n");
   } else {
     dbg_printf("[INIT] CLI task created successfully\r\n");
+    // Print heap status AFTER creating CLI task
+    size_t free_after = xPortGetFreeHeapSize();
+    dbg_printf("[HEAP] After CLI task: %lu bytes free (used %lu for stack)\r\n", 
+               (unsigned long)free_after,
+               (unsigned long)(8192 + sizeof(StaticTask_t)));  // Stack + TCB
   }
 #else
   dbg_printf("[WARNING] MODULE_ENABLE_CLI not defined - CLI disabled\r\n");
