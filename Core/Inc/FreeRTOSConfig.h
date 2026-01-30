@@ -168,6 +168,21 @@ standard names. */
 
 /* USER CODE BEGIN Defines */
 /* Section where parameter definitions can be added (for instance, to override default ones in FreeRTOS.h) */
+
+/* Enable runtime stats formatting functions for FreeRTOS awareness in CubeIDE debugger */
+#define configUSE_STATS_FORMATTING_FUNCTIONS     1
+
+/* Variables needed for FreeRTOS Thread Aware Debugging in CubeIDE */
+/* These allow the debugger to see task list and current task */
+#ifdef __GNUC__
+  /* Ensure pxCurrentTCB is visible to debugger */
+  extern void *pxCurrentTCB;
+  
+  /* uxTopUsedPriority is used by OpenOCD FreeRTOS support */
+  /* Already defined in tasks.c, just declare for visibility */
+  extern const volatile unsigned long uxTopUsedPriority;
+#endif
+
 /* USER CODE END Defines */
 
 #endif /* FREERTOS_CONFIG_H */
