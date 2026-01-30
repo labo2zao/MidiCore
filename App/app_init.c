@@ -157,7 +157,8 @@ void app_init_and_start(void)
   // Init shared services
 #if MODULE_ENABLE_SPI_BUS
   spibus_init();
-  dbg_printf("[INIT] After spibus_init - Stack free: %u bytes\r\n", stack_free * 4);
+  // Stack monitoring is handled by stack_monitor module
+  dbg_printf("[INIT] spibus_init complete\r\n");
 #endif
 
 #if MODULE_ENABLE_AINSER64
