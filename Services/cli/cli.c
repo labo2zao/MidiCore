@@ -16,6 +16,10 @@
 #include "Services/usb_cdc/usb_cdc.h"
 #endif
 
+#if MODULE_CLI_OUTPUT == CLI_OUTPUT_MIOS
+#include "Services/mios32_query/mios32_query.h"  // For SysEx terminal protocol
+#endif
+
 // =============================================================================
 // PRIVATE STATE
 // =============================================================================
@@ -410,8 +414,9 @@ static void cli_print(const char* str)
   #endif
   
 #elif MODULE_CLI_OUTPUT == CLI_OUTPUT_MIOS
-  // MIOS terminal mode - use USB CDC
-  usb_cdc_send((const uint8_t*)str, strlen(str));
+  // MIOS terminal mode - use MIDI SysEx protocol (NOT USB CDC)
+  // MIOS Studio terminal receives text via SysEx debug messages
+  mios32_debug_send_message(str, 0);  // Cable 0
   
 #elif MODULE_CLI_OUTPUT == CLI_OUTPUT_DEBUG
   // Follow MODULE_DEBUG_OUTPUT setting

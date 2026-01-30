@@ -207,10 +207,11 @@ extern "C" {
  *           (CLI prompt adds newline to avoid overwriting debug messages)
  * 
  * CLI_OUTPUT_MIOS (3):
- *   - CLI on MIOS terminal (CDC + waits for connection)
- *   - Standard MIOS32 behavior
- *   - Waits up to 10s for USB CDC connection
- *   - Best for full MIOS Studio compatibility
+ *   - CLI on MIOS terminal via MIDI SysEx protocol
+ *   - Uses mios32_debug_send_message() SysEx (NOT USB CDC text)
+ *   - Standard MIOS32 behavior for MIOS Studio compatibility
+ *   - Format: F0 00 00 7E 32 00 0D 40 <text> F7
+ *   - Best for production with MIOS Studio
  *   - Separates CLI from debug output
  * 
  * CLI_OUTPUT_DEBUG (4):
