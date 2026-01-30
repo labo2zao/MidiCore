@@ -20,23 +20,24 @@ void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName) {
   dbg_printf("[FATAL] Stack overflow #%lu in task: %s\r\n", 
              (unsigned long)s_overflow_count, pcTaskName);
   
-  // Si on boucle (plus de 3 overflows), forcer un reset complet
-  if (s_overflow_count > 3) {
-    dbg_printf("[FATAL] Multiple overflows detected - forcing system reset\r\n");
-    NVIC_SystemReset();
-  }
+  // CRITICAL: Ne JAMAIS boucler dans ce hook!
+  // Cela empêche FreeRTOS de nettoyer la tâche et cause une boucle
+  // infinie dans prvCheckTasksWaitingTermination()
   
-  // Breakpoint automatique pour debug (seulement au premier overflow)
+  // Si c'est le premier overflow, essayer de capturer l'état
   if (s_overflow_count == 1) {
-    __BKPT(0);
+    panic_set(PANIC_STACK_OVERFLOW);
+    safe_mode_set_forced(1u);
+    ui_set_status_line("PANIC STK");
+    watchdog_panic();
+    __BKPT(0);  // Breakpoint pour debug
   }
   
-  panic_set(PANIC_STACK_OVERFLOW);
-  safe_mode_set_forced(1u);
-  ui_set_status_line("PANIC STK");
-  watchdog_panic();
+  // Forcer reset immédiat pour éviter la boucle infinie
+  dbg_printf("[FATAL] Forcing immediate system reset to prevent hang\r\n");
+  NVIC_SystemReset();
   
-  // Si on arrive ici sans reset, boucler
+  // Ne devrait jamais arriver ici
   for(;;) { }
 }
 
@@ -48,18 +49,19 @@ void vApplicationMallocFailedHook(void) {
   dbg_printf("[FATAL] Malloc failed! Count: %lu\r\n", (unsigned long)s_malloc_fail_count);
   dbg_printf("[FATAL] FreeRTOS heap exhausted - check configTOTAL_HEAP_SIZE\r\n");
   
-  // Breakpoint automatique
-  __BKPT(0);
-  
-  panic_set(PANIC_MALLOC_FAILED);
-  safe_mode_set_forced(1u);
-  ui_set_status_line("PANIC MAL");
-  watchdog_panic();
-  
-  // Si multiple échecs, forcer reset
-  if (s_malloc_fail_count > 3) {
-    NVIC_SystemReset();
+  // Premier échec : capturer l'état
+  if (s_malloc_fail_count == 1) {
+    panic_set(PANIC_MALLOC_FAILED);
+    safe_mode_set_forced(1u);
+    ui_set_status_line("PANIC MAL");
+    watchdog_panic();
+    __BKPT(0);  // Breakpoint pour debug
   }
   
+  // Forcer reset immédiat pour éviter comportement indéfini
+  dbg_printf("[FATAL] Forcing immediate system reset\r\n");
+  NVIC_SystemReset();
+  
+  // Ne devrait jamais arriver ici
   for(;;) { }
 }
