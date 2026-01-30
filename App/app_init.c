@@ -151,6 +151,13 @@ void app_init_and_start(void)
   // after they were already created by spibus_begin(), causing NULL pointer access crashes!
   // See: docs/ROOT_CAUSE_DOUBLE_SPIBUS_INIT.md
   
+  // Initialize debug output system FIRST (before any dbg_printf calls!)
+  // This is CRITICAL - without this, all dbg_printf() calls produce no output!
+  // For UART mode: reconfigures from 31250 (MIDI) to 115200 (debug) baud
+  // For SWV mode: initializes ITM
+  // For USB CDC mode: prints startup banner
+  test_debug_init();
+  
   // Init shared services
 #if MODULE_ENABLE_SPI_BUS
   dbg_printf("[INIT] SPI bus already initialized in main.c\r\n");
