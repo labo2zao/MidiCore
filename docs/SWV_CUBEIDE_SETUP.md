@@ -214,6 +214,64 @@ Try these steps:
 
 ## Part 5: Troubleshooting
 
+### ⚠️ Problem: "Could not start SWV" Error (MOST COMMON!)
+
+**This is the #1 issue users face with SWV!**
+
+**Cause 1: JTAG Mode Instead of SWD** ⭐ **MOST LIKELY**
+
+**Solution:**
+1. Open Debug Configurations (Run → Debug Configurations)
+2. Select your configuration
+3. Go to **Debugger** tab
+4. Find "Debug probe" section
+5. **Interface: Change from JTAG to SWD** ← THIS!
+6. Click Apply → Close
+7. Try debug again
+
+```
+Debug Configuration → Debugger:
+Debug probe: ST-LINK (ST-LINK GDB server)
+Interface: SWD ← Change from JTAG to SWD!
+```
+
+**Cause 2: SWO Clock Too High**
+
+**Solution:** Lower the SWO clock speed:
+1. Debug Configuration → Debugger → Serial Wire Viewer (SWV)
+2. Change SWO Clock to: **500000** (500 kHz)
+3. Apply and try again
+
+**Cause 3: ST-Link Firmware Outdated**
+
+**Solution:**
+1. Download "STM32 ST-LINK Utility" from ST website
+2. Connect ST-Link
+3. Run utility → ST-LINK → Firmware Update
+4. Update to V2.J45 or newer
+5. Reconnect and try again
+
+**Cause 4: PB3 (SWO) Pin Not Configured**
+
+**Solution:** In STM32CubeMX:
+1. System Core → SYS
+2. Debug: **Serial Wire** (not Trace Asynchronous)
+3. Regenerate code
+4. Rebuild and flash
+
+**Cause 5: Target Not Running**
+
+**Solution:**
+- Resume execution (F8) BEFORE starting trace
+- Or: Start trace → Immediately resume
+
+**Quick Fix Sequence:**
+1. ✅ Change Interface to **SWD** (most important!)
+2. ✅ Lower SWO Clock to **500000**
+3. ✅ Disable SWV → Apply → Enable SWV → Apply
+4. ✅ Restart debug (Ctrl+F2, then F11)
+5. ✅ Resume (F8) → Start Trace
+
 ### Problem: No SWV Menu in Window → Show View
 
 **Cause:** Not in debug mode
@@ -224,25 +282,45 @@ Try these steps:
 
 ### Problem: "Trace not started" or No Output
 
+**✅ YES, Port 0 is correct!** 
+- ITM Port 0 is the **standard** debug output port
+- CMSIS convention for printf/debug output
+- All debug frameworks use Port 0
+
 **Possible Causes & Solutions:**
 
-**1. Port 0 not enabled**
+**1. Port 0 not enabled in console**
 - Click Configure (⚙️)
-- Check Port 0
+- **Check Port 0** checkbox
 - Click OK
 - Click Start Trace
 
-**2. Wrong core clock**
+**2. Trace not actually started**
+- Click "Start Trace" button (⏺️)
+- Button should turn green when active
+- If still red, check debug interface (SWD not JTAG)
+
+**3. MCU not running (halted)**
+- Press Resume (▶️) or F8
+- MCU must be executing for ITM output
+- Check status bar shows "Running"
+
+**4. Wrong core clock setting**
 - Check your clock configuration in CubeMX
 - Update Core Clock in debug config to match
-- For STM32F407: should be 168000000
+- For STM32F407: should be **168000000**
 
-**3. SWO clock too high**
+**5. SWO clock too high**
 - Maximum is Core Clock ÷ 4
-- Try lower value: 500000 or 1000000
+- Try lower value: **500000** or 1000000
 - More reliable than maximum speed
 
-**4. SWV not enabled in debug config**
+**6. DEBUG_OUTPUT not set to SWV**
+- Check Config/module_config.h
+- Should be: `#define MODULE_DEBUG_OUTPUT DEBUG_OUTPUT_SWV`
+- Rebuild firmware after changing
+
+**7. SWV not enabled in debug config**
 - Go to Debug Configurations
 - Debugger tab
 - Check "Enable" under SWV section
