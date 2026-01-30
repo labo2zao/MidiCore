@@ -695,9 +695,19 @@ static void CliTask(void *argument)
              (int)boot_reason_get(), (unsigned long)cli_get_command_count());
   cli_printf("\r\n");
   
+  // Small delay to allow USB MIDI TX queue to drain
+  // Each SysEx message above generates multiple USB MIDI packets
+  // Without this delay, the 64-packet TX queue can overflow
+  osDelay(20);
+  
   // Print CLI banner and prompt
   dbg_printf("[CLI-TASK] Printing banner and prompt\r\n");
   cli_print_banner();
+  
+  // Another small delay after banner (12 lines = ~25 packets)
+  // This ensures the queue has space for the prompt
+  osDelay(20);
+  
   cli_print_prompt();
   
   dbg_printf("[CLI-TASK] Entering command processing loop\r\n");
