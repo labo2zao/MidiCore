@@ -144,14 +144,6 @@ static void CliTask(void *argument);
 #endif
 static uint8_t boot_shift_held(uint8_t active_low);
 
-#if MODULE_ENABLE_USB_CDC
-// CDC terminal echo callback for MIOS Studio terminal
-static void cdc_terminal_echo(const uint8_t *data, uint32_t len) {
-  // Echo back what was received (simple terminal test)
-  usb_cdc_send(data, len);
-}
-#endif
-
 void app_init_and_start(void)
 {
   // Init shared services
@@ -189,8 +181,10 @@ void app_init_and_start(void)
 
 #if MODULE_ENABLE_USB_CDC
   usb_cdc_init();
-  // Register CDC terminal echo callback for MIOS Studio terminal
-  usb_cdc_register_receive_callback(cdc_terminal_echo);
+  // NOTE: Do NOT register echo callback here!
+  // MIOS Studio terminal handles echoing on the PC side.
+  // Echoing from firmware causes USB CDC conflicts with CLI output.
+  // See: ROOT_CAUSE_USB_CDC_ECHO.md
 #endif
 
 #if MODULE_ENABLE_PATCH
