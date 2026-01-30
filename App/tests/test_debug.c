@@ -276,13 +276,27 @@ void dbg_print(const char* str)
   size_t len = strlen(str);
   if (len == 0) return;
   
-#if MODULE_ENABLE_USB_CDC
-  // Primary output: USB CDC (virtual COM port) for TeraTerm, etc.
+#if MODULE_DEBUG_OUTPUT == DEBUG_OUTPUT_SWV
+  // Output via SWV/ITM
+  for (size_t i = 0; i < len; i++) {
+    dbg_itm_putchar(str[i]);
+  }
+  
+#elif MODULE_DEBUG_OUTPUT == DEBUG_OUTPUT_USB_CDC
+  // Output via USB CDC (virtual COM port)
+  #if MODULE_ENABLE_USB_CDC
   usb_cdc_send((const uint8_t*)str, len);
-#else
-  // Fallback to UART if USB CDC not available
+  #endif
+  
+#elif MODULE_DEBUG_OUTPUT == DEBUG_OUTPUT_UART
+  // Output via Hardware UART
   UART_HandleTypeDef* huart = get_debug_uart_handle();
   HAL_UART_Transmit(huart, (const uint8_t*)str, len, 1000);
+  
+#else // DEBUG_OUTPUT_NONE
+  // No debug output
+  (void)str;
+  (void)len;
 #endif
 
 #if MODULE_ENABLE_USB_MIDI
