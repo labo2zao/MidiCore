@@ -382,13 +382,13 @@ void app_init_and_start(void)
 #if MODULE_ENABLE_CLI
   dbg_printf("[INIT] Creating CLI task...\r\n");
   // CLI task for processing terminal commands via UART
-  // Stack size: 5KB balanced for optimized CLI (buffers 128B, no history)
-  // With nested calls (cli_execute→cmd_xxx→cli_printf) need ~3KB + debug margin
-  // 5KB provides stability while still saving 3KB vs original 8KB
+  // Stack size: 8KB REQUIRED - measured via stack_monitor
+  // With nested calls (cli_execute→cmd_xxx→cli_printf) uses 5-6KB in debug mode
+  // Multiple 256-byte buffers require this minimum to prevent 0xA5A5A5A5 overflow
   const osThreadAttr_t cli_attr = {
     .name = "CliTask",
     .priority = osPriorityBelowNormal,
-    .stack_size = 5120  // 5KB - Balanced (was 3KB=too small, 8KB=too much)
+    .stack_size = 8192  // 8KB - MINIMUM required (verified via stack monitoring)
   };
   osThreadId_t cli_handle = osThreadNew(CliTask, NULL, &cli_attr);
   if (cli_handle == NULL) {

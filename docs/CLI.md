@@ -430,7 +430,7 @@ stack [task_name]
 **Output:**
 ```
 Task: CliTask
-  Stack size:    5120 bytes (1280 words)
+  Stack size:    8192 bytes (2048 words)
   Used:          3584 bytes (70%)
   Free:          1536 bytes (30%)
   High-water:    1536 bytes
@@ -467,7 +467,7 @@ stack_all [-v]
 Task            Used         Total    Used%   Free%  Status
 --------------- ------------ -------- ------- ------ ------
 defaultTask         8192 B  12288 B      67%     33% OK
-CliTask             3584 B   5120 B      70%     30% OK
+CliTask             4096 B   8192 B      50%     50% OK
 AinTask              450 B   1024 B      44%     56% OK
 OledDemo             512 B   1024 B      50%     50% OK
 MidiIOTask           768 B   1024 B      75%     25% OK
@@ -614,7 +614,7 @@ Exporting stack data as CSV...
 
 task_name,used_bytes,total_bytes,used_pct,free_pct,hwm_bytes,status
 defaultTask,8192,12288,67,33,4096,0
-CliTask,3584,5120,70,30,1536,0
+CliTask,4096,8192,50,50,4096,0
 AinTask,450,1024,44,56,574,0
 ...
 ```

@@ -114,7 +114,7 @@ stack_monitor config critical 10
 Task            Used         Total    Used%   Free%  Status
 --------------- ------------ -------- ------- ------ ------
 defaultTask         8192 B  12288 B      67%     33% OK
-CliTask             3584 B   5120 B      70%     30% OK
+CliTask             4096 B   8192 B      50%     50% OK
 AinTask              450 B   1024 B      44%     56% OK
 OledDemo             512 B   1024 B      50%     50% OK
 MidiIOTask           768 B   1024 B      75%     25% OK

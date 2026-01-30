@@ -7,19 +7,36 @@
 #include "FreeRTOS.h"
 #include "task.h"
 
+// Counter to detect repeated overflow (indicates looping)
+static volatile uint32_t s_overflow_count = 0;
+
 void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName) {
   (void)xTask;
   
-  // Debug: affiche le nom de la tâche en overflow
-  dbg_printf("[FATAL] Stack overflow in task: %s\r\n", pcTaskName);
+  // Increment counter to detect if we're looping
+  s_overflow_count++;
   
-  // Breakpoint automatique pour debug
-  __BKPT(0);
+  // Debug: affiche le nom de la tâche en overflow avec compteur
+  dbg_printf("[FATAL] Stack overflow #%lu in task: %s\r\n", 
+             (unsigned long)s_overflow_count, pcTaskName);
+  
+  // Si on boucle (plus de 3 overflows), forcer un reset complet
+  if (s_overflow_count > 3) {
+    dbg_printf("[FATAL] Multiple overflows detected - forcing system reset\r\n");
+    NVIC_SystemReset();
+  }
+  
+  // Breakpoint automatique pour debug (seulement au premier overflow)
+  if (s_overflow_count == 1) {
+    __BKPT(0);
+  }
   
   panic_set(PANIC_STACK_OVERFLOW);
   safe_mode_set_forced(1u);
   ui_set_status_line("PANIC STK");
   watchdog_panic();
+  
+  // Si on arrive ici sans reset, boucler
   for(;;) { }
 }
 

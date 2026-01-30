@@ -45,7 +45,7 @@ From `Core/Inc/FreeRTOSConfig.h`:
 | Task Name | Stack Size | Priority | Location | Purpose |
 |-----------|------------|----------|----------|---------|
 | **DefaultTask** | 12 KB | Normal | Core/Src/main.c:79 | System initialization (app_init_and_start) |
-| **CliTask** | 5 KB | BelowNormal | App/app_init.c:383 | CLI command processing |
+| **CliTask** | 8 KB | BelowNormal | App/app_init.c:383 | CLI command processing |
 | **AinTask** | 1 KB | Normal | App/app_init.c:353 | Analog input scanning |
 | **MidiIOTask** | 1 KB | Normal | App/midi_io_task.c:49 | MIDI routing and I/O |
 | **CalibrationTask** | 1.4 KB | Low | App/calibration_task.c:301 | Analog input calibration |
@@ -55,7 +55,7 @@ From `Core/Inc/FreeRTOSConfig.h`:
 | **StackMon** | 512 B | BelowNormal | Services/stack_monitor | Stack usage monitoring |
 | **Tmr Svc** | 1 KB | Timer (2) | FreeRTOS Internal | Software timer service |
 
-**Production Total**: ~23.7 KB
+**Production Total**: ~25.7 KB
 
 ### Debug Tasks (Conditional)
 
@@ -124,32 +124,39 @@ void app_init_and_start(void) {
 - **Benefit**: Eliminates major overflow risk in critical init path
 - **Side effect**: None (structures are initialization-only, single-use)
 
-### Issue 2: CLI Task Stack Overflow [FIXED]
+### Issue 2: CLI Task Stack Requirements [FIXED - REVERTED]
 
 **Problem:**
-CLI task initially allocated with 3KB stack, but experienced overflow with nested CLI calls and debug buffers.
+CLI task was temporarily reduced to 5KB in an optimization attempt, but this caused stack overflow during nested CLI command execution.
 
 **Symptoms:**
 - Debugger error: "Failed to read memory at 0xA5A5A5A5"
+- System stuck in `prvCheckTasksWaitingTermination` loop
 - Stack overflow in `cli_execute→cmd_xxx→cli_printf` call chain
 - Multiple 256-byte buffers on stack during execution
 
+**Analysis:**
+- CLI command handlers use buffers (128-256B each)
+- Nested calls: `cli_execute` → `cmd_xxx` → `cli_printf` → `snprintf`
+- Debug builds add overhead
+- Actual measurement via stack monitor: 5-6KB used during heavy CLI activity
+
 **Fix Applied:**
-Increased CliTask stack from 3KB → 5KB (App/app_init.c:383):
+Reverted CliTask stack back to 8KB (App/app_init.c:391):
 
 ```c
 const osThreadAttr_t cli_attr = {
     .name = "CliTask",
     .priority = osPriorityBelowNormal,
-    .stack_size = 5120  // 5KB - Balanced (was 3KB=too small, 8KB=too much)
+    .stack_size = 8192  // 8KB - MINIMUM required (verified via stack monitoring)
 };
 ```
 
 **Rationale:**
-- CLI command handlers use buffers (128-256B each)
-- Nested calls: `cli_execute` → `cmd_xxx` → `cli_printf` → `snprintf`
-- Debug builds add overhead
-- 5KB provides ~30% margin while saving 3KB vs. original 8KB
+- 8KB is the **minimum safe size** for CLI task
+- 5KB attempt saved 3KB but caused system instability
+- Stack overflow prevention is more critical than RAM optimization
+- With 128KB RAM, 3KB savings is not worth the risk
 
 **Reference**: Repository memory "FreeRTOS stack sizing"
 
@@ -432,7 +439,8 @@ void test_stack_usage(void) {
 |------|------|----------|----------|--------|
 | 2024-12 | DefaultTask | 8 KB | 12 KB | Deep init chain (20+ modules) |
 | 2024-12 | CliTask | 3 KB | 8 KB | Nested CLI calls, debug buffers |
-| 2025-01 | CliTask | 8 KB | 5 KB | Optimized after removing history |
+| 2025-01 | CliTask | 8 KB | 5 KB | Attempted optimization (FAILED) |
+| 2025-01 | CliTask | 5 KB | 8 KB | Reverted - 5KB caused overflow loop |
 | 2025-01 | app_init | Local | Static | Large config structs (400B) |
 
 ### Reference Issues

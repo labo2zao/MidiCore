@@ -69,7 +69,7 @@ static pressure_cfg_t s_pcfg;
 Tâche           Utilisé     Total    Utilisé% Libre%  État
 --------------- ----------- -------- -------- ------- ------
 defaultTask         8192 B  12288 B      67%     33% OK
-CliTask             3584 B   5120 B      70%     30% OK
+CliTask             4096 B   8192 B      50%     50% OK
 AinTask              450 B   1024 B      44%     56% OK
 OledDemo             512 B   1024 B      50%     50% OK
 MidiIOTask           768 B   1024 B      75%     25% OK
@@ -81,7 +81,7 @@ MidiIOTask           768 B   1024 B      75%     25% OK
 | Tâche | Pile | Priorité | Fonction |
 |-------|------|----------|----------|
 | **DefaultTask** | 12 KB | Normal | Initialisation système (app_init_and_start) |
-| **CliTask** | 5 KB | BelowNormal | Traitement des commandes CLI |
+| **CliTask** | 8 KB | BelowNormal | Traitement des commandes CLI |
 | **AinTask** | 1 KB | Normal | Lecture des entrées analogiques |
 | **MidiIOTask** | 1 KB | Normal | Routage MIDI et I/O |
 | **CalibrationTask** | 1.4 KB | Low | Calibration des entrées analogiques |
