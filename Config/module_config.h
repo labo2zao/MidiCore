@@ -180,7 +180,7 @@ extern "C" {
 // 👇 CHANGE THIS LINE TO CHOOSE DEBUG OUTPUT METHOD 👇
 // ============================================================================
 #ifndef MODULE_DEBUG_OUTPUT
-#define MODULE_DEBUG_OUTPUT DEBUG_OUTPUT_SWV  // ⭐ RECOMMENDED: SWV for debugging
+#define MODULE_DEBUG_OUTPUT DEBUG_OUTPUT_UART  // ⭐ RECOMMENDED: SWV for debugging
 // #define MODULE_DEBUG_OUTPUT DEBUG_OUTPUT_USB_CDC  // Alternative: USB CDC for MIOS Studio
 // #define MODULE_DEBUG_OUTPUT DEBUG_OUTPUT_UART     // Alternative: Hardware UART
 // #define MODULE_DEBUG_OUTPUT DEBUG_OUTPUT_NONE     // Alternative: Disabled
