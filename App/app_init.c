@@ -392,7 +392,7 @@ void app_init_and_start(void)
   // Multiple 256-byte buffers require this minimum to prevent 0xA5A5A5A5 overflow
   const osThreadAttr_t cli_attr = {
     .name = "CliTask",
-    .priority = osPriorityBelowNormal,
+    .priority = osPriorityNormal,  // Was BelowNormal - caused starvation by MidiIOTask (AboveNormal)
     .stack_size = 8192  // 8KB - MINIMUM required (verified via stack monitoring)
   };
   osThreadId_t cli_handle = osThreadNew(CliTask, NULL, &cli_attr);
