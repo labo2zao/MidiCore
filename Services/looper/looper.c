@@ -116,6 +116,14 @@ static uint32_t g_acc_q16 = 0;
 
 static osMutexId_t g_mutex;
 
+// Helper: ensure mutex is created (call before first use)
+static inline void ensure_looper_mutex(void) {
+  if (g_mutex == NULL) {
+    const osMutexAttr_t attr = { .name = "looper" };
+    g_mutex = osMutexNew(&attr);
+  }
+}
+
 // Track Mute/Solo state
 static uint8_t g_track_muted[LOOPER_TRACKS] = {0};
 static uint8_t g_track_solo[LOOPER_TRACKS] = {0};
@@ -277,6 +285,9 @@ static void sort_events(looper_track_t* t) {
 
 void looper_init(void) {
   memset(g_tr, 0, sizeof(g_tr));
+  
+  // Lazy creation: mutex will be created on first use (after scheduler starts)
+  g_mutex = NULL;
   for (uint8_t i=0;i<LOOPER_TRACKS;i++) {
     g_tr[i].quant = LOOPER_QUANT_OFF;
     g_tr[i].loop_beats = 4;
@@ -290,8 +301,6 @@ void looper_init(void) {
     g_scene_chains[i].enabled = 0;
   }
   
-  const osMutexAttr_t attr = { .name = "looper" };
-  g_mutex = osMutexNew(&attr);
   update_rate();
   
 #if LOOPER_UNDO_USE_SD
@@ -304,7 +313,8 @@ void looper_init(void) {
 
 void looper_set_transport(const looper_transport_t* t) {
   if (!t) return;
-  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  if (g_mutex) ensure_looper_mutex();
+  osMutexAcquire(g_mutex, osWaitForever);
   g_tp = *t;
   if (g_tp.ts_num == 0) g_tp.ts_num = 4;
   if (g_tp.ts_den == 0) g_tp.ts_den = 4;
@@ -330,7 +340,8 @@ uint16_t looper_get_tempo(void) { return g_tp.bpm; }
 
 void looper_set_loop_beats(uint8_t track, uint16_t beats) {
   if (track >= LOOPER_TRACKS) return;
-  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  if (g_mutex) ensure_looper_mutex();
+  osMutexAcquire(g_mutex, osWaitForever);
   g_tr[track].loop_beats = beats;
   if (g_mutex) osMutexRelease(g_mutex);
 }
@@ -341,7 +352,8 @@ uint16_t looper_get_loop_beats(uint8_t track) {
 
 void looper_set_quant(uint8_t track, looper_quant_t q) {
   if (track >= LOOPER_TRACKS) return;
-  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  if (g_mutex) ensure_looper_mutex();
+  osMutexAcquire(g_mutex, osWaitForever);
   g_tr[track].quant = q;
   if (g_mutex) osMutexRelease(g_mutex);
 }
@@ -381,7 +393,8 @@ uint32_t looper_get_quant_step_ticks(looper_quant_t q) {
 // Track Mute/Solo Controls
 void looper_set_track_muted(uint8_t track, uint8_t muted) {
   if (track >= LOOPER_TRACKS) return;
-  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  if (g_mutex) ensure_looper_mutex();
+  osMutexAcquire(g_mutex, osWaitForever);
   g_track_muted[track] = muted ? 1 : 0;
   if (g_mutex) osMutexRelease(g_mutex);
 }
@@ -393,7 +406,8 @@ uint8_t looper_is_track_muted(uint8_t track) {
 
 void looper_set_track_solo(uint8_t track, uint8_t solo) {
   if (track >= LOOPER_TRACKS) return;
-  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  if (g_mutex) ensure_looper_mutex();
+  osMutexAcquire(g_mutex, osWaitForever);
   // Clear all other solo states (exclusive solo)
   if (solo) {
     for (uint8_t i = 0; i < LOOPER_TRACKS; i++) {
@@ -410,7 +424,8 @@ uint8_t looper_is_track_soloed(uint8_t track) {
 }
 
 void looper_clear_all_solo(void) {
-  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  if (g_mutex) ensure_looper_mutex();
+  osMutexAcquire(g_mutex, osWaitForever);
   for (uint8_t i = 0; i < LOOPER_TRACKS; i++) {
     g_track_solo[i] = 0;
   }
@@ -442,7 +457,8 @@ uint8_t looper_is_track_audible(uint8_t track) {
 
 void looper_clear(uint8_t track) {
   if (track >= LOOPER_TRACKS) return;
-  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  if (g_mutex) ensure_looper_mutex();
+  osMutexAcquire(g_mutex, osWaitForever);
   clear_track(&g_tr[track]);
   if (g_mutex) osMutexRelease(g_mutex);
 }
@@ -464,7 +480,8 @@ static uint32_t ensure_loop_len(looper_track_t* t) {
 
 void looper_set_state(uint8_t track, looper_state_t st) {
   if (track >= LOOPER_TRACKS) return;
-  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  if (g_mutex) ensure_looper_mutex();
+  osMutexAcquire(g_mutex, osWaitForever);
 
   looper_track_t* t = &g_tr[track];
   looper_state_t prev = t->st;
@@ -529,7 +546,8 @@ void looper_on_router_msg(uint8_t in_node, const router_msg_t* msg) {
   uint8_t status = msg->b0;
   if ((status & 0x80) == 0) return;
 
-  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  if (g_mutex) ensure_looper_mutex();
+  osMutexAcquire(g_mutex, osWaitForever);
   for (uint8_t tr=0; tr<LOOPER_TRACKS; tr++) {
     looper_track_t* t = &g_tr[tr];
     
@@ -642,7 +660,8 @@ void looper_tick_1ms(void) {
   if (!adv) return;
   g_acc_q16 &= 0xFFFFu;
 
-  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  if (g_mutex) ensure_looper_mutex();
+  osMutexAcquire(g_mutex, osWaitForever);
 
   for (uint8_t tr=0; tr<LOOPER_TRACKS; tr++) {
     looper_track_t* t = &g_tr[tr];
@@ -688,7 +707,8 @@ void looper_tick_1ms(void) {
               // Release mutex before triggering (trigger_scene will acquire it)
               if (g_mutex) osMutexRelease(g_mutex);
               looper_trigger_scene(g_scene_chains[current].next_scene);
-              if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+              if (g_mutex) ensure_looper_mutex();
+  osMutexAcquire(g_mutex, osWaitForever);
               // Exit loop after scene change
               break;
             }
@@ -718,7 +738,8 @@ typedef struct __attribute__((packed)) {
 
 int looper_save_track(uint8_t track, const char* filename) {
   if (track >= LOOPER_TRACKS || !filename) return -1;
-  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  if (g_mutex) ensure_looper_mutex();
+  osMutexAcquire(g_mutex, osWaitForever);
 
   looper_track_t* t = &g_tr[track];
   FIL f;
@@ -781,7 +802,8 @@ int looper_load_track(uint8_t track, const char* filename) {
     return -5;
   }
 
-  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  if (g_mutex) ensure_looper_mutex();
+  osMutexAcquire(g_mutex, osWaitForever);
 
   looper_track_t* t = &g_tr[track];
   clear_track(t);
@@ -816,7 +838,8 @@ int looper_load_track(uint8_t track, const char* filename) {
 uint32_t looper_get_loop_len_ticks(uint8_t track) {
   if (track >= LOOPER_TRACKS) return 0;
   uint32_t v = 0;
-  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  if (g_mutex) ensure_looper_mutex();
+  osMutexAcquire(g_mutex, osWaitForever);
   v = g_tr[track].loop_len_ticks;
   if (g_mutex) osMutexRelease(g_mutex);
   return v;
@@ -825,7 +848,8 @@ uint32_t looper_get_loop_len_ticks(uint8_t track) {
 uint32_t looper_export_events(uint8_t track, looper_event_view_t* out, uint32_t max) {
   if (track >= LOOPER_TRACKS || !out || max == 0) return 0;
   uint32_t n = 0;
-  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  if (g_mutex) ensure_looper_mutex();
+  osMutexAcquire(g_mutex, osWaitForever);
   looper_track_t* t = &g_tr[track];
   n = t->count;
   if (n > max) n = max;
@@ -848,7 +872,8 @@ int looper_edit_event(uint8_t track, uint32_t idx, uint32_t new_tick,
   if (track >= LOOPER_TRACKS) return -1;
   if (len != 2 && len != 3) return -2;
 
-  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  if (g_mutex) ensure_looper_mutex();
+  osMutexAcquire(g_mutex, osWaitForever);
   looper_track_t* t = &g_tr[track];
   if (idx >= t->count) {
     if (g_mutex) osMutexRelease(g_mutex);
@@ -875,7 +900,8 @@ int looper_add_event(uint8_t track, uint32_t tick, uint8_t len, uint8_t b0, uint
   if (track >= LOOPER_TRACKS) return -1;
   if (len != 2 && len != 3) return -2;
 
-  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  if (g_mutex) ensure_looper_mutex();
+  osMutexAcquire(g_mutex, osWaitForever);
   looper_track_t* t = &g_tr[track];
   if (t->count >= LOOPER_MAX_EVENTS) {
     if (g_mutex) osMutexRelease(g_mutex);
@@ -896,7 +922,8 @@ int looper_add_event(uint8_t track, uint32_t tick, uint8_t len, uint8_t b0, uint
 
 int looper_delete_event(uint8_t track, uint32_t idx) {
   if (track >= LOOPER_TRACKS) return -1;
-  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  if (g_mutex) ensure_looper_mutex();
+  osMutexAcquire(g_mutex, osWaitForever);
   looper_track_t* t = &g_tr[track];
   if (idx >= t->count) {
     if (g_mutex) osMutexRelease(g_mutex);
@@ -948,7 +975,8 @@ uint8_t looper_get_current_scene(void) {
 void looper_save_to_scene(uint8_t scene, uint8_t track) {
   if (scene >= LOOPER_SCENES || track >= LOOPER_TRACKS) return;
   
-  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  if (g_mutex) ensure_looper_mutex();
+  osMutexAcquire(g_mutex, osWaitForever);
   
   looper_track_t* t = &g_tr[track];
   scene_slot_t* slot = &g_scenes[scene][track];
@@ -971,7 +999,8 @@ void looper_load_from_scene(uint8_t scene, uint8_t track) {
   scene_slot_t* slot = &g_scenes[scene][track];
   if (!slot->has_clip) return;  // Nothing to load
   
-  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  if (g_mutex) ensure_looper_mutex();
+  osMutexAcquire(g_mutex, osWaitForever);
   
   looper_track_t* t = &g_tr[track];
   
@@ -1023,7 +1052,8 @@ static uint32_t g_step_size = 0;  // 0 = auto (event-based), else fixed ticks
 void looper_set_step_mode(uint8_t track, uint8_t enable) {
   if (track >= LOOPER_TRACKS) return;
   
-  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  if (g_mutex) ensure_looper_mutex();
+  osMutexAcquire(g_mutex, osWaitForever);
   
   g_step[track].enabled = enable ? 1 : 0;
   
@@ -1056,7 +1086,8 @@ uint32_t looper_step_forward(uint8_t track, uint32_t ticks) {
   if (track >= LOOPER_TRACKS) return 0;
   if (!g_step[track].enabled) return 0;
   
-  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  if (g_mutex) ensure_looper_mutex();
+  osMutexAcquire(g_mutex, osWaitForever);
   
   looper_track_t* t = &g_tr[track];
   uint32_t old_tick = g_step[track].cursor_tick;
@@ -1123,7 +1154,8 @@ uint32_t looper_step_backward(uint8_t track, uint32_t ticks) {
   if (track >= LOOPER_TRACKS) return 0;
   if (!g_step[track].enabled) return 0;
   
-  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  if (g_mutex) ensure_looper_mutex();
+  osMutexAcquire(g_mutex, osWaitForever);
   
   looper_track_t* t = &g_tr[track];
   uint32_t old_tick = g_step[track].cursor_tick;
@@ -1208,7 +1240,8 @@ uint32_t looper_get_cursor_position(uint8_t track) {
 void looper_set_cursor_position(uint8_t track, uint32_t tick) {
   if (track >= LOOPER_TRACKS) return;
   
-  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  if (g_mutex) ensure_looper_mutex();
+  osMutexAcquire(g_mutex, osWaitForever);
   
   looper_track_t* t = &g_tr[track];
   
@@ -1420,7 +1453,8 @@ static int export_track_to_mtrk(FIL* fp, uint8_t track, const char* track_name) 
   if (track >= LOOPER_TRACKS) return -1;
   
   // Get track data
-  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  if (g_mutex) ensure_looper_mutex();
+  osMutexAcquire(g_mutex, osWaitForever);
   
   looper_track_t* t = &g_tr[track];
   uint32_t event_count = t->count;
@@ -1810,7 +1844,8 @@ void looper_undo_push(uint8_t track) {
   sd_undo_push(track);
 #else
   // Test mode: Use RAM-based undo stack (faster, no SD dependency)
-  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  if (g_mutex) ensure_looper_mutex();
+  osMutexAcquire(g_mutex, osWaitForever);
   
   undo_stack_t* stack = &undo_stacks[track];
   undo_state_t* state = &stack->states[stack->write_idx];
@@ -1860,7 +1895,8 @@ int looper_undo(uint8_t track) {
   // Test mode: Use RAM-based undo
   if (!looper_can_undo(track)) return -1;
   
-  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  if (g_mutex) ensure_looper_mutex();
+  osMutexAcquire(g_mutex, osWaitForever);
   
   undo_stack_t* stack = &undo_stacks[track];
   
@@ -1904,7 +1940,8 @@ int looper_redo(uint8_t track) {
   if (track >= LOOPER_TRACKS) return -1;
   if (!looper_can_redo(track)) return -1;
   
-  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  if (g_mutex) ensure_looper_mutex();
+  osMutexAcquire(g_mutex, osWaitForever);
   
   undo_stack_t* stack = &undo_stacks[track];
   
@@ -1942,7 +1979,8 @@ int looper_redo(uint8_t track) {
 void looper_undo_clear(uint8_t track) {
   if (track >= LOOPER_TRACKS) return;
   
-  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  if (g_mutex) ensure_looper_mutex();
+  osMutexAcquire(g_mutex, osWaitForever);
   
   undo_stack_t* stack = &undo_stacks[track];
   memset(stack, 0, sizeof(undo_stack_t));
@@ -2125,7 +2163,8 @@ void looper_quantize_track(uint8_t track, uint8_t resolution) {
   if (track >= LOOPER_TRACKS) return;
   if (resolution >= QUANT_RESOLUTIONS) resolution = 2; // Default to 1/16
   
-  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  if (g_mutex) ensure_looper_mutex();
+  osMutexAcquire(g_mutex, osWaitForever);
   
   uint16_t grid_size = quant_grid_ticks[resolution];
   looper_track_t* t = &g_tr[track];
@@ -2425,6 +2464,7 @@ static struct {
 int looper_copy_track(uint8_t track) {
   if (track >= LOOPER_TRACKS) return -1;
   
+  ensure_looper_mutex();
   osMutexAcquire(g_mutex, osWaitForever);
   
   looper_track_t* t = &g_tr[track];
@@ -2450,6 +2490,7 @@ int looper_paste_track(uint8_t track) {
   if (track >= LOOPER_TRACKS) return -1;
   if (!track_clipboard.valid) return -1;  // Clipboard empty
   
+  ensure_looper_mutex();
   osMutexAcquire(g_mutex, osWaitForever);
   
   looper_track_t* t = &g_tr[track];
@@ -2499,6 +2540,7 @@ void looper_clear_track_clipboard(void) {}
 int looper_copy_scene(uint8_t scene) {
   if (scene >= LOOPER_SCENES) return -1;
   
+  ensure_looper_mutex();
   osMutexAcquire(g_mutex, osWaitForever);
   
   scene_clipboard.valid = 1;
@@ -2532,6 +2574,7 @@ int looper_paste_scene(uint8_t scene) {
   if (scene >= LOOPER_SCENES) return -1;
   if (!scene_clipboard.valid) return -1;  // Clipboard empty
   
+  ensure_looper_mutex();
   osMutexAcquire(g_mutex, osWaitForever);
   
   for (uint8_t track = 0; track < LOOPER_TRACKS; track++) {
@@ -2602,6 +2645,7 @@ void looper_transpose_all_tracks(int8_t semitones) {
   
   if (semitones == 0) return;  // No transpose needed
   
+  ensure_looper_mutex();
   osMutexAcquire(g_mutex, osWaitForever);
   
   // Transpose all tracks
@@ -2668,6 +2712,7 @@ void looper_randomize_track(uint8_t track, uint8_t velocity_range,
   if (timing_range > 12) timing_range = 12;
   if (note_skip_prob > 100) note_skip_prob = 100;
   
+  ensure_looper_mutex();
   osMutexAcquire(g_mutex, osWaitForever);
   
   looper_track_t* t = &g_tr[track];
@@ -3027,7 +3072,8 @@ uint8_t looper_get_arp_octaves(uint8_t track) {
 void looper_set_footswitch_action(uint8_t fs_num, footswitch_action_t action, uint8_t param) {
   if (fs_num >= NUM_FOOTSWITCHES) return;
   
-  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  if (g_mutex) ensure_looper_mutex();
+  osMutexAcquire(g_mutex, osWaitForever);
   
   g_footswitch[fs_num].action = action;
   g_footswitch[fs_num].param = param;
@@ -3054,7 +3100,8 @@ footswitch_action_t looper_get_footswitch_action(uint8_t fs_num, uint8_t* out_pa
 void looper_footswitch_press(uint8_t fs_num) {
   if (fs_num >= NUM_FOOTSWITCHES) return;
   
-  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  if (g_mutex) ensure_looper_mutex();
+  osMutexAcquire(g_mutex, osWaitForever);
   
   footswitch_mapping_t* fs = &g_footswitch[fs_num];
   fs->pressed = 1;
@@ -3162,7 +3209,8 @@ void looper_footswitch_press(uint8_t fs_num) {
 void looper_footswitch_release(uint8_t fs_num) {
   if (fs_num >= NUM_FOOTSWITCHES) return;
   
-  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  if (g_mutex) ensure_looper_mutex();
+  osMutexAcquire(g_mutex, osWaitForever);
   
   footswitch_mapping_t* fs = &g_footswitch[fs_num];
   
@@ -3187,7 +3235,8 @@ void looper_footswitch_release(uint8_t fs_num) {
  * @brief Start MIDI learn mode
  */
 void looper_midi_learn_start(footswitch_action_t action, uint8_t param) {
-  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  if (g_mutex) ensure_looper_mutex();
+  osMutexAcquire(g_mutex, osWaitForever);
   
   g_midi_learn_state.learning_active = 1;
   g_midi_learn_state.pending_action = action;
@@ -3201,7 +3250,8 @@ void looper_midi_learn_start(footswitch_action_t action, uint8_t param) {
  * @brief Cancel MIDI learn mode
  */
 void looper_midi_learn_cancel(void) {
-  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  if (g_mutex) ensure_looper_mutex();
+  osMutexAcquire(g_mutex, osWaitForever);
   
   g_midi_learn_state.learning_active = 0;
   
@@ -3220,7 +3270,8 @@ void looper_midi_learn_process(const router_msg_t* msg) {
     return;
   }
   
-  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  if (g_mutex) ensure_looper_mutex();
+  osMutexAcquire(g_mutex, osWaitForever);
   
   // Parse MIDI message
   uint8_t status = msg->b0 & 0xF0;
@@ -3334,7 +3385,8 @@ void looper_midi_learn_check(const router_msg_t* msg) {
  * @brief Clear all MIDI learn mappings
  */
 void looper_midi_learn_clear(void) {
-  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  if (g_mutex) ensure_looper_mutex();
+  osMutexAcquire(g_mutex, osWaitForever);
   
   g_midi_learn_count = 0;
   memset(g_midi_learn, 0, sizeof(g_midi_learn));
@@ -3359,7 +3411,8 @@ uint8_t looper_midi_learn_get_count(void) {
 int looper_quick_save(uint8_t slot, const char* name) {
   if (slot >= NUM_QUICK_SAVE_SLOTS) return -1;
   
-  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  if (g_mutex) ensure_looper_mutex();
+  osMutexAcquire(g_mutex, osWaitForever);
   
   quick_save_slot_t* qs = &g_quick_save_slots[slot];
   
@@ -3395,7 +3448,8 @@ int looper_quick_load(uint8_t slot) {
   quick_save_slot_t* qs = &g_quick_save_slots[slot];
   if (!qs->used) return -1;
   
-  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  if (g_mutex) ensure_looper_mutex();
+  osMutexAcquire(g_mutex, osWaitForever);
   
   // Restore transport settings
   g_tp = qs->transport;
@@ -3438,7 +3492,8 @@ const char* looper_quick_save_get_name(uint8_t slot) {
 void looper_quick_save_clear(uint8_t slot) {
   if (slot >= NUM_QUICK_SAVE_SLOTS) return;
   
-  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  if (g_mutex) ensure_looper_mutex();
+  osMutexAcquire(g_mutex, osWaitForever);
   
   g_quick_save_slots[slot].used = 0;
   
@@ -3453,7 +3508,8 @@ void looper_quick_save_clear(uint8_t slot) {
 void looper_set_humanizer_enabled(uint8_t track, uint8_t enabled) {
   if (track >= LOOPER_TRACKS) return;
   
-  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  if (g_mutex) ensure_looper_mutex();
+  osMutexAcquire(g_mutex, osWaitForever);
   
   g_humanize_params[track].enabled = enabled ? 1 : 0;
   
@@ -3475,7 +3531,8 @@ void looper_set_humanizer_velocity(uint8_t track, uint8_t amount) {
   if (track >= LOOPER_TRACKS) return;
   if (amount > 32) amount = 32;
   
-  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  if (g_mutex) ensure_looper_mutex();
+  osMutexAcquire(g_mutex, osWaitForever);
   
   g_humanize_params[track].velocity_amount = amount;
   
@@ -3497,7 +3554,8 @@ void looper_set_humanizer_timing(uint8_t track, uint8_t amount) {
   if (track >= LOOPER_TRACKS) return;
   if (amount > 6) amount = 6;
   
-  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  if (g_mutex) ensure_looper_mutex();
+  osMutexAcquire(g_mutex, osWaitForever);
   
   g_humanize_params[track].timing_amount = amount;
   
@@ -3519,7 +3577,8 @@ void looper_set_humanizer_intensity(uint8_t track, uint8_t intensity) {
   if (track >= LOOPER_TRACKS) return;
   if (intensity > 100) intensity = 100;
   
-  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  if (g_mutex) ensure_looper_mutex();
+  osMutexAcquire(g_mutex, osWaitForever);
   
   g_humanize_params[track].intensity = intensity;
   
@@ -3666,7 +3725,8 @@ void looper_reset_lfo_phase(uint8_t track) {
 void looper_automation_start_record(uint8_t track) {
   if (track >= LOOPER_TRACKS) return;
   
-  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  if (g_mutex) ensure_looper_mutex();
+  osMutexAcquire(g_mutex, osWaitForever);
   g_automation[track].recording = 1;
   if (g_mutex) osMutexRelease(g_mutex);
 }
@@ -3677,7 +3737,8 @@ void looper_automation_start_record(uint8_t track) {
 void looper_automation_stop_record(uint8_t track) {
   if (track >= LOOPER_TRACKS) return;
   
-  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  if (g_mutex) ensure_looper_mutex();
+  osMutexAcquire(g_mutex, osWaitForever);
   g_automation[track].recording = 0;
   if (g_mutex) osMutexRelease(g_mutex);
 }
@@ -3696,7 +3757,8 @@ uint8_t looper_automation_is_recording(uint8_t track) {
 void looper_automation_enable_playback(uint8_t track, uint8_t enable) {
   if (track >= LOOPER_TRACKS) return;
   
-  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  if (g_mutex) ensure_looper_mutex();
+  osMutexAcquire(g_mutex, osWaitForever);
   g_automation[track].playback_enabled = enable ? 1 : 0;
   if (enable) {
     // Reset playback position to start from beginning
@@ -3719,7 +3781,8 @@ uint8_t looper_automation_is_playback_enabled(uint8_t track) {
 void looper_automation_clear(uint8_t track) {
   if (track >= LOOPER_TRACKS) return;
   
-  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  if (g_mutex) ensure_looper_mutex();
+  osMutexAcquire(g_mutex, osWaitForever);
   g_automation[track].event_count = 0;
   g_automation[track].recording = 0;
   g_automation[track].playback_idx = 0;
@@ -3743,7 +3806,8 @@ uint32_t looper_automation_export_events(uint8_t track,
                                           uint32_t max) {
   if (track >= LOOPER_TRACKS || !out || max == 0) return 0;
   
-  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  if (g_mutex) ensure_looper_mutex();
+  osMutexAcquire(g_mutex, osWaitForever);
   
   uint32_t count = g_automation[track].event_count;
   if (count > max) count = max;
@@ -3764,7 +3828,8 @@ int looper_automation_add_event(uint8_t track, uint32_t tick,
   if (track >= LOOPER_TRACKS) return -1;
   if (cc_num > 127 || cc_value > 127 || channel > 15) return -1;
   
-  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  if (g_mutex) ensure_looper_mutex();
+  osMutexAcquire(g_mutex, osWaitForever);
   
   if (g_automation[track].event_count >= LOOPER_AUTOMATION_MAX_EVENTS) {
     if (g_mutex) osMutexRelease(g_mutex);
@@ -3880,7 +3945,8 @@ static void looper_automation_process_playback(uint8_t track) {
 
 void looper_automation_set_mute(uint8_t track, uint8_t muted) {
   if (track >= LOOPER_TRACKS) return;
-  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  if (g_mutex) ensure_looper_mutex();
+  osMutexAcquire(g_mutex, osWaitForever);
   g_automation[track].muted = muted ? 1 : 0;
   if (g_mutex) osMutexRelease(g_mutex);
 }
@@ -3892,7 +3958,8 @@ uint8_t looper_automation_is_muted(uint8_t track) {
 
 void looper_automation_set_solo(uint8_t track, uint8_t solo) {
   if (track >= LOOPER_TRACKS) return;
-  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  if (g_mutex) ensure_looper_mutex();
+  osMutexAcquire(g_mutex, osWaitForever);
   g_automation[track].soloed = solo ? 1 : 0;
   if (g_mutex) osMutexRelease(g_mutex);
 }
@@ -3908,7 +3975,8 @@ uint8_t looper_automation_is_soloed(uint8_t track) {
 
 void looper_set_length_constraint(uint8_t track, uint16_t beats) {
   if (track >= LOOPER_TRACKS) return;
-  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  if (g_mutex) ensure_looper_mutex();
+  osMutexAcquire(g_mutex, osWaitForever);
   g_length_constraints[track] = beats;
   if (g_mutex) osMutexRelease(g_mutex);
 }
@@ -3921,7 +3989,8 @@ uint16_t looper_get_length_constraint(uint8_t track) {
 void looper_quantize_loop_length(uint8_t track) {
   if (track >= LOOPER_TRACKS) return;
   
-  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  if (g_mutex) ensure_looper_mutex();
+  osMutexAcquire(g_mutex, osWaitForever);
   
   looper_track_t* t = &g_tr[track];
   uint16_t current_beats = t->loop_beats;
@@ -3955,7 +4024,8 @@ void looper_link_tracks(uint8_t track1, uint8_t track2, uint8_t linked) {
   if (track1 >= LOOPER_TRACKS || track2 >= LOOPER_TRACKS) return;
   if (track1 == track2) return;  // Can't link track to itself
   
-  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  if (g_mutex) ensure_looper_mutex();
+  osMutexAcquire(g_mutex, osWaitForever);
   
   if (linked) {
     g_track_links[track1] |= (1 << track2);
@@ -3976,7 +4046,8 @@ uint8_t looper_are_tracks_linked(uint8_t track1, uint8_t track2) {
 }
 
 void looper_clear_all_track_links(void) {
-  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  if (g_mutex) ensure_looper_mutex();
+  osMutexAcquire(g_mutex, osWaitForever);
   for (uint8_t i = 0; i < LOOPER_TRACKS; i++) {
     g_track_links[i] = 0;
   }
@@ -4011,7 +4082,8 @@ static void propagate_state_to_linked_tracks(uint8_t track, looper_state_t state
 int looper_save_scene_state(uint8_t slot) {
   if (slot >= NUM_SCENE_SNAPSHOTS) return -1;
   
-  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  if (g_mutex) ensure_looper_mutex();
+  osMutexAcquire(g_mutex, osWaitForever);
   
   scene_snapshot_t* snap = &g_scene_snapshots[slot];
   snap->used = 1;
@@ -4034,7 +4106,8 @@ int looper_recall_scene_state(uint8_t slot) {
   if (slot >= NUM_SCENE_SNAPSHOTS) return -1;
   if (!g_scene_snapshots[slot].used) return -1;
   
-  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  if (g_mutex) ensure_looper_mutex();
+  osMutexAcquire(g_mutex, osWaitForever);
   
   scene_snapshot_t* snap = &g_scene_snapshots[slot];
   g_current_scene = snap->current_scene;
@@ -4071,7 +4144,8 @@ uint8_t looper_scene_state_is_saved(uint8_t slot) {
 void looper_clear_scene_state(uint8_t slot) {
   if (slot >= NUM_SCENE_SNAPSHOTS) return;
   
-  if (g_mutex) osMutexAcquire(g_mutex, osWaitForever);
+  if (g_mutex) ensure_looper_mutex();
+  osMutexAcquire(g_mutex, osWaitForever);
   g_scene_snapshots[slot].used = 0;
   if (g_mutex) osMutexRelease(g_mutex);
 }

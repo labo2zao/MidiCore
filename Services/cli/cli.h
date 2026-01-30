@@ -40,7 +40,7 @@ extern "C" {
 // =============================================================================
 
 #ifndef CLI_MAX_COMMANDS
-#define CLI_MAX_COMMANDS 64  // Maximum number of registered commands (reduced from 128 to save ~5KB RAM)
+#define CLI_MAX_COMMANDS 32  // Maximum number of registered commands (MIOS32 style - reduced from 128)
 #endif
 
 #ifndef CLI_MAX_COMMAND_LEN
@@ -48,7 +48,7 @@ extern "C" {
 #endif
 
 #ifndef CLI_MAX_LINE_LEN
-#define CLI_MAX_LINE_LEN 256  // Maximum input line length
+#define CLI_MAX_LINE_LEN 128  // Maximum input line length (MIOS32 style - reduced from 256)
 #endif
 
 #ifndef CLI_MAX_ARGS
@@ -56,7 +56,7 @@ extern "C" {
 #endif
 
 #ifndef CLI_HISTORY_SIZE
-#define CLI_HISTORY_SIZE 16  // Number of commands in history (optimized for RAM usage)
+#define CLI_HISTORY_SIZE 0  // History disabled to save RAM (not essential for MIDI instrument)
 #endif
 
 // =============================================================================

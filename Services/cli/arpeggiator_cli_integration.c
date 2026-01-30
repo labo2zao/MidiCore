@@ -115,13 +115,18 @@ static const char* s_arp_pattern_names[] = {
 // MODULE DESCRIPTOR
 // =============================================================================
 
+static int arp_cli_init(void) { 
+  arp_init(); 
+  return 0; 
+}
+
 static module_descriptor_t s_arp_descriptor = {
   .name = "arpeggiator",
-  .description = "MIDI arpeggiator with multiple patterns",
+  .description = "MIDI arpeggiator with patterns",
   .category = MODULE_CATEGORY_EFFECT,
   
   // Control functions
-  .init = arp_init,
+  .init = arp_cli_init,
   .enable = arp_enable,
   .disable = arp_disable,
   .get_status = arp_get_status,
@@ -140,7 +145,7 @@ static module_descriptor_t s_arp_descriptor = {
     },
     {
       .name = "pattern",
-      .description = "Arpeggio pattern (0=UP, 1=DOWN, 2=UP_DOWN, 3=RANDOM, 4=AS_PLAYED)",
+      .description = "Pattern (0=UP 1=DOWN 2=UP_DOWN 3=RANDOM 4=AS_PLAYED)",
       .type = PARAM_TYPE_ENUM,
       .min = 0,
       .max = ARP_PATTERN_COUNT - 1,

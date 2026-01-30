@@ -1,12 +1,18 @@
 /**
  * @file test.c
  * @brief Test Module Implementation
+ * 
+ * Note: This entire module is excluded from production builds.
+ *       Set MODULE_ENABLE_TEST=1 in module_config.h to enable.
  */
+
+#include "Config/module_config.h"
+
+#if MODULE_ENABLE_TEST
 
 #include "Services/test/test.h"
 #include "App/tests/module_tests.h"
 #include "App/tests/test_debug.h"
-#include "Config/module_config.h"
 
 #ifdef MODULE_ENABLE_CLI
 #include "Services/module_registry/module_registry.h"
@@ -450,3 +456,5 @@ int test_register_with_registry(void)
 }
 
 #endif  // MODULE_ENABLE_CLI
+
+#endif  // MODULE_ENABLE_TEST

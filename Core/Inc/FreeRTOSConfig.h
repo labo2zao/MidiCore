@@ -68,11 +68,12 @@
 #define configTICK_RATE_HZ                       ((TickType_t)1000)
 #define configMAX_PRIORITIES                     ( 56 )
 #define configMINIMAL_STACK_SIZE                 ((uint16_t)128)
-#define configTOTAL_HEAP_SIZE                    ((size_t)(6*1024))  /* 6KB - Reduced from 10KB to save 4KB RAM. Static allocation used for tasks, heap mainly for queues. */
+#define configTOTAL_HEAP_SIZE                    ((size_t)(15*1024))  /* 15KB - Increased to accommodate CLI task (2KB) and other dynamic allocations. */
 #define configMAX_TASK_NAME_LEN                  ( 16 )
 #define configUSE_TRACE_FACILITY                 1
 #define configUSE_16_BIT_TICKS                   0
 #define configUSE_MUTEXES                        1
+#define configCHECK_FOR_STACK_OVERFLOW           2
 #define configQUEUE_REGISTRY_SIZE                8
 #define configUSE_RECURSIVE_MUTEXES              1
 #define configUSE_COUNTING_SEMAPHORES            1
@@ -168,6 +169,21 @@ standard names. */
 
 /* USER CODE BEGIN Defines */
 /* Section where parameter definitions can be added (for instance, to override default ones in FreeRTOS.h) */
+
+/* Enable runtime stats formatting functions for FreeRTOS awareness in CubeIDE debugger */
+#define configUSE_STATS_FORMATTING_FUNCTIONS     1
+
+/* Variables needed for FreeRTOS Thread Aware Debugging in CubeIDE */
+/* These allow the debugger to see task list and current task */
+#ifdef __GNUC__
+  /* pxCurrentTCB is already defined in tasks.c with correct type */
+  /* No need to redeclare - debugger will see it with debug symbols */
+  
+  /* uxTopUsedPriority is used by OpenOCD FreeRTOS support */
+  /* Already defined in tasks.c, just declare for visibility */
+  extern const volatile unsigned long uxTopUsedPriority;
+#endif
+
 /* USER CODE END Defines */
 
 #endif /* FREERTOS_CONFIG_H */

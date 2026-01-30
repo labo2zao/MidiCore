@@ -76,7 +76,7 @@ DMA_HandleTypeDef hdma_usart3_rx;
 osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
-  .stack_size = 1024 * 4,
+  .stack_size = 1024 * 12,  // 12KB - Deep init chain with 20+ modules + debug overhead
   .priority = (osPriority_t) osPriorityNormal,
 };
 /* USER CODE BEGIN PV */

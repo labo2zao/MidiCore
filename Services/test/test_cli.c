@@ -1,7 +1,14 @@
 /**
  * @file test_cli.c
  * @brief CLI commands for test module implementation
+ * 
+ * Note: This entire module is excluded from production builds.
+ *       Set MODULE_ENABLE_TEST=1 in module_config.h to enable.
  */
+
+#include "Config/module_config.h"
+
+#if MODULE_ENABLE_TEST
 
 #include "Services/test/test_cli.h"
 #include "Services/test/test.h"
@@ -301,3 +308,10 @@ int test_cli_init(void)
   
   return cli_register_command(&cmd);
 }
+
+#else  // !MODULE_ENABLE_TEST
+
+// Provide stub when test module is disabled
+int test_cli_init(void) { return 0; }
+
+#endif  // MODULE_ENABLE_TEST

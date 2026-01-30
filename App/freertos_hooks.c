@@ -2,13 +2,20 @@
 #include "Services/safe/safe_mode.h"
 #include "Services/ui/ui.h"
 #include "Services/watchdog/watchdog.h"
+#include "App/tests/test_debug.h"
 
 #include "FreeRTOS.h"
 #include "task.h"
 
 void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName) {
   (void)xTask;
-  (void)pcTaskName;
+  
+  // Debug: affiche le nom de la tâche en overflow
+  dbg_printf("[FATAL] Stack overflow in task: %s\r\n", pcTaskName);
+  
+  // Breakpoint automatique pour debug
+  __BKPT(0);
+  
   panic_set(PANIC_STACK_OVERFLOW);
   safe_mode_set_forced(1u);
   ui_set_status_line("PANIC STK");

@@ -52,6 +52,8 @@ int cli_init(void)
     return 0;
   }
 
+  dbg_printf("[CLI] Initializing CLI subsystem...\r\n");
+
   // Clear state
   memset(s_commands, 0, sizeof(s_commands));
   s_command_count = 0;
@@ -72,9 +74,7 @@ int cli_init(void)
 
   s_initialized = 1;
 
-  // Print welcome banner
-  cli_print_banner();
-  cli_print_prompt();
+  dbg_printf("[CLI] CLI initialization complete - %lu commands registered\r\n", (unsigned long)s_command_count);
 
   return 0;
 }
@@ -381,6 +381,11 @@ void cli_print_banner(void)
   cli_printf("   Firmware Configuration Interface\n");
   cli_printf("=====================================\n");
   cli_printf("\n");
+#if MODULE_ENABLE_USB_CDC
+  cli_printf("NOTE: USB CDC may take 2-5 seconds to enumerate.\n");
+  cli_printf("      If you don't see prompt, press ENTER.\n");
+  cli_printf("\n");
+#endif
   cli_printf("Type 'help' for available commands.\n");
   cli_printf("\n");
 }

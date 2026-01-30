@@ -62,16 +62,32 @@ static void spi_set_prescaler(SPI_HandleTypeDef* hspi, uint32_t prescaler) {
 }
 
 void spibus_init(void) {
-  const osMutexAttr_t attr = { .name = "spibus" };
-  g_spi1_mutex = osMutexNew(&attr);
-  g_spi3_mutex = osMutexNew(&attr);
-
+  // Initialize CS pins to high (deselected) immediately
+  // This can be done before scheduler starts
   cs_high(SPIBUS_DEV_SD);
   cs_high(SPIBUS_DEV_AIN);
+  
+  // NOTE: Mutex creation MUST be deferred until AFTER scheduler starts!
+  // osMutexNew() calls FreeRTOS functions that use critical sections
+  // which will fail/deadlock if called before osKernelStart()
+  // Mutexes are now created lazily in spibus_begin() on first use
+  g_spi1_mutex = NULL;
+  g_spi3_mutex = NULL;
+  
   // Note: OLED uses software SPI (bit-bang), not managed by spibus
 }
 
 HAL_StatusTypeDef spibus_begin(spibus_dev_t dev) {
+  // Lazy mutex creation - create on first use (after scheduler has started)
+  if (dev == SPIBUS_DEV_SD && g_spi1_mutex == NULL) {
+    const osMutexAttr_t attr = { .name = "spi1" };
+    g_spi1_mutex = osMutexNew(&attr);
+  }
+  else if (dev == SPIBUS_DEV_AIN && g_spi3_mutex == NULL) {
+    const osMutexAttr_t attr = { .name = "spi3" };
+    g_spi3_mutex = osMutexNew(&attr);
+  }
+  
   osMutexId_t m = dev_mutex(dev);
   if (!m) return HAL_ERROR;
   if (osMutexAcquire(m, osWaitForever) != osOK) return HAL_ERROR;

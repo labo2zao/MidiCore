@@ -67,6 +67,10 @@
 #include "Services/cli/cli_module_commands.h"
 #endif
 
+#if MODULE_ENABLE_USB_CDC
+#include "Services/usb_cdc/usb_cdc.h"
+#endif
+
 #if MODULE_ENABLE_MODULE_REGISTRY
 #include "Services/module_registry/module_registry.h"
 #endif
@@ -125,6 +129,8 @@
 #include "App/midi_io_task.h"
 
 #include "cmsis_os2.h"
+#include "FreeRTOS.h"
+#include "task.h"
 #include <string.h>
 
 static void AinTask(void *argument);
@@ -147,6 +153,7 @@ void app_init_and_start(void)
   // Init shared services
 #if MODULE_ENABLE_SPI_BUS
   spibus_init();
+  dbg_printf("[INIT] After spibus_init - Stack free: %u bytes\r\n", stack_free * 4);
 #endif
 
 #if MODULE_ENABLE_AINSER64
@@ -296,14 +303,24 @@ void app_init_and_start(void)
 #endif
 #endif
 
+  dbg_printf("[INIT] System initialization complete\r\n");
+
   // Initialize CLI and module registry for terminal control
 #if MODULE_ENABLE_MODULE_REGISTRY
+  dbg_printf("[INIT] Initializing module registry...\r\n");
   module_registry_init();
 #endif
 
 #if MODULE_ENABLE_CLI
+  dbg_printf("[INIT] CLI step 1: calling cli_init...\r\n");
   cli_init();
-  cli_module_commands_init();
+  dbg_printf("[INIT] CLI step 2: cli_init returned OK\r\n");
+  dbg_printf("[INIT] CLI step 3: calling cli_module_commands_init...\r\n");
+  int cli_cmd_result = cli_module_commands_init();
+  dbg_printf("[INIT] CLI step 4: cli_module_commands_init returned %d\r\n", cli_cmd_result);
+  dbg_printf("[INIT] CLI step 5: CLI system ready\r\n");
+#else
+  dbg_printf("[INIT] MODULE_ENABLE_CLI is NOT defined - CLI will not be available\r\n");
 #endif
 
 #if MODULE_ENABLE_TEST
@@ -351,21 +368,37 @@ void app_init_and_start(void)
 #endif
 
 #if MODULE_ENABLE_CLI
+  dbg_printf("[INIT] Creating CLI task...\r\n");
   // CLI task for processing terminal commands via UART
+  // Stack size: 5KB balanced for optimized CLI (buffers 128B, no history)
+  // With nested calls (cli_execute→cmd_xxx→cli_printf) need ~3KB + debug margin
+  // 5KB provides stability while still saving 3KB vs original 8KB
   const osThreadAttr_t cli_attr = {
     .name = "CliTask",
     .priority = osPriorityBelowNormal,
-    .stack_size = 2048
+    .stack_size = 5120  // 5KB - Balanced (was 3KB=too small, 8KB=too much)
   };
-  (void)osThreadNew(CliTask, NULL, &cli_attr);
+  osThreadId_t cli_handle = osThreadNew(CliTask, NULL, &cli_attr);
+  if (cli_handle == NULL) {
+    dbg_printf("[ERROR] Failed to create CLI task!\r\n");
+  } else {
+    dbg_printf("[INIT] CLI task created successfully\r\n");
+  }
+#else
+  dbg_printf("[WARNING] MODULE_ENABLE_CLI not defined - CLI disabled\r\n");
 #endif
 
+  dbg_printf("[INIT] About to start MIDI IO task...\r\n");
+  
   // Optional UART debug stream (raw ADC values)
 #if MODULE_ENABLE_AIN_RAW_DEBUG
   ain_raw_debug_task_create();
 #endif
 
   app_start_midi_io_task();
+  
+  dbg_printf("[INIT] MIDI IO task started\r\n");
+  dbg_printf("[INIT] app_init_and_start() complete - returning to scheduler\r\n");
 }
 
 static void AinTask(void *argument)
@@ -502,10 +535,64 @@ static void CliTask(void *argument)
 {
   (void)argument;
   
+  // Diagnostic trace: numbered checkpoints to identify exact blocking point
+  dbg_printf("[CLI-TASK-01] Entry point reached\r\n");
+  
+  dbg_printf("[CLI-TASK-02] Before first osDelay(10)\r\n");
+  osDelay(10);
+  dbg_printf("[CLI-TASK-03] After first osDelay(10) - SUCCESS\r\n");
+  
+  // Wait for USB CDC to be fully enumerated if using USB CDC
+  // This typically takes 2-5 seconds after boot
+#if MODULE_ENABLE_USB_CDC
+  dbg_printf("[CLI-TASK-04] USB CDC mode - before osDelay(2000)\r\n");
+  osDelay(2000);  // 2 seconds for USB CDC to fully enumerate
+  dbg_printf("[CLI-TASK-05] USB CDC mode - after osDelay(2000) - SUCCESS\r\n");
+#else
+  dbg_printf("[CLI-TASK-04] UART mode - before osDelay(100)\r\n");
+  osDelay(100);  // Small delay to let UART stabilize
+  dbg_printf("[CLI-TASK-05] UART mode - after osDelay(100) - SUCCESS\r\n");
+#endif
+  
+  // Now print welcome banner - USB CDC should be ready
+#if MODULE_ENABLE_USB_CDC
+  // If USB CDC just connected, repeat important boot info that was likely lost
+  extern uint8_t boot_reason_get(void);
+  dbg_printf("[CLI-TASK-06] Before cli_printf system ready\r\n");
+  cli_printf("\r\n");
+  cli_printf("=== MidiCore System Ready ===\r\n");
+  cli_printf("Boot reason: %d\r\n", (int)boot_reason_get());
+  cli_printf("CLI commands: %lu registered\r\n", (unsigned long)cli_get_command_count());
+  cli_printf("\r\n");
+  dbg_printf("[CLI-TASK-07] After cli_printf system ready - SUCCESS\r\n");
+#endif
+  
+  dbg_printf("[CLI-TASK-08] Before cli_print_banner()\r\n");
+  cli_print_banner();
+  dbg_printf("[CLI-TASK-09] After cli_print_banner() - SUCCESS\r\n");
+  
+  dbg_printf("[CLI-TASK-10] Before cli_print_prompt()\r\n");
+  cli_print_prompt();
+  dbg_printf("[CLI-TASK-11] After cli_print_prompt() - SUCCESS\r\n");
+  
+  dbg_printf("[CLI-TASK-12] Entering main command processing loop\r\n");
+  
   // CLI processing loop
+  uint32_t loop_count = 0;
   for (;;) {
+    if (loop_count == 0) {
+      dbg_printf("[CLI-TASK-13] First loop iteration - calling cli_task()\r\n");
+    }
+    
     cli_task();
+    
+    if (loop_count == 0) {
+      dbg_printf("[CLI-TASK-14] First cli_task() call completed - SUCCESS\r\n");
+      dbg_printf("[CLI-TASK-15] CLI fully operational - entering normal operation\r\n");
+    }
+    
     osDelay(10);  // 10ms polling interval
+    loop_count++;
   }
 }
 #endif

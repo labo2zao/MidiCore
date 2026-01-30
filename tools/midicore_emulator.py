@@ -732,7 +732,7 @@ Examples:
     elif platform.system() == 'Windows':
         # Windows - auto-detect loopMIDI (virtual ports don't work on Windows)
         print("✓ Detected Windows - searching for loopMIDI port...")
-        port_name = emulator.find_port_name("loop")
+        port_name = emulator.find_port_name("loopMidi")
         if port_name is None:
             print("\n" + "=" * 60)
             print("ERROR: loopMIDI port not found!")

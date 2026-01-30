@@ -4,15 +4,21 @@
  * 
  * Provides UART terminal commands for running and managing module tests.
  * Commands are compatible with MIOS Studio-style terminal interaction.
+ * 
+ * Note: This entire module is excluded from production builds.
+ *       Set MODULE_ENABLE_TEST=1 in module_config.h to enable.
  */
 
 #pragma once
 
 #include <stdint.h>
+#include "Config/module_config.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#if MODULE_ENABLE_TEST
 
 /**
  * @brief Register test CLI commands
@@ -28,6 +34,13 @@ extern "C" {
  * @return 0 on success, negative on error
  */
 int test_cli_init(void);
+
+#else  // !MODULE_ENABLE_TEST
+
+// Provide stub when test module is disabled
+static inline int test_cli_init(void) { return 0; }
+
+#endif  // MODULE_ENABLE_TEST
 
 #ifdef __cplusplus
 }

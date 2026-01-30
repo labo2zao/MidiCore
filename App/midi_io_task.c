@@ -6,17 +6,31 @@
 #include "Services/expression/expression.h"
 #include "Services/usb_midi/usb_midi.h"
 #include "Services/usb_cdc/usb_cdc.h"
+#include "Services/mios32_query/mios32_query.h"
+#include "App/tests/test_debug.h"
 
 // Call this from app_init_and_start() if you want a dedicated task.
 static void MidiIOTask(void *argument) {
   (void)argument;
-  uint32_t ui_ms = 0;
+  
+  dbg_printf("[MIDI-TASK] MidiIOTask started\r\n");
+  
+  // Initialize delay queue and expression
   midi_delayq_init();
   expression_init();
+  
+  dbg_printf("[MIDI-TASK] Init complete, entering main loop\r\n");
+  
+  uint32_t ui_ms = 0;
+  
   for (;;) {
     /* CRITICAL: Process USB MIDI RX queue in task context (NOT interrupt!)
      * This handles MIOS32 queries, router processing, and TX responses safely */
     usb_midi_process_rx_queue();
+    
+    /* CRITICAL: Process MIOS32 queries queued from ISR
+     * This enables MIOS Studio detection and terminal communication */
+    mios32_query_process_queued();
     
     /* CRITICAL: Process USB CDC RX queue in task context (NOT interrupt!)
      * This handles MIOS Studio terminal data safely */

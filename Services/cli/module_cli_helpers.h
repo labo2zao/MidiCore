@@ -163,39 +163,39 @@ extern "C" {
 /**
  * @brief Create a boolean parameter descriptor
  */
-#define PARAM_BOOL(module, name, desc) \
+#define PARAM_BOOL(module, param_name, desc) \
   { \
-    .name = #name, \
+    .name = #param_name, \
     .description = desc, \
     .type = PARAM_TYPE_BOOL, \
     .min = 0, \
     .max = 1, \
     .read_only = 0, \
-    .get_value = module##_param_get_##name, \
-    .set_value = module##_param_set_##name \
+    .get_value = module##_param_get_##param_name, \
+    .set_value = module##_param_set_##param_name \
   }
 
 /**
  * @brief Create an integer parameter descriptor
  */
-#define PARAM_INT(module, name, desc, min_val, max_val) \
+#define PARAM_INT(module, param_name, desc, min_val, max_val) \
   { \
-    .name = #name, \
+    .name = #param_name, \
     .description = desc, \
     .type = PARAM_TYPE_INT, \
     .min = min_val, \
     .max = max_val, \
     .read_only = 0, \
-    .get_value = module##_param_get_##name, \
-    .set_value = module##_param_set_##name \
+    .get_value = module##_param_get_##param_name, \
+    .set_value = module##_param_set_##param_name \
   }
 
 /**
  * @brief Create an enum parameter descriptor
  */
-#define PARAM_ENUM(module, name, desc, max_val, enum_strs, enum_cnt) \
+#define PARAM_ENUM(module, param_name, desc, max_val, enum_strs, enum_cnt) \
   { \
-    .name = #name, \
+    .name = #param_name, \
     .description = desc, \
     .type = PARAM_TYPE_ENUM, \
     .min = 0, \
@@ -203,8 +203,8 @@ extern "C" {
     .enum_values = enum_strs, \
     .enum_count = enum_cnt, \
     .read_only = 0, \
-    .get_value = module##_param_get_##name, \
-    .set_value = module##_param_set_##name \
+    .get_value = module##_param_get_##param_name, \
+    .set_value = module##_param_set_##param_name \
   }
 
 /**
