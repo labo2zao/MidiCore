@@ -20,6 +20,78 @@
 #include "Services/usb_cdc/usb_cdc.h"  // For USB CDC output
 #endif
 
+// =============================================================================
+// SWV/ITM SUPPORT
+// =============================================================================
+
+/**
+ * @brief Send character via ITM (Instrumentation Trace Macrocell)
+ * @param c Character to send
+ * 
+ * ITM is part of ARM CoreSight debug infrastructure. Data is sent via
+ * SWO (Serial Wire Output) pin and captured by ST-Link debugger.
+ * 
+ * View output in STM32CubeIDE:
+ * Window → Show View → SWV → SWV ITM Data Console
+ * 
+ * ITM Port 0 is used for debug output (standard practice).
+ */
+static inline void ITM_SendChar(uint32_t c)
+{
+#if MODULE_DEBUG_OUTPUT == DEBUG_OUTPUT_SWV
+  // Check if ITM is enabled and Port 0 is enabled
+  if ((ITM->TCR & ITM_TCR_ITMENA_Msk) &&  // ITM enabled
+      (ITM->TER & (1UL << 0)))             // Port 0 enabled
+  {
+    // Wait until ITM Port 0 is ready (FIFO not full)
+    while (ITM->PORT[0].u32 == 0UL) {
+      __NOP();  // Busy wait
+    }
+    // Send character to ITM Port 0
+    ITM->PORT[0].u8 = (uint8_t)c;
+  }
+#else
+  (void)c;  // Suppress unused warning
+#endif
+}
+
+/**
+ * @brief Initialize ITM for SWV output
+ * 
+ * ITM is automatically enabled by debugger when SWV is configured.
+ * This function just ensures ITM is ready and prints a banner.
+ * 
+ * STM32CubeIDE SWV Setup:
+ * 1. Debug Config → Debugger → Serial Wire Viewer (SWV)
+ * 2. ☑ Enable
+ * 3. Core Clock: 168000000 Hz (168 MHz for STM32F407)
+ * 4. SWO Clock: 2000000 Hz (2 MHz recommended, max = Core/4)
+ * 5. Port 0: ☑ Enabled
+ * 
+ * During debug session:
+ * 1. Window → Show View → SWV → SWV ITM Data Console
+ * 2. Configure → Port 0: ☑ Enabled
+ * 3. Start Trace (red button)
+ */
+static void ITM_Init(void)
+{
+#if MODULE_DEBUG_OUTPUT == DEBUG_OUTPUT_SWV
+  // ITM is controlled by debugger - just check if it's enabled
+  if ((ITM->TCR & ITM_TCR_ITMENA_Msk) == 0) {
+    // ITM not enabled by debugger
+    // Cannot enable ITM from code - must be done by debugger
+    // This is normal if not debugging or SWV not configured
+    return;
+  }
+  
+  // ITM enabled - send banner
+  const char* banner = "\r\n=== SWV Debug Output Active ===\r\n";
+  for (const char* p = banner; *p; p++) {
+    ITM_SendChar(*p);
+  }
+#endif
+}
+
 // External UART handles from main.c
 extern UART_HandleTypeDef huart1; // USART1 - MIDI DIN3 (PA9/PA10) or Debug in test mode
 extern UART_HandleTypeDef huart2; // USART2 - MIDI DIN1 (PA2/PA3)
@@ -50,14 +122,24 @@ static UART_HandleTypeDef* get_debug_uart_handle(void)
 
 int test_debug_init(void)
 {
-#if MODULE_ENABLE_USB_CDC
+#if MODULE_DEBUG_OUTPUT == DEBUG_OUTPUT_SWV
+  // Initialize SWV/ITM
+  ITM_Init();
+  dbg_print("\r\n==============================================\r\n");
+  dbg_print("Debug output: SWV (Serial Wire Viewer)\r\n");
+  dbg_print("View in STM32CubeIDE: SWV ITM Data Console\r\n");
+  dbg_print("==============================================\r\n");
+  
+#elif MODULE_DEBUG_OUTPUT == DEBUG_OUTPUT_USB_CDC
   // USB CDC is already initialized in main.c before this function
   // Just print confirmation message via USB CDC
   dbg_print("\r\n==============================================\r\n");
-  dbg_print("Debug output routed to USB CDC (Virtual COM)\r\n");
+  dbg_print("Debug output: USB CDC (Virtual COM)\r\n");
+  dbg_print("Connect via MIOS Studio or serial terminal\r\n");
   dbg_print("==============================================\r\n");
-#else
-  // Fallback to UART if USB CDC not available
+  
+#elif MODULE_DEBUG_OUTPUT == DEBUG_OUTPUT_UART
+  // Fallback to UART if USB CDC/SWV not available
   // UART handles are initialized in main.c by CubeMX to 31250 (MIDI baud)
   // In TEST MODE, we reconfigure the debug UART to 115200 baud
   // In PRODUCTION MODE, all UARTs stay at 31250 baud
@@ -80,8 +162,12 @@ int test_debug_init(void)
   
   // NOW we can print at 115200 baud
   dbg_print("\r\n==============================================\r\n");
-  dbg_print("Debug UART initialized at 115200 baud\r\n");
+  dbg_print("Debug output: UART at 115200 baud\r\n");
   dbg_print("==============================================\r\n");
+  
+#else // DEBUG_OUTPUT_NONE
+  // Debug output disabled
+  return 0;
 #endif
   
 #if MODULE_ENABLE_OLED
@@ -128,20 +214,33 @@ int test_debug_init(void)
 
 void dbg_putc(char c)
 {
-#if MODULE_ENABLE_USB_CDC
+#if MODULE_DEBUG_OUTPUT == DEBUG_OUTPUT_SWV
+  // Primary output: SWV/ITM via ST-Link
+  ITM_SendChar(c);
+  
+#elif MODULE_DEBUG_OUTPUT == DEBUG_OUTPUT_USB_CDC
   // Primary output: USB CDC (virtual COM port)
+  #if MODULE_ENABLE_USB_CDC
   usb_cdc_send((const uint8_t*)&c, 1);
-#else
-  // Fallback to UART if USB CDC not available
+  #endif
+  
+#elif MODULE_DEBUG_OUTPUT == DEBUG_OUTPUT_UART
+  // Primary output: Hardware UART
   UART_HandleTypeDef* huart = get_debug_uart_handle();
   HAL_UART_Transmit(huart, (uint8_t*)&c, 1, 100);
+  
+#else // DEBUG_OUTPUT_NONE
+  // No debug output
+  (void)c;
 #endif
   
   // Also mirror to OLED if enabled (optional secondary output)
+  #if MODULE_ENABLE_OLED
   if (oled_mirror_is_enabled()) {
     char str[2] = {c, '\0'};
     oled_mirror_print(str);
   }
+  #endif
 }
 
 void dbg_print(const char* str)

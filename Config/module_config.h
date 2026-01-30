@@ -80,6 +80,113 @@ extern "C" {
 #define MODULE_ENABLE_USB_MIDI 1  // Disabled by default (requires USB config)
 #endif
 
+// =============================================================================
+// DEBUG OUTPUT CONFIGURATION
+// =============================================================================
+
+/**
+ * @brief Debug output method selection
+ * 
+ * ============================================================================
+ * HOW TO CHOOSE DEBUG OUTPUT METHOD:
+ * ============================================================================
+ * 
+ * Set MODULE_DEBUG_OUTPUT to ONE of:
+ * - DEBUG_OUTPUT_SWV      → ST-Link SWO (recommended for debugging)
+ * - DEBUG_OUTPUT_USB_CDC  → USB Virtual COM (MIOS Studio compatible)
+ * - DEBUG_OUTPUT_UART     → Hardware UART (fallback)
+ * - DEBUG_OUTPUT_NONE     → Disabled (production)
+ * 
+ * ============================================================================
+ * OPTION 1: SWV (Serial Wire Viewer) ⭐ RECOMMENDED FOR DEBUGGING
+ * ============================================================================
+ * 
+ * Advantages:
+ * ✅ NO USB conflicts - uses ST-Link, not USB
+ * ✅ Always reliable - works even if USB fails
+ * ✅ High bandwidth - up to 2 MHz
+ * ✅ Real-time traces - minimal latency
+ * ✅ Best for USB MIDI devices
+ * 
+ * Setup:
+ * 1. Set: MODULE_DEBUG_OUTPUT = DEBUG_OUTPUT_SWV
+ * 2. In Debug Config → Debugger → Serial Wire Viewer:
+ *    - Enable: ☑
+ *    - Core Clock: 168000000 (168 MHz)
+ *    - SWO Clock: 2000000 (2 MHz)
+ *    - Port 0: ☑ Enabled
+ * 3. View: Window → Show View → SWV → SWV ITM Data Console
+ * 4. Click "Start Trace" button
+ * 
+ * ============================================================================
+ * OPTION 2: USB CDC (Virtual COM Port) - MIOS STUDIO COMPATIBLE
+ * ============================================================================
+ * 
+ * Advantages:
+ * ✅ MIOS Studio compatible
+ * ✅ Standalone (no debugger needed)
+ * ✅ Standard serial terminal
+ * 
+ * Disadvantages:
+ * ⚠️ May conflict with USB MIDI during debugging
+ * ⚠️ Requires USB enumeration working
+ * 
+ * Setup:
+ * 1. Set: MODULE_DEBUG_OUTPUT = DEBUG_OUTPUT_USB_CDC
+ * 2. Set: MODULE_ENABLE_USB_CDC = 1 (below)
+ * 3. Connect USB cable
+ * 4. Open MIOS Studio or terminal (COM port)
+ * 
+ * ============================================================================
+ * OPTION 3: Hardware UART - Fallback
+ * ============================================================================
+ * 
+ * Setup:
+ * 1. Set: MODULE_DEBUG_OUTPUT = DEBUG_OUTPUT_UART
+ * 2. Configure port in App/tests/test_debug.h
+ * 3. Connect UART adapter (115200 baud)
+ * 
+ * ============================================================================
+ * OPTION 4: Disabled - Production
+ * ============================================================================
+ * 
+ * Set: MODULE_DEBUG_OUTPUT = DEBUG_OUTPUT_NONE
+ * 
+ * ============================================================================
+ * BEST PRACTICE: Use SWV for debugging + USB CDC for MIOS terminal
+ * ============================================================================
+ * 
+ * Set:
+ * - MODULE_DEBUG_OUTPUT = DEBUG_OUTPUT_SWV      (debug traces via ST-Link)
+ * - MODULE_ENABLE_USB_CDC = 1                   (MIOS terminal via USB)
+ * 
+ * This gives you:
+ * ✅ Debug traces via SWV (no USB conflicts)
+ * ✅ MIOS Studio terminal via USB CDC
+ * ✅ CLI commands via USB CDC
+ * ✅ Both working simultaneously!
+ * 
+ * See: docs/DEBUG_OUTPUT_GUIDE.md for complete guide
+ * ============================================================================
+ */
+
+// Define output method constants
+#define DEBUG_OUTPUT_NONE     0  // No debug output
+#define DEBUG_OUTPUT_SWV      1  // SWV/ITM via ST-Link (recommended for debugging)
+#define DEBUG_OUTPUT_USB_CDC  2  // USB CDC Virtual COM (MIOS Studio compatible)
+#define DEBUG_OUTPUT_UART     3  // Hardware UART (fallback)
+
+// ============================================================================
+// 👇 CHANGE THIS LINE TO CHOOSE DEBUG OUTPUT METHOD 👇
+// ============================================================================
+#ifndef MODULE_DEBUG_OUTPUT
+#define MODULE_DEBUG_OUTPUT DEBUG_OUTPUT_SWV  // ⭐ RECOMMENDED: SWV for debugging
+// #define MODULE_DEBUG_OUTPUT DEBUG_OUTPUT_USB_CDC  // Alternative: USB CDC for MIOS Studio
+// #define MODULE_DEBUG_OUTPUT DEBUG_OUTPUT_UART     // Alternative: Hardware UART
+// #define MODULE_DEBUG_OUTPUT DEBUG_OUTPUT_NONE     // Alternative: Disabled
+#endif
+// ============================================================================
+
 /** @brief Enable USB CDC (Virtual COM Port / ACM) - MIOS32 & MIOS Studio compatible
  * 
  * When enabled (MODULE_ENABLE_USB_CDC=1):
@@ -104,6 +211,9 @@ extern "C" {
  * - Linux: /dev/ttyACM*
  * 
  * See Docs/usb/CDC_INTEGRATION.md for setup and usage
+ * 
+ * Note: USB CDC can be enabled even if MODULE_DEBUG_OUTPUT != DEBUG_OUTPUT_USB_CDC
+ * This allows MIOS terminal via USB CDC while using SWV for debug traces.
  */
 #ifndef MODULE_ENABLE_USB_CDC
 #define MODULE_ENABLE_USB_CDC 1  // Enabled - RAM optimized via FreeRTOS heap reduction and buffer optimization
