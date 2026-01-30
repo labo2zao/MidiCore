@@ -67,6 +67,10 @@
 #include "Services/cli/cli_module_commands.h"
 #endif
 
+#if MODULE_ENABLE_USB_CDC
+#include "Services/usb_cdc/usb_cdc.h"
+#endif
+
 #if MODULE_ENABLE_MODULE_REGISTRY
 #include "Services/module_registry/module_registry.h"
 #endif
@@ -542,54 +546,25 @@ static void CliTask(void *argument)
   // Add explicit delay to ensure dbg_printf completes
   osDelay(10);
   
-  dbg_printf("[CLI-TASK] Step 1: Checking USB CDC mode...\r\n");
-  
-  // REMOVE osDelay before checking #if - it might be blocking
-  // osDelay(10);
+  dbg_printf("[CLI-TASK] CLI task started\r\n");
+  osDelay(10);
   
   // Wait for USB CDC to be fully enumerated if using USB CDC
   // This typically takes 2-5 seconds after boot
 #if MODULE_ENABLE_USB_CDC
-  dbg_printf("[CLI-TASK] Step 2: MODULE_ENABLE_USB_CDC is defined\r\n");
+  dbg_printf("[CLI-TASK] Waiting for USB CDC enumeration (2 seconds)...\r\n");
   osDelay(10);
-  dbg_printf("[CLI-TASK] Waiting for USB CDC connection (terminal must open port)...\r\n");
-  
-  // Import usb_cdc_is_connected function
-  extern uint8_t usb_cdc_is_connected(void);
-  
-  // Wait for terminal to actually connect (DTR asserted)
-  uint32_t wait_count = 0;
-  uint8_t is_connected = 0;
-  
-  while (wait_count < 1000) {  // Wait up to 10 seconds max
-    if (usb_cdc_is_connected()) {
-      is_connected = 1;
-      dbg_printf("[CLI-TASK] USB CDC connected! Terminal is ready.\r\n");
-      break;
-    }
-    osDelay(10);  // Check every 10ms
-    wait_count++;
-  }
-  
-  if (!is_connected) {
-    dbg_printf("[CLI-TASK] WARNING: No terminal connected after 10s\r\n");
-    dbg_printf("[CLI-TASK] Messages may have been lost during boot\r\n");
-    dbg_printf("[CLI-TASK] Connect terminal and press RESET or type 'status'\r\n");
-  }
-  
-  // Small stabilization delay
-  osDelay(100);
-  
-  dbg_printf("[CLI] USB CDC initialization complete\r\n");
+  osDelay(2000);  // 2 seconds for USB CDC to fully enumerate
+  dbg_printf("[CLI-TASK] USB CDC initialization complete\r\n");
+  osDelay(10);
 #else
-  dbg_printf("[CLI-TASK] Step 2: MODULE_ENABLE_USB_CDC is NOT defined\r\n");
+  dbg_printf("[CLI-TASK] Using UART mode\r\n");
   osDelay(10);
-  dbg_printf("[CLI] CLI task started using UART\r\n");
-  osDelay(100);  // Small delay to let system stabilize
+  osDelay(100);  // Small delay to let UART stabilize
 #endif
   
   // Now print welcome banner - USB CDC should be ready
-  dbg_printf("[CLI] Step 3: About to print welcome banner...\r\n");
+  dbg_printf("[CLI] Printing welcome banner...\r\n");
   osDelay(10);
   
 #if MODULE_ENABLE_USB_CDC
@@ -600,29 +575,19 @@ static void CliTask(void *argument)
   cli_printf("Boot reason: %d\r\n", (int)boot_reason_get());
   cli_printf("CLI commands: %lu registered\r\n", (unsigned long)cli_get_command_count());
   cli_printf("\r\n");
+  osDelay(10);
 #endif
   
-  dbg_printf("[CLI] Printing welcome banner...\r\n");
-  osDelay(10);
   cli_print_banner();
-  dbg_printf("[CLI] Banner printed, now printing prompt...\r\n");
   osDelay(10);
   cli_print_prompt();
-  dbg_printf("[CLI] Prompt printed\r\n");
   osDelay(10);
-  dbg_printf("[CLI] CLI ready for commands - entering main loop\r\n");
+  dbg_printf("[CLI] CLI ready for commands\r\n");
+  osDelay(10);
   
   // CLI processing loop
-  uint32_t loop_count = 0;
   for (;;) {
-    if (loop_count == 0) {
-      dbg_printf("[CLI] Entering cli_task() for first time...\r\n");
-    }
     cli_task();
-    if (loop_count == 0) {
-      dbg_printf("[CLI] First cli_task() call completed\r\n");
-      loop_count = 1;
-    }
     osDelay(10);  // 10ms polling interval
   }
 }
