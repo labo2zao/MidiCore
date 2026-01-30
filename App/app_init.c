@@ -406,6 +406,21 @@ void app_init_and_start(void)
   dbg_printf("[INIT] app_init_and_start() complete - returning to scheduler\r\n");
 }
 
+// FreeRTOS Stack Overflow Hook - called when stack overflow detected
+void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName)
+{
+  // Trigger breakpoint in debug mode
+  __BKPT(0);
+  
+  // Log the error
+  dbg_printf("[FATAL] Stack overflow detected in task: %s\r\n", pcTaskName);
+  
+  // Prevent further execution - infinite loop
+  while(1) {
+    // System halted - requires reset
+  }
+}
+
 static void AinTask(void *argument)
 {
   (void)argument;
