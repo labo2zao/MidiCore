@@ -382,28 +382,60 @@ void app_init_and_start(void)
 
   // Create tasks
 #if MODULE_ENABLE_AIN
+  {
+    size_t free_before = xPortGetFreeHeapSize();
+    dbg_printf("[HEAP] Before AinTask: %lu bytes free\r\n", (unsigned long)free_before);
+  }
   const osThreadAttr_t ain_attr = {
     .name = "AinTask",
     .priority = osPriorityNormal,
     .stack_size = 1024
   };
   (void)osThreadNew(AinTask, NULL, &ain_attr);
+  {
+    size_t free_after = xPortGetFreeHeapSize();
+    dbg_printf("[HEAP] After AinTask: %lu bytes free\r\n", (unsigned long)free_after);
+  }
   app_start_ain_midi_task();
 #endif
 
 #if MODULE_ENABLE_PRESSURE
+  {
+    size_t free_before = xPortGetFreeHeapSize();
+    dbg_printf("[HEAP] Before pressure task: %lu bytes free\r\n", (unsigned long)free_before);
+  }
   app_start_pressure_task();
+  {
+    size_t free_after = xPortGetFreeHeapSize();
+    dbg_printf("[HEAP] After pressure task: %lu bytes free\r\n", (unsigned long)free_after);
+  }
 #endif
 
+  {
+    size_t free_before = xPortGetFreeHeapSize();
+    dbg_printf("[HEAP] Before calibration task: %lu bytes free\r\n", (unsigned long)free_before);
+  }
   app_start_calibration_task();
+  {
+    size_t free_after = xPortGetFreeHeapSize();
+    dbg_printf("[HEAP] After calibration task: %lu bytes free\r\n", (unsigned long)free_after);
+  }
 
 #if MODULE_ENABLE_OLED
+  {
+    size_t free_before = xPortGetFreeHeapSize();
+    dbg_printf("[HEAP] Before OledDemo task: %lu bytes free\r\n", (unsigned long)free_before);
+  }
   const osThreadAttr_t oled_attr = {
     .name = "OledDemo",
     .priority = osPriorityLow,
     .stack_size = 1024
   };
   (void)osThreadNew(OledDemoTask, NULL, &oled_attr);
+  {
+    size_t free_after = xPortGetFreeHeapSize();
+    dbg_printf("[HEAP] After OledDemo task: %lu bytes free\r\n", (unsigned long)free_after);
+  }
 #endif
 
 #if MODULE_ENABLE_CLI
@@ -440,6 +472,10 @@ void app_init_and_start(void)
 #endif
 
   dbg_printf("[INIT] About to start MIDI IO task...\r\n");
+  {
+    size_t free_before = xPortGetFreeHeapSize();
+    dbg_printf("[HEAP] Before MIDI IO task: %lu bytes free\r\n", (unsigned long)free_before);
+  }
   
   // Optional UART debug stream (raw ADC values)
 #if MODULE_ENABLE_AIN_RAW_DEBUG
@@ -448,6 +484,10 @@ void app_init_and_start(void)
 
   app_start_midi_io_task();
   
+  {
+    size_t free_after = xPortGetFreeHeapSize();
+    dbg_printf("[HEAP] After MIDI IO task: %lu bytes free\r\n", (unsigned long)free_after);
+  }
   dbg_printf("[INIT] MIDI IO task started\r\n");
   dbg_printf("[INIT] app_init_and_start() complete - returning to scheduler\r\n");
 }
