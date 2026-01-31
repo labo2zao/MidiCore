@@ -1,9 +1,9 @@
 /**
  * @file midicore_main_task.h
- * @brief MidiCore Main Task - MIOS32-like cooperative architecture
+ * @brief MidiCore Main Task - Cooperative service-based architecture
  * 
  * This implements a single main task that calls service tick functions
- * cooperatively, following MIOS32 design principles:
+ * cooperatively, following embedded best practices:
  * - ONE main task with deterministic periodic tick
  * - Logic lives in services, not tasks
  * - Services are non-blocking with bounded execution time
@@ -26,7 +26,7 @@ extern "C" {
  * ARCHITECTURE OVERVIEW
  * ============================================================================
  * 
- * MIOS32-like design with minimal task count:
+ * MidiCore cooperative design with minimal task count:
  * 
  * REQUIRED TASKS:
  * - MidiCore_MainTask: Single main task, 1-2ms tick period
@@ -54,7 +54,7 @@ extern "C" {
  * ============================================================================
  */
 
-/** Main task tick period in milliseconds (MIOS32 uses 1ms) */
+/** Main task tick period in milliseconds (1ms recommended for responsive MIDI) */
 #define MIDICORE_MAIN_TICK_MS       1
 
 /** Main task stack size in bytes */

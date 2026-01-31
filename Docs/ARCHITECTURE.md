@@ -1,8 +1,8 @@
 # MidiCore Architecture Guide
 
-## MIOS32-Like FreeRTOS Design
+## Cooperative FreeRTOS Design
 
-MidiCore follows MIOS32 design principles for deterministic, stack-safe, and maintainable embedded firmware.
+MidiCore uses a cooperative service-based architecture for deterministic, stack-safe, and maintainable embedded firmware.
 
 ---
 
@@ -169,10 +169,10 @@ for (;;) {
 
 ---
 
-## CLI Design (MIOS32-Compatible)
+## CLI Design
 
 ### Requirements
-- No printf/snprintf in output (fixed strings)
+- No printf/snprintf in output (fixed strings preferred)
 - No dedicated task (processed in main tick)
 - Line-based, ASCII-only
 - Input buffered via USB CDC/MIDI SysEx
@@ -230,6 +230,5 @@ void pressure_service_tick(uint32_t tick) {
 
 ## References
 
-- **MIOS32**: http://www.midibox.org/mios32/
-- **MIOS32 GitHub**: https://github.com/midibox/mios32
 - **FreeRTOS Best Practices**: https://www.freertos.org/
+- **Embedded Systems Design Patterns**: Cooperative scheduling, service-oriented architecture

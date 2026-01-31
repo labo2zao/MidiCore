@@ -1,9 +1,9 @@
 /**
  * @file midicore_main_task.c
- * @brief MidiCore Main Task - MIOS32-like cooperative architecture
+ * @brief MidiCore Main Task - Cooperative service-based architecture
  * 
  * Single main task that calls service tick functions cooperatively,
- * following MIOS32 design principles for deterministic execution.
+ * following embedded best practices for deterministic execution.
  * 
  * @note This file implements the core scheduler loop. All functional
  *       logic lives in service modules, not here.
@@ -25,6 +25,7 @@
 
 #if MODULE_ENABLE_AIN
 #include "Services/ain/ain.h"
+#include "App/ain_midi_task.h"  /* For ain_midi_process_events() */
 #endif
 
 #if MODULE_ENABLE_PRESSURE
@@ -106,12 +107,12 @@ static volatile uint8_t s_running = 0;
  */
 
 /**
- * @brief MidiCore Main Task - MIOS32-like cooperative scheduler
+ * @brief MidiCore Main Task - Cooperative scheduler
  * 
  * This is the heart of the system. It runs a tight loop with vTaskDelayUntil()
  * to ensure deterministic timing, calling service tick functions cooperatively.
  * 
- * Design principles (from MIOS32):
+ * Design principles:
  * - Single task, minimal stack usage
  * - Deterministic tick period (1-2ms)
  * - Non-blocking service calls
@@ -124,7 +125,7 @@ static void MidiCore_MainTask(void *argument)
   
   dbg_printf("\r\n");
   dbg_printf("================================================\r\n");
-  dbg_printf("  MidiCore_MainTask: MIOS32-like Architecture\r\n");
+  dbg_printf("  MidiCore_MainTask: Cooperative Architecture\r\n");
   dbg_printf("  Tick period: %u ms\r\n", MIDICORE_MAIN_TICK_MS);
   dbg_printf("  Stack size: %u bytes\r\n", MIDICORE_MAIN_STACK_SIZE);
   dbg_printf("================================================\r\n");
@@ -147,7 +148,7 @@ static void MidiCore_MainTask(void *argument)
   
   s_running = 1;
   
-  /* Main cooperative loop - MIOS32-style */
+  /* Main cooperative loop */
   for (;;) {
     /* Service tick functions - called at appropriate intervals */
     uint32_t tick = s_tick_count;
@@ -199,7 +200,7 @@ static void MidiCore_MainTask(void *argument)
     /* Increment tick counter */
     s_tick_count++;
     
-    /* Deterministic delay - CRITICAL for MIOS32-like timing */
+    /* Deterministic delay - CRITICAL for precise timing */
     vTaskDelayUntil(&xLastWakeTime, xPeriod);
   }
 }
@@ -341,9 +342,7 @@ static void ain_midi_service_tick(uint32_t tick)
 {
   (void)tick;
 #if MODULE_ENABLE_AIN && MODULE_ENABLE_ROUTER
-  /* Import the AIN MIDI processing logic from ain_midi_task.c */
-  /* This is handled by calling ain_midi_process_events() */
-  extern void ain_midi_process_events(void);
+  /* Process AIN events and convert to MIDI via ain_midi_process_events() */
   ain_midi_process_events();
 #endif
 }

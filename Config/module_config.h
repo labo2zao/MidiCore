@@ -687,25 +687,25 @@ extern "C" {
 
 
 // =============================================================================
-// MIOS32-LIKE ARCHITECTURE CONFIGURATION
+// COOPERATIVE ARCHITECTURE CONFIGURATION
 // =============================================================================
 
 /**
- * @brief Enable MIOS32-like cooperative task architecture
+ * @brief Enable MidiCore cooperative task architecture
  * 
- * When enabled (MODULE_ENABLE_MIOS32_ARCH=1):
+ * When enabled (MODULE_ENABLE_COOPERATIVE_ARCH=1):
  * - Single MidiCore_MainTask runs all services cooperatively
- * - Deterministic 1ms tick period (like MIOS32)
+ * - Deterministic 1ms tick period for responsive MIDI
  * - Logic lives in service tick functions, not tasks
  * - Reduced stack usage, fewer hidden states
  * - Better for long-term maintainability
  * 
- * When disabled (MODULE_ENABLE_MIOS32_ARCH=0, default):
+ * When disabled (MODULE_ENABLE_COOPERATIVE_ARCH=0):
  * - Legacy multi-task architecture
  * - Each feature has its own task (AinTask, MidiIOTask, etc.)
  * - Higher stack usage but familiar FreeRTOS pattern
  * 
- * MIOS32 design principles:
+ * Design principles:
  * - FreeRTOS is a scheduler, not an architecture
  * - Avoid "one task per feature"
  * - Prefer cooperative execution over preemptive fragmentation
@@ -715,8 +715,13 @@ extern "C" {
  * 
  * See Docs/ARCHITECTURE.md for detailed architecture guide.
  */
+#ifndef MODULE_ENABLE_COOPERATIVE_ARCH
+#define MODULE_ENABLE_COOPERATIVE_ARCH 1  // Enable cooperative architecture by default
+#endif
+
+/* Legacy alias for backwards compatibility */
 #ifndef MODULE_ENABLE_MIOS32_ARCH
-#define MODULE_ENABLE_MIOS32_ARCH 1  // Enable MIOS32-like architecture by default
+#define MODULE_ENABLE_MIOS32_ARCH MODULE_ENABLE_COOPERATIVE_ARCH
 #endif
 
 // =============================================================================

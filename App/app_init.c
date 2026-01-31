@@ -132,8 +132,8 @@
 
 #include "App/midi_io_task.h"
 
-/* MIOS32-like architecture support */
-#if MODULE_ENABLE_MIOS32_ARCH
+/* MidiCore cooperative architecture support */
+#if MODULE_ENABLE_COOPERATIVE_ARCH
 #include "App/midicore_main_task.h"
 #endif
 
@@ -142,12 +142,12 @@
 #include "task.h"
 #include <string.h>
 
-/* Legacy task prototypes - only needed when NOT using MIOS32 arch */
-#if !MODULE_ENABLE_MIOS32_ARCH
+/* Legacy task prototypes - only needed when NOT using cooperative arch */
+#if !MODULE_ENABLE_COOPERATIVE_ARCH
 static void AinTask(void *argument);
 static void OledDemoTask(void *argument);
 #endif
-#if MODULE_ENABLE_CLI && !MODULE_ENABLE_MIOS32_ARCH
+#if MODULE_ENABLE_CLI && !MODULE_ENABLE_COOPERATIVE_ARCH
 static void CliTask(void *argument);
 #endif
 static uint8_t boot_shift_held(uint8_t active_low);
@@ -416,25 +416,25 @@ void app_init_and_start(void)
   // 
   // Two architectures are supported:
   // 
-  // 1. MIOS32-LIKE (MODULE_ENABLE_MIOS32_ARCH=1) - RECOMMENDED
+  // 1. COOPERATIVE (MODULE_ENABLE_COOPERATIVE_ARCH=1) - RECOMMENDED
   //    - Single MidiCore_MainTask handles all services cooperatively
   //    - Deterministic 1ms tick, minimal stack usage
   //    - Logic in service tick functions, not tasks
   // 
-  // 2. LEGACY MULTI-TASK (MODULE_ENABLE_MIOS32_ARCH=0)
+  // 2. LEGACY MULTI-TASK (MODULE_ENABLE_COOPERATIVE_ARCH=0)
   //    - Multiple feature-specific tasks
   //    - Higher stack usage, more hidden states
   //    - Familiar FreeRTOS pattern
   // =========================================================================
 
-#if MODULE_ENABLE_MIOS32_ARCH
+#if MODULE_ENABLE_COOPERATIVE_ARCH
   // =========================================================================
-  // MIOS32-LIKE ARCHITECTURE: Single cooperative main task
+  // COOPERATIVE ARCHITECTURE: Single main task
   // =========================================================================
   dbg_printf("\r\n");
   dbg_printf("================================================\r\n");
-  dbg_printf("  MIOS32-LIKE ARCHITECTURE ENABLED\r\n");
-  dbg_printf("  Single cooperative main task model\r\n");
+  dbg_printf("  COOPERATIVE ARCHITECTURE ENABLED\r\n");
+  dbg_printf("  Single MidiCore main task model\r\n");
   dbg_printf("================================================\r\n");
   
   // Calibration task runs once at startup and exits - allowed in both modes
@@ -477,7 +477,7 @@ void app_init_and_start(void)
   dbg_printf("\r\n");
   dbg_printf("================================================\r\n");
   dbg_printf("  LEGACY MULTI-TASK ARCHITECTURE\r\n");
-  dbg_printf("  (Set MODULE_ENABLE_MIOS32_ARCH=1 for MIOS32-like)\r\n");
+  dbg_printf("  (Set MODULE_ENABLE_COOPERATIVE_ARCH=1 for cooperative)\r\n");
   dbg_printf("================================================\r\n");
 
   // Create tasks
@@ -596,7 +596,7 @@ void app_init_and_start(void)
   }
   dbg_printf("[INIT] MIDI IO task started\r\n");
 
-#endif /* MODULE_ENABLE_MIOS32_ARCH */
+#endif /* MODULE_ENABLE_COOPERATIVE_ARCH */
   
   // Print final heap summary with percentages
   {
@@ -628,13 +628,13 @@ void app_init_and_start(void)
 }
 
 /* ============================================================================
- * LEGACY TASK FUNCTIONS (only compiled when NOT using MIOS32 architecture)
+ * LEGACY TASK FUNCTIONS (only compiled when NOT using cooperative architecture)
  * ============================================================================
- * These tasks are replaced by service tick functions in MIOS32-like mode.
- * They are kept for backwards compatibility when MODULE_ENABLE_MIOS32_ARCH=0.
+ * These tasks are replaced by service tick functions in cooperative mode.
+ * They are kept for backwards compatibility when MODULE_ENABLE_COOPERATIVE_ARCH=0.
  */
 
-#if !MODULE_ENABLE_MIOS32_ARCH
+#if !MODULE_ENABLE_COOPERATIVE_ARCH
 
 static void AinTask(void *argument)
 {
@@ -721,7 +721,7 @@ static void OledDemoTask(void *argument)
 #endif
 }
 
-#endif /* !MODULE_ENABLE_MIOS32_ARCH */
+#endif /* !MODULE_ENABLE_COOPERATIVE_ARCH */
 
 #if MODULE_ENABLE_SRIO
 static inline uint8_t din_get_bit(const uint8_t* din, uint16_t phys) {
@@ -760,11 +760,11 @@ static uint8_t boot_shift_held(uint8_t active_low) {
 #endif
 }
 
-#if MODULE_ENABLE_CLI && !MODULE_ENABLE_MIOS32_ARCH
+#if MODULE_ENABLE_CLI && !MODULE_ENABLE_COOPERATIVE_ARCH
 /**
  * @brief CLI task for processing terminal commands (legacy multi-task mode)
  * 
- * NOTE: In MIOS32-like architecture (MODULE_ENABLE_MIOS32_ARCH=1), CLI is
+ * NOTE: In cooperative architecture (MODULE_ENABLE_COOPERATIVE_ARCH=1), CLI is
  * processed by cli_service_tick() in the main task instead of this task.
  * 
  * Output routing controlled by MODULE_CLI_OUTPUT:
@@ -827,6 +827,6 @@ static void CliTask(void *argument)
     osDelay(5);  // 5ms polling for responsive CLI
   }
 }
-#endif /* MODULE_ENABLE_CLI && !MODULE_ENABLE_MIOS32_ARCH */
+#endif /* MODULE_ENABLE_CLI && !MODULE_ENABLE_COOPERATIVE_ARCH */
 
 
