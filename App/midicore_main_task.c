@@ -242,7 +242,7 @@ static void MidiCore_MainTask(void *argument)
     }
     
     /* SRIO scan (every 5ms for responsive buttons/LEDs) */
-    if ((tick % MIDICORE_TICK_AIN) == 0) {
+    if ((tick % MIDICORE_TICK_SRIO) == 0) {
       srio_service_tick(tick);
     }
     
@@ -438,13 +438,14 @@ static void srio_service_tick(uint32_t tick)
     /* Check for changes and feed to input service */
 #if MODULE_ENABLE_INPUT
     for (uint16_t b = 0; b < SRIO_DIN_BYTES; b++) {
-      uint8_t diff = (uint8_t)(s_din_cur[b] ^ s_din_prev[b]);
+      uint8_t diff = s_din_cur[b] ^ s_din_prev[b];
       if (!diff) continue;
       
       for (uint8_t bit = 0; bit < 8; bit++) {
         if (diff & (1u << bit)) {
           uint16_t phys = (uint16_t)(b * 8u + bit);
-          uint8_t pressed = (s_din_cur[b] & (1u << bit)) ? 0u : 1u; /* Active low */
+          /* Active low: bit=0 means pressed, bit=1 means released */
+          uint8_t pressed = !(s_din_cur[b] & (1u << bit));
           input_feed_button(phys, pressed);
         }
       }
