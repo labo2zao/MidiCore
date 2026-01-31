@@ -13,16 +13,30 @@
  * This overrides the weak symbol in usb_midi.c to provide RX packet visibility
  * when MODULE_DEBUG_MIDICORE_QUERIES is enabled.
  * Test mode has its own implementation in module_tests.c
+ * 
+ * CRITICAL: Must match test mode behavior to prevent stack overflow and timing issues
  */
 #if defined(MODULE_TEST_USB_DEVICE_MIDI) || MODULE_DEBUG_MIDICORE_QUERIES
 void usb_midi_rx_debug_hook(const uint8_t packet4[4])
 {
-  uint8_t cable = (packet4[0] >> 4) & 0x0F;
   uint8_t cin = packet4[0] & 0x0F;
   
-  /* Log all USB MIDI packets for debugging
-   * This shows if packets are being received, which is critical for
-   * diagnosing MIOS Studio recognition issues */
+  /* CRITICAL: Skip SysEx packets (CIN 0x4-0x7) to match test mode behavior
+   * Test mode skips SysEx logging to avoid stack overflow and timing delays.
+   * MIOS Studio queries are SysEx format - logging them causes:
+   * 1. Stack overflow (dbg_printf uses ~256 bytes per call)
+   * 2. Timing delays that break query processing
+   * 3. MIOS Studio timeout waiting for response
+   * 
+   * This is THE difference that prevented MIOS Studio recognition in production!
+   */
+  if (cin >= 0x04 && cin <= 0x07) {
+    return; // Skip SysEx like test mode does
+  }
+  
+  /* Log regular MIDI messages only (Note On/Off, CC, Program Change, etc.)
+   * This provides visibility without overwhelming the system during query processing */
+  uint8_t cable = (packet4[0] >> 4) & 0x0F;
   dbg_printf("[USB-RX] Cable:%u CIN:0x%X Data:[%02X %02X %02X %02X]\r\n",
              cable, cin, packet4[0], packet4[1], packet4[2], packet4[3]);
 }
