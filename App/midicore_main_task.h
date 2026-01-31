@@ -74,6 +74,9 @@ extern "C" {
 /** AIN scanning interval (fast for responsive analog input) */
 #define MIDICORE_TICK_AIN           5     /* Every 5ms */
 
+/** SRIO scanning interval (fast for responsive buttons/LEDs) */
+#define MIDICORE_TICK_SRIO          5     /* Every 5ms */
+
 /** Pressure sensor reading interval */
 #define MIDICORE_TICK_PRESSURE      5     /* Every 5ms */
 

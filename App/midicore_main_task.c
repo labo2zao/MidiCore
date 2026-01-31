@@ -15,6 +15,7 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "App/tests/test_debug.h"
+#include <string.h>
 
 /* ============================================================================
  * SERVICE INCLUDES
@@ -75,6 +76,15 @@
 #include "Services/midicore_query/midicore_query.h"
 #endif
 
+#if MODULE_ENABLE_SRIO
+#include "Services/srio/srio.h"
+#include "Services/srio/srio_user_config.h"
+#endif
+
+#if MODULE_ENABLE_INPUT
+#include "Services/input/input.h"
+#endif
+
 /* ============================================================================
  * FORWARD DECLARATIONS
  * ============================================================================
@@ -88,6 +98,8 @@ static void ui_service_tick(uint32_t tick);
 static void cli_service_tick(uint32_t tick);
 static void watchdog_service_tick(uint32_t tick);
 static void expression_service_tick(uint32_t tick);
+static void srio_service_tick(uint32_t tick);
+static void input_service_tick(uint32_t tick);
 
 /* AIN MIDI processing - converts AIN events to MIDI */
 static void ain_midi_service_tick(uint32_t tick);
@@ -100,6 +112,20 @@ static void ain_midi_service_tick(uint32_t tick);
 static osThreadId_t s_main_task_handle = NULL;
 static volatile uint32_t s_tick_count = 0;
 static volatile uint8_t s_running = 0;
+
+/* SRIO state for cooperative mode */
+#if MODULE_ENABLE_SRIO && defined(SRIO_ENABLE)
+static uint8_t s_din_prev[SRIO_DIN_BYTES];
+static uint8_t s_din_cur[SRIO_DIN_BYTES];
+static uint8_t s_dout_buf[SRIO_DOUT_BYTES];
+static uint8_t s_srio_initialized = 0;
+#endif
+
+/* Input service state */
+#if MODULE_ENABLE_INPUT
+static uint32_t s_input_ms = 0;
+static uint8_t s_input_initialized = 0;
+#endif
 
 /* ============================================================================
  * MAIN TASK IMPLEMENTATION
@@ -137,6 +163,46 @@ static void MidiCore_MainTask(void *argument)
   expression_init();
 #endif
 
+  /* Initialize SRIO for button/LED handling */
+#if MODULE_ENABLE_SRIO && defined(SRIO_ENABLE)
+  {
+    srio_config_t scfg = {
+      .hspi = SRIO_SPI_HANDLE,
+      .din_pl_port = SRIO_DIN_PL_PORT,
+      .din_pl_pin = SRIO_DIN_PL_PIN,
+      .dout_rclk_port = SRIO_DOUT_RCLK_PORT,
+      .dout_rclk_pin = SRIO_DOUT_RCLK_PIN,
+      .dout_oe_port = NULL,
+      .dout_oe_pin = 0,
+      .dout_oe_active_low = 1,
+      .din_bytes = SRIO_DIN_BYTES,
+      .dout_bytes = SRIO_DOUT_BYTES,
+    };
+    srio_init(&scfg);
+    memset(s_din_prev, 0xFF, sizeof(s_din_prev));
+    memset(s_din_cur, 0xFF, sizeof(s_din_cur));
+    memset(s_dout_buf, 0, sizeof(s_dout_buf));
+    srio_write_dout(s_dout_buf);
+    s_srio_initialized = 1;
+    dbg_printf("[MAIN] SRIO initialized: DIN=%u bytes, DOUT=%u bytes\r\n", 
+               SRIO_DIN_BYTES, SRIO_DOUT_BYTES);
+  }
+#endif
+
+  /* Initialize input service for buttons/encoders */
+#if MODULE_ENABLE_INPUT
+  {
+    input_config_t icfg = {
+      .debounce_ms = 20,
+      .shift_hold_ms = 500,
+      .shift_button_id = 10
+    };
+    input_init(&icfg);
+    s_input_initialized = 1;
+    dbg_printf("[MAIN] Input service initialized\r\n");
+  }
+#endif
+
   /* Wait for USB enumeration to complete before processing MIDI */
   dbg_printf("[MAIN] Waiting for USB enumeration (500ms)...\r\n");
   osDelay(500);
@@ -161,6 +227,9 @@ static void MidiCore_MainTask(void *argument)
     /* Expression processing (1ms for smooth CC output) */
     expression_service_tick(tick);
     
+    /* Input service timing tick (1ms) */
+    input_service_tick(tick);
+    
     /* ---- PRIORITY 2: Regular services (every 5ms) ---- */
     
     if ((tick % MIDICORE_TICK_AIN) == 0) {
@@ -170,6 +239,11 @@ static void MidiCore_MainTask(void *argument)
     
     if ((tick % MIDICORE_TICK_PRESSURE) == 0) {
       pressure_service_tick(tick);
+    }
+    
+    /* SRIO scan (every 5ms for responsive buttons/LEDs) */
+    if ((tick % MIDICORE_TICK_AIN) == 0) {
+      srio_service_tick(tick);
     }
     
     if ((tick % MIDICORE_TICK_CLI) == 0) {
@@ -344,6 +418,62 @@ static void ain_midi_service_tick(uint32_t tick)
 #if MODULE_ENABLE_AIN && MODULE_ENABLE_ROUTER
   /* Process AIN events and convert to MIDI via ain_midi_process_events() */
   ain_midi_process_events();
+#endif
+}
+
+/**
+ * @brief SRIO service tick - scan DIN and update DOUT
+ * 
+ * This handles 74HC165 (DIN) and 74HC595 (DOUT) shift register chains.
+ * Scans digital inputs and writes digital outputs for buttons/LEDs.
+ */
+static void srio_service_tick(uint32_t tick)
+{
+  (void)tick;
+#if MODULE_ENABLE_SRIO && defined(SRIO_ENABLE)
+  if (!s_srio_initialized) return;
+  
+  /* Read DIN chain */
+  if (srio_read_din(s_din_cur) == 0) {
+    /* Check for changes and feed to input service */
+#if MODULE_ENABLE_INPUT
+    for (uint16_t b = 0; b < SRIO_DIN_BYTES; b++) {
+      uint8_t diff = (uint8_t)(s_din_cur[b] ^ s_din_prev[b]);
+      if (!diff) continue;
+      
+      for (uint8_t bit = 0; bit < 8; bit++) {
+        if (diff & (1u << bit)) {
+          uint16_t phys = (uint16_t)(b * 8u + bit);
+          uint8_t pressed = (s_din_cur[b] & (1u << bit)) ? 0u : 1u; /* Active low */
+          input_feed_button(phys, pressed);
+        }
+      }
+    }
+#endif
+    
+    /* Update previous state */
+    memcpy(s_din_prev, s_din_cur, SRIO_DIN_BYTES);
+  }
+  
+  /* Write DOUT chain - s_dout_buf can be updated by other services */
+  srio_write_dout(s_dout_buf);
+#endif
+}
+
+/**
+ * @brief Input service tick - process button/encoder debouncing and timing
+ * 
+ * This should be called every 1ms to update debounce counters and
+ * detect shift button long-press.
+ */
+static void input_service_tick(uint32_t tick)
+{
+  (void)tick;
+#if MODULE_ENABLE_INPUT
+  if (!s_input_initialized) return;
+  
+  s_input_ms++;
+  input_tick(s_input_ms);
 #endif
 }
 
