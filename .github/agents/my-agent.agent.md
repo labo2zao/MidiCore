@@ -18,7 +18,8 @@ You are working on the MidiCore firmware project:
 - Reference architecture: MIOS32 (midibox.org) https://github.com/midibox/mios32, and mios studio https://github.com/midibox/mios32/tree/master/tools/mios_studio
 
 Your PRIMARY MISSION:
-Redesign and refactor the FreeRTOS architecture to be MIOS32-like, deterministic, stack-safe, and long-term maintainable.
+Redesign and refactor the Midicore project architecture to be MIOS32-like, deterministic, stack-safe, and long-term maintainable, and maintain the strucure.
+Refactor all the md files, clean and merge them into few files suitable for my dyslexia / ADHD disorders.
 
 You are NOT here to add features.
 You are here to REDUCE complexity.
