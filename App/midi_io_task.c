@@ -133,8 +133,9 @@ static void MidiIOTask(void *argument) {
       // Check USB MIDI status
       midi_ready = usb_midi_get_tx_status(&queue_size, &queue_used, &queue_drops);
       
-      dbg_printf("[MIDI-TASK] Heartbeat: Task running OK (loops: %lu)\r\n", (unsigned long)diagnostic_counter);
-      dbg_printf("[MIDI-TASK] USB MIDI: %s, Queue: %lu/%lu, Drops: %lu\r\n",
+      dbg_printf("[MIDI-TASK] ===== Heartbeat #%lu =====\r\n", (unsigned long)(now / 10000));
+      dbg_printf("[MIDI-TASK] Status: Task running, processing queries\r\n");
+      dbg_printf("[MIDI-TASK] USB MIDI: %s | Queue: %lu/%lu used | Drops: %lu\r\n",
                  midi_ready ? "READY" : "NOT_READY",
                  (unsigned long)queue_used,
                  (unsigned long)queue_size,
@@ -143,12 +144,21 @@ static void MidiIOTask(void *argument) {
       if (!midi_ready) {
         dbg_printf("[MIDI-TASK] ERROR: USB MIDI still not ready after %lu seconds!\r\n",
                    (unsigned long)(now / 1000));
+        dbg_printf("[MIDI-TASK]        Check USB cable connection and enumeration\r\n");
+      } else {
+        dbg_printf("[MIDI-TASK] Waiting for MIOS Studio to send queries...\r\n");
+        dbg_printf("[MIDI-TASK] NOTE: If no [USB-RX] messages appear above:\r\n");
+        dbg_printf("[MIDI-TASK]       1. MIOS Studio may not be open\r\n");
+        dbg_printf("[MIDI-TASK]       2. MIOS Studio may not see the device\r\n");
+        dbg_printf("[MIDI-TASK]       3. USB enumeration issue on host side\r\n");
       }
       
       if (queue_drops > 0) {
         dbg_printf("[MIDI-TASK] WARNING: TX queue has dropped %lu packets!\r\n",
                    (unsigned long)queue_drops);
       }
+      
+      dbg_printf("[MIDI-TASK] ========================\r\n");
       
       diagnostic_counter = 0;
     }
