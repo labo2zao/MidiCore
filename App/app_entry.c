@@ -1,7 +1,7 @@
 #include "App/app_entry.h"
 
 #include "App/app_init.h"
-#include "App/debug_output/dbg_print.h"
+#include "App/tests/test_debug.h"
 #include "cmsis_os.h"
 #include "FreeRTOS.h"
 #include "task.h"
