@@ -178,6 +178,9 @@ void app_init_and_start(void)
     dbg_printf("\r\n");
   }
   
+  // Allow UART TX buffer to drain after early heap diagnostics
+  osDelay(50);
+  
   // Init shared services
 #if MODULE_ENABLE_SPI_BUS
   dbg_printf("[INIT] SPI bus already initialized in main.c\r\n");
@@ -351,7 +354,10 @@ void app_init_and_start(void)
   int cli_cmd_result = cli_module_commands_init();
   dbg_printf("[INIT] CLI step 4: cli_module_commands_init returned %d\r\n", cli_cmd_result);
   dbg_printf("[INIT] CLI step 5: CLI system ready\r\n");
-  
+
+  // Allow UART TX buffer to drain after CLI initialization messages
+  osDelay(100);
+
   // Initialize MidiCore terminal hooks for thread-safe I/O
   dbg_printf("[INIT] CLI step 6: Initializing MidiCore terminal hooks...\r\n");
   if (midicore_hooks_init()) {
@@ -359,6 +365,9 @@ void app_init_and_start(void)
   } else {
     dbg_printf("[INIT] CLI step 7: ERROR - MidiCore hooks initialization failed!\r\n");
   }
+  
+  // Allow UART TX buffer to drain before stack monitor init
+  osDelay(50);
 #else
   dbg_printf("[INIT] MODULE_ENABLE_CLI is NOT defined - CLI will not be available\r\n");
 #endif
@@ -449,6 +458,9 @@ void app_init_and_start(void)
     size_t free_after = xPortGetFreeHeapSize();
     dbg_printf("[HEAP] After OledDemo task: %lu bytes free\r\n", (unsigned long)free_after);
   }
+  
+  // Allow UART TX buffer to drain after task creation messages
+  osDelay(50);
 #endif
 
 #if MODULE_ENABLE_CLI
@@ -483,6 +495,9 @@ void app_init_and_start(void)
 #else
   dbg_printf("[WARNING] MODULE_ENABLE_CLI not defined - CLI disabled\r\n");
 #endif
+
+  // Allow UART TX buffer to drain before MIDI IO task messages
+  osDelay(50);
 
   dbg_printf("[INIT] About to start MIDI IO task...\r\n");
   {

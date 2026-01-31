@@ -92,6 +92,9 @@ int stack_monitor_init(void)
              (unsigned long)s_warning_threshold,
              (unsigned long)s_critical_threshold);
 
+  // Allow UART TX buffer to drain after initialization messages
+  osDelay(50);
+
   return 0;
 }
 
