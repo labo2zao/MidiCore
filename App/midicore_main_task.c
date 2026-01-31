@@ -121,6 +121,11 @@ static uint8_t s_dout_buf[SRIO_DOUT_BYTES];
 static uint8_t s_srio_initialized = 0;
 #endif
 
+/* Input service configuration defaults */
+#define INPUT_DEBOUNCE_MS       20    /* Button debounce time in ms */
+#define INPUT_SHIFT_HOLD_MS     500   /* Long-press time for shift function */
+#define INPUT_SHIFT_BUTTON_ID   10    /* Physical button ID for SHIFT */
+
 /* Input service state */
 #if MODULE_ENABLE_INPUT
 static uint32_t s_input_ms = 0;
@@ -193,9 +198,9 @@ static void MidiCore_MainTask(void *argument)
 #if MODULE_ENABLE_INPUT
   {
     input_config_t icfg = {
-      .debounce_ms = 20,
-      .shift_hold_ms = 500,
-      .shift_button_id = 10
+      .debounce_ms = INPUT_DEBOUNCE_MS,
+      .shift_hold_ms = INPUT_SHIFT_HOLD_MS,
+      .shift_button_id = INPUT_SHIFT_BUTTON_ID
     };
     input_init(&icfg);
     s_input_initialized = 1;
