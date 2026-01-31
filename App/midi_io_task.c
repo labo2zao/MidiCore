@@ -9,6 +9,25 @@
 #include "Services/midicore_query/midicore_query.h"
 #include "App/tests/test_debug.h"
 
+/* USB MIDI RX debug hook for production mode
+ * This overrides the weak symbol in usb_midi.c to provide RX packet visibility
+ * when MODULE_DEBUG_MIDICORE_QUERIES is enabled.
+ * Test mode has its own implementation in module_tests.c
+ */
+#if defined(MODULE_TEST_USB_DEVICE_MIDI) || MODULE_DEBUG_MIDICORE_QUERIES
+void usb_midi_rx_debug_hook(const uint8_t packet4[4])
+{
+  uint8_t cable = (packet4[0] >> 4) & 0x0F;
+  uint8_t cin = packet4[0] & 0x0F;
+  
+  /* Log all USB MIDI packets for debugging
+   * This shows if packets are being received, which is critical for
+   * diagnosing MIOS Studio recognition issues */
+  dbg_printf("[USB-RX] Cable:%u CIN:0x%X Data:[%02X %02X %02X %02X]\r\n",
+             cable, cin, packet4[0], packet4[1], packet4[2], packet4[3]);
+}
+#endif
+
 // Call this from app_init_and_start() if you want a dedicated task.
 static void MidiIOTask(void *argument) {
   (void)argument;
