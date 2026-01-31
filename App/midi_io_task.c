@@ -76,6 +76,16 @@ static void MidiIOTask(void *argument) {
     dbg_printf("[MIDI-TASK] ERROR: Failed to send test message (USB MIDI not ready?)\r\n");
   };
   
+  /* CRITICAL: Allow USB enumeration to complete before processing queries
+   * Test mode has 500ms of delays (5 messages * 100ms each) before main loop.
+   * This timing is ESSENTIAL for MIOS Studio recognition to work reliably.
+   * Without this delay, firmware enters main loop before USB fully enumerated,
+   * causing first queries from MIOS Studio to be missed or fail.
+   * USB composite enumeration (MIDI + CDC) typically takes 200-500ms. */
+  dbg_printf("[MIDI-TASK] Waiting for USB enumeration to complete (500ms)...\r\n");
+  osDelay(500);
+  dbg_printf("[MIDI-TASK] USB enumeration complete, ready for MIOS Studio queries\r\n");
+  
   uint32_t ui_ms = 0;
   
   for (;;) {
