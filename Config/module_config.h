@@ -719,11 +719,6 @@ extern "C" {
 #define MODULE_ENABLE_COOPERATIVE_ARCH 1  // Enable cooperative architecture by default
 #endif
 
-/* Legacy alias for backwards compatibility */
-#ifndef MODULE_ENABLE_MIOS32_ARCH
-#define MODULE_ENABLE_MIOS32_ARCH MODULE_ENABLE_COOPERATIVE_ARCH
-#endif
-
 // =============================================================================
 // CONFIGURATION VALIDATION
 // =============================================================================

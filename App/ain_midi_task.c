@@ -77,7 +77,7 @@ static void send_note(uint8_t phys_key, uint8_t note, uint8_t on, uint8_t vel, u
 }
 
 /**
- * @brief Process AIN events and convert to MIDI (MIOS32-like service function)
+ * @brief Process AIN events and convert to MIDI (cooperative service function)
  * 
  * This is the service function version that can be called from the main task.
  * It processes all pending events in one call (non-blocking, bounded time).
@@ -130,7 +130,7 @@ void ain_midi_process_events(void) {
 
 /**
  * @brief Legacy task-based AIN MIDI processing
- * @deprecated Use ain_midi_process_events() with MIOS32-like main task
+ * @deprecated Use ain_midi_process_events() with cooperative main task
  */
 static void AinMidiTask(void* argument) {
   (void)argument;
