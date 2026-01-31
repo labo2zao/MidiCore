@@ -17,7 +17,7 @@ void oled_init_newhaven(void);           // Complete Newhaven NHD-3.12 init (Loo
 #ifdef MODULE_TEST_OLED
 
 // Test/Debug Init Functions
-void oled_init(void);                    // Simple MIOS32 test init (basic, working) - FOR TESTING ONLY
+void oled_init(void);                    // Simple MidiCore test init (basic, working) - FOR TESTING ONLY
 void oled_init_progressive(uint8_t max_step);  // For debugging (step-by-step) - FOR TESTING ONLY
 
 #endif // MODULE_TEST_OLED

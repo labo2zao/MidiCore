@@ -5,6 +5,7 @@
 
 #include "cli.h"
 #include "App/tests/test_debug.h"
+#include "Config/module_config.h"  // For MODULE_CLI_OUTPUT and DEBUG_OUTPUT modes
 #include "main.h"  // For UART handle
 #include <string.h>
 #include <stdio.h>
@@ -13,6 +14,10 @@
 
 #if MODULE_ENABLE_USB_CDC
 #include "Services/usb_cdc/usb_cdc.h"
+#endif
+
+#if MODULE_CLI_OUTPUT == CLI_OUTPUT_MIOS
+#include "Services/midicore_query/midicore_query.h"  // For SysEx terminal protocol
 #endif
 
 // =============================================================================
@@ -29,6 +34,62 @@ static uint8_t s_initialized = 0;
 static char s_history[CLI_HISTORY_SIZE][CLI_MAX_LINE_LEN];
 static uint8_t s_history_count = 0;
 static uint8_t s_history_index = 0;
+
+#if MODULE_ENABLE_USB_CDC
+// =============================================================================
+// USB CDC INPUT BUFFER (ISR-safe circular buffer)
+// =============================================================================
+// USB CDC uses callbacks from ISR, not polling.
+// We buffer input here and process in cli_task().
+
+#define CLI_INPUT_BUFFER_SIZE 256
+
+static uint8_t s_input_buffer[CLI_INPUT_BUFFER_SIZE];
+static volatile uint16_t s_input_head = 0;
+static volatile uint16_t s_input_tail = 0;
+
+/**
+ * @brief USB CDC RX callback - called from ISR context
+ * @param buf Received data buffer
+ * @param len Number of bytes received
+ * 
+ * CRITICAL: Called from USB interrupt! Keep it fast!
+ * Just buffer the data and return immediately.
+ */
+static void cli_usb_cdc_rx_callback(const uint8_t *buf, uint32_t len)
+{
+  // Queue all received bytes into circular buffer
+  for (uint32_t i = 0; i < len; i++) {
+    uint16_t next_head = (s_input_head + 1) % CLI_INPUT_BUFFER_SIZE;
+    
+    // Check if buffer full (drop character if full)
+    if (next_head != s_input_tail) {
+      s_input_buffer[s_input_head] = buf[i];
+      s_input_head = next_head;
+    }
+    // If buffer full, character is silently dropped (overflow protection)
+  }
+}
+
+/**
+ * @brief Get one character from input buffer (non-blocking)
+ * @param ch Pointer to store received character
+ * @return 1 if character available, 0 if buffer empty
+ */
+static uint8_t cli_getchar(uint8_t *ch)
+{
+  // Check if buffer empty
+  if (s_input_head == s_input_tail) {
+    return 0;  // No data available
+  }
+  
+  // Get character from buffer
+  *ch = s_input_buffer[s_input_tail];
+  s_input_tail = (s_input_tail + 1) % CLI_INPUT_BUFFER_SIZE;
+  
+  return 1;  // Character retrieved
+}
+#endif
 
 // =============================================================================
 // FORWARD DECLARATIONS
@@ -71,6 +132,16 @@ int cli_init(void)
   cli_register_command("uptime", cmd_uptime, "Show uptime", "uptime", "system");
   cli_register_command("status", cmd_status, "Show status", "status", "system");
   cli_register_command("reboot", cmd_reboot, "Reboot system", "reboot", "system");
+
+#if MODULE_ENABLE_USB_CDC
+  // Register USB CDC receive callback for CLI input
+  // This is CRITICAL - without this, CLI receives no input!
+  dbg_printf("[CLI] Registering USB CDC receive callback...\r\n");
+  usb_cdc_register_receive_callback(cli_usb_cdc_rx_callback);
+  s_input_head = 0;
+  s_input_tail = 0;
+  dbg_printf("[CLI] USB CDC callback registered\r\n");
+#endif
 
   s_initialized = 1;
 
@@ -186,35 +257,84 @@ cli_result_t cli_execute_argv(int argc, char* argv[])
 // INPUT PROCESSING
 // =============================================================================
 
+/**
+ * @brief Get one character from CLI input (respects MODULE_CLI_OUTPUT setting)
+ * @param ch Pointer to store received character
+ * @return 1 if character available, 0 if no character
+ * 
+ * Reads CLI input from appropriate source based on MODULE_CLI_OUTPUT:
+ * - CLI_OUTPUT_USB_CDC / CLI_OUTPUT_MIOS: Read from USB CDC
+ * - CLI_OUTPUT_UART: Read from UART
+ * - CLI_OUTPUT_DEBUG: Read based on MODULE_DEBUG_OUTPUT setting
+ */
+static uint8_t cli_get_input_char(uint8_t *ch)
+{
+#if MODULE_CLI_OUTPUT == CLI_OUTPUT_USB_CDC || MODULE_CLI_OUTPUT == CLI_OUTPUT_MIOS
+  // USB CDC input modes
+  #if MODULE_ENABLE_USB_CDC
+    return cli_getchar(ch);  // Read from USB CDC callback buffer
+  #else
+    return 0;  // USB CDC not available
+  #endif
+  
+#elif MODULE_CLI_OUTPUT == CLI_OUTPUT_UART
+  // UART input mode - read from debug UART
+  extern UART_HandleTypeDef huart5;  // User's debug UART (PC12/PD2)
+  UART_HandleTypeDef* uart = &huart5;
+  
+  if (HAL_UART_Receive(uart, ch, 1, 0) == HAL_OK) {
+    // Character received - echo it back (UART terminals often don't echo locally)
+    HAL_UART_Transmit(uart, ch, 1, 10);
+    return 1;
+  }
+  return 0;  // No character available
+  
+#elif MODULE_CLI_OUTPUT == CLI_OUTPUT_DEBUG
+  // Follow MODULE_DEBUG_OUTPUT setting
+  #if MODULE_DEBUG_OUTPUT == DEBUG_OUTPUT_UART
+    // UART mode - read from debug UART
+    extern UART_HandleTypeDef huart5;
+    UART_HandleTypeDef* uart = &huart5;
+    
+    if (HAL_UART_Receive(uart, ch, 1, 0) == HAL_OK) {
+      // Echo character for UART terminals
+      HAL_UART_Transmit(uart, ch, 1, 10);
+      return 1;
+    }
+    return 0;
+    
+  #elif MODULE_DEBUG_OUTPUT == DEBUG_OUTPUT_USB_CDC
+    // USB CDC mode
+    #if MODULE_ENABLE_USB_CDC
+      return cli_getchar(ch);
+    #else
+      return 0;
+    #endif
+    
+  #else
+    // SWV or other modes - no input available
+    return 0;
+  #endif
+  
+#else
+  #error "Invalid MODULE_CLI_OUTPUT setting"
+#endif
+}
+
 void cli_task(void)
 {
   if (!s_initialized) {
     return;
   }
 
-  // Poll for available character (non-blocking)
+  // Get one character (non-blocking) from appropriate input source
   uint8_t ch;
-  
-#if MODULE_ENABLE_USB_CDC
-  // Use USB CDC for CLI input
-  if (usb_cdc_receive(&ch, 1) != 1) {
+  if (!cli_get_input_char(&ch)) {
     return; // No character available
   }
   
-  // Echo character back via USB CDC
-  usb_cdc_send(&ch, 1);
-#else
-  // Fallback to UART
-  extern UART_HandleTypeDef huart5;
-  UART_HandleTypeDef* uart = &huart5;
-  
-  if (HAL_UART_Receive(uart, &ch, 1, 0) != HAL_OK) {
-    return; // No character available
-  }
-  
-  // Echo character back to terminal
-  HAL_UART_Transmit(uart, &ch, 1, 10);
-#endif
+  // NOTE: Echo handling is done in cli_get_input_char() for UART modes.
+  // USB CDC modes rely on terminal emulator echo (standard MidiCore behavior).
   
   // Handle special characters
   if (ch == '\r' || ch == '\n') {
@@ -256,6 +376,11 @@ void cli_task(void)
     if (s_input_pos < CLI_MAX_LINE_LEN - 1) {
       s_input_line[s_input_pos++] = (char)ch;
       s_input_line[s_input_pos] = '\0';
+      // Echo only for non-UART modes (UART already echoed in cli_get_input_char)
+#if MODULE_CLI_OUTPUT == CLI_OUTPUT_USB_CDC || MODULE_CLI_OUTPUT == CLI_OUTPUT_MIOS || \
+    (MODULE_CLI_OUTPUT == CLI_OUTPUT_DEBUG && MODULE_DEBUG_OUTPUT != DEBUG_OUTPUT_UART)
+      cli_printf("%c", ch);
+#endif
     }
   }
   // Ignore other control characters for now (arrows, etc.)
@@ -264,6 +389,43 @@ void cli_task(void)
 // =============================================================================
 // OUTPUT HELPERS
 // =============================================================================
+
+// CLI output function - routes based on MODULE_CLI_OUTPUT configuration
+// Allows user to choose CLI terminal independently from debug output
+static void cli_print(const char* str)
+{
+  if (!str || strlen(str) == 0) {
+    return;
+  }
+
+#if MODULE_CLI_OUTPUT == CLI_OUTPUT_USB_CDC
+  // Route to USB CDC only
+  usb_cdc_send((const uint8_t*)str, strlen(str));
+  
+#elif MODULE_CLI_OUTPUT == CLI_OUTPUT_UART
+  // Route to UART (force UART mode for CLI)
+  #if MODULE_DEBUG_OUTPUT == DEBUG_OUTPUT_UART
+    // Already UART mode, use normal debug print
+    dbg_print(str);
+  #else
+    // Not in UART mode, need to send directly to UART
+    // This is a fallback - normally use DEBUG_OUTPUT_UART
+    dbg_print(str);  // Will go to current debug output
+  #endif
+  
+#elif MODULE_CLI_OUTPUT == CLI_OUTPUT_MIOS
+  // MIOS terminal mode - use MIDI SysEx protocol (NOT USB CDC)
+  // MIOS Studio terminal receives text via SysEx debug messages
+  midicore_debug_send_message(str, 0);  // Cable 0
+  
+#elif MODULE_CLI_OUTPUT == CLI_OUTPUT_DEBUG
+  // Follow MODULE_DEBUG_OUTPUT setting
+  dbg_print(str);
+  
+#else
+  #error "Invalid MODULE_CLI_OUTPUT setting"
+#endif
+}
 
 void cli_printf(const char* fmt, ...)
 {
@@ -274,7 +436,7 @@ void cli_printf(const char* fmt, ...)
   vsnprintf(buffer, sizeof(buffer), fmt, args);
   va_end(args);
 
-  dbg_print(buffer);
+  cli_print(buffer);  // Use cli_print() instead of dbg_print()
 }
 
 void cli_error(const char* fmt, ...)
@@ -287,7 +449,7 @@ void cli_error(const char* fmt, ...)
   vsnprintf(buffer, sizeof(buffer), fmt, args);
   va_end(args);
 
-  dbg_print(buffer);
+  cli_print(buffer);  // Use cli_print() for consistency
 }
 
 void cli_success(const char* fmt, ...)
@@ -300,7 +462,7 @@ void cli_success(const char* fmt, ...)
   vsnprintf(buffer, sizeof(buffer), fmt, args);
   va_end(args);
 
-  dbg_print(buffer);
+  cli_print(buffer);  // Use cli_print() for consistency
 }
 
 void cli_warning(const char* fmt, ...)
@@ -313,7 +475,7 @@ void cli_warning(const char* fmt, ...)
   vsnprintf(buffer, sizeof(buffer), fmt, args);
   va_end(args);
 
-  dbg_print(buffer);
+  cli_print(buffer);  // Use cli_print() for consistency
 }
 
 // =============================================================================
@@ -392,7 +554,22 @@ void cli_print_banner(void)
 
 void cli_print_prompt(void)
 {
-  cli_printf("midicore> ");
+  // Add newline before prompt when CLI shares terminal with debug output
+  // This prevents CLI prompt from overwriting MidiCore query debug messages
+  #if (MODULE_CLI_OUTPUT == CLI_OUTPUT_DEBUG) || \
+      (MODULE_CLI_OUTPUT == CLI_OUTPUT_UART && MODULE_DEBUG_OUTPUT == DEBUG_OUTPUT_UART)
+    // CLI and debug on same terminal - add newline for separation
+    #if MODULE_DEBUG_MIDICORE_QUERIES
+      // MidiCore debug active - ensure clean line for prompt
+      cli_printf("\r\nmidicore> ");
+    #else
+      // No MidiCore debug - normal prompt
+      cli_printf("midicore> ");
+    #endif
+  #else
+    // CLI on separate terminal from debug - normal prompt
+    cli_printf("midicore> ");
+  #endif
 }
 
 // =============================================================================

@@ -155,7 +155,7 @@ void module_test_srio_run(void);
  * - All 8 DOUT bytes (64 LEDs)
  * - Daisy-chained register operation
  * 
- * Hardware connections (MIOS32 mbhp_doutx4):
+ * Hardware connections (MidiCore mbhp_doutx4):
  * - STM32 PB15 (SPI2 MOSI) → 74HC595 Pin 14 (SER - serial data)
  * - STM32 PB13 (SPI2 SCK)  → 74HC595 Pin 11 (SRCLK - shift clock)
  * - STM32 PB12 (RC1)       → 74HC595 Pin 12 (RCLK - register clock/latch)
@@ -812,7 +812,7 @@ void module_test_usb_device_midi_run(void);
  * 5. Print test summary and troubleshooting guidance
  * 
  * UART output includes:
- * - Pin mapping (MIOS32 compatible: J15_SER/RS, J15_E1/E2, J15_RW)
+ * - Pin mapping (MidiCore compatible: J15_SER/RS, J15_E1/E2, J15_RW)
  * - SPI timing specs vs SSD1322 datasheet requirements
  * - GPIO test results (PASS/FAIL per pin)
  * - Init duration measurement

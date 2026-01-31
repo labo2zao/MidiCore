@@ -683,8 +683,8 @@ void ui_page_oled_test_render(uint32_t ms) {
       break;
     }
     
-    case 20: { // HW Test: MIOS32 Pattern
-      ui_gfx_text(0, 26, "HW: MIOS32 Pattern", 15);
+    case 20: { // HW Test: MidiCore Pattern
+      ui_gfx_text(0, 26, "HW: MidiCore Pattern", 15);
       oled_test_mios32_pattern();
       ui_gfx_text(0, 2, "Hardware test - gradient + white", 10);
       return; // Skip footer, hardware test overwrites everything

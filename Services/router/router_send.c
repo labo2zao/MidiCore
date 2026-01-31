@@ -12,8 +12,8 @@
  * 2. Missing one note in thousands is acceptable
  * 3. TX queue drops are tracked globally and reported via diagnostics
  * 
- * For CRITICAL messages (MIOS32 queries), return value MUST be checked
- * and retries implemented - see Services/mios32_query/mios32_query.c
+ * For CRITICAL messages (MidiCore queries), return value MUST be checked
+ * and retries implemented - see Services/midicore_query/midicore_query.c
  */
 #endif
 

@@ -54,7 +54,7 @@
 /* MIDI specific defines */
 #define USBD_MIDI_DATA_IN_PACKET_SIZE     64
 #define USBD_MIDI_DATA_OUT_PACKET_SIZE     64
-#define MIDI_NUM_PORTS                     4    /* 4 virtual ports like MIOS32 */
+#define MIDI_NUM_PORTS                     4    /* 4 virtual ports like MidiCore */
 
 /* CDC specific defines (when MODULE_ENABLE_USB_CDC is enabled) */
 #define USBD_CDC_DATA_IN_PACKET_SIZE      64

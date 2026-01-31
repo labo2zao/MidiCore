@@ -15,8 +15,8 @@
 // Mapping & options
 // -----------------------------------------------------------------------------
 
-// Default MIOS32 mapping for MBHP_AINSER64 routing.
-// In MIOS32 (modules/ainser/ainser.c) this is used to map mux address -> pin base.
+// Default MidiCore mapping for MBHP_AINSER64 routing.
+// In MidiCore (modules/ainser/ainser.c) this is used to map mux address -> pin base.
 // Here we expose it so the higher level can turn it into a key index.
 static const uint8_t k_default_mux_port_map[8] = { 0, 5, 2, 7, 4, 1, 6, 3 };
 static uint8_t g_mux_port_map[8];
@@ -77,11 +77,11 @@ static inline uint8_t compute_link_led_bit(void)
 #if AINSER64_LED_MODE_PWM
   // MIOS32-style PWM breathing effect
   // Link LED will flash with PWM effect (breathing in/out over ~2 seconds)
-  // This matches the behavior in MIOS32 modules/ainser/ainser.c lines 295-302
+  // This matches the behavior in MidiCore modules/ainser/ainser.c lines 295-302
   //
   // NOTE: In MIOS32, this counter increments once per complete scan of all modules (~1ms).
   // In MidiCore with continuous scanning, we increment on every channel (8 channels per step,
-  // 8 steps = 64 increments per scan). To match MIOS32 timing, we increment every 64 calls.
+  // 8 steps = 64 increments per scan). To match MidiCore timing, we increment every 64 calls.
   static uint8_t call_counter = 0;
   if (++call_counter >= 64) {
     call_counter = 0;
@@ -157,7 +157,7 @@ int32_t hal_ainser64_read_bank_step(uint8_t module, uint8_t step, uint16_t out8[
 
   for (uint8_t ch = 0; ch < 8; ++ch) {
     // For best behaviour we can preload the next mux ctr at the end of the scan
-    // (MIOS32 does this on channel 7). Here we keep mux constant for this call.
+    // (MidiCore does this on channel 7). Here we keep mux constant for this call.
     uint8_t sr_byte = (uint8_t)((mux_ctr << 5) | (link_bit & 1u));
 
     uint16_t sample = 0;

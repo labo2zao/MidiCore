@@ -1,4 +1,4 @@
-// SRIO Driver for MidiCore - Based on MIOS32 SRIO Driver
+// SRIO Driver for MidiCore - Based on MidiCore SRIO Driver
 // Copyright (C) 2008 Thorsten Klose (tk@midibox.org)
 // Adapted for MidiCore by labodezao
 //
@@ -91,7 +91,7 @@ void srio_init(const srio_config_t* cfg) {
 #endif
 #endif
 
-  // initial state of RCLK pins (idle HIGH for MIOS32 compatibility)
+  // initial state of RCLK pins (idle HIGH for MidiCore compatibility)
   if (g.din_pl_port) {
 #if SRIO_DIN_PL_ACTIVE_LOW
     HAL_GPIO_WritePin(g.din_pl_port, g.din_pl_pin, GPIO_PIN_SET);  // RC2 idle HIGH
@@ -148,7 +148,7 @@ void srio_set_dout_enable(uint8_t enable) {
 // \param[out] out buffer to store DIN values (must be at least g.din_bytes size)
 // \return 0 on success, < 0 on errors
 //
-// This function implements the complete MIOS32 scan sequence:
+// This function implements the complete MidiCore scan sequence:
 // 1. Pulse RC pins (both RC1 and RC2) to latch inputs
 // 2. Perform bulk SPI transfer (DOUT out, DIN in)
 // 3. Pulse RC pins again to latch outputs
@@ -157,11 +157,11 @@ void srio_set_dout_enable(uint8_t enable) {
 int srio_read_din(uint8_t* out) {
   if (!g_inited || !out) return -1;
 
-  // MIOS32 Scan Sequence - matches MIOS32_SRIO_ScanStart() exactly
+  // MidiCore Scan Sequence - matches MIOS32_SRIO_ScanStart() exactly
   
   // before first byte will be sent:
   // latch DIN registers by pulsing RCLK: 1->0->1
-  // MIOS32 pulses BOTH RC_PIN (RC1/RCLK) and RC_PIN2 (RC2//PL) together
+  // MidiCore pulses BOTH RC_PIN (RC1/RCLK) and RC_PIN2 (RC2//PL) together
   if (g.dout_rclk_port) {
     HAL_GPIO_WritePin(g.dout_rclk_port, g.dout_rclk_pin, GPIO_PIN_RESET);  // RC1 LOW
   }
@@ -172,7 +172,7 @@ int srio_read_din(uint8_t* out) {
 #endif
   
   // delay disabled - the delay caused by HAL_GPIO_WritePin function calls is sufficient
-  // (MIOS32 comment: "delay disabled - the delay caused by MIOS32_SPI_RC_PinSet function calls is sufficient")
+  // (MidiCore comment: "delay disabled - the delay caused by MIOS32_SPI_RC_PinSet function calls is sufficient")
   // We add explicit NOPs for safety on faster MCUs
   for (volatile uint16_t i = 0; i < 10; ++i) { __NOP(); }
   
@@ -187,7 +187,7 @@ int srio_read_din(uint8_t* out) {
 #endif
   
   // start bulk SPI transfer (matches MIOS32_SPI_TransferBlock behavior)
-  // MIOS32 uses DMA, we use blocking HAL - functionally equivalent for sync operation
+  // MidiCore uses DMA, we use blocking HAL - functionally equivalent for sync operation
   static uint8_t dout_dummy[32] = {0};  // Dummy DOUT data for full-duplex SPI
   
   if (HAL_SPI_TransmitReceive(g.hspi, dout_dummy, out, g.din_bytes, 100) != HAL_OK) {
@@ -218,7 +218,7 @@ int srio_read_din(uint8_t* out) {
 #endif
   
   // copy/or buffered DIN values/changed flags
-  // Update internal DIN buffers with change detection (matches MIOS32 exactly)
+  // Update internal DIN buffers with change detection (matches MidiCore exactly)
   if (g_din && g_din_buffer && g_din_changed) {
     // STEP 1: ALWAYS copy buffered DIN values and detect changes (matches MIOS32)
     // This must happen BEFORE debounce logic is applied

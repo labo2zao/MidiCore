@@ -15,10 +15,10 @@
  *  - Our custom MIDI Device class handles 4 ports automatically
  *  - Each cable (0-3) maps to a router node (ROUTER_NODE_USB_PORT0-3)
  * 
- * MIOS32 Compatibility:
+ * MidiCore Compatibility:
  *  - Similar to MIOS32_USB_MIDI layer
- *  - Cable numbers in packets like MIOS32 (upper 4 bits)
- *  - Multi-port routing like MIOS32 USB0-USB3
+ *  - Cable numbers in packets like MidiCore (upper 4 bits)
+ *  - Multi-port routing like MidiCore USB0-USB3
  */
 
 #ifdef __cplusplus
@@ -63,7 +63,7 @@ void usb_midi_rx_packet(const uint8_t packet4[4]);
  * @brief Process queued RX packets - MUST be called from task context!
  * 
  * Call this regularly from main loop or dedicated USB MIDI task. It processes
- * all queued RX packets, handles SysEx assembly, MIOS32 queries, and routing.
+ * all queued RX packets, handles SysEx assembly, MidiCore queries, and routing.
  * 
  * CRITICAL: Do NOT call from interrupt context! This function does heavy
  * processing including router operations and TX responses.

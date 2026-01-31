@@ -2,7 +2,7 @@
  * @file usb_midi_mtc.c
  * @brief MIDI Time Code (MTC) implementation
  * 
- * Based on MIOS32 timing patterns with precise quarter-frame generation.
+ * Based on MidiCore timing patterns with precise quarter-frame generation.
  * Follows MTC specification for SMPTE timecode synchronization.
  */
 
@@ -57,7 +57,7 @@ static uint32_t mtc_get_us_per_qf(void) {
 }
 
 /**
- * @brief Increment timecode by one frame (MIOS32 style)
+ * @brief Increment timecode by one frame (MidiCore style)
  */
 static void mtc_increment_frame(void) {
   mtc_timecode_t* tc = &mtc_state.current_tc;

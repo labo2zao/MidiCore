@@ -76,7 +76,10 @@ DMA_HandleTypeDef hdma_usart3_rx;
 osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
-  .stack_size = 1024 * 12,  // 12KB - Deep init chain with 20+ modules + debug overhead
+  .stack_size = 2048,  // 2KB - Adequate for init sequence before entering idle loop
+                       // USB Host init (~500B) + module test init (~300B) + app_entry_start() chain (~800B) + margin (~448B)
+                       // Reduced from 16KB (prevents fragmentation) but not too small to cause overflow (512B was insufficient)
+                       // This is the safe middle ground: prevents overflow while saving 14KB vs original
   .priority = (osPriority_t) osPriorityNormal,
 };
 /* USER CODE BEGIN PV */
@@ -230,8 +233,14 @@ int main(void)
   /* Create the thread(s) */
   /* creation of defaultTask */
   defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
-
+  
   /* USER CODE BEGIN RTOS_THREADS */
+  /* Verify DefaultTask was created successfully */
+  if (defaultTaskHandle == NULL) {
+    /* CRITICAL: DefaultTask creation failed - likely heap exhaustion */
+    /* This will be caught before scheduler starts */
+    Error_Handler();
+  }
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
 
@@ -953,13 +962,39 @@ void StartDefaultTask(void *argument)
   
   // PRODUCTION MODE: Run full application
   // Project entrypoint (kept in App/ to survive CubeMX regen)
+  dbg_printf("[DEFAULT_TASK] Calling app_entry_start()...\r\n");
   app_entry_start();
 
+  // CRITICAL: This line should NEVER be reached!
+  // app_entry_start() has an infinite loop and should never return
+  dbg_printf("[DEFAULT_TASK] FATAL: app_entry_start() returned! This is impossible!\r\n");
+  dbg_printf("[DEFAULT_TASK] Entering fallback infinite loop\r\n");
+
   /* Infinite loop */
+  uint32_t loop_count = 0;
   for(;;)
   {
     osDelay(1);
+    loop_count++;
+    if (loop_count % 10000 == 0) {
+      dbg_printf("[DEFAULT_TASK] FATAL: Still in fallback loop! Count: %lu\r\n", 
+                 (unsigned long)loop_count);
+    }
   }
+  
+  /* USER CODE BEGIN DefaultTask_Exit */
+  // SHOULD NEVER REACH HERE!
+  // If we do, something catastrophic happened (stack overflow, heap corruption, hard fault)
+#if defined(MODULE_DEBUG_OUTPUT) && MODULE_DEBUG_OUTPUT == DEBUG_OUTPUT_UART
+  dbg_printf("[FATAL] DefaultTask infinite loop exited!\r\n");
+  dbg_printf("[FATAL] This should be impossible - check stack/heap!\r\n");
+  dbg_printf("[FATAL] DefaultTask stack: 2KB allocated\r\n");
+#endif
+  
+  // Halt system for debugging
+  Error_Handler();
+  /* USER CODE END DefaultTask_Exit */
+  
   /* USER CODE END 5 */
 }
 

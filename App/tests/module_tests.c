@@ -535,7 +535,7 @@ void module_test_ainser64_run(void)
   
   for (;;) {
     // IMPORTANT: Read all 8 steps (mux channels) continuously without delays
-    // This matches MIOS32 behavior and prevents stale/discontinuous values
+    // This matches MidiCore behavior and prevents stale/discontinuous values
     // The multiplexer needs continuous scanning to maintain stable readings
     for (uint8_t step = 0; step < 8; ++step) {
       if (hal_ainser64_read_bank_step(0u, step, all_vals[step]) != 0) {
@@ -854,7 +854,7 @@ void module_test_srio_dout_run(void)
   dbg_printf("Total LEDs: %d (8 per byte)\r\n", SRIO_DOUT_BYTES * 8);
   dbg_print("\r\n");
   
-  dbg_print("Hardware connections (MIOS32 mbhp_doutx4):\r\n");
+  dbg_print("Hardware connections (MidiCore mbhp_doutx4):\r\n");
   dbg_print("  74HC595 Pin 11 (SRCLK) → PB13 (SPI2 SCK)\r\n");
   dbg_print("  74HC595 Pin 12 (RCLK)  → PB12 (RC1)\r\n");
   dbg_print("  74HC595 Pin 14 (SER)   → PB15 (SPI2 MOSI)\r\n");
@@ -862,9 +862,9 @@ void module_test_srio_dout_run(void)
   
   // LED polarity configuration
   // Set to 0 if LEDs are ACTIVE HIGH (1=ON, 0=OFF)
-  // Set to 1 if LEDs are ACTIVE LOW  (0=ON, 1=OFF) - MIOS32 default
+  // Set to 1 if LEDs are ACTIVE LOW  (0=ON, 1=OFF) - MidiCore default
   #ifndef SRIO_DOUT_LED_ACTIVE_LOW
-  #define SRIO_DOUT_LED_ACTIVE_LOW 1  // Default: MIOS32 active-low
+  #define SRIO_DOUT_LED_ACTIVE_LOW 1  // Default: MidiCore active-low
   #endif
   
   const uint8_t led_active_low = SRIO_DOUT_LED_ACTIVE_LOW;
@@ -875,7 +875,7 @@ void module_test_srio_dout_run(void)
   dbg_printf("  - LED ON pattern:  0x%02X\r\n", LED_ON);
   dbg_printf("  - LED OFF pattern: 0x%02X\r\n", LED_OFF);
   if (led_active_low) {
-    dbg_print("  (MIOS32 default: LEDs connected to ground via resistor)\r\n");
+    dbg_print("  (MidiCore default: LEDs connected to ground via resistor)\r\n");
   } else {
     dbg_print("  (Alternative wiring: LEDs connected to Vcc via resistor)\r\n");
   }
@@ -5387,8 +5387,8 @@ void module_test_ui_run(void)
   oled_init_newhaven();  // Complete Newhaven NHD-3.12 initialization
   dbg_print(" Newhaven OK\r\n");
 #elif MODULE_TEST_OLED
-  oled_init();  // Simple MIOS32 test initialization
-  dbg_print(" MIOS32 OK\r\n");
+  oled_init();  // Simple MidiCore test initialization
+  dbg_print(" MidiCore OK\r\n");
 #else
   oled_init_newhaven();  // Production: use Newhaven init
   dbg_print(" Production OK\r\n");
@@ -7108,22 +7108,7 @@ static void module_test_usb_midi_print_packet(const uint8_t packet4[4])
   dbg_print(buf);
 }
 
-/**
- * @brief Unified USB MIDI receive debug hook - overrides weak symbol in usb_midi.c
- * Works for both APP_TEST_USB_MIDI and MODULE_TEST_USB_DEVICE_MIDI modes
- */
-void usb_midi_rx_debug_hook(const uint8_t packet4[4])
-{
-  uint8_t cin = packet4[0] & 0x0F;
-  
-  // Handle SysEx packets (CIN 0x4-0x7) - skip debug output
-  if (cin >= 0x04 && cin <= 0x07) {
-    return; // Don't print SysEx messages
-  }
-  
-  // Print regular MIDI messages using shared formatting function
-  module_test_usb_midi_print_packet(packet4);
-}
+/* Note: usb_midi_rx_debug_hook() now unified in usb_midi.c - no override needed */
 #endif
 
 void module_test_usb_device_midi_run(void)
@@ -7167,7 +7152,7 @@ void module_test_usb_device_midi_run(void)
   // All diagnostic output goes to CDC (TeraTerm) so we can see what's happening
   // ============================================================================
   
-  extern bool mios32_debug_send_message(const char* text, uint8_t cable);
+  extern bool midicore_debug_send_message(const char* text, uint8_t cable);
   extern bool usb_midi_get_tx_status(uint32_t *queue_size, uint32_t *queue_used, uint32_t *queue_drops);
   
   dbg_print("\r\n");
@@ -7206,7 +7191,7 @@ void module_test_usb_device_midi_run(void)
     snprintf(test_msg, sizeof(test_msg), "*** MIOS Terminal Test #%d ***\r\n", i+1);
     
     // Send the message
-    bool sent = mios32_debug_send_message(test_msg, 0);
+    bool sent = midicore_debug_send_message(test_msg, 0);
     
     // Report result to CDC (TeraTerm)
     char result_buf[150];
@@ -7249,11 +7234,11 @@ void module_test_usb_device_midi_run(void)
     // Without this call, RX packets are queued but never processed!
     usb_midi_process_rx_queue();
     
-    // CRITICAL: Process queued MIOS32 queries from task context
+    // CRITICAL: Process queued MidiCore queries from task context
     // Queries are queued from ISR, must be processed here to send responses safely
 #if MODULE_ENABLE_USB_MIDI
-    extern void mios32_query_process_queued(void);
-    mios32_query_process_queued();
+    extern void midicore_query_process_queued(void);
+    midicore_query_process_queued();
 #endif
     
     uint32_t now = osKernelGetTickCount();
@@ -8018,7 +8003,7 @@ int module_test_oled_ssd1322_run(void)
 #if MODULE_ENABLE_OLED
   dbg_print("\r\n");
   dbg_print("=====================================\r\n");
-  dbg_print("  MIOS32 SSD1322 Test (Simplified)\r\n");
+  dbg_print("  MidiCore SSD1322 Test (Simplified)\r\n");
   dbg_print("=====================================\r\n");
   dbg_print("Based on: midibox/mios32/apps/mios32_test/app_lcd/ssd1322\r\n");
   dbg_print("Target: STM32F407 @ 168 MHz\r\n");
@@ -8035,7 +8020,7 @@ int module_test_oled_ssd1322_run(void)
   dbg_print("=== COMPREHENSIVE OLED TEST SUITE ===\r\n\r\n");
   
   dbg_print("Choose initialization method:\r\n");
-  dbg_print("  1. Simple MIOS32 test init (basic, proven working)\r\n");
+  dbg_print("  1. Simple MidiCore test init (basic, proven working)\r\n");
   dbg_print("  2. Complete Newhaven NHD-3.12 init (LoopA production)\r\n\r\n");
   
   // Use Newhaven init by default (LoopA production code)
@@ -8051,7 +8036,7 @@ int module_test_oled_ssd1322_run(void)
     dbg_print("  - Pre-charge voltage: 0.60*VCC\r\n\r\n");
     oled_init_newhaven();
   #else
-    dbg_print("Using: Simple MIOS32 test initialization\r\n");
+    dbg_print("Using: Simple MidiCore test initialization\r\n");
     dbg_print("  - Display Clock: ~58 Frames/Sec (divider=0, freq=12)\r\n");
     dbg_print("  - Linear gray scale table\r\n");
     dbg_print("  - Basic settings only\r\n\r\n");
@@ -8069,7 +8054,7 @@ int module_test_oled_ssd1322_run(void)
   } oled_test_t;
   
   const oled_test_t tests[] = {
-    {oled_test_mios32_pattern, "MIOS32 Pattern", "Gradient (left) + White (right) - MIOS32 original test"},
+    {oled_test_mios32_pattern, "MidiCore Pattern", "Gradient (left) + White (right) - MidiCore original test"},
     {oled_test_checkerboard,   "Checkerboard",   "Alternating black/white squares - pixel uniformity test"},
     {oled_test_h_gradient,     "H-Gradient",     "Horizontal gradient from black to white"},
     {oled_test_v_gradient,     "V-Gradient",     "Vertical gradient from black to white"},

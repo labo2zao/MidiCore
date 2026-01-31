@@ -16,7 +16,7 @@
  * - 0x0F: Acknowledge
  * - 0x0E: Error
  * 
- * Note: Device ID 0x40 is standard MIOS32 for MIOS Studio compatibility.
+ * Note: Device ID 0x40 is standard MidiCore for MIOS Studio compatibility.
  * Legacy ID 0x4E is also accepted for backward compatibility.
  */
 
@@ -29,11 +29,11 @@
 extern "C" {
 #endif
 
-/** @brief MIOS32 SysEx Header (Universal Non-Realtime, MIDIbox) */
+/** @brief MidiCore SysEx Header (Universal Non-Realtime, MIDIbox) */
 #define SYSEX_MANUFACTURER_ID_1     0x00
 #define SYSEX_MANUFACTURER_ID_2     0x00
 #define SYSEX_MANUFACTURER_ID_3     0x7E
-#define SYSEX_DEVICE_ID             0x40  // Standard MIOS32 Device ID for MIOS Studio compatibility
+#define SYSEX_DEVICE_ID             0x40  // Standard MidiCore Device ID for MIOS Studio compatibility
 #define SYSEX_DEVICE_ID_LEGACY      0x4E  // Legacy 'N' for backward compatibility
 
 /** @brief Bootloader SysEx Commands */

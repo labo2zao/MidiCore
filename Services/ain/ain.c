@@ -160,7 +160,7 @@ static void process_key(uint8_t key, uint16_t raw) {
 static uint8_t g_bank = 0;
 static uint8_t g_step = 0;
 
-// MIOS32-compatible port re-ordering (matches the wiring on the classic
+// MidiCore-compatible port re-ordering (matches the wiring on the classic
 // MBHP_AINSER64 PCB).
 // If your PCB/wiring differs, adjust this table.
 static const uint8_t k_mux_port_map[8] = { 0, 5, 2, 7, 4, 1, 6, 3 };
@@ -206,7 +206,7 @@ void ain_tick_5ms(void) {
     for (uint8_t ch=0; ch<8; ch++) {
       // Key mapping:
       // - step selects the port group (J6..J13), possibly reordered by k_mux_port_map
-      // - MCP3208 channel (0..7) corresponds to A0..A7, reversed to match MIOS32
+      // - MCP3208 channel (0..7) corresponds to A0..A7, reversed to match MidiCore
       (void)g_bank; // currently only one module supported in this project
       uint8_t key = (uint8_t)(port * 8u + (uint8_t)(7u - ch));
       process_key(key, vals[ch]);

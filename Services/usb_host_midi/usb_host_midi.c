@@ -20,7 +20,7 @@ void usb_host_midi_init(void)
 
 void usb_host_midi_task(void)
 {
-  // Pump the USB Host state machine (MIOS32 style periodic polling)
+  // Pump the USB Host state machine (MidiCore style periodic polling)
   USBH_Process(&hUsbHostFS);
   
   // Process incoming MIDI packets from USB Host device
@@ -30,7 +30,7 @@ void usb_host_midi_task(void)
   if (USBH_MIDI_Recv(&hUsbHostFS, buf, sizeof(buf), &used) == 0 && used >= 4) {
     // Process all received 4-byte packets
     for (uint16_t i = 0; (i + 3) < used; i += 4) {
-      // Extract cable number and message (MIOS32 style)
+      // Extract cable number and message (MidiCore style)
       uint8_t header = buf[i];
       uint8_t cable = (header >> 4) & 0x0F;
       uint8_t cin = header & 0x0F;

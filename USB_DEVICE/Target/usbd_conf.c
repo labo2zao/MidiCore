@@ -213,7 +213,7 @@ USBD_StatusTypeDef USBD_LL_Init(USBD_HandleTypeDef *pdev)
   USB_OTG_FS->GCCFG &= ~USB_OTG_GCCFG_VBUSBSEN;   /* Disable VBUS "B" sensing */
   USB_OTG_FS->GCCFG &= ~USB_OTG_GCCFG_VBUSASEN;   /* Disable VBUS "A" sensing */
   
-  /* CRITICAL: Re-enable PHY after VBUS modifications (MIOS32 does this) */
+  /* CRITICAL: Re-enable PHY after VBUS modifications (MidiCore does this) */
   USB_OTG_FS->GCCFG |= USB_OTG_GCCFG_PWRDWN;      /* Power up the USB transceiver */
   
   USB_OTG_FS->GOTGCTL |= USB_OTG_GOTGCTL_BVALOEN; /* Enable B-device valid override */

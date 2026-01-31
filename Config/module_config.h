@@ -40,7 +40,7 @@ extern "C" {
 
 /** @brief SRIO DOUT LED polarity configuration
  * Set to 0 if LEDs are ACTIVE HIGH (1=ON, 0=OFF)
- * Set to 1 if LEDs are ACTIVE LOW  (0=ON, 1=OFF) - MIOS32 default
+ * Set to 1 if LEDs are ACTIVE LOW  (0=ON, 1=OFF) - MidiCore default
  */
 #ifndef SRIO_DOUT_LED_ACTIVE_LOW
 #define SRIO_DOUT_LED_ACTIVE_LOW 1
@@ -80,7 +80,176 @@ extern "C" {
 #define MODULE_ENABLE_USB_MIDI 1  // Disabled by default (requires USB config)
 #endif
 
-/** @brief Enable USB CDC (Virtual COM Port / ACM) - MIOS32 & MIOS Studio compatible
+// =============================================================================
+// DEBUG OUTPUT CONFIGURATION
+// =============================================================================
+
+/**
+ * @brief Debug output method selection
+ * 
+ * ============================================================================
+ * HOW TO CHOOSE DEBUG OUTPUT METHOD:
+ * ============================================================================
+ * 
+ * Set MODULE_DEBUG_OUTPUT to ONE of:
+ * - DEBUG_OUTPUT_SWV      → ST-Link SWO (recommended for debugging)
+ * - DEBUG_OUTPUT_USB_CDC  → USB Virtual COM (MIOS Studio compatible)
+ * - DEBUG_OUTPUT_UART     → Hardware UART (fallback)
+ * - DEBUG_OUTPUT_NONE     → Disabled (production)
+ * 
+ * ============================================================================
+ * OPTION 1: SWV (Serial Wire Viewer) ⭐ RECOMMENDED FOR DEBUGGING
+ * ============================================================================
+ * 
+ * Advantages:
+ * ✅ NO USB conflicts - uses ST-Link, not USB
+ * ✅ Always reliable - works even if USB fails
+ * ✅ High bandwidth - up to 2 MHz
+ * ✅ Real-time traces - minimal latency
+ * ✅ Best for USB MIDI devices
+ * 
+ * Setup:
+ * 1. Set: MODULE_DEBUG_OUTPUT = DEBUG_OUTPUT_SWV
+ * 2. In Debug Config → Debugger → Serial Wire Viewer:
+ *    - Enable: ☑
+ *    - Core Clock: 168000000 (168 MHz)
+ *    - SWO Clock: 2000000 (2 MHz)
+ *    - Port 0: ☑ Enabled
+ * 3. View: Window → Show View → SWV → SWV ITM Data Console
+ * 4. Click "Start Trace" button
+ * 
+ * ============================================================================
+ * OPTION 2: USB CDC (Virtual COM Port) - MIOS STUDIO COMPATIBLE
+ * ============================================================================
+ * 
+ * Advantages:
+ * ✅ MIOS Studio compatible
+ * ✅ Standalone (no debugger needed)
+ * ✅ Standard serial terminal
+ * 
+ * Disadvantages:
+ * ⚠️ May conflict with USB MIDI during debugging
+ * ⚠️ Requires USB enumeration working
+ * 
+ * Setup:
+ * 1. Set: MODULE_DEBUG_OUTPUT = DEBUG_OUTPUT_USB_CDC
+ * 2. Set: MODULE_ENABLE_USB_CDC = 1 (below)
+ * 3. Connect USB cable
+ * 4. Open MIOS Studio or terminal (COM port)
+ * 
+ * ============================================================================
+ * OPTION 3: Hardware UART - Fallback
+ * ============================================================================
+ * 
+ * Setup:
+ * 1. Set: MODULE_DEBUG_OUTPUT = DEBUG_OUTPUT_UART
+ * 2. Configure port in App/tests/test_debug.h
+ * 3. Connect UART adapter (115200 baud)
+ * 
+ * ============================================================================
+ * OPTION 4: Disabled - Production
+ * ============================================================================
+ * 
+ * Set: MODULE_DEBUG_OUTPUT = DEBUG_OUTPUT_NONE
+ * 
+ * ============================================================================
+ * BEST PRACTICE: Use SWV for debugging + USB CDC for MIOS terminal
+ * ============================================================================
+ * 
+ * Set:
+ * - MODULE_DEBUG_OUTPUT = DEBUG_OUTPUT_SWV      (debug traces via ST-Link)
+ * - MODULE_ENABLE_USB_CDC = 1                   (MIOS terminal via USB)
+ * 
+ * This gives you:
+ * ✅ Debug traces via SWV (no USB conflicts)
+ * ✅ MIOS Studio terminal via USB CDC
+ * ✅ CLI commands via USB CDC
+ * ✅ Both working simultaneously!
+ * 
+ * See: docs/DEBUG_OUTPUT_GUIDE.md for complete guide
+ * ============================================================================
+ */
+
+// Define output method constants
+#define DEBUG_OUTPUT_NONE     0  // No debug output
+#define DEBUG_OUTPUT_SWV      1  // SWV/ITM via ST-Link (recommended for debugging)
+#define DEBUG_OUTPUT_USB_CDC  2  // USB CDC Virtual COM (MIOS Studio compatible)
+#define DEBUG_OUTPUT_UART     3  // Hardware UART (fallback)
+
+// ============================================================================
+// 👇 CHANGE THIS LINE TO CHOOSE DEBUG OUTPUT METHOD 👇
+// ============================================================================
+#ifndef MODULE_DEBUG_OUTPUT
+#define MODULE_DEBUG_OUTPUT DEBUG_OUTPUT_UART  // ⭐ RECOMMENDED: SWV for debugging
+// #define MODULE_DEBUG_OUTPUT DEBUG_OUTPUT_USB_CDC  // Alternative: USB CDC for MIOS Studio
+// #define MODULE_DEBUG_OUTPUT DEBUG_OUTPUT_UART     // Alternative: Hardware UART
+// #define MODULE_DEBUG_OUTPUT DEBUG_OUTPUT_NONE     // Alternative: Disabled
+#endif
+// ============================================================================
+
+// =============================================================================
+// CLI TERMINAL SELECTION  
+// =============================================================================
+/**
+ * Choose where CLI output appears:
+ * 
+ * CLI_OUTPUT_USB_CDC (1):
+ *   - CLI on USB CDC terminal (MIOS Studio)
+ *   - Works immediately, no wait
+ *   - Best for production with MIOS Studio
+ *   - Separates CLI from debug output (clean)
+ * 
+ * CLI_OUTPUT_UART (2):
+ *   - CLI on hardware UART terminal  
+ *   - Best for hardware debugging
+ *   - Independent of USB
+ *   - NOTE: If MODULE_DEBUG_OUTPUT also UART, CLI shares terminal with debug
+ *           (CLI prompt adds newline to avoid overwriting debug messages)
+ * 
+ * CLI_OUTPUT_MIOS (3):
+ *   - CLI on MIOS terminal via MIDI SysEx protocol
+ *   - Uses midicore_debug_send_message() SysEx (NOT USB CDC text)
+ *   - Standard MidiCore behavior for MIOS Studio compatibility
+ *   - Format: F0 00 00 7E 32 00 0D 40 <text> F7
+ *   - Best for production with MIOS Studio
+ *   - IMPORTANT: Device recognition via USB MIDI queries (handled by MidiIOTask)
+ *   - CLI terminal is separate and independent from queries
+ *   - No wait for USB CDC - starts immediately
+ * 
+ * CLI_OUTPUT_DEBUG (4):
+ *   - CLI follows MODULE_DEBUG_OUTPUT setting
+ *   - CLI appears on same terminal as debug messages
+ *   - Simple unified output
+ *   - NOTE: CLI prompt adds newline when MODULE_DEBUG_MIDICORE_QUERIES active
+ *           to avoid overwriting MidiCore query debug messages
+ * 
+ * RECOMMENDED CONFIGURATIONS:
+ * 
+ * For MIOS Studio Production:
+ *   #define MODULE_DEBUG_OUTPUT  DEBUG_OUTPUT_UART    (debug on UART)
+ *   #define MODULE_CLI_OUTPUT    CLI_OUTPUT_MIOS      (CLI on USB CDC)
+ *   → Debug messages on UART, CLI on MIOS terminal (separate, clean)
+ * 
+ * For Hardware Debugging:
+ *   #define MODULE_DEBUG_OUTPUT  DEBUG_OUTPUT_UART    (debug on UART)
+ *   #define MODULE_CLI_OUTPUT    CLI_OUTPUT_UART      (CLI also on UART)
+ *   → Everything on UART (unified, CLI adds newlines for separation)
+ * 
+ * For Minimal Setup:
+ *   #define MODULE_DEBUG_OUTPUT  DEBUG_OUTPUT_UART
+ *   #define MODULE_CLI_OUTPUT    CLI_OUTPUT_DEBUG     (follow debug)
+ *   → CLI follows debug output (unified, auto newline separation)
+ */
+#define CLI_OUTPUT_USB_CDC    1
+#define CLI_OUTPUT_UART       2
+#define CLI_OUTPUT_MIOS       3
+#define CLI_OUTPUT_DEBUG      4
+
+#ifndef MODULE_CLI_OUTPUT
+#define MODULE_CLI_OUTPUT  CLI_OUTPUT_MIOS  // Default: MIOS terminal (standard behavior)
+#endif
+
+/** @brief Enable USB CDC (Virtual COM Port / ACM) - MidiCore & MIOS Studio compatible
  * 
  * When enabled (MODULE_ENABLE_USB_CDC=1):
  * - Adds CDC ACM interface to USB device (composite with MIDI)
@@ -104,6 +273,9 @@ extern "C" {
  * - Linux: /dev/ttyACM*
  * 
  * See Docs/usb/CDC_INTEGRATION.md for setup and usage
+ * 
+ * Note: USB CDC can be enabled even if MODULE_DEBUG_OUTPUT != DEBUG_OUTPUT_USB_CDC
+ * This allows MIOS terminal via USB CDC while using SWV for debug traces.
  */
 #ifndef MODULE_ENABLE_USB_CDC
 #define MODULE_ENABLE_USB_CDC 1  // Enabled - RAM optimized via FreeRTOS heap reduction and buffer optimization
@@ -349,9 +521,49 @@ extern "C" {
 #define MODULE_ENABLE_CLI 1
 #endif
 
+/** @brief Enable MidiCore query debug messages in production mode
+ * 
+ * When enabled (MODULE_DEBUG_MIDICORE_QUERIES=1):
+ * - MidiCore query processing debug messages are output via debug system
+ * - Shows query reception, processing, and response sending
+ * - Useful for debugging MIOS Studio terminal connection issues
+ * - Output destination depends on MODULE_DEBUG_OUTPUT setting
+ * 
+ * Debug messages include:
+ * - [MIDICORE-Q] Received query len:X cable:Y
+ * - [MIDICORE-Q] dev_id:XX cmd:XX type:XX
+ * - [MIDICORE-R] Sending type:XX "text" cable:Y
+ * - [MIDICORE-R] Sent X bytes (success=1/0)
+ * - [MIDICORE-R] ERROR messages if sending fails
+ * 
+ * When disabled (MODULE_DEBUG_MIDICORE_QUERIES=0):
+ * - No MidiCore query debug output (saves code space)
+ * - Query processing still works normally
+ * 
+ * Recommended: Enable for development/troubleshooting, can disable for production
+ */
+#ifndef MODULE_DEBUG_MIDICORE_QUERIES
+#define MODULE_DEBUG_MIDICORE_QUERIES 1
+#endif
+
 /** @brief Enable Module Registry (required for CLI module control) */
 #ifndef MODULE_ENABLE_MODULE_REGISTRY
 #define MODULE_ENABLE_MODULE_REGISTRY 1
+#endif
+
+/** @brief Enable Stack Monitor (FreeRTOS stack usage monitoring)
+ * 
+ * When enabled:
+ * - Provides runtime monitoring of task stack usage
+ * - Detects stack overflows via 0xA5 pattern checking
+ * - Configurable warning/critical thresholds
+ * - CLI commands for stack inspection (stack, stack_all, stack_monitor)
+ * - Minimal overhead (~512 bytes RAM for monitor task)
+ * 
+ * Recommended for development and production monitoring.
+ */
+#ifndef MODULE_ENABLE_STACK_MONITOR
+#define MODULE_ENABLE_STACK_MONITOR 1
 #endif
 
 /** @brief Enable Test Module (runtime module testing via CLI)
@@ -438,7 +650,7 @@ extern "C" {
  * 
  * When enabled (MODULE_TEST_OLED=1):
  * - Compiles OLED test functions for hardware verification
- * - oled_init() - Simple MIOS32 test init
+ * - oled_init() - Simple MidiCore test init
  * - oled_init_progressive() - Step-by-step debug init
  * - oled_test_*() - Test patterns (checkerboard, gradients, etc.)
  * - ui_page_oled_test - Complete OLED test UI page

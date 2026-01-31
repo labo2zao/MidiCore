@@ -224,7 +224,7 @@ bool bootloader_protocol_process(const uint8_t* data, uint32_t len) {
       // Write data to flash
       // Note: Current implementation assumes 7-bit safe data (MSB=0 for each byte)
       // For production use with arbitrary binary data, implement proper 7-to-8 bit
-      // decoding here. MIOS32 typically uses nibble encoding or base64-like schemes.
+      // decoding here. MidiCore typically uses nibble encoding or base64-like schemes.
       // Example: 7 bytes of 7-bit data -> 6 bytes of 8-bit data
       bool success = bootloader_write_flash(offset, &data[13], data_len);
       

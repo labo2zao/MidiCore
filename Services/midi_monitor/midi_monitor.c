@@ -2,7 +2,7 @@
  * @file midi_monitor.c
  * @brief MIDI Monitor Service Implementation
  * 
- * Inspired by MIOS32 MIDI Monitor functionality.
+ * Inspired by MidiCore MIDI Monitor functionality.
  * Includes built-in OLED mirroring support for production and test modes.
  */
 

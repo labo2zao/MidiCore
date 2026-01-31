@@ -71,7 +71,7 @@
 #define USB_DESC_SIZE_CS_MS_INTERFACE    7      /* Class-specific MS Interface Header */
 #define USB_DESC_SIZE_CS_ENDPOINT_BASE   4      /* Class-specific Endpoint (base, + num jacks) */
 
-/* Calculate descriptor size - MIOS32 style (CORRECTED) */
+/* Calculate descriptor size - MidiCore style (CORRECTED) */
 /* Each port has 4 jacks:
  * - 1 External IN Jack: 6 bytes
  * - 1 Embedded IN Jack: 6 bytes
