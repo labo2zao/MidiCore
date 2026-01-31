@@ -968,6 +968,20 @@ void StartDefaultTask(void *argument)
   {
     osDelay(1);
   }
+  
+  /* USER CODE BEGIN DefaultTask_Exit */
+  // SHOULD NEVER REACH HERE!
+  // If we do, something catastrophic happened (stack overflow, heap corruption, hard fault)
+#if defined(MODULE_DEBUG_OUTPUT) && MODULE_DEBUG_OUTPUT == DEBUG_OUTPUT_UART
+  dbg_printf("[FATAL] DefaultTask infinite loop exited!\r\n");
+  dbg_printf("[FATAL] This should be impossible - check stack/heap!\r\n");
+  dbg_printf("[FATAL] DefaultTask stack: 16KB allocated\r\n");
+#endif
+  
+  // Halt system for debugging
+  Error_Handler();
+  /* USER CODE END DefaultTask_Exit */
+  
   /* USER CODE END 5 */
 }
 
