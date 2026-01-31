@@ -962,12 +962,24 @@ void StartDefaultTask(void *argument)
   
   // PRODUCTION MODE: Run full application
   // Project entrypoint (kept in App/ to survive CubeMX regen)
+  dbg_printf("[DEFAULT_TASK] Calling app_entry_start()...\r\n");
   app_entry_start();
 
+  // CRITICAL: This line should NEVER be reached!
+  // app_entry_start() has an infinite loop and should never return
+  dbg_printf("[DEFAULT_TASK] FATAL: app_entry_start() returned! This is impossible!\r\n");
+  dbg_printf("[DEFAULT_TASK] Entering fallback infinite loop\r\n");
+
   /* Infinite loop */
+  uint32_t loop_count = 0;
   for(;;)
   {
     osDelay(1);
+    loop_count++;
+    if (loop_count % 10000 == 0) {
+      dbg_printf("[DEFAULT_TASK] FATAL: Still in fallback loop! Count: %lu\r\n", 
+                 (unsigned long)loop_count);
+    }
   }
   
   /* USER CODE BEGIN DefaultTask_Exit */
