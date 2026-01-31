@@ -340,10 +340,9 @@ Just save a good configuration first: `config save 0:/backup.ini`
 
 ## Files to Read (In Order)
 
-1. **WHAT_IS_CLI.md** ← Start here!
-2. **CLI_VS_UI_VISUAL.md** ← Pictures!
-3. **README_CLI_MODULE_SYSTEM.md** ← Complete details
-4. **MODULE_INVENTORY.md** ← All features explained
+1. **Docs/WHAT_IS_CLI.md** ← Start here!
+2. **Docs/CLI_VS_UI_VISUAL.md** ← Pictures!
+3. **Docs/MODULE_INVENTORY.md** ← All features explained
 
 **Total reading time: 30 minutes to understand everything**
 

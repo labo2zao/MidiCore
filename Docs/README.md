@@ -60,9 +60,10 @@ Testing procedures and validation
 ### 🔧 [Development](development/) • [🇫🇷 Français](development/README_FR.md)
 Technical documentation and implementation details
 - [Overview](development/README.md) - Development documentation overview
+- **[ARCHITECTURE](ARCHITECTURE.md)** - FreeRTOS cooperative architecture guide (NEW!)
 - **[Bootloader](development/BOOTLOADER.md)** - Complete bootloader guide (USB MIDI, memory layout, build modes)
 - **[Implementation](development/IMPLEMENTATION.md)** - Module testing infrastructure, production utilities, USB MIDI
-- **[Compatibility](development/COMPATIBILITY.md)** - MIOS32 compatibility analysis (98.95%), drivers, LoopA features
+- **[Compatibility](development/COMPATIBILITY.md)** - Compatibility analysis, drivers, LoopA features
 - **[USB Integration](development/USB_INTEGRATION.md)** - USB Device MIDI (4 ports) and USB Host MIDI
 - [Build Modes](development/BUILD_MODES.md) - Build configuration modes
 - [Production Utilities](development/PRODUCTION_UTILITIES.md) - Production tools and critical fixes
