@@ -68,7 +68,7 @@
 #define configTICK_RATE_HZ                       ((TickType_t)1000)
 #define configMAX_PRIORITIES                     ( 56 )
 #define configMINIMAL_STACK_SIZE                 ((uint16_t)128)
-#define configTOTAL_HEAP_SIZE                    ((size_t)(36*1024))  /* 36KB - Required for all task stacks (DefaultTask 16KB + CliTask 8KB + MidiIO 1KB + StackMon 1KB + others ~8KB = ~34KB minimum) */
+#define configTOTAL_HEAP_SIZE                    ((size_t)(40*1024))  /* 40KB - Required for all task stacks (DefaultTask 16KB + CliTask 8KB + MidiIO 2KB + StackMon 1KB + others ~8KB = ~36KB + 4KB margin) */
 #define configMAX_TASK_NAME_LEN                  ( 16 )
 #define configUSE_TRACE_FACILITY                 1
 #define configUSE_16_BIT_TICKS                   0
