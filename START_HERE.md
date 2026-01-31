@@ -1,6 +1,24 @@
-# MidiCore Complete System - Simple Summary
+# MidiCore - Start Here! 🎵
 
-## What Was Built for You
+---
+
+## 📚 NEW: Simple Docs (Dyslexia-Friendly)
+
+**5 easy documents, designed for accessibility:**
+
+| Doc | What's Inside | Time |
+|-----|---------------|------|
+| [1_QUICK_START](Docs/SIMPLE/1_QUICK_START.md) | Connect and start | 3 min |
+| [2_COMMANDS](Docs/SIMPLE/2_COMMANDS.md) | All CLI commands | 5 min |
+| [3_MODULES](Docs/SIMPLE/3_MODULES.md) | All 60+ modules | 10 min |
+| [4_HARDWARE](Docs/SIMPLE/4_HARDWARE.md) | Wiring diagrams | 5 min |
+| [5_TROUBLESHOOTING](Docs/SIMPLE/5_TROUBLESHOOTING.md) | Fix problems | As needed |
+
+**→ [Go to Simple Docs](Docs/SIMPLE/README.md)**
+
+---
+
+## What is MidiCore?
 
 A complete system to control all features of your MIDI accordion through **TWO ways**:
 
