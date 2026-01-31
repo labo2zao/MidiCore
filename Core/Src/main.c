@@ -76,10 +76,10 @@ DMA_HandleTypeDef hdma_usart3_rx;
 osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
-  .stack_size = 512,  // 512 bytes - DefaultTask only calls app_entry_start() which never returns
-                      // All actual work happens in other dedicated tasks (MidiIO, CLI, etc.)
-                      // Reduced from 16KB to prevent heap fragmentation and reduce early allocation
-                      // This task just idles in infinite loop after startup
+  .stack_size = 2048,  // 2KB - Adequate for init sequence before entering idle loop
+                       // USB Host init (~500B) + module test init (~300B) + app_entry_start() chain (~800B) + margin (~448B)
+                       // Reduced from 16KB (prevents fragmentation) but not too small to cause overflow (512B was insufficient)
+                       // This is the safe middle ground: prevents overflow while saving 14KB vs original
   .priority = (osPriority_t) osPriorityNormal,
 };
 /* USER CODE BEGIN PV */
@@ -976,7 +976,7 @@ void StartDefaultTask(void *argument)
 #if defined(MODULE_DEBUG_OUTPUT) && MODULE_DEBUG_OUTPUT == DEBUG_OUTPUT_UART
   dbg_printf("[FATAL] DefaultTask infinite loop exited!\r\n");
   dbg_printf("[FATAL] This should be impossible - check stack/heap!\r\n");
-  dbg_printf("[FATAL] DefaultTask stack: 16KB allocated\r\n");
+  dbg_printf("[FATAL] DefaultTask stack: 2KB allocated\r\n");
 #endif
   
   // Halt system for debugging
