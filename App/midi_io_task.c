@@ -50,7 +50,20 @@ static void MidiIOTask(void *argument) {
   dbg_printf("  3. Watch for query messages below\r\n");
   dbg_printf("  4. Device should appear in MIOS Studio device list\r\n");
   
-  // Send test message to MIOS Studio terminal to verify communication
+  /* CRITICAL: Allow USB enumeration to complete BEFORE sending any messages
+   * Test mode has 500ms of delays (5 messages * 100ms each) before main loop.
+   * This timing is ESSENTIAL for MIOS Studio recognition to work reliably.
+   * Without this delay, firmware enters main loop before USB fully enumerated,
+   * causing first queries from MIOS Studio to be missed or fail.
+   * USB composite enumeration (MIDI + CDC) typically takes 200-500ms.
+   * 
+   * IMPORTANT: Must wait for USB enumeration BEFORE calling midicore_debug_send_message()
+   * or any other USB MIDI functions, otherwise we risk hard faults or task exits! */
+  dbg_printf("[MIDI-TASK] Waiting for USB enumeration to complete (500ms)...\r\n");
+  osDelay(500);
+  dbg_printf("[MIDI-TASK] USB enumeration complete, ready for MIOS Studio queries\r\n");
+  
+  // NOW send test message to MIOS Studio terminal after USB is ready
   dbg_printf("[MIDI-TASK] Sending test message to MIOS Studio terminal...\r\n");
   bool test_sent = midicore_debug_send_message("*** MidiCore MIOS Terminal Test ***\r\n", 0);
   if (test_sent) {
@@ -58,17 +71,7 @@ static void MidiIOTask(void *argument) {
     dbg_printf("[MIDI-TASK] Check MIOS Studio Terminal window for the message\r\n");
   } else {
     dbg_printf("[MIDI-TASK] ERROR: Failed to send test message (USB MIDI not ready?)\r\n");
-  };
-  
-  /* CRITICAL: Allow USB enumeration to complete before processing queries
-   * Test mode has 500ms of delays (5 messages * 100ms each) before main loop.
-   * This timing is ESSENTIAL for MIOS Studio recognition to work reliably.
-   * Without this delay, firmware enters main loop before USB fully enumerated,
-   * causing first queries from MIOS Studio to be missed or fail.
-   * USB composite enumeration (MIDI + CDC) typically takes 200-500ms. */
-  dbg_printf("[MIDI-TASK] Waiting for USB enumeration to complete (500ms)...\r\n");
-  osDelay(500);
-  dbg_printf("[MIDI-TASK] USB enumeration complete, ready for MIOS Studio queries\r\n");
+  }
   
   uint32_t ui_ms = 0;
   
