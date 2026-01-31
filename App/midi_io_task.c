@@ -15,8 +15,9 @@
  * Test mode has its own implementation in module_tests.c
  * 
  * CRITICAL: Must match test mode behavior to prevent stack overflow and timing issues
+ * IMPORTANT: Only compile in production mode - test mode provides its own implementation
  */
-#if defined(MODULE_TEST_USB_DEVICE_MIDI) || MODULE_DEBUG_MIDICORE_QUERIES
+#if !defined(MODULE_TEST_USB_DEVICE_MIDI) && MODULE_DEBUG_MIDICORE_QUERIES
 void usb_midi_rx_debug_hook(const uint8_t packet4[4])
 {
   uint8_t cin = packet4[0] & 0x0F;
