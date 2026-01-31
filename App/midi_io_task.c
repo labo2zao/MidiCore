@@ -9,39 +9,8 @@
 #include "Services/midicore_query/midicore_query.h"
 #include "App/tests/test_debug.h"
 
-/* USB MIDI RX debug hook for production mode
- * This overrides the weak symbol in usb_midi.c to provide RX packet visibility
- * when MODULE_DEBUG_MIDICORE_QUERIES is enabled.
- * Test mode has its own implementation in module_tests.c
- * 
- * CRITICAL: Must match test mode behavior to prevent stack overflow and timing issues
- * IMPORTANT: Only compile in production mode - test mode provides its own implementation
- */
-#if !defined(MODULE_TEST_USB_DEVICE_MIDI) && MODULE_DEBUG_MIDICORE_QUERIES
-void usb_midi_rx_debug_hook(const uint8_t packet4[4])
-{
-  uint8_t cin = packet4[0] & 0x0F;
-  
-  /* CRITICAL: Skip SysEx packets (CIN 0x4-0x7) to match test mode behavior
-   * Test mode skips SysEx logging to avoid stack overflow and timing delays.
-   * MIOS Studio queries are SysEx format - logging them causes:
-   * 1. Stack overflow (dbg_printf uses ~256 bytes per call)
-   * 2. Timing delays that break query processing
-   * 3. MIOS Studio timeout waiting for response
-   * 
-   * This is THE difference that prevented MIOS Studio recognition in production!
-   */
-  if (cin >= 0x04 && cin <= 0x07) {
-    return; // Skip SysEx like test mode does
-  }
-  
-  /* Log regular MIDI messages only (Note On/Off, CC, Program Change, etc.)
-   * This provides visibility without overwhelming the system during query processing */
-  uint8_t cable = (packet4[0] >> 4) & 0x0F;
-  dbg_printf("[USB-RX] Cable:%u CIN:0x%X Data:[%02X %02X %02X %02X]\r\n",
-             cable, cin, packet4[0], packet4[1], packet4[2], packet4[3]);
-}
-#endif
+/* Note: usb_midi_rx_debug_hook() is now unified in usb_midi.c
+ * No need for separate implementations in test vs production mode */
 
 // Call this from app_init_and_start() if you want a dedicated task.
 static void MidiIOTask(void *argument) {
