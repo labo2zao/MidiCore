@@ -537,15 +537,25 @@ void usb_midi_tx_complete(void) {
 
 static void USBD_MIDI_Init_Callback(void) {
   /* USB MIDI initialized - all 4 ports ready */
+#if defined(MODULE_TEST_USB_DEVICE_MIDI) || MODULE_DEBUG_MIDICORE_QUERIES  
+  extern void dbg_printf(const char *fmt, ...);
+  dbg_printf("[USB-MIDI] USB Device MIDI class initialized - ready for queries\r\n");
+#endif
 }
 
 static void USBD_MIDI_DeInit_Callback(void) {
   /* USB MIDI de-initialized */
+#if defined(MODULE_TEST_USB_DEVICE_MIDI) || MODULE_DEBUG_MIDICORE_QUERIES  
+  extern void dbg_printf(const char *fmt, ...);
+  dbg_printf("[USB-MIDI] USB Device MIDI class de-initialized\r\n");
+#endif
 }
 
 static void USBD_MIDI_DataOut_Callback(USBD_MIDI_EventPacket_t *packet) {
   /* Forward packet to application layer (4-byte USB MIDI packet) */
   usb_midi_rx_packet((uint8_t*)packet);
+  
+  /* Note: Individual RX packets are logged by usb_midi_rx_debug_hook() in task context */
 }
 
 #else /* !MODULE_ENABLE_USB_MIDI || !USB_DEVICE_AVAILABLE */
