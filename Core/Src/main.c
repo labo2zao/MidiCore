@@ -76,9 +76,10 @@ DMA_HandleTypeDef hdma_usart3_rx;
 osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
-  .stack_size = 1024 * 16,  // 16KB - Deep init chain with 20+ modules + extensive debug output
-                             // Increased from 12KB due to stack overflow at line 967 osDelay(1)
-                             // Actual overflow during app_init_and_start(), detected at context switch
+  .stack_size = 512,  // 512 bytes - DefaultTask only calls app_entry_start() which never returns
+                      // All actual work happens in other dedicated tasks (MidiIO, CLI, etc.)
+                      // Reduced from 16KB to prevent heap fragmentation and reduce early allocation
+                      // This task just idles in infinite loop after startup
   .priority = (osPriority_t) osPriorityNormal,
 };
 /* USER CODE BEGIN PV */
