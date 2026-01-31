@@ -132,14 +132,22 @@
 
 #include "App/midi_io_task.h"
 
+/* MIOS32-like architecture support */
+#if MODULE_ENABLE_MIOS32_ARCH
+#include "App/midicore_main_task.h"
+#endif
+
 #include "cmsis_os2.h"
 #include "FreeRTOS.h"
 #include "task.h"
 #include <string.h>
 
+/* Legacy task prototypes - only needed when NOT using MIOS32 arch */
+#if !MODULE_ENABLE_MIOS32_ARCH
 static void AinTask(void *argument);
 static void OledDemoTask(void *argument);
-#if MODULE_ENABLE_CLI
+#endif
+#if MODULE_ENABLE_CLI && !MODULE_ENABLE_MIOS32_ARCH
 static void CliTask(void *argument);
 #endif
 static uint8_t boot_shift_held(uint8_t active_low);
@@ -402,6 +410,76 @@ void app_init_and_start(void)
   router_set_route(ROUTER_NODE_LOOPER, ROUTER_NODE_DIN_OUT1, 1);
 #endif
 
+  // =========================================================================
+  // TASK CREATION SECTION
+  // =========================================================================
+  // 
+  // Two architectures are supported:
+  // 
+  // 1. MIOS32-LIKE (MODULE_ENABLE_MIOS32_ARCH=1) - RECOMMENDED
+  //    - Single MidiCore_MainTask handles all services cooperatively
+  //    - Deterministic 1ms tick, minimal stack usage
+  //    - Logic in service tick functions, not tasks
+  // 
+  // 2. LEGACY MULTI-TASK (MODULE_ENABLE_MIOS32_ARCH=0)
+  //    - Multiple feature-specific tasks
+  //    - Higher stack usage, more hidden states
+  //    - Familiar FreeRTOS pattern
+  // =========================================================================
+
+#if MODULE_ENABLE_MIOS32_ARCH
+  // =========================================================================
+  // MIOS32-LIKE ARCHITECTURE: Single cooperative main task
+  // =========================================================================
+  dbg_printf("\r\n");
+  dbg_printf("================================================\r\n");
+  dbg_printf("  MIOS32-LIKE ARCHITECTURE ENABLED\r\n");
+  dbg_printf("  Single cooperative main task model\r\n");
+  dbg_printf("================================================\r\n");
+  
+  // Calibration task runs once at startup and exits - allowed in both modes
+  {
+    size_t free_before = xPortGetFreeHeapSize();
+    dbg_printf("[HEAP] Before calibration task: %lu bytes free\r\n", (unsigned long)free_before);
+  }
+  app_start_calibration_task();
+  {
+    size_t free_after = xPortGetFreeHeapSize();
+    dbg_printf("[HEAP] After calibration task: %lu bytes free\r\n", (unsigned long)free_after);
+  }
+  
+  // Start the single MidiCore main task
+  {
+    size_t free_before = xPortGetFreeHeapSize();
+    dbg_printf("[HEAP] Before MidiCore_MainTask: %lu bytes free\r\n", (unsigned long)free_before);
+  }
+  
+  int main_task_result = midicore_main_task_start();
+  if (main_task_result != 0) {
+    dbg_printf("[ERROR] Failed to create MidiCore_MainTask!\r\n");
+    dbg_printf("[ERROR] Heap exhausted? Check heap size in FreeRTOSConfig.h\r\n");
+  }
+  
+  {
+    size_t free_after = xPortGetFreeHeapSize();
+    dbg_printf("[HEAP] After MidiCore_MainTask: %lu bytes free\r\n", (unsigned long)free_after);
+  }
+  
+  // Optional debug stream - still allowed as separate task (rare)
+#if MODULE_ENABLE_AIN_RAW_DEBUG
+  ain_raw_debug_task_create();
+#endif
+
+#else
+  // =========================================================================
+  // LEGACY ARCHITECTURE: Multiple feature-specific tasks
+  // =========================================================================
+  dbg_printf("\r\n");
+  dbg_printf("================================================\r\n");
+  dbg_printf("  LEGACY MULTI-TASK ARCHITECTURE\r\n");
+  dbg_printf("  (Set MODULE_ENABLE_MIOS32_ARCH=1 for MIOS32-like)\r\n");
+  dbg_printf("================================================\r\n");
+
   // Create tasks
 #if MODULE_ENABLE_AIN
   {
@@ -517,6 +595,8 @@ void app_init_and_start(void)
     dbg_printf("[HEAP] After MIDI IO task: %lu bytes free\r\n", (unsigned long)free_after);
   }
   dbg_printf("[INIT] MIDI IO task started\r\n");
+
+#endif /* MODULE_ENABLE_MIOS32_ARCH */
   
   // Print final heap summary with percentages
   {
@@ -546,6 +626,15 @@ void app_init_and_start(void)
   
   dbg_printf("[INIT] app_init_and_start() complete - returning to scheduler\r\n");
 }
+
+/* ============================================================================
+ * LEGACY TASK FUNCTIONS (only compiled when NOT using MIOS32 architecture)
+ * ============================================================================
+ * These tasks are replaced by service tick functions in MIOS32-like mode.
+ * They are kept for backwards compatibility when MODULE_ENABLE_MIOS32_ARCH=0.
+ */
+
+#if !MODULE_ENABLE_MIOS32_ARCH
 
 static void AinTask(void *argument)
 {
@@ -632,6 +721,8 @@ static void OledDemoTask(void *argument)
 #endif
 }
 
+#endif /* !MODULE_ENABLE_MIOS32_ARCH */
+
 #if MODULE_ENABLE_SRIO
 static inline uint8_t din_get_bit(const uint8_t* din, uint16_t phys) {
   uint16_t byte = phys >> 3u;
@@ -669,9 +760,12 @@ static uint8_t boot_shift_held(uint8_t active_low) {
 #endif
 }
 
-#if MODULE_ENABLE_CLI
+#if MODULE_ENABLE_CLI && !MODULE_ENABLE_MIOS32_ARCH
 /**
- * @brief CLI task for processing terminal commands
+ * @brief CLI task for processing terminal commands (legacy multi-task mode)
+ * 
+ * NOTE: In MIOS32-like architecture (MODULE_ENABLE_MIOS32_ARCH=1), CLI is
+ * processed by cli_service_tick() in the main task instead of this task.
  * 
  * Output routing controlled by MODULE_CLI_OUTPUT:
  * - CLI_OUTPUT_USB_CDC: USB CDC only (immediate)
@@ -733,6 +827,6 @@ static void CliTask(void *argument)
     osDelay(5);  // 5ms polling for responsive CLI
   }
 }
-#endif
+#endif /* MODULE_ENABLE_CLI && !MODULE_ENABLE_MIOS32_ARCH */
 
 
