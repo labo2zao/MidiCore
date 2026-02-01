@@ -207,6 +207,9 @@ static cli_result_t cmd_debug(int argc, char* argv[]) {
 /**
  * @brief Show debug configuration from GDB
  * 
+ * This function can be called from GDB to display the current
+ * debug configuration without needing to inspect individual variables.
+ * 
  * Usage in GDB:
  *   (gdb) call gdb_show_debug_config()
  */
@@ -239,6 +242,9 @@ void gdb_show_debug_config(void) {
 
 /**
  * @brief Test debug output from GDB
+ * 
+ * Sends a test message to the configured debug output.
+ * This verifies that debug output is working correctly.
  * 
  * Usage in GDB:
  *   (gdb) call gdb_test_output()

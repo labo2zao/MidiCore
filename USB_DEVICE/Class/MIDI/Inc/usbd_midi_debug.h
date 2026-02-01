@@ -43,8 +43,8 @@
 
 #ifdef USBD_MIDI_DEBUG
 
-#include <stdio.h>  /* For printf - make sure UART printf is working */
-#include "App/tests/test_debug.h"  /* For dbg_print (dbg_printf removed) */
+/* NO stdio.h - MIOS32 style, we don't use printf! */
+#include "App/tests/test_debug.h"  /* For dbg_print (MIOS32-style output) */
 
 void USBD_MIDI_DebugSetupRequest(uint8_t bmRequest, uint8_t bRequest, uint16_t wValue, uint16_t wIndex, uint16_t wLength);
 void USBD_MIDI_DebugDescriptor(const char *name, const uint8_t *data, uint16_t len);
