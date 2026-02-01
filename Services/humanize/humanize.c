@@ -1,4 +1,5 @@
 #include "Services/humanize/humanize.h"
+#include <string.h>
 
 static uint32_t g_rng = 0x12345678u;
 
@@ -30,4 +31,48 @@ int8_t humanize_vel_delta(const instrument_cfg_t* cfg, uint8_t apply_flag) {
   if (!cfg || !cfg->human_enable) return 0;
   if ((cfg->human_apply_mask & apply_flag) == 0) return 0;
   return rand_sym(cfg->human_vel);
+}
+
+/* === Runtime control API for CLI (single global instrument cfg) === */
+static instrument_cfg_t g_humanize_cfg;
+
+int humanize_get_time_variation(uint8_t track) {
+  (void)track;
+  return g_humanize_cfg.human_time_ms;
+}
+
+int humanize_get_velocity_variation(uint8_t track) {
+  (void)track;
+  return g_humanize_cfg.human_vel;
+}
+
+void humanize_set_time_variation(uint8_t track, int value) {
+  (void)track;
+  if (value < 0) value = 0;
+  if (value > 100) value = 100;
+  g_humanize_cfg.human_time_ms = (uint8_t)value;
+}
+
+void humanize_set_velocity_variation(uint8_t track, int value) {
+  (void)track;
+  if (value < 0) value = 0;
+  if (value > 100) value = 100;
+  g_humanize_cfg.human_vel = (uint8_t)value;
+}
+
+void humanize_set_enabled(uint8_t track, uint8_t enable) {
+  (void)track;
+  g_humanize_cfg.human_enable = enable ? 1u : 0u;
+}
+
+uint8_t humanize_is_enabled(uint8_t track) {
+  (void)track;
+  return g_humanize_cfg.human_enable;
+}
+
+/* Initialize default cfg at startup */
+__attribute__((constructor))
+static void humanize_ctor(void) {
+  memset(&g_humanize_cfg, 0, sizeof(g_humanize_cfg));
+  g_humanize_cfg.human_apply_mask = HUMAN_APPLY_KEYS | HUMAN_APPLY_CHORD | HUMAN_APPLY_LOOPER | HUMAN_APPLY_THRU;
 }
