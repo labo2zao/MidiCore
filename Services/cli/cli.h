@@ -237,6 +237,22 @@ void cli_print_prompt(void);
  * - config list          - List all configuration entries
  */
 
+// =============================================================================
+// API - MIOS STUDIO TERMINAL INTERFACE
+// =============================================================================
+
+/**
+ * @brief Process a command received from MIOS Studio terminal via SysEx
+ * @param cmd Null-terminated command string
+ * 
+ * Called when MIOS Studio sends a terminal input command via SysEx.
+ * Response is sent back via midicore_debug_send_message().
+ * 
+ * This enables CLI control via MIOS Studio terminal instead of/in addition to
+ * USB CDC or UART.
+ */
+void cli_process_mios_command(const char* cmd);
+
 #ifdef __cplusplus
 }
 #endif

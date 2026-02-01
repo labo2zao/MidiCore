@@ -668,3 +668,48 @@ static cli_result_t cmd_reboot(int argc, char* argv[])
   
   return CLI_OK;
 }
+
+// =============================================================================
+// MIOS STUDIO TERMINAL COMMAND PROCESSING
+// =============================================================================
+
+/**
+ * @brief Process a command received from MIOS Studio terminal via SysEx
+ * @param cmd Null-terminated command string (e.g., "help", "status", etc.)
+ * 
+ * Called from midicore_query.c when a debug message with type=0x00 (input)
+ * is received. The response is sent back via midicore_debug_send_message().
+ */
+void cli_process_mios_command(const char* cmd)
+{
+  if (!cmd || !s_initialized) {
+    return;
+  }
+  
+  // Strip leading whitespace
+  while (*cmd && isspace((unsigned char)*cmd)) {
+    cmd++;
+  }
+  
+  // Ignore empty commands
+  if (*cmd == '\0') {
+    return;
+  }
+  
+  // Strip trailing newline/carriage return
+  char clean_cmd[CLI_MAX_LINE_LEN];
+  strncpy(clean_cmd, cmd, sizeof(clean_cmd) - 1);
+  clean_cmd[sizeof(clean_cmd) - 1] = '\0';
+  
+  // Remove trailing whitespace/newlines
+  size_t len = strlen(clean_cmd);
+  while (len > 0 && (clean_cmd[len-1] == '\n' || clean_cmd[len-1] == '\r' || isspace((unsigned char)clean_cmd[len-1]))) {
+    clean_cmd[--len] = '\0';
+  }
+  
+  // Execute the command - response goes to cli_print() which uses midicore_debug_send_message()
+  cli_execute(clean_cmd);
+  
+  // Send prompt for next command
+  cli_print("> ");
+}

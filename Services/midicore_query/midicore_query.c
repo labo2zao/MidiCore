@@ -59,9 +59,15 @@ bool midicore_query_is_query_message(const uint8_t* data, uint32_t len) {
       data[3] == 0x7E &&
       data[4] == MIDICORE_QUERY_DEVICE_ID) {
     // data[5] is device instance ID
-    // data[6] is command (0x00 = query, 0x01 = response/info)
-    // Accept device info query forms used by MIOS Studio.
-    if (data[6] == 0x00 || data[6] == 0x01) {
+    // data[6] is command:
+    //   0x00 = device query (MIOS Studio device detection)
+    //   0x01 = device info response
+    //   0x0D = debug message (MIOS Studio TERMINAL - input commands!)
+    //   0x0F = acknowledge
+    // Accept ALL MidiCore protocol commands to prevent routing to MIDI router
+    // which would cause loopback/crashes with MIOS Studio
+    uint8_t cmd = data[6];
+    if (cmd == 0x00 || cmd == 0x01 || cmd == 0x0D || cmd == 0x0F) {
       return true;
     }
   }
@@ -103,14 +109,54 @@ bool midicore_query_process(const uint8_t* data, uint32_t len, uint8_t cable) {
     return true;
   }
   
+  // Command 0x0D: Debug/Terminal message from MIOS Studio
+  // Format: F0 00 00 7E 32 <dev_id> 0D <type> <text...> F7
+  //   type 0x00 = input (command from user)
+  //   type 0x40 = output (response to user) - we send these, not receive
+  if (command == 0x0D && len > 8) {
+    uint8_t msg_type = data[7];
+    
+    if (msg_type == 0x00) {
+      // Input command from MIOS Studio terminal - pass to CLI
+      // Extract text from data[8] to data[len-2] (before F7)
+      uint32_t text_len = len - 9;  // Skip header (8 bytes) and F7 (1 byte)
+      if (text_len > 0 && text_len < 200) {
+        // Copy text to null-terminated buffer
+        char cmd_buf[201];
+        for (uint32_t i = 0; i < text_len; i++) {
+          cmd_buf[i] = (char)(data[8 + i] & 0x7F);  // Mask to 7-bit ASCII
+        }
+        cmd_buf[text_len] = '\0';
+        
+#if defined(MODULE_TEST_USB_DEVICE_MIDI) || MODULE_DEBUG_MIDICORE_QUERIES
+        snprintf(buf, sizeof(buf), "[MIOS-TERM] Command: %s\r\n", cmd_buf);
+        dbg_print(buf);
+#endif
+        
+        // Feed command to CLI system
+        // The CLI will process it and send response back via midicore_debug_send_message()
+        extern void cli_process_mios_command(const char* cmd);
+        cli_process_mios_command(cmd_buf);
+      }
+      return true;
+    }
+    // type 0x40 = output message (we don't expect to receive these)
+    return true;  // Acknowledge but don't process
+  }
+  
+  // Command 0x0F: Acknowledge - just ignore (used for bootloader)
+  if (command == 0x0F) {
+    return true;  // Acknowledged, nothing to do
+  }
+  
 #if defined(MODULE_TEST_USB_DEVICE_MIDI) || MODULE_DEBUG_MIDICORE_QUERIES
   // Debug: Unknown command
-  snprintf(buf, sizeof(buf), "[MIDICORE-Q] Unknown command ignored\r\n");
+  snprintf(buf, sizeof(buf), "[MIDICORE-Q] Unknown command 0x%02X ignored\r\n", command);
   dbg_print(buf);
 #endif
   
-  // Unknown command - ignore
-  return false;
+  // Unknown command - ignore but return true to prevent routing
+  return true;
 }
 
 void midicore_query_send_response(uint8_t query_type, uint8_t device_id, uint8_t cable) {
