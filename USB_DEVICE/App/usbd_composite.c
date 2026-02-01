@@ -143,10 +143,8 @@ static uint8_t USBD_COMPOSITE_Init(USBD_HandleTypeDef *pdev, uint8_t cfgidx)
     }
     composite_class_data.midi_class_data = pdev->pClassData;
 #if defined(MODULE_TEST_USB_DEVICE_MIDI) || MODULE_DEBUG_MIDICORE_QUERIES
-    char buf[60];
-    snprintf(buf, sizeof(buf), "[COMP-Init] MIDI class_data = %p\r\n", 
-             composite_class_data.midi_class_data);
-    dbg_print(buf);
+    /* MIOS32-STYLE: No snprintf - just print fixed string */
+    dbg_print("[COMP-Init] MIDI class_data initialized\r\n");
 #endif
   } else {
 #if defined(MODULE_TEST_USB_DEVICE_MIDI) || MODULE_DEBUG_MIDICORE_QUERIES

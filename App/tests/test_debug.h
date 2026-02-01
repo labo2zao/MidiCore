@@ -148,9 +148,8 @@ int test_debug_init(void);
 void dbg_print(const char* str);
 
 /**
- * @brief Print formatted string to debug output (printf-style)
+ * @brief dbg_printf REMOVED - causes stack overflow!
  * 
- * DEPRECATED: dbg_printf removed due to stack overflow risk (uses 500+ bytes stack).
  * Use MIOS32-style alternatives instead:
  *   - dbg_print("string") for fixed strings
  *   - dbg_print_u32(n) for unsigned numbers
@@ -162,7 +161,6 @@ void dbg_print(const char* str);
  * Example (new - USE THIS):
  *   dbg_print("Channel "); dbg_print_u32(ch); dbg_print(": value="); dbg_print_u32(val); dbg_print("\n");
  */
-/* dbg_printf REMOVED - causes stack overflow in ISR/callback context */
 
 /**
  * @brief Print a single character to debug output
@@ -251,15 +249,11 @@ void dbg_println(void);
 /**
  * @brief MIOS32-style debug message macro
  * 
- * DEPRECATED: DEBUG_MSG now only outputs the first argument as a fixed string.
- * For formatted output, use MIOS32-style helpers:
+ * NOTE: Only prints the first argument (format string). 
+ * Format specifiers are NOT processed - use MIOS32-style helpers instead.
+ * 
+ * For formatted output, use:
  *   dbg_print("string"), dbg_print_u32(n), dbg_print_hex8(n), etc.
- * 
- * Old usage (no longer works for formatted strings):
- *   DEBUG_MSG("Value: %d\n", value);
- * 
- * New usage:
- *   dbg_print("Value: "); dbg_print_u32(value); dbg_print("\n");
  */
 #define DEBUG_MSG(fmt, ...) dbg_print(fmt)
 
