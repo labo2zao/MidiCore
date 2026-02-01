@@ -13,9 +13,15 @@
 #include <stdbool.h>
 #include <math.h>
 #include <stdlib.h>
-#include <stdio.h>  // for snprintf
 #include "ff.h"     // for FatFs types: DIR, FILINFO, FRESULT, etc.
 #include "diskio.h" // for DSTATUS, disk_status
+
+/* Compatibility wrapper: printf is forbidden. This keeps any legacy
+ * dbg_printf call sites from breaking the build; they now emit fixed strings only.
+ * New code must use dbg_print/dbg_print_u32/dbg_print_hex* helpers. */
+static void dbg_printf(const char* fmt, ...) {
+  if (fmt) dbg_print(fmt);
+}
 
 // UI framework for framebuffer-based testing
 #include "Services/ui/ui_page_oled_test.h"
