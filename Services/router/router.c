@@ -37,7 +37,21 @@ typedef struct {
 } route_t;
 
 static route_t g_routes[ROUTER_NUM_NODES][ROUTER_NUM_NODES];
-static router_send_fn_t g_send = 0;
+
+/**
+ * @brief Safe no-op send function to prevent HardFault before router_init()
+ * 
+ * USB callbacks can fire during MX_USB_DEVICE_Init() BEFORE router_init()
+ * is called. Without this safe default, g_send would be NULL/garbage
+ * and calling it would cause a HardFault (executing from heap).
+ */
+static void router_send_noop(uint8_t node, const router_msg_t *msg) {
+  (void)node;
+  (void)msg;
+  // Do nothing - router not yet initialized
+}
+
+static router_send_fn_t g_send = router_send_noop;  // Safe default!
 static osMutexId_t g_router_mutex;
 
 static inline uint8_t is_channel_voice(uint8_t status) {
