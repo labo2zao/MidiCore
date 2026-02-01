@@ -89,14 +89,53 @@ bool midicore_query_process(const uint8_t* data, uint32_t len, uint8_t cable) {
     return false;
   }
   
+  // Check which protocol this message belongs to (data[4] = device ID)
+  uint8_t protocol_id = data[4];
+  
 #if defined(MODULE_TEST_USB_DEVICE_MIDI) || MODULE_DEBUG_MIDICORE_QUERIES
   // Debug: Show MidiCore query reception
   extern void dbg_print(const char *str);
   char buf[80];
-  snprintf(buf, sizeof(buf), "[MIDICORE-Q] Received query len:%lu cable:%u\r\n",
-           (unsigned long)len, (unsigned int)cable);
+  snprintf(buf, sizeof(buf), "[MIDICORE-Q] Received protocol:0x%02X len:%lu cable:%u\r\n",
+           protocol_id, (unsigned long)len, (unsigned int)cable);
   dbg_print(buf);
 #endif
+  
+  // ============================================================
+  // MIOS32 BOOTLOADER PROTOCOL (0x40)
+  // ============================================================
+  // MIOS Studio sends these to check for bootloader / upload firmware.
+  // We don't have a MIOS32-compatible bootloader, so we:
+  // 1. Accept the message (prevents routing to MIDI router = crash fix)
+  // 2. Do NOT respond (device won't appear as having bootloader)
+  // 3. Return true (message handled)
+  //
+  // Format: F0 00 00 7E 40 <target> <cmd> <data...> F7
+  //   cmd 0x02 = Read memory block
+  //   cmd 0x0D = Debug command
+  //   etc.
+  // ============================================================
+  if (protocol_id == 0x40) {
+#if defined(MODULE_TEST_USB_DEVICE_MIDI) || MODULE_DEBUG_MIDICORE_QUERIES
+    snprintf(buf, sizeof(buf), "[MIDICORE-Q] MIOS32 bootloader cmd:0x%02X - ignored (no bootloader)\r\n",
+             (len > 6) ? data[6] : 0xFF);
+    dbg_print(buf);
+#endif
+    // Do NOT respond - we don't have MIOS32 bootloader
+    // Just acknowledge receipt to prevent routing
+    return true;
+  }
+  
+  // ============================================================
+  // MIDICORE PROTOCOL (0x32)
+  // ============================================================
+  // Our device query/response protocol
+  // Format: F0 00 00 7E 32 <target> <cmd> <type> <data...> F7
+  // ============================================================
+  if (protocol_id != MIDICORE_QUERY_DEVICE_ID) {
+    // Unknown protocol - ignore but prevent routing
+    return true;
+  }
   
   // Extract command (byte 6 for MidiCore protocol: F0 00 00 7E 32 <dev> <cmd>)
   uint8_t device_id = data[5];
@@ -105,7 +144,7 @@ bool midicore_query_process(const uint8_t* data, uint32_t len, uint8_t cable) {
   
 #if defined(MODULE_TEST_USB_DEVICE_MIDI) || MODULE_DEBUG_MIDICORE_QUERIES
   // Debug: Show query details
-  snprintf(buf, sizeof(buf), "[MIDICORE-Q] dev_id:%02X cmd:%02X type:%02X\r\n",
+  snprintf(buf, sizeof(buf), "[MIDICORE-Q] MidiCore dev_id:%02X cmd:%02X type:%02X\r\n",
            device_id, command, query_type);
   dbg_print(buf);
 #endif
