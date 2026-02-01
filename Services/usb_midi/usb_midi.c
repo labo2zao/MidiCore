@@ -480,7 +480,7 @@ void usb_midi_process_rx_queue(void) {
               // Queue for processing from task context (ISR-safe, no USB TX from ISR!)
               midicore_query_queue(buf->buffer, buf->pos, cable);
               // Don't route query messages - they'll be processed from queue
-            } else {
+            } else if (router_is_ready()) {
               /* Route non-MidiCore SysEx through the MIDI router */
               /* This enables MIDI thru for external SysEx (synth patches, etc.) */
               router_msg_t msg;
@@ -521,7 +521,7 @@ void usb_midi_process_rx_queue(void) {
               // Queue for processing from task context (ISR-safe, no USB TX from ISR!)
               midicore_query_queue(buf->buffer, buf->pos, cable);
               // Don't route query messages - they'll be processed from queue
-            } else {
+            } else if (router_is_ready()) {
               /* Route non-MidiCore SysEx through the MIDI router */
               /* This enables MIDI thru for external SysEx (synth patches, etc.) */
               router_msg_t msg;
@@ -563,7 +563,7 @@ void usb_midi_process_rx_queue(void) {
               // Queue for processing from task context (ISR-safe, no USB TX from ISR!)
               midicore_query_queue(buf->buffer, buf->pos, cable);
               // Don't route query messages - they'll be processed from queue
-            } else {
+            } else if (router_is_ready()) {
               /* Route non-MidiCore SysEx through the MIDI router */
               /* This enables MIDI thru for external SysEx (synth patches, etc.) */
               router_msg_t msg;
@@ -592,6 +592,9 @@ void usb_midi_process_rx_queue(void) {
     
     /* Fast rejection of invalid CINs */
     if (msg_len == 0) continue;
+    
+    /* Only route if router is initialized - prevents HardFault during early USB enumeration */
+    if (!router_is_ready()) continue;
     
     /* Prepare message inline - optimized for common case (3-byte messages) */
     router_msg_t msg;
