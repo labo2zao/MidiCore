@@ -53,23 +53,26 @@ bool midicore_query_is_query_message(const uint8_t* data, uint32_t len) {
   }
   
   // Check for MidiCore query header: F0 00 00 7E 32
+  // CRITICAL: Accept ALL MidiCore SysEx to prevent routing to MIDI router!
+  // MidiCore SysEx is device management protocol, NOT music data.
+  // Routing it would cause MIOS Studio crashes/freezes.
   if (data[0] == 0xF0 &&
       data[1] == 0x00 &&
       data[2] == 0x00 &&
       data[3] == 0x7E &&
       data[4] == MIDICORE_QUERY_DEVICE_ID) {
-    // data[5] is device instance ID
-    // data[6] is command:
+    // This IS a MidiCore protocol message (F0 00 00 7E 32 ...)
+    // Accept ALL commands, don't filter by specific command codes!
+    // Known commands:
     //   0x00 = device query (MIOS Studio device detection)
     //   0x01 = device info response
-    //   0x0D = debug message (MIOS Studio TERMINAL - input commands!)
+    //   0x02 = read memory
+    //   0x03 = write memory
+    //   0x04 = SysEx upload
+    //   0x0D = debug message (MIOS Studio TERMINAL)
     //   0x0F = acknowledge
-    // Accept ALL MidiCore protocol commands to prevent routing to MIDI router
-    // which would cause loopback/crashes with MIOS Studio
-    uint8_t cmd = data[6];
-    if (cmd == 0x00 || cmd == 0x01 || cmd == 0x0D || cmd == 0x0F) {
-      return true;
-    }
+    // But we should accept ANY command to be future-proof and safe.
+    return true;  // ALL MidiCore SysEx is recognized, prevents routing
   }
   
   return false;
