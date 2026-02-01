@@ -85,6 +85,25 @@ void usb_midi_process_rx_queue(void);
  */
 bool usb_midi_get_tx_status(uint32_t *queue_size, uint32_t *queue_used, uint32_t *queue_drops);
 
+/**
+ * @brief USB MIDI TX error trace - for MIOS Studio terminal diagnostics
+ * @param code Error code (0x01=not ready, 0x03=busy, 0xFF=queue full)
+ * 
+ * Real production function - NOT a stub. Logs TX errors when
+ * MODULE_DEBUG_MIDICORE_QUERIES is enabled.
+ */
+void usb_midi_tx_trace(uint8_t code);
+
+/**
+ * @brief USB MIDI packet queued trace - detailed TX debugging
+ * @param cin Cable Index Number
+ * @param b0 First MIDI byte (status)
+ * 
+ * Real production function. Disabled by default to reduce noise.
+ * Enable MODULE_DEBUG_USB_MIDI_TX_PACKETS for detailed tracing.
+ */
+void usb_midi_tx_packet_trace(uint8_t cin, uint8_t b0);
+
 #ifdef __cplusplus
 }
 #endif
