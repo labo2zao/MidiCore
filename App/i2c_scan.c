@@ -11,10 +11,13 @@
 #include "App/i2c_scan.h"
 #include "Hal/i2c_hal.h"
 
+/* Maximum devices to track in results array */
+#define I2C_SCAN_MAX_DEVICES 16
+
 /* Global results for debugger visibility (no printf!) */
 volatile uint8_t g_i2c_scan_bus = 0;
 volatile uint8_t g_i2c_scan_found = 0;
-volatile uint8_t g_i2c_scan_addrs[16] = {0};  /* Up to 16 found addresses */
+volatile uint8_t g_i2c_scan_addrs[I2C_SCAN_MAX_DEVICES] = {0};
 
 void app_i2c_scan_and_log(uint8_t bus){
   g_i2c_scan_bus = bus;
@@ -22,7 +25,7 @@ void app_i2c_scan_and_log(uint8_t bus){
   
   for(uint8_t a=0x03; a<=0x77; a++){
     if(i2c_hal_probe(bus, a, 10) == 0){
-      if(g_i2c_scan_found < 16){
+      if(g_i2c_scan_found < I2C_SCAN_MAX_DEVICES){
         g_i2c_scan_addrs[g_i2c_scan_found] = a;
       }
       g_i2c_scan_found++;

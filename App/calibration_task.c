@@ -23,8 +23,12 @@ volatile int32_t g_cal_pmin = 0;
 volatile int32_t g_cal_pmax = 0;
 volatile uint16_t g_cal_raw_min = 0;
 volatile uint16_t g_cal_raw_max = 0;
+volatile int8_t g_cal_write_pressure_result = 0;   /* Result of write_pressure_cfg() */
+volatile int8_t g_cal_write_expression_result = 0; /* Result of patch_expression_rawminmax() */
 
-/* Suppress unused function warnings - these are available for future use */
+/* Note: Helper functions u32_to_str, i32_to_str, u8_to_hex are available for
+ * future MIOS Terminal output. Currently suppressed to avoid unused warnings.
+ * When implementing terminal status command, use these instead of snprintf. */
 #if defined(__GNUC__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-function"
@@ -336,9 +340,9 @@ static void CalibrationTask(void* argument){
   expression_runtime_reset();
 }
 
-/* Persist */
-  (void)write_pressure_cfg(&cc, &pcfg);
-  (void)patch_expression_rawminmax(&cc, raw_min, raw_max);
+/* Persist - capture results for debugger visibility */
+  g_cal_write_pressure_result = (int8_t)write_pressure_cfg(&cc, &pcfg);
+  g_cal_write_expression_result = (int8_t)patch_expression_rawminmax(&cc, raw_min, raw_max);
 
   /* Disable calibration after done by rewriting calibration.ngc quickly */
 #if CAL_HAS_FATFS
