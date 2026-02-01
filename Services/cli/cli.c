@@ -433,16 +433,27 @@ static void cli_print(const char* str)
   usb_cdc_send((const uint8_t*)str, strlen(str));
   
 #elif MODULE_CLI_OUTPUT == CLI_OUTPUT_UART
-  /* Direct UART output - implement if needed */
-  (void)str;
+  /* Direct UART output to the configured debug UART */
+  extern UART_HandleTypeDef huart5;  // Default debug UART (port 3 = UART5)
+  HAL_UART_Transmit(&huart5, (const uint8_t*)str, (uint16_t)strlen(str), 20);
   
 #elif MODULE_CLI_OUTPUT == CLI_OUTPUT_MIOS
   /* MIOS terminal mode - use MIDI SysEx protocol */
   midicore_debug_send_message(str, 0);
   
 #elif MODULE_CLI_OUTPUT == CLI_OUTPUT_DEBUG
-  /* Disabled - no debug output in MIOS32 style */
-  (void)str;
+  /* Follow MODULE_DEBUG_OUTPUT when CLI_OUTPUT_DEBUG is selected */
+  #if MODULE_DEBUG_OUTPUT == DEBUG_OUTPUT_UART
+    extern UART_HandleTypeDef huart5;
+    HAL_UART_Transmit(&huart5, (const uint8_t*)str, (uint16_t)strlen(str), 20);
+  #elif MODULE_DEBUG_OUTPUT == DEBUG_OUTPUT_USB_CDC
+    #if MODULE_ENABLE_USB_CDC
+      usb_cdc_send((const uint8_t*)str, strlen(str));
+    #endif
+  #else
+    /* SWV or NONE: no textual terminal output */
+    (void)str;
+  #endif
   
 #else
   #error "Invalid MODULE_CLI_OUTPUT setting"
