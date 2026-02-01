@@ -181,10 +181,21 @@ int main(void)
    *   3. usb_cdc_init() → too late, already enumerated
    * 
    * NEW (CORRECT) ORDER:
-   *   1. usb_midi_init() → register callbacks FIRST
-   *   2. usb_cdc_init() → register callbacks FIRST
-   *   3. MX_USB_DEVICE_Init() → NOW start enumeration with callbacks ready
+   *   1. router_init() → MIDI router must be ready FIRST
+   *   2. usb_midi_init() → register callbacks
+   *   3. usb_cdc_init() → register callbacks
+   *   4. MX_USB_DEVICE_Init() → NOW start enumeration with callbacks ready
    */
+  
+  #if MODULE_ENABLE_ROUTER
+    /* CRITICAL: Initialize router BEFORE USB MIDI!
+     * USB MIDI callbacks call router_process() which requires g_send to be set.
+     * Without this, receiving USB MIDI data causes HardFault (NULL/garbage function pointer).
+     */
+    extern int router_send_default(uint8_t out_node, const void* msg);
+    extern void router_init(void* send_cb);
+    router_init(router_send_default);
+  #endif
   
   #if MODULE_ENABLE_USB_MIDI
     /* Initialize MIDI service and register interface callbacks */

@@ -51,6 +51,13 @@ static inline uint16_t msg_channel_bit(const router_msg_t* msg) {
 }
 
 void router_init(router_send_fn_t send_cb) {
+  // Guard against double init (can happen if called from both main.c and app_init.c)
+  static uint8_t s_initialized = 0;
+  if (s_initialized && g_send == send_cb) {
+    return;  // Already initialized with same callback
+  }
+  s_initialized = 1;
+  
   g_send = send_cb;
   memset(g_routes, 0, sizeof(g_routes));
   for (uint8_t i=0;i<ROUTER_NUM_NODES;i++) {
