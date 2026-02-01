@@ -582,28 +582,27 @@ void usb_midi_process_rx_queue(void) {
       }
       continue;
     }
-  }
-  
-  /* Handle regular MIDI messages (non-SysEx) - optimized with lookup table */
-  const uint8_t msg_len = cin_to_length[cin];
-  
-  /* Fast rejection of invalid CINs */
-  if (msg_len == 0) continue;
-  
-  /* Prepare message inline - optimized for common case (3-byte messages) */
-  router_msg_t msg;
-  msg.data = NULL;
-  msg.len = 0;
-  msg.b0 = packet4[1];
-  msg.b1 = packet4[2];
-  msg.b2 = packet4[3];
-  
-  /* Set message type based on length (fast path) */
-  if (msg_len == 3) {
-    msg.type = ROUTER_MSG_3B;
-  } else if (msg_len == 2) {
-    msg.type = ROUTER_MSG_2B;
-    msg.b2 = 0;
+    
+    /* Handle regular MIDI messages (non-SysEx) - optimized with lookup table */
+    const uint8_t msg_len = cin_to_length[cin];
+    
+    /* Fast rejection of invalid CINs */
+    if (msg_len == 0) continue;
+    
+    /* Prepare message inline - optimized for common case (3-byte messages) */
+    router_msg_t msg;
+    msg.data = NULL;
+    msg.len = 0;
+    msg.b0 = packet4[1];
+    msg.b1 = packet4[2];
+    msg.b2 = packet4[3];
+    
+    /* Set message type based on length (fast path) */
+    if (msg_len == 3) {
+      msg.type = ROUTER_MSG_3B;
+    } else if (msg_len == 2) {
+      msg.type = ROUTER_MSG_2B;
+      msg.b2 = 0;
     } else { /* msg_len == 1 */
       msg.type = ROUTER_MSG_1B;
       msg.b1 = 0;
