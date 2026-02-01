@@ -96,23 +96,37 @@ void HardFault_Handler(void)
   /* USER CODE BEGIN HardFault_IRQn 0 */
   
   /* === HARDFAULT DIAGNOSTIC - Check these in debugger! === */
-  /* Set breakpoint here, then check g_fault_* variables */
   volatile uint32_t g_fault_pc = 0;      /* Faulting instruction address */
   volatile uint32_t g_fault_lr = 0;      /* Link register (caller) */
-  volatile uint32_t g_fault_psp = 0;     /* Process stack pointer */
+  volatile uint32_t g_fault_sp = 0;      /* Stack pointer at fault */
   volatile uint32_t g_fault_cfsr = 0;    /* Configurable Fault Status Reg */
   volatile uint32_t g_fault_hfsr = 0;    /* Hard Fault Status Reg */
   volatile uint32_t g_fault_mmfar = 0;   /* MemManage Fault Address */
   volatile uint32_t g_fault_bfar = 0;    /* Bus Fault Address */
+  volatile uint32_t g_fault_exc_return = 0; /* Exception return value */
   
-  /* Get PSP (FreeRTOS tasks use Process Stack) */
-  __asm volatile ("MRS %0, PSP" : "=r" (g_fault_psp));
+  /* Get the exception return value from LR to determine which stack was used */
+  __asm volatile ("MOV %0, LR" : "=r" (g_fault_exc_return));
   
-  /* Stack frame: r0,r1,r2,r3,r12,lr,pc,xpsr (8 words) */
-  if (g_fault_psp != 0) {
-    uint32_t *stack = (uint32_t*)g_fault_psp;
-    g_fault_lr = stack[5];   /* Stacked LR */
-    g_fault_pc = stack[6];   /* Stacked PC - WHERE THE CRASH HAPPENED! */
+  /* 
+   * EXC_RETURN bit 2 determines which stack pointer was used:
+   *   Bit 2 = 0: MSP (Main Stack) - used before scheduler or in ISR
+   *   Bit 2 = 1: PSP (Process Stack) - used by FreeRTOS tasks
+   */
+  if (g_fault_exc_return & 0x4) {
+    /* PSP was used (FreeRTOS task context) */
+    __asm volatile ("MRS %0, PSP" : "=r" (g_fault_sp));
+  } else {
+    /* MSP was used (before scheduler or ISR context) */
+    __asm volatile ("MRS %0, MSP" : "=r" (g_fault_sp));
+  }
+  
+  /* Stack frame: r0,r1,r2,r3,r12,lr,pc,xpsr (8 words at offsets 0-28) */
+  if (g_fault_sp > 0x20000000 && g_fault_sp < 0x20020000) {
+    /* Valid RAM address - safe to dereference */
+    uint32_t *stack = (uint32_t*)g_fault_sp;
+    g_fault_lr = stack[5];   /* Stacked LR (offset 20) */
+    g_fault_pc = stack[6];   /* Stacked PC (offset 24) - WHERE THE CRASH HAPPENED! */
   }
   
   /* Read fault status registers */
@@ -150,11 +164,12 @@ void HardFault_Handler(void)
   /* Keep variables alive for debugger */
   (void)g_fault_pc;
   (void)g_fault_lr;
-  (void)g_fault_psp;
+  (void)g_fault_sp;
   (void)g_fault_cfsr;
   (void)g_fault_hfsr;
   (void)g_fault_mmfar;
   (void)g_fault_bfar;
+  (void)g_fault_exc_return;
   
   panic_set(PANIC_HARDFAULT);
   safe_mode_set_forced(1u);
