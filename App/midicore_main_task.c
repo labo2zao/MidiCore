@@ -211,7 +211,22 @@ static void MidiCore_MainTask(void *argument)
   /* Wait for USB enumeration to complete before processing MIDI */
   dbg_printf("[MAIN] Waiting for USB enumeration (500ms)...\r\n");
   osDelay(500);
-  dbg_printf("[MAIN] USB ready, entering main loop\r\n");
+  dbg_printf("[MAIN] USB ready\r\n");
+  
+  /* Send test message to MIOS Studio terminal to verify connectivity
+   * This matches what MODULE_TEST_USB_DEVICE_MIDI does and is required
+   * for MIOS Studio to recognize the device. */
+#if MODULE_ENABLE_USB_MIDI
+  dbg_printf("[MAIN] Sending test message to MIOS Studio terminal...\r\n");
+  bool test_sent = midicore_debug_send_message("*** MidiCore Ready ***\r\n", 0);
+  if (test_sent) {
+    dbg_printf("[MAIN] Test message sent - check MIOS Studio Terminal\r\n");
+  } else {
+    dbg_printf("[MAIN] WARNING: Failed to send test message to MIOS terminal\r\n");
+  }
+#endif
+  
+  dbg_printf("[MAIN] Entering main loop\r\n");
   
   /* Track last wake time for vTaskDelayUntil */
   TickType_t xLastWakeTime = xTaskGetTickCount();
@@ -275,6 +290,19 @@ static void MidiCore_MainTask(void *argument)
                  (unsigned long)tick,
                  (unsigned long)(hwm * sizeof(StackType_t)));
     }
+    
+    /* MIOS Studio diagnostics (every 10 seconds) */
+#if MODULE_ENABLE_USB_MIDI && MODULE_DEBUG_MIDICORE_QUERIES
+    if ((tick % 10000) == 0 && tick > 0 && tick <= 30000) {
+      /* Only show in first 30 seconds to avoid spam */
+      extern bool usb_midi_get_tx_status(uint32_t*, uint32_t*, uint32_t*);
+      uint32_t q_size = 0, q_used = 0, q_drops = 0;
+      bool ready = usb_midi_get_tx_status(&q_size, &q_used, &q_drops);
+      dbg_printf("[MAIN] USB MIDI Status: ready=%d, queue=%lu/%lu, drops=%lu\r\n",
+                 ready, (unsigned long)q_used, (unsigned long)q_size, (unsigned long)q_drops);
+      dbg_printf("[MAIN] Waiting for MIOS Studio query...\r\n");
+    }
+#endif
     
     /* Increment tick counter */
     s_tick_count++;
