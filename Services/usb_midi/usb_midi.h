@@ -76,6 +76,15 @@ void usb_midi_rx_packet(const uint8_t packet4[4]);
  */
 void usb_midi_process_rx_queue(void);
 
+/**
+ * @brief Get USB MIDI TX queue status (for diagnostics)
+ * @param queue_size Output: Total queue capacity in packets
+ * @param queue_used Output: Current packets in queue
+ * @param queue_drops Output: Total packets dropped due to full queue
+ * @return true if USB MIDI is ready for transmission, false otherwise
+ */
+bool usb_midi_get_tx_status(uint32_t *queue_size, uint32_t *queue_used, uint32_t *queue_drops);
+
 #ifdef __cplusplus
 }
 #endif

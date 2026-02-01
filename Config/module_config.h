@@ -687,23 +687,18 @@ extern "C" {
 
 
 // =============================================================================
-// COOPERATIVE ARCHITECTURE CONFIGURATION
+// ARCHITECTURE NOTES (Cooperative Design - Single Architecture)
 // =============================================================================
 
 /**
- * @brief Enable MidiCore cooperative task architecture
+ * @brief MidiCore Cooperative Task Architecture
  * 
- * When enabled (MODULE_ENABLE_COOPERATIVE_ARCH=1):
+ * MidiCore uses a cooperative service-based architecture:
  * - Single MidiCore_MainTask runs all services cooperatively
  * - Deterministic 1ms tick period for responsive MIDI
  * - Logic lives in service tick functions, not tasks
  * - Reduced stack usage, fewer hidden states
  * - Better for long-term maintainability
- * 
- * When disabled (MODULE_ENABLE_COOPERATIVE_ARCH=0):
- * - Legacy multi-task architecture
- * - Each feature has its own task (AinTask, MidiIOTask, etc.)
- * - Higher stack usage but familiar FreeRTOS pattern
  * 
  * Design principles:
  * - FreeRTOS is a scheduler, not an architecture
@@ -711,13 +706,8 @@ extern "C" {
  * - Prefer cooperative execution over preemptive fragmentation
  * - Services are non-blocking with bounded execution time
  * 
- * Recommended: Enable for new projects, disable for backwards compatibility
- * 
  * See Docs/ARCHITECTURE.md for detailed architecture guide.
  */
-#ifndef MODULE_ENABLE_COOPERATIVE_ARCH
-#define MODULE_ENABLE_COOPERATIVE_ARCH 1  // Enable cooperative architecture by default
-#endif
 
 // =============================================================================
 // CONFIGURATION VALIDATION

@@ -295,7 +295,6 @@ static void MidiCore_MainTask(void *argument)
 #if MODULE_ENABLE_USB_MIDI && MODULE_DEBUG_MIDICORE_QUERIES
     if ((tick % 10000) == 0 && tick > 0 && tick <= 30000) {
       /* Only show in first 30 seconds to avoid spam */
-      extern bool usb_midi_get_tx_status(uint32_t*, uint32_t*, uint32_t*);
       uint32_t q_size = 0, q_used = 0, q_drops = 0;
       bool ready = usb_midi_get_tx_status(&q_size, &q_used, &q_drops);
       dbg_printf("[MAIN] USB MIDI Status: ready=%d, queue=%lu/%lu, drops=%lu\r\n",
