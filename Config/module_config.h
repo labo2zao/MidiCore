@@ -542,8 +542,12 @@ extern "C" {
  * 
  * Recommended: Enable for development/troubleshooting, can disable for production
  */
+/* CRITICAL: Disabled by default - dbg_printf in USB ISR context causes stack overflow!
+ * USB callbacks run on MSP (main stack) which only has 2KB.
+ * printf uses 500+ bytes of stack, causing corruption.
+ * Only enable for debugging when NOT using USB MIDI! */
 #ifndef MODULE_DEBUG_MIDICORE_QUERIES
-#define MODULE_DEBUG_MIDICORE_QUERIES 1
+#define MODULE_DEBUG_MIDICORE_QUERIES 0
 #endif
 
 /** @brief Enable Module Registry (required for CLI module control) */
