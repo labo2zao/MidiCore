@@ -65,14 +65,10 @@ void usb_midi_tx_trace(uint8_t code)
  */
 void usb_midi_tx_packet_trace(uint8_t cin, uint8_t b0)
 {
-  /* Disabled by default - enable for detailed TX debugging */
-  #if MODULE_DEBUG_USB_MIDI_TX_PACKETS
-  extern void dbg_printf(const char *fmt, ...);
-  dbg_printf("[TX-PKT] CIN:%02X Status:%02X\r\n", cin, b0);
-  #else
+  /* MIOS32-STYLE: No debug output - disabled to prevent stack overflow
+   * Values visible in debugger via breakpoint */
   (void)cin;
   (void)b0;
-  #endif
 }
 
 /*===========================================================================*/
@@ -148,18 +144,10 @@ void usb_midi_rx_debug_hook(const uint8_t packet4[4])
   }
   #endif
   
-  /* Debug logging only in debug/test mode */
-  #if MODULE_DEBUG_MIDICORE_QUERIES || defined(MODULE_TEST_USB_DEVICE_MIDI)
-  /* Skip SysEx packets (CIN 0x4-0x7) to prevent stack overflow */
-  if (cin >= 0x04 && cin <= 0x07) {
-    return;
-  }
-  dbg_printf("[USB-RX] Cable:%u CIN:0x%X Data:[%02X %02X %02X %02X]\r\n",
-             cable, cin, packet4[0], packet4[1], packet4[2], packet4[3]);
-  #else
+  /* MIOS32-STYLE: No debug output in callback path - causes stack overflow!
+   * Variables cable, cin, packet4 visible in debugger via breakpoint */
   (void)cin;
   (void)cable;
-  #endif
 }
 
 /* SysEx buffer management - one buffer per cable (4 cables total) */
@@ -630,18 +618,12 @@ void usb_midi_tx_complete(void) {
 
 static void USBD_MIDI_Init_Callback(void) {
   /* USB MIDI initialized - all 4 ports ready */
-#if defined(MODULE_TEST_USB_DEVICE_MIDI) || MODULE_DEBUG_MIDICORE_QUERIES  
-  extern void dbg_printf(const char *fmt, ...);
-  dbg_printf("[USB-MIDI] USB Device MIDI class initialized - ready for queries\r\n");
-#endif
+  /* MIOS32-STYLE: No debug output - visible in debugger via breakpoint */
 }
 
 static void USBD_MIDI_DeInit_Callback(void) {
   /* USB MIDI de-initialized */
-#if defined(MODULE_TEST_USB_DEVICE_MIDI) || MODULE_DEBUG_MIDICORE_QUERIES  
-  extern void dbg_printf(const char *fmt, ...);
-  dbg_printf("[USB-MIDI] USB Device MIDI class de-initialized\r\n");
-#endif
+  /* MIOS32-STYLE: No debug output - visible in debugger via breakpoint */
 }
 
 static void USBD_MIDI_DataOut_Callback(USBD_MIDI_EventPacket_t *packet) {
