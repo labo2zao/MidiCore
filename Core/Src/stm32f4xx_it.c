@@ -171,10 +171,18 @@ void HardFault_Handler(void)
   (void)g_fault_bfar;
   (void)g_fault_exc_return;
   
-  panic_set(PANIC_HARDFAULT);
+  /* CRITICAL: Set safe_mode FIRST so next boot enters safe mode */
   safe_mode_set_forced(1u);
+  
+  /* Set status for OLED (minimal operation, just copies string) */
   ui_set_status_line("PANIC HF");
-  watchdog_panic();
+  
+  /* HALT for debugging - panic_set() does NOT return!
+   * Attach debugger and inspect g_fault_* variables.
+   * If watchdog is enabled, it will eventually reset the system. */
+  panic_set(PANIC_HARDFAULT);
+  
+  /* Never reached - panic_set halts forever */
   /* USER CODE END HardFault_IRQn 0 */
   while (1)
   {

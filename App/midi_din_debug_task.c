@@ -88,7 +88,7 @@ void midi_din_debug_task_create(void)
   const osThreadAttr_t attr = {
       .name = "midi_din_mon",
       .priority = (osPriority_t)osPriorityLow,
-      .stack_size = 768,
+      .stack_size = 1024,  /* Increased from 768: uses snprintf (500+ bytes stack) + 192B line buffer */
   };
 
   s_midi_mon_tid = osThreadNew(mon_task, NULL, &attr);

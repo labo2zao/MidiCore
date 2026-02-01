@@ -10,6 +10,20 @@
 // are now defined in router_config.h as enum values
 
 // -----------------------------------------------------------------------------
+// Panic / Fault Behavior
+// -----------------------------------------------------------------------------
+
+// PANIC_AUTO_RESET controls what happens on stack overflow or malloc failure:
+//   0 = HALT for debugging (system stops, attach debugger to inspect)
+//   1 = AUTO-RESET for production (system recovers automatically)
+//
+// For debugging crashes: Set to 0, then attach debugger when system halts
+// For production use: Set to 1 for automatic recovery
+#ifndef PANIC_AUTO_RESET
+#define PANIC_AUTO_RESET 0  // Default: HALT for debugging
+#endif
+
+// -----------------------------------------------------------------------------
 // Debug helpers
 // -----------------------------------------------------------------------------
 
