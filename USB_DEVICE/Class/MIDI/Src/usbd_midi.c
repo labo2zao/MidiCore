@@ -516,7 +516,14 @@ static uint8_t USBD_MIDI_DataIn(USBD_HandleTypeDef *pdev, uint8_t epnum)
   */
 static uint8_t USBD_MIDI_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum)
 {
-  USBD_MIDI_HandleTypeDef *hmidi = (USBD_MIDI_HandleTypeDef *)pdev->pClassData;
+  USBD_MIDI_HandleTypeDef *hmidi;
+  
+  /* CRITICAL: Check pClassData BEFORE dereferencing! (MIOS32 pattern) */
+  if (pdev == NULL || pdev->pClassData == NULL) {
+    return USBD_OK;  /* Not initialized yet - silently ignore */
+  }
+  
+  hmidi = (USBD_MIDI_HandleTypeDef *)pdev->pClassData;
   
   if (epnum == (MIDI_OUT_EP & 0x7F))
   {
@@ -613,9 +620,16 @@ uint8_t USBD_MIDI_RegisterInterface(USBD_HandleTypeDef *pdev, USBD_MIDI_ItfTypeD
   */
 uint8_t USBD_MIDI_SendData(USBD_HandleTypeDef *pdev, uint8_t cable, uint8_t *data, uint16_t length)
 {
-  USBD_MIDI_HandleTypeDef *hmidi = (USBD_MIDI_HandleTypeDef *)pdev->pClassData;
+  USBD_MIDI_HandleTypeDef *hmidi;
   
-  if (hmidi == NULL || !hmidi->is_ready || cable >= MIDI_NUM_PORTS)
+  /* CRITICAL: Check pdev and pClassData BEFORE dereferencing! */
+  if (pdev == NULL || pdev->pClassData == NULL) {
+    return USBD_BUSY;
+  }
+  
+  hmidi = (USBD_MIDI_HandleTypeDef *)pdev->pClassData;
+  
+  if (!hmidi->is_ready || cable >= MIDI_NUM_PORTS)
   {
     return USBD_BUSY;
   }

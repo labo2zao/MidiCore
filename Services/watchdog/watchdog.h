@@ -11,6 +11,9 @@ void watchdog_panic_code(uint32_t code);
 // Initialize watchdog (no-op unless WATCHDOG_ENABLE is defined at build time)
 void watchdog_init(void);
 
+// Kick (refresh) the watchdog timer - called from main task tick
+void watchdog_kick(void);
+
 #ifdef __cplusplus
 }
 #endif

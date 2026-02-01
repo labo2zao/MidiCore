@@ -1,6 +1,11 @@
 /**
  * @file midicore_hooks.c
  * @brief MIOS32-Style Terminal Hooks Implementation
+ * 
+ * MIOS32 PRINCIPLES:
+ * - NO printf / dbg_printf
+ * - Thread-safe terminal I/O
+ * - Minimal stack usage
  */
 
 #include "midicore_hooks.h"
@@ -8,98 +13,74 @@
 #include "Config/module_config.h"
 #include "Services/midicore_query/midicore_query.h"
 #include "Services/usb_cdc/usb_cdc.h"
-#include "App/tests/test_debug.h"
 
 #include <string.h>
 
-// Terminal mutex for thread-safe I/O
+/* Terminal mutex for thread-safe I/O */
 static osMutexId_t g_terminal_mutex = NULL;
 static volatile bool g_hooks_initialized = false;
 
-// Statistics
+/* Statistics (visible in debugger) */
 static volatile uint32_t g_lock_count = 0;
 static volatile uint32_t g_timeout_count = 0;
 static volatile uint32_t g_contention_count = 0;
 
-/**
- * @brief Initialize MidiCore terminal hooks system
- */
 bool midicore_hooks_init(void)
 {
   if (g_hooks_initialized) {
-    return true;  // Already initialized
+    return true;
   }
 
-  // Create terminal mutex with name for debugging
   const osMutexAttr_t mutex_attr = {
     .name = "terminal",
-    .attr_bits = osMutexRecursive,  // Allow recursive locking from same task
+    .attr_bits = osMutexRecursive,
     .cb_mem = NULL,
     .cb_size = 0U
   };
 
   g_terminal_mutex = osMutexNew(&mutex_attr);
   if (g_terminal_mutex == NULL) {
-    dbg_printf("[MIDICORE-HOOKS] ERROR: Failed to create terminal mutex\r\n");
-    return false;
+    return false;  /* Mutex creation failed - visible in debugger */
   }
 
   g_hooks_initialized = true;
-  dbg_printf("[MIDICORE-HOOKS] Terminal hooks initialized\r\n");
-  dbg_printf("[MIDICORE-HOOKS] Mutex: %p (recursive)\r\n", (void*)g_terminal_mutex);
-
   return true;
 }
 
-/**
- * @brief Write data to terminal with mutex protection
- */
 size_t midicore_hooks_write(const char* data, size_t len)
 {
   if (!g_hooks_initialized || data == NULL || len == 0) {
     return 0;
   }
 
-  // Acquire mutex with timeout to prevent deadlock
-  osStatus_t status = osMutexAcquire(g_terminal_mutex, 100);  // 100ms timeout
+  osStatus_t status = osMutexAcquire(g_terminal_mutex, 100);
   if (status != osOK) {
     g_timeout_count++;
-    return 0;  // Timeout or error
+    return 0;
   }
 
   g_lock_count++;
   size_t written = 0;
 
-  // Route to appropriate terminal based on CLI configuration
+  /* Route to appropriate terminal based on CLI configuration */
 #if MODULE_CLI_OUTPUT == CLI_OUTPUT_MIOS
-  // MIOS Studio terminal - use SysEx protocol
   if (midicore_debug_send_message(data, 0)) {
     written = len;
   }
 #elif MODULE_CLI_OUTPUT == CLI_OUTPUT_USB_CDC
-  // USB CDC text terminal
   if (usb_cdc_send((const uint8_t*)data, len)) {
     written = len;
   }
-#elif MODULE_CLI_OUTPUT == CLI_OUTPUT_UART || MODULE_CLI_OUTPUT == CLI_OUTPUT_DEBUG
-  // UART or debug output
-  dbg_print(data, len);
-  written = len;
 #else
-  // Default: debug output
-  dbg_print(data, len);
-  written = len;
+  /* UART/Debug modes disabled in MIOS32-style build */
+  (void)data;
+  written = 0;
 #endif
 
-  // Release mutex
   osMutexRelease(g_terminal_mutex);
-
   return written;
 }
 
-/**
- * @brief Read data from terminal with mutex protection
- */
 size_t midicore_hooks_read(char* buffer, size_t max_len)
 {
   if (!g_hooks_initialized || buffer == NULL || max_len == 0) {

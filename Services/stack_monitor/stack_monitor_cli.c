@@ -1,12 +1,14 @@
 /**
  * @file stack_monitor_cli.c
  * @brief CLI commands for stack monitor
+ * 
+ * MIOS32-STYLE: NO printf / snprintf / vsnprintf
+ * Uses fixed-string output only: cli_puts, cli_print_u32, etc.
  */
 
 #include "Services/cli/cli.h"
 #include "Services/stack_monitor/stack_monitor.h"
 #include <string.h>
-#include <stdio.h>
 #include <stdlib.h>
 
 // =============================================================================
@@ -31,25 +33,23 @@ static cli_result_t cmd_stack(int argc, char* argv[])
       else if (info.status == STACK_STATUS_CRITICAL) status_str = "CRITICAL";
       else if (info.status == STACK_STATUS_OVERFLOW) status_str = "OVERFLOW";
 
-      cli_printf("\r\nTask: %s\r\n", info.task_name);
-      cli_printf("  Stack size:    %lu bytes (%lu words)\r\n",
-                 (unsigned long)info.stack_size_bytes,
-                 (unsigned long)info.stack_size);
-      cli_printf("  Used:          %lu bytes (%lu%%)\r\n",
-                 (unsigned long)info.used_bytes,
-                 (unsigned long)info.used_percent);
-      cli_printf("  Free:          %lu bytes (%lu%%)\r\n",
-                 (unsigned long)info.free_bytes,
-                 (unsigned long)info.free_percent);
-      cli_printf("  High-water:    %lu bytes\r\n",
-                 (unsigned long)info.high_water_mark_bytes);
-      cli_printf("  Status:        %s\r\n\r\n", status_str);
+      cli_newline();
+      cli_puts("Task: "); cli_puts(info.task_name); cli_newline();
+      cli_puts("  Stack size:    "); cli_print_u32(info.stack_size_bytes); cli_puts(" bytes (");
+      cli_print_u32(info.stack_size); cli_puts(" words)"); cli_newline();
+      cli_puts("  Used:          "); cli_print_u32(info.used_bytes); cli_puts(" bytes (");
+      cli_print_u32(info.used_percent); cli_puts("%)"); cli_newline();
+      cli_puts("  Free:          "); cli_print_u32(info.free_bytes); cli_puts(" bytes (");
+      cli_print_u32(info.free_percent); cli_puts("%)"); cli_newline();
+      cli_puts("  High-water:    "); cli_print_u32(info.high_water_mark_bytes); cli_puts(" bytes"); cli_newline();
+      cli_puts("  Status:        "); cli_puts(status_str); cli_newline();
+      cli_newline();
     } else {
-      cli_error("Task '%s' not found\r\n", argv[1]);
+      cli_error("Task not found");
       return CLI_ERROR;
     }
   } else {
-    cli_error("Usage: stack [task_name]\r\n");
+    cli_error("Usage: stack [task_name]");
     return CLI_INVALID_ARGS;
   }
 
@@ -79,7 +79,7 @@ static cli_result_t cmd_stack_all(int argc, char* argv[])
 static cli_result_t cmd_stack_monitor(int argc, char* argv[])
 {
   if (argc < 2) {
-    cli_error("Usage: stack_monitor <start|stop|stats|config|check|export>\r\n");
+    cli_error("Usage: stack_monitor <start|stop|stats|config|check|export>");
     return CLI_INVALID_ARGS;
   }
 
@@ -87,17 +87,17 @@ static cli_result_t cmd_stack_monitor(int argc, char* argv[])
 
   if (strcmp(subcmd, "start") == 0) {
     if (stack_monitor_start() == 0) {
-      cli_success("Stack monitoring started\r\n");
+      cli_success("Stack monitoring started");
     } else {
-      cli_error("Failed to start stack monitoring\r\n");
+      cli_error("Failed to start stack monitoring");
       return CLI_ERROR;
     }
   }
   else if (strcmp(subcmd, "stop") == 0) {
     if (stack_monitor_stop() == 0) {
-      cli_success("Stack monitoring stopped\r\n");
+      cli_success("Stack monitoring stopped");
     } else {
-      cli_error("Failed to stop stack monitoring\r\n");
+      cli_error("Failed to stop stack monitoring");
       return CLI_ERROR;
     }
   }
@@ -105,12 +105,13 @@ static cli_result_t cmd_stack_monitor(int argc, char* argv[])
     stack_monitor_print_stats();
   }
   else if (strcmp(subcmd, "check") == 0) {
-    cli_printf("Forcing immediate stack check...\r\n");
+    cli_puts("Forcing immediate stack check..."); cli_newline();
     stack_monitor_check_now();
-    cli_success("Stack check completed\r\n");
+    cli_success("Stack check completed");
   }
   else if (strcmp(subcmd, "export") == 0) {
-    cli_printf("Exporting stack data as CSV...\r\n\r\n");
+    cli_puts("Exporting stack data as CSV..."); cli_newline();
+    cli_newline();
     stack_monitor_export_csv();
   }
   else if (strcmp(subcmd, "config") == 0) {
@@ -118,11 +119,13 @@ static cli_result_t cmd_stack_monitor(int argc, char* argv[])
       // Show current configuration
       stack_monitor_stats_t stats;
       stack_monitor_get_stats(&stats);
-      cli_printf("\r\nStack Monitor Configuration:\r\n");
-      cli_printf("  Status:           %s\r\n", "Running");  // TODO: track running state
-      cli_printf("  Interval:         %lu ms\r\n", (unsigned long)STACK_MONITOR_INTERVAL_MS);
-      cli_printf("  Warning threshold: %lu%%\r\n", (unsigned long)STACK_MONITOR_WARNING_THRESHOLD);
-      cli_printf("  Critical threshold: %lu%%\r\n\r\n", (unsigned long)STACK_MONITOR_CRITICAL_THRESHOLD);
+      cli_newline();
+      cli_puts("Stack Monitor Configuration:"); cli_newline();
+      cli_puts("  Status:            Running"); cli_newline();
+      cli_puts("  Interval:          "); cli_print_u32(STACK_MONITOR_INTERVAL_MS); cli_puts(" ms"); cli_newline();
+      cli_puts("  Warning threshold: "); cli_print_u32(STACK_MONITOR_WARNING_THRESHOLD); cli_puts("%"); cli_newline();
+      cli_puts("  Critical threshold: "); cli_print_u32(STACK_MONITOR_CRITICAL_THRESHOLD); cli_puts("%"); cli_newline();
+      cli_newline();
     } else if (argc == 4) {
       // Set configuration: stack_monitor config <param> <value>
       const char* param = argv[2];
@@ -130,26 +133,24 @@ static cli_result_t cmd_stack_monitor(int argc, char* argv[])
 
       if (strcmp(param, "interval") == 0) {
         stack_monitor_set_interval(value);
-        cli_success("Monitor interval set to %lu ms\r\n", (unsigned long)value);
+        cli_puts("Monitor interval set to "); cli_print_u32(value); cli_puts(" ms"); cli_newline();
       } else if (strcmp(param, "warning") == 0) {
         stack_monitor_set_warning_threshold(value);
-        cli_success("Warning threshold set to %lu%%\r\n", (unsigned long)value);
+        cli_puts("Warning threshold set to "); cli_print_u32(value); cli_puts("%"); cli_newline();
       } else if (strcmp(param, "critical") == 0) {
         stack_monitor_set_critical_threshold(value);
-        cli_success("Critical threshold set to %lu%%\r\n", (unsigned long)value);
+        cli_puts("Critical threshold set to "); cli_print_u32(value); cli_puts("%"); cli_newline();
       } else {
-        cli_error("Unknown parameter '%s'. Valid: interval, warning, critical\r\n", param);
+        cli_error("Unknown param. Valid: interval, warning, critical");
         return CLI_INVALID_ARGS;
       }
     } else {
-      cli_error("Usage: stack_monitor config [<param> <value>]\r\n");
-      cli_error("  Parameters: interval (ms), warning (%%),  critical (%%)\r\n");
+      cli_error("Usage: stack_monitor config [<param> <value>]");
       return CLI_INVALID_ARGS;
     }
   }
   else {
-    cli_error("Unknown subcommand '%s'\r\n", subcmd);
-    cli_error("Valid: start, stop, stats, config, check, export\r\n");
+    cli_error("Unknown subcommand. Valid: start, stop, stats, config, check, export");
     return CLI_INVALID_ARGS;
   }
 
@@ -169,19 +170,25 @@ static cli_result_t cmd_stack_free(int argc, char* argv[])
   uint32_t count = 0;
   
   if (stack_monitor_get_all_tasks(tasks, STACK_MONITOR_MAX_TASKS, &count) != 0) {
-    cli_error("Failed to get task list\r\n");
+    cli_error("Failed to get task list");
     return CLI_ERROR;
   }
   
-  cli_printf("\r\nTask Stack Free Space:\r\n");
+  cli_newline();
+  cli_puts("Task Stack Free Space:"); cli_newline();
   for (uint32_t i = 0; i < count; i++) {
-    cli_printf("  %-15s: %5lu / %5lu bytes (%lu%% free)\r\n",
-               tasks[i].task_name,
-               (unsigned long)tasks[i].free_bytes,
-               (unsigned long)tasks[i].stack_size_bytes,
-               (unsigned long)tasks[i].free_percent);
+    cli_puts("  ");
+    cli_puts(tasks[i].task_name);
+    cli_puts(": ");
+    cli_print_u32(tasks[i].free_bytes);
+    cli_puts(" / ");
+    cli_print_u32(tasks[i].stack_size_bytes);
+    cli_puts(" bytes (");
+    cli_print_u32(tasks[i].free_percent);
+    cli_puts("% free)");
+    cli_newline();
   }
-  cli_printf("\r\n");
+  cli_newline();
   
   return CLI_OK;
 }

@@ -130,18 +130,15 @@
 #include "Services/usb_cdc/usb_cdc.h"
 #endif
 
-#include "App/midi_io_task.h"
+/* MidiCore cooperative architecture */
+#include "App/midicore_main_task.h"
 
 #include "cmsis_os2.h"
 #include "FreeRTOS.h"
 #include "task.h"
 #include <string.h>
 
-static void AinTask(void *argument);
-static void OledDemoTask(void *argument);
-#if MODULE_ENABLE_CLI
-static void CliTask(void *argument);
-#endif
+/* Forward declarations */
 static uint8_t boot_shift_held(uint8_t active_low);
 
 void app_init_and_start(void)
@@ -151,40 +148,19 @@ void app_init_and_start(void)
   // after they were already created by spibus_begin(), causing NULL pointer access crashes!
   // See: docs/ROOT_CAUSE_DOUBLE_SPIBUS_INIT.md
   
-  // Initialize debug output system FIRST (before any dbg_printf calls!)
-  // This is CRITICAL - without this, all dbg_printf() calls produce no output!
-  // For UART mode: reconfigures from 31250 (MIDI) to 115200 (debug) baud
-  // For SWV mode: initializes ITM
-  // For USB CDC mode: prints startup banner
-  test_debug_init();
+  /* ========================================================================
+   * MIOS32-STYLE INITIALIZATION
+   * 
+   * NO printf/dbg_printf during init - causes stack overflow!
+   * Debug info available via:
+   *   - MIOS Studio terminal (MIOS query SysEx)
+   *   - Debugger variables
+   * ======================================================================== */
   
-  // Print early heap diagnostics to help identify allocation issues
-  // This helps diagnose if tasks fail to create due to heap exhaustion
-  {
-    size_t heap_total = configTOTAL_HEAP_SIZE;
-    size_t free_heap = xPortGetFreeHeapSize();
-    size_t min_ever = xPortGetMinimumEverFreeHeapSize();
-    dbg_printf("\r\n");
-    dbg_printf("========================================\r\n");
-    dbg_printf("   EARLY HEAP DIAGNOSTICS\r\n");
-    dbg_printf("   Function: app_init_and_start()\r\n");
-    dbg_printf("========================================\r\n");
-    dbg_printf("Heap total:       %lu bytes (%luKB)\r\n", 
-               (unsigned long)heap_total, (unsigned long)(heap_total/1024));
-    dbg_printf("Heap free now:    %lu bytes\r\n", (unsigned long)free_heap);
-    dbg_printf("Heap min ever:    %lu bytes\r\n", (unsigned long)min_ever);
-    dbg_printf("Heap used:        %lu bytes\r\n", (unsigned long)(heap_total - free_heap));
-    dbg_printf("========================================\r\n");
-    dbg_printf("\r\n");
-  }
+  /* Heap diagnostics available in debugger via these globals: */
+  /* (defined in freertos_hooks.c or here as needed) */
   
-  // Allow UART TX buffer to drain after early heap diagnostics
-  osDelay(50);
-  
-  // Init shared services
-#if MODULE_ENABLE_SPI_BUS
-  dbg_printf("[INIT] SPI bus already initialized in main.c\r\n");
-#endif
+  /* Init shared services - NO logging! */
 
 #if MODULE_ENABLE_AINSER64
   hal_ainser64_init();
@@ -333,43 +309,22 @@ void app_init_and_start(void)
 
 #if MODULE_ENABLE_LOG
   log_init();
-#if MODULE_ENABLE_BOOT_REASON
-  dbg_printf("BOOT: reason=%d\r\n", (int)boot_reason_get());
-#endif
+  /* Boot reason available via CLI 'status' command */
 #endif
 
-  dbg_printf("[INIT] System initialization complete\r\n");
+  /* System initialization complete - no logging needed! */
 
-  // Initialize CLI and module registry for terminal control
+  /* Initialize CLI and module registry for terminal control */
 #if MODULE_ENABLE_MODULE_REGISTRY
-  dbg_printf("[INIT] Initializing module registry...\r\n");
   module_registry_init();
 #endif
 
 #if MODULE_ENABLE_CLI
-  dbg_printf("[INIT] CLI step 1: calling cli_init...\r\n");
   cli_init();
-  dbg_printf("[INIT] CLI step 2: cli_init returned OK\r\n");
-  dbg_printf("[INIT] CLI step 3: calling cli_module_commands_init...\r\n");
-  int cli_cmd_result = cli_module_commands_init();
-  dbg_printf("[INIT] CLI step 4: cli_module_commands_init returned %d\r\n", cli_cmd_result);
-  dbg_printf("[INIT] CLI step 5: CLI system ready\r\n");
-
-  // Allow UART TX buffer to drain after CLI initialization messages
-  osDelay(100);
-
-  // Initialize MidiCore terminal hooks for thread-safe I/O
-  dbg_printf("[INIT] CLI step 6: Initializing MidiCore terminal hooks...\r\n");
-  if (midicore_hooks_init()) {
-    dbg_printf("[INIT] CLI step 7: MidiCore hooks initialized successfully\r\n");
-  } else {
-    dbg_printf("[INIT] CLI step 7: ERROR - MidiCore hooks initialization failed!\r\n");
-  }
+  (void)cli_module_commands_init();
   
-  // Allow UART TX buffer to drain before stack monitor init
-  osDelay(50);
-#else
-  dbg_printf("[INIT] MODULE_ENABLE_CLI is NOT defined - CLI will not be available\r\n");
+  /* Initialize MidiCore terminal hooks for thread-safe I/O */
+  (void)midicore_hooks_init();
 #endif
 
 #if MODULE_ENABLE_TEST
@@ -378,18 +333,10 @@ void app_init_and_start(void)
 #endif
 
 #if MODULE_ENABLE_STACK_MONITOR
-  dbg_printf("[INIT] Initializing stack monitor...\r\n");
   stack_monitor_init();
-  // Print heap status after stack monitor init
-  {
-    size_t heap_total = configTOTAL_HEAP_SIZE;
-    size_t free_heap = xPortGetFreeHeapSize();
-    dbg_printf("[HEAP] stack_monitor_init() complete - Free: %lu / %lu bytes (%lu KB total)\r\n", 
-               (unsigned long)free_heap, (unsigned long)heap_total, (unsigned long)(heap_total/1024));
-  }
 #endif
 
-  // Default routing examples
+  /* Default routing examples */
 #if MODULE_ENABLE_ROUTER && MODULE_ENABLE_MIDI_DIN
   router_set_route(ROUTER_NODE_DIN_IN1, ROUTER_NODE_DIN_OUT1, 1);
   router_set_route(ROUTER_NODE_DIN_IN2, ROUTER_NODE_DIN_OUT1, 1);
@@ -398,239 +345,37 @@ void app_init_and_start(void)
 #endif
 
 #if MODULE_ENABLE_ROUTER && MODULE_ENABLE_LOOPER && MODULE_ENABLE_MIDI_DIN
-  // Default: Looper playback -> DIN OUT1
+  /* Default: Looper playback -> DIN OUT1 */
   router_set_route(ROUTER_NODE_LOOPER, ROUTER_NODE_DIN_OUT1, 1);
 #endif
 
-  // Create tasks
-#if MODULE_ENABLE_AIN
-  {
-    size_t free_before = xPortGetFreeHeapSize();
-    dbg_printf("[HEAP] Before AinTask: %lu bytes free\r\n", (unsigned long)free_before);
-  }
-  const osThreadAttr_t ain_attr = {
-    .name = "AinTask",
-    .priority = osPriorityNormal,
-    .stack_size = 1024
-  };
-  (void)osThreadNew(AinTask, NULL, &ain_attr);
-  {
-    size_t free_after = xPortGetFreeHeapSize();
-    dbg_printf("[HEAP] After AinTask: %lu bytes free\r\n", (unsigned long)free_after);
-  }
-  app_start_ain_midi_task();
-#endif
-
-#if MODULE_ENABLE_PRESSURE
-  {
-    size_t free_before = xPortGetFreeHeapSize();
-    dbg_printf("[HEAP] Before pressure task: %lu bytes free\r\n", (unsigned long)free_before);
-  }
-  app_start_pressure_task();
-  {
-    size_t free_after = xPortGetFreeHeapSize();
-    dbg_printf("[HEAP] After pressure task: %lu bytes free\r\n", (unsigned long)free_after);
-  }
-#endif
-
-  {
-    size_t free_before = xPortGetFreeHeapSize();
-    dbg_printf("[HEAP] Before calibration task: %lu bytes free\r\n", (unsigned long)free_before);
-  }
+  /* =========================================================================
+   * TASK CREATION - Cooperative Architecture (Single Main Task)
+   * =========================================================================
+   * MidiCore uses a cooperative service-based design:
+   * - Single MidiCore_MainTask handles all services cooperatively
+   * - Deterministic 1ms tick, minimal stack usage
+   * - Logic lives in service tick functions, not tasks
+   * ========================================================================= */
+  
+  /* Calibration task runs once at startup and exits */
   app_start_calibration_task();
-  {
-    size_t free_after = xPortGetFreeHeapSize();
-    dbg_printf("[HEAP] After calibration task: %lu bytes free\r\n", (unsigned long)free_after);
-  }
-
-#if MODULE_ENABLE_OLED
-  {
-    size_t free_before = xPortGetFreeHeapSize();
-    dbg_printf("[HEAP] Before OledDemo task: %lu bytes free\r\n", (unsigned long)free_before);
-  }
-  const osThreadAttr_t oled_attr = {
-    .name = "OledDemo",
-    .priority = osPriorityLow,
-    .stack_size = 1024
-  };
-  (void)osThreadNew(OledDemoTask, NULL, &oled_attr);
-  {
-    size_t free_after = xPortGetFreeHeapSize();
-    dbg_printf("[HEAP] After OledDemo task: %lu bytes free\r\n", (unsigned long)free_after);
-  }
   
-  // Allow UART TX buffer to drain after task creation messages
-  osDelay(50);
-#endif
-
-#if MODULE_ENABLE_CLI
-  // Print heap status BEFORE creating CLI task
-  {
-    size_t free_before = xPortGetFreeHeapSize();
-    dbg_printf("[HEAP] Before CLI task: %lu bytes free\r\n", (unsigned long)free_before);
-  }
+  /* Start the single MidiCore main task */
+  (void)midicore_main_task_start();
   
-  dbg_printf("[INIT] Creating CLI task...\r\n");
-  // CLI task for processing terminal commands via UART
-  // Stack size: 8KB REQUIRED - measured via stack_monitor
-  // With nested calls (cli_execute→cmd_xxx→cli_printf) uses 5-6KB in debug mode
-  // Multiple 256-byte buffers require this minimum to prevent 0xA5A5A5A5 overflow
-  const osThreadAttr_t cli_attr = {
-    .name = "CliTask",
-    .priority = osPriorityNormal,  // Was BelowNormal - caused starvation by MidiIOTask (AboveNormal)
-    .stack_size = 8192  // 8KB - MINIMUM required (verified via stack monitoring)
-  };
-  osThreadId_t cli_handle = osThreadNew(CliTask, NULL, &cli_attr);
-  if (cli_handle == NULL) {
-    dbg_printf("[ERROR] Failed to create CLI task!\r\n");
-    dbg_printf("[ERROR] Heap exhausted? Check heap size in FreeRTOSConfig.h\r\n");
-  } else {
-    dbg_printf("[INIT] CLI task created successfully\r\n");
-    // Print heap status AFTER creating CLI task
-    size_t free_after = xPortGetFreeHeapSize();
-    dbg_printf("[HEAP] After CLI task: %lu bytes free (used %lu for stack)\r\n", 
-               (unsigned long)free_after,
-               (unsigned long)(8192 + sizeof(StaticTask_t)));  // Stack + TCB
-  }
-#else
-  dbg_printf("[WARNING] MODULE_ENABLE_CLI not defined - CLI disabled\r\n");
-#endif
-
-  // Allow UART TX buffer to drain before MIDI IO task messages
-  osDelay(50);
-
-  dbg_printf("[INIT] About to start MIDI IO task...\r\n");
-  {
-    size_t free_before = xPortGetFreeHeapSize();
-    dbg_printf("[HEAP] Before MIDI IO task: %lu bytes free\r\n", (unsigned long)free_before);
-  }
-  
-  // Optional UART debug stream (raw ADC values)
+  /* Optional debug stream - still allowed as separate task (rare) */
 #if MODULE_ENABLE_AIN_RAW_DEBUG
   ain_raw_debug_task_create();
 #endif
 
-  app_start_midi_io_task();
-  
-  {
-    size_t free_after = xPortGetFreeHeapSize();
-    dbg_printf("[HEAP] After MIDI IO task: %lu bytes free\r\n", (unsigned long)free_after);
-  }
-  dbg_printf("[INIT] MIDI IO task started\r\n");
-  
-  // Print final heap summary with percentages
-  {
-    size_t heap_total = configTOTAL_HEAP_SIZE;
-    size_t free_now = xPortGetFreeHeapSize();
-    size_t min_ever = xPortGetMinimumEverFreeHeapSize();
-    size_t used = heap_total - free_now;
-    uint32_t used_percent = (uint32_t)((used * 100) / heap_total);
-    uint32_t peak_used_percent = (uint32_t)(((heap_total - min_ever) * 100) / heap_total);
-    
-    dbg_printf("\r\n");
-    dbg_printf("========================================\r\n");
-    dbg_printf("   FINAL HEAP STATUS\r\n");
-    dbg_printf("   Function: app_init_and_start()\r\n");
-    dbg_printf("========================================\r\n");
-    dbg_printf("Heap total:       %lu bytes (%luKB)\r\n", 
-               (unsigned long)heap_total, (unsigned long)(heap_total/1024));
-    dbg_printf("Heap free now:    %lu bytes\r\n", (unsigned long)free_now);
-    dbg_printf("Heap min ever:    %lu bytes\r\n", (unsigned long)min_ever);
-    dbg_printf("Heap used:        %lu bytes (%lu%%)\r\n", 
-               (unsigned long)used, (unsigned long)used_percent);
-    dbg_printf("Lowest free:      %lu bytes (%lu%% used at peak)\r\n",
-               (unsigned long)min_ever, (unsigned long)peak_used_percent);
-    dbg_printf("========================================\r\n");
-    dbg_printf("\r\n");
-  }
-  
-  dbg_printf("[INIT] app_init_and_start() complete - returning to scheduler\r\n");
+  /* Heap stats available via CLI 'heap' command or debugger */
 }
 
-static void AinTask(void *argument)
-{
-  (void)argument;
-#if MODULE_ENABLE_AIN
-  for (;;) {
-    ain_tick_5ms();
-    osDelay(5);
-  }
-#else
-  // Module disabled, just idle
-  for (;;) {
-    osDelay(1000);
-  }
-#endif
-}
-
-#if MODULE_ENABLE_OLED && MODULE_ENABLE_AIN
-// Super simple visualization:
-// - each NOTE_ON draws a bright pixel at (x=key, y=velocity scaled)
-// - NOTE_OFF draws a dim pixel
-static void plot_event(uint8_t key, uint8_t vel, uint8_t on)
-{
-  uint8_t* fb = oled_framebuffer();
-
-  // Map key (0..63) to x (0..255)
-  uint16_t x = (uint16_t)key * 4u; // 0..252
-  // Map vel (1..127) to y (0..63)
-  uint16_t y = 63u - (uint16_t)((vel * 63u) / 127u);
-
-  // 4-bit grayscale: 0..15
-  uint8_t gray = on ? 0xF : 0x3;
-
-  // Set a 2x2 block for visibility.
-  for (uint16_t dy=0; dy<2u; dy++) {
-    for (uint16_t dx=0; dx<2u; dx++) {
-      uint16_t xx = x + dx;
-      uint16_t yy = y + dy;
-      if (xx >= 256u || yy >= 64u) continue;
-
-      uint32_t idx = (yy << 8u) + xx; // Optimize: yy * 256 as shift
-      uint32_t byte = idx >> 1u; // 2 pixels per byte
-      uint8_t hi = (idx & 1u) == 0u; // even pixel -> high nibble
-      uint8_t v = fb[byte];
-      if (hi) v = (uint8_t)((v & 0x0Fu) | (gray << 4));
-      else    v = (uint8_t)((v & 0xF0u) | (gray & 0x0Fu));
-      fb[byte] = v;
-    }
-  }
-}
-#endif
-
-static void OledDemoTask(void *argument)
-{
-  (void)argument;
-
-#if MODULE_ENABLE_OLED && MODULE_ENABLE_AIN
-  oled_clear();
-  oled_flush();
-
-  uint32_t last_flush = osKernelGetTickCount();
-
-  for (;;) {
-    ain_event_t ev;
-    while (ain_pop_event(&ev)) {
-      if (ev.type == AIN_EV_NOTE_ON) plot_event(ev.key, ev.velocity, 1);
-      else if (ev.type == AIN_EV_NOTE_OFF) plot_event(ev.key, 1, 0);
-    }
-
-    // Flush at ~20 FPS max to reduce SPI load
-    uint32_t now = osKernelGetTickCount();
-    if ((now - last_flush) >= 50) {
-      oled_flush();
-      last_flush = now;
-    }
-
-    osDelay(10);
-  }
-#else
-  // Module disabled, just idle
-  for (;;) {
-    osDelay(1000);
-  }
-#endif
-}
+/* ============================================================================
+ * HELPER FUNCTIONS
+ * ============================================================================
+ */
 
 #if MODULE_ENABLE_SRIO
 static inline uint8_t din_get_bit(const uint8_t* din, uint16_t phys) {
@@ -668,71 +413,5 @@ static uint8_t boot_shift_held(uint8_t active_low) {
   return 0;
 #endif
 }
-
-#if MODULE_ENABLE_CLI
-/**
- * @brief CLI task for processing terminal commands
- * 
- * Output routing controlled by MODULE_CLI_OUTPUT:
- * - CLI_OUTPUT_USB_CDC: USB CDC only (immediate)
- * - CLI_OUTPUT_UART: Hardware UART  
- * - CLI_OUTPUT_MIOS: USB CDC with connection wait (MidiCore compatible)
- * - CLI_OUTPUT_DEBUG: Follow MODULE_DEBUG_OUTPUT setting
- */
-static void CliTask(void *argument)
-{
-  (void)argument;
-  
-  dbg_printf("[CLI-TASK] Entry point reached\r\n");
-  
-  // Short initial delay for system stabilization
-  osDelay(50);
-  dbg_printf("[CLI-TASK] Initial delay complete\r\n");
-  
-  // Report CLI output mode
-#if MODULE_CLI_OUTPUT == CLI_OUTPUT_MIOS
-  dbg_printf("[CLI-TASK] CLI uses MIOS Studio terminal (SysEx protocol)\r\n");
-  dbg_printf("[CLI-TASK] NOTE: Device queries handled independently by MidiIOTask\r\n");
-  dbg_printf("[CLI-TASK] NOTE: MIOS Studio will recognize device via USB MIDI queries\r\n");
-#elif MODULE_CLI_OUTPUT == CLI_OUTPUT_USB_CDC
-  dbg_printf("[CLI-TASK] CLI uses USB CDC terminal\r\n");
-#elif MODULE_CLI_OUTPUT == CLI_OUTPUT_UART  
-  dbg_printf("[CLI-TASK] CLI uses UART terminal\r\n");
-#elif MODULE_CLI_OUTPUT == CLI_OUTPUT_DEBUG
-  dbg_printf("[CLI-TASK] CLI uses debug output terminal\r\n");
-#endif
-  
-  // Print welcome message
-  cli_printf("\r\n");
-  cli_printf("=== MidiCore System Ready ===\r\n");
-  extern uint8_t boot_reason_get(void);
-  cli_printf("Boot reason: %d | Commands: %lu\r\n", 
-             (int)boot_reason_get(), (unsigned long)cli_get_command_count());
-  cli_printf("\r\n");
-  
-  // Small delay to allow USB MIDI TX queue to drain
-  // Each SysEx message above generates multiple USB MIDI packets
-  // Without this delay, the 64-packet TX queue can overflow
-  osDelay(20);
-  
-  // Print CLI banner and prompt
-  dbg_printf("[CLI-TASK] Printing banner and prompt\r\n");
-  cli_print_banner();
-  
-  // Another small delay after banner (12 lines = ~25 packets)
-  // This ensures the queue has space for the prompt
-  osDelay(20);
-  
-  cli_print_prompt();
-  
-  dbg_printf("[CLI-TASK] Entering command processing loop\r\n");
-  
-  // CLI processing loop - process commands as they arrive
-  for (;;) {
-    cli_task();
-    osDelay(5);  // 5ms polling for responsive CLI
-  }
-}
-#endif
 
 

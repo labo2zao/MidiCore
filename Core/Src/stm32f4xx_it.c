@@ -88,12 +88,89 @@ void NMI_Handler(void)
   /* USER CODE END NonMaskableInt_IRQn 1 */
 }
 
+/* === GLOBAL HARDFAULT DIAGNOSTICS - Must be global for debugger visibility! === */
+volatile uint32_t g_fault_pc = 0;         /* Faulting instruction address */
+volatile uint32_t g_fault_lr = 0;         /* Link register (caller) */
+volatile uint32_t g_fault_sp = 0;         /* Stack pointer at fault */
+volatile uint32_t g_fault_cfsr = 0;       /* Configurable Fault Status Reg */
+volatile uint32_t g_fault_hfsr = 0;       /* Hard Fault Status Reg */
+volatile uint32_t g_fault_mmfar = 0;      /* MemManage Fault Address */
+volatile uint32_t g_fault_bfar = 0;       /* Bus Fault Address */
+volatile uint32_t g_fault_exc_return = 0; /* Exception return value */
+
 /**
   * @brief This function handles Hard fault interrupt.
   */
 void HardFault_Handler(void)
 {
   /* USER CODE BEGIN HardFault_IRQn 0 */
+  
+  /* Get the exception return value from LR to determine which stack was used */
+  __asm volatile ("MOV %0, LR" : "=r" (g_fault_exc_return));
+  
+  /* 
+   * EXC_RETURN bit 2 determines which stack pointer was used:
+   *   Bit 2 = 0: MSP (Main Stack) - used before scheduler or in ISR
+   *   Bit 2 = 1: PSP (Process Stack) - used by FreeRTOS tasks
+   */
+  if (g_fault_exc_return & 0x4) {
+    /* PSP was used (FreeRTOS task context) */
+    __asm volatile ("MRS %0, PSP" : "=r" (g_fault_sp));
+  } else {
+    /* MSP was used (before scheduler or ISR context) */
+    __asm volatile ("MRS %0, MSP" : "=r" (g_fault_sp));
+  }
+  
+  /* Stack frame: r0,r1,r2,r3,r12,lr,pc,xpsr (8 words at offsets 0-28) */
+  if (g_fault_sp > 0x20000000 && g_fault_sp < 0x20020000) {
+    /* Valid RAM address - safe to dereference */
+    uint32_t *stack = (uint32_t*)g_fault_sp;
+    g_fault_lr = stack[5];   /* Stacked LR (offset 20) */
+    g_fault_pc = stack[6];   /* Stacked PC (offset 24) - WHERE THE CRASH HAPPENED! */
+  }
+  
+  /* Read fault status registers */
+  g_fault_cfsr = SCB->CFSR;   /* Bits: MMFSR[7:0], BFSR[15:8], UFSR[31:16] */
+  g_fault_hfsr = SCB->HFSR;   /* Hard fault flags */
+  g_fault_mmfar = SCB->MMFAR; /* Memory fault address */
+  g_fault_bfar = SCB->BFAR;   /* Bus fault address */
+  
+  /* 
+   * === IN CUBEIDE DEBUGGER ===
+   * 1. Set breakpoint on the while(1) below
+   * 2. When hit, check:
+   *    - g_fault_pc: Right-click → Open Disassembly at address
+   *    - g_fault_lr: Shows caller function
+   *    - g_fault_cfsr: Decode fault type
+   * 
+   * CFSR bit meanings:
+   *   Bit 0 (IACCVIOL):  Instruction access violation
+   *   Bit 1 (DACCVIOL):  Data access violation  
+   *   Bit 3 (MUNSTKERR): MemManage unstacking error
+   *   Bit 4 (MSTKERR):   MemManage stacking error
+   *   Bit 8 (IBUSERR):   Instruction bus error
+   *   Bit 9 (PRECISERR): Precise data bus error
+   *   Bit 10 (IMPRECISERR): Imprecise data bus error
+   *   Bit 11 (UNSTKERR): Unstacking bus error
+   *   Bit 12 (STKERR):   Stacking bus error
+   *   Bit 16 (UNDEFINSTR): Undefined instruction
+   *   Bit 17 (INVSTATE): Invalid state (Thumb)
+   *   Bit 18 (INVPC):    Invalid PC
+   *   Bit 19 (NOCP):     No coprocessor
+   *   Bit 24 (UNALIGNED): Unaligned access
+   *   Bit 25 (DIVBYZERO): Divide by zero
+   */
+  
+  /* Keep variables alive for debugger */
+  (void)g_fault_pc;
+  (void)g_fault_lr;
+  (void)g_fault_sp;
+  (void)g_fault_cfsr;
+  (void)g_fault_hfsr;
+  (void)g_fault_mmfar;
+  (void)g_fault_bfar;
+  (void)g_fault_exc_return;
+  
   panic_set(PANIC_HARDFAULT);
   safe_mode_set_forced(1u);
   ui_set_status_line("PANIC HF");
@@ -102,6 +179,7 @@ void HardFault_Handler(void)
   while (1)
   {
     /* USER CODE BEGIN W1_HardFault_IRQn 0 */
+    /* SET BREAKPOINT HERE - then check g_fault_* variables! */
     __NOP();
     /* USER CODE END W1_HardFault_IRQn 0 */
   }

@@ -542,8 +542,12 @@ extern "C" {
  * 
  * Recommended: Enable for development/troubleshooting, can disable for production
  */
+/* CRITICAL: Disabled by default - dbg_printf in USB ISR context causes stack overflow!
+ * USB callbacks run on MSP (main stack) which only has 2KB.
+ * printf uses 500+ bytes of stack, causing corruption.
+ * Only enable for debugging when NOT using USB MIDI! */
 #ifndef MODULE_DEBUG_MIDICORE_QUERIES
-#define MODULE_DEBUG_MIDICORE_QUERIES 1
+#define MODULE_DEBUG_MIDICORE_QUERIES 0
 #endif
 
 /** @brief Enable Module Registry (required for CLI module control) */
@@ -685,6 +689,29 @@ extern "C" {
 #endif
 
 
+
+// =============================================================================
+// ARCHITECTURE NOTES (Cooperative Design - Single Architecture)
+// =============================================================================
+
+/**
+ * @brief MidiCore Cooperative Task Architecture
+ * 
+ * MidiCore uses a cooperative service-based architecture:
+ * - Single MidiCore_MainTask runs all services cooperatively
+ * - Deterministic 1ms tick period for responsive MIDI
+ * - Logic lives in service tick functions, not tasks
+ * - Reduced stack usage, fewer hidden states
+ * - Better for long-term maintainability
+ * 
+ * Design principles:
+ * - FreeRTOS is a scheduler, not an architecture
+ * - Avoid "one task per feature"
+ * - Prefer cooperative execution over preemptive fragmentation
+ * - Services are non-blocking with bounded execution time
+ * 
+ * See Docs/ARCHITECTURE.md for detailed architecture guide.
+ */
 
 // =============================================================================
 // CONFIGURATION VALIDATION

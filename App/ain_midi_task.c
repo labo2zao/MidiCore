@@ -76,51 +76,66 @@ static void send_note(uint8_t phys_key, uint8_t note, uint8_t on, uint8_t vel, u
   }
 }
 
+/**
+ * @brief Process AIN events and convert to MIDI (cooperative service function)
+ * 
+ * This is the service function version that can be called from the main task.
+ * It processes all pending events in one call (non-blocking, bounded time).
+ */
+void ain_midi_process_events(void) {
+  ain_event_t e;
+  /* Process all pending events (bounded by queue size) */
+  while (ain_pop_event(&e)) {
+    if (e.type == AIN_EV_NOTE_ON) {
+      const instrument_cfg_t* c = instrument_cfg_get();
+      uint8_t vel = velocity_apply_curve(e.velocity, c);
+
+      uint8_t chord_ui = ui_get_chord_mode();
+      uint8_t chord_on = (chord_ui && chord_cond_active(vel));
+
+      if (!chord_on) {
+        send_note(e.key, e.key, 1, vel, 0, HUMAN_APPLY_KEYS);
+      } else {
+        uint8_t notes[4]; uint8_t preset=0;
+        uint8_t n = chord_bank_expand(ui_get_chord_bank(), e.key, notes, &preset);
+        /* order for strum */
+        uint8_t order[4]={0,1,2,3};
+        if (c->strum_dir == STRUM_DOWN && n>1) {
+          for (uint8_t i=0;i<n/2;i++){ uint8_t t=order[i]; order[i]=order[n-1-i]; order[n-1-i]=t; }
+        } else if (c->strum_dir == STRUM_RANDOM && n>1) {
+          /* Fisher-Yates (simple) */
+          for (int i=n-1;i>0;i--) { uint32_t r = (uint32_t)osKernelGetTickCount(); int j = (int)(r % (uint32_t)(i+1)); uint8_t t=order[i]; order[i]=order[j]; order[j]=t; }
+        }
+        for (uint8_t k=0;k<n;k++) {
+          uint8_t i = order[k];
+          uint8_t v2 = chord_preset_scale_vel(&ui_get_chord_bank()->preset[preset], i, vel);
+          uint16_t d = strum_delay(k, n, c);
+          send_note(e.key, notes[i], 1, v2, d, HUMAN_APPLY_CHORD);
+        }
+      }
+    } else if (e.type == AIN_EV_NOTE_OFF) {
+      /* NOTE_OFF: if chord mode, release all chord notes same way (no vel) */
+      const instrument_cfg_t* c = instrument_cfg_get();
+      uint8_t chord_ui = ui_get_chord_mode();
+      if (!chord_ui) {
+        send_note(e.key, e.key, 0, 0, 0, HUMAN_APPLY_KEYS);
+      } else {
+        uint8_t notes[4]; uint8_t preset=0;
+        uint8_t n = chord_bank_expand(ui_get_chord_bank(), e.key, notes, &preset);
+        for (uint8_t i=0;i<n;i++) send_note(e.key, notes[i], 0, 0, 0, HUMAN_APPLY_CHORD);
+      }
+    }
+  }
+}
+
+/**
+ * @brief Legacy task-based AIN MIDI processing
+ * @deprecated Use ain_midi_process_events() with cooperative main task
+ */
 static void AinMidiTask(void* argument) {
   (void)argument;
   for (;;) {
-    ain_event_t e;
-    while (ain_pop_event(&e)) {
-      if (e.type == AIN_EV_NOTE_ON) {
-        const instrument_cfg_t* c = instrument_cfg_get();
-        uint8_t vel = velocity_apply_curve(e.velocity, c);
-
-        uint8_t chord_ui = ui_get_chord_mode();
-        uint8_t chord_on = (chord_ui && chord_cond_active(vel));
-
-        if (!chord_on) {
-          send_note(e.key, e.key, 1, vel, 0, HUMAN_APPLY_KEYS);
-        } else {
-          uint8_t notes[4]; uint8_t preset=0;
-          uint8_t n = chord_bank_expand(ui_get_chord_bank(), e.key, notes, &preset);
-          // order for strum
-          uint8_t order[4]={0,1,2,3};
-          if (c->strum_dir == STRUM_DOWN && n>1) {
-            for (uint8_t i=0;i<n/2;i++){ uint8_t t=order[i]; order[i]=order[n-1-i]; order[n-1-i]=t; }
-          } else if (c->strum_dir == STRUM_RANDOM && n>1) {
-            // Fisher-Yates (simple)
-            for (int i=n-1;i>0;i--) { uint32_t r = (uint32_t)osKernelGetTickCount(); int j = (int)(r % (uint32_t)(i+1)); uint8_t t=order[i]; order[i]=order[j]; order[j]=t; }
-          }
-          for (uint8_t k=0;k<n;k++) {
-            uint8_t i = order[k];
-            uint8_t v2 = chord_preset_scale_vel(&ui_get_chord_bank()->preset[preset], i, vel);
-            uint16_t d = strum_delay(k, n, c);
-            send_note(e.key, notes[i], 1, v2, d, HUMAN_APPLY_CHORD);
-          }
-        }
-      } else if (e.type == AIN_EV_NOTE_OFF) {
-        // NOTE_OFF: if chord mode, release all chord notes same way (no vel)
-        const instrument_cfg_t* c = instrument_cfg_get();
-        uint8_t chord_ui = ui_get_chord_mode();
-        if (!chord_ui) {
-          send_note(e.key, e.key, 0, 0, 0, HUMAN_APPLY_KEYS);
-        } else {
-          uint8_t notes[4]; uint8_t preset=0;
-          uint8_t n = chord_bank_expand(ui_get_chord_bank(), e.key, notes, &preset);
-          for (uint8_t i=0;i<n;i++) send_note(e.key, notes[i], 0, 0, 0, HUMAN_APPLY_CHORD);
-        }
-      }
-    }
+    ain_midi_process_events();
     osDelay(1);
   }
 }

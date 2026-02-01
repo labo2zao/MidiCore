@@ -1,12 +1,70 @@
+/**
+ * @file calibration_task.c
+ * @brief MIOS32-style calibration task
+ * 
+ * MIOS32 ARCHITECTURE:
+ * - NO printf/snprintf/vsnprintf in task code (causes stack overflow)
+ * - Status available via global variables for debugger
+ * - File I/O uses lightweight integer-to-string helpers
+ */
+
 #include "App/calibration_task.h"
 #include "cmsis_os2.h"
 #include "Services/pressure/pressure_i2c.h"
-#include "App/tests/test_debug.h"
 #include "Services/expression/expression.h"
 #include <string.h>
 #include <stdlib.h>  // strtol
-#include <stdio.h>   // snprintf
 #include <math.h>    // llround
+
+/* Global calibration status for debugger (no printf!) */
+volatile uint8_t g_cal_state = 0;       /* 0=idle, 1=atm, 2=extremes, 3=done, 255=error */
+volatile int32_t g_cal_atm0 = 0;
+volatile int32_t g_cal_pmin = 0;
+volatile int32_t g_cal_pmax = 0;
+volatile uint16_t g_cal_raw_min = 0;
+volatile uint16_t g_cal_raw_max = 0;
+volatile int8_t g_cal_write_pressure_result = 0;   /* Result of write_pressure_cfg() */
+volatile int8_t g_cal_write_expression_result = 0; /* Result of patch_expression_rawminmax() */
+
+/* Note: Helper functions u32_to_str, i32_to_str, u8_to_hex are available for
+ * future MIOS Terminal output. Currently suppressed to avoid unused warnings.
+ * When implementing terminal status command, use these instead of snprintf. */
+#if defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-function"
+#endif
+
+/* Lightweight integer-to-string (no snprintf!) - for future terminal output */
+static char* u32_to_str(uint32_t val, char* buf, size_t buflen) {
+  if (buflen < 12) return buf;
+  char* p = buf + buflen - 1;
+  *p = '\0';
+  if (val == 0) { *--p = '0'; return p; }
+  while (val && p > buf) { *--p = (char)('0' + (val % 10)); val /= 10; }
+  return p;
+}
+
+static char* i32_to_str(int32_t val, char* buf, size_t buflen) {
+  if (buflen < 13) return buf;
+  if (val < 0) {
+    char* p = u32_to_str((uint32_t)(-val), buf + 1, buflen - 1);
+    *--p = '-';
+    return p;
+  }
+  return u32_to_str((uint32_t)val, buf, buflen);
+}
+
+static char* u8_to_hex(uint8_t val, char* buf) {
+  static const char hex[] = "0123456789ABCDEF";
+  buf[0] = hex[(val >> 4) & 0xF];
+  buf[1] = hex[val & 0xF];
+  buf[2] = '\0';
+  return buf;
+}
+
+#if defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
 
 #if __has_include("ff.h")
   #include "ff.h"
@@ -191,23 +249,24 @@ static int patch_expression_rawminmax(const cal_cfg_t* cc, uint16_t raw_min, uin
 
 static void CalibrationTask(void* argument){
   (void)argument;
+  
+  g_cal_state = 1;  /* Starting ATM measurement */
 
   cal_cfg_t cc; cal_defaults(&cc);
   if(load_cal_cfg(&cc)!=0 || !cc.enable){
+    g_cal_state = 255;  /* Error: config not found or disabled */
     osThreadExit();
     return;
   }
 
   const pressure_cfg_t* cur = pressure_get_cfg();
   if(!cur->enable || cur->type != PRESS_TYPE_XGZP6847D_24B){
-    dbg_printf("CAL: Pressure sensor not enabled or not XGZP\r\n");
+    g_cal_state = 255;  /* Error: pressure sensor not enabled */
     osThreadExit();
     return;
   }
 
-  dbg_printf("CAL: Start: keep bellows REST for %ums\r\n", (unsigned)cc.atm_ms);
-
-  // Step1: measure atmospheric baseline (absolute Pa)
+  /* Step1: measure atmospheric baseline (absolute Pa) */
   int64_t acc=0;
   uint32_t n=0;
   uint32_t t=0;
@@ -221,20 +280,21 @@ static void CalibrationTask(void* argument){
     t += 10;
   }
   if(n==0){
-    dbg_printf("CAL: No samples for ATM0\r\n");
+    g_cal_state = 255;  /* Error: no samples */
     osThreadExit();
     return;
   }
   int32_t atm0 = (int32_t)llround((double)acc/(double)n);
+  g_cal_atm0 = atm0;
 
-  // Apply baseline immediately
+  /* Apply baseline immediately */
   pressure_cfg_t pcfg = *cur;
   pcfg.atm0_pa = atm0;
   pressure_set_cfg(&pcfg);
 
-  dbg_printf("CAL: ATM0=%ld Pa, now do full PUSH/PULL for %ums\r\n", (long)atm0, (unsigned)cc.ext_ms);
+  g_cal_state = 2;  /* Measuring extremes */
 
-  // Step2: capture extremes of signed pressure
+  /* Step2: capture extremes of signed pressure */
   int32_t pmin =  2147483647;
   int32_t pmax = -2147483647;
   t=0;
@@ -249,41 +309,42 @@ static void CalibrationTask(void* argument){
   }
 
   if(pmin >= pmax){
-    dbg_printf("CAL: Invalid extremes pmin=%ld pmax=%ld\r\n", (long)pmin, (long)pmax);
+    g_cal_state = 255;  /* Error: invalid extremes */
     osThreadExit();
     return;
   }
+  
+  g_cal_pmin = pmin;
+  g_cal_pmax = pmax;
 
-  // Update range
+  /* Update range */
   pcfg.pmin_pa = pmin;
   pcfg.pmax_pa = pmax;
 
-  // Map to raw and compute RAW_MIN/MAX with margin
+  /* Map to raw and compute RAW_MIN/MAX with margin */
   uint16_t rmin = pressure_to_12b(pmin);
   uint16_t rmax = pressure_to_12b(pmax);
   uint16_t margin = cc.margin_raw;
   uint16_t raw_min = (rmin > margin) ? (uint16_t)(rmin - margin) : 0;
   uint16_t raw_max = (uint16_t)((rmax + margin) < 4095 ? (rmax + margin) : 4095);
 
-  // Hot-reload in RAM (no reboot needed)
+  g_cal_raw_min = raw_min;
+  g_cal_raw_max = raw_max;
+
+  /* Hot-reload in RAM (no reboot needed) */
 {
   expr_cfg_t ec = *expression_get_cfg();
   ec.raw_min = raw_min;
   ec.raw_max = raw_max;
   expression_set_cfg(&ec);
   expression_runtime_reset();
-  dbg_printf("CAL: Hot reload: expression RAW_MIN=%u RAW_MAX=%u\r\n", (unsigned)raw_min, (unsigned)raw_max);
 }
 
-// Persist
+/* Persist - capture results for debugger visibility */
+  g_cal_write_pressure_result = (int8_t)write_pressure_cfg(&cc, &pcfg);
+  g_cal_write_expression_result = (int8_t)patch_expression_rawminmax(&cc, raw_min, raw_max);
 
-  int wrp = write_pressure_cfg(&cc, &pcfg);
-  int wre = patch_expression_rawminmax(&cc, raw_min, raw_max);
-
-  dbg_printf("CAL: Saved: PMIN=%ld PMAX=%ld ATM0=%ld RAW_MIN=%u RAW_MAX=%u (wrp=%d wre=%d)\r\n",
-             (long)pmin,(long)pmax,(long)atm0,(unsigned)raw_min,(unsigned)raw_max, wrp, wre);
-
-  // Disable calibration after done by rewriting calibration.ngc quickly
+  /* Disable calibration after done by rewriting calibration.ngc quickly */
 #if CAL_HAS_FATFS
   FIL f;
   if(f_open(&f,"0:/cfg/calibration.ngc",FA_CREATE_ALWAYS|FA_WRITE)==FR_OK){
@@ -293,6 +354,8 @@ static void CalibrationTask(void* argument){
     f_close(&f);
   }
 #endif
+
+  g_cal_state = 3;  /* Done successfully */
 
   osThreadExit();
 }

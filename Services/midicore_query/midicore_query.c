@@ -1,6 +1,11 @@
 /**
  * @file midicore_query.c
  * @brief MidiCore Device Query Protocol Implementation
+ * 
+ * MIOS32 PRINCIPLES:
+ * - NO printf / snprintf / vsnprintf (causes stack overflow!)
+ * - Fixed string outputs only via cli_puts/cli_print_u32
+ * - Minimal stack usage
  */
 
 #include "Services/midicore_query/midicore_query.h"
@@ -15,6 +20,8 @@
 #endif
 
 #include <string.h>
+
+/* NO stdio.h - we don't use printf! */
 
 // Default device information
 #ifndef MIDICORE_DEVICE_NAME
@@ -47,23 +54,38 @@ static volatile uint8_t query_queue_write = 0;
 static volatile uint8_t query_queue_read = 0;
 
 bool midicore_query_is_query_message(const uint8_t* data, uint32_t len) {
-  // Minimum query: F0 00 00 7E 32 <dev_id> <cmd> F7 = 8 bytes
+  // Minimum query: F0 00 00 7E <dev_id> <target> <cmd> F7 = 8 bytes
   if (data == NULL || len < 8) {
     return false;
   }
   
-  // Check for MidiCore query header: F0 00 00 7E 32
-  if (data[0] == 0xF0 &&
-      data[1] == 0x00 &&
-      data[2] == 0x00 &&
-      data[3] == 0x7E &&
-      data[4] == MIDICORE_QUERY_DEVICE_ID) {
-    // data[5] is device instance ID
-    // data[6] is command (0x00 = query, 0x01 = response/info)
-    // Accept device info query forms used by MIOS Studio.
-    if (data[6] == 0x00 || data[6] == 0x01) {
-      return true;
-    }
+  // Check for SysEx start and manufacturer ID: F0 00 00 7E
+  if (data[0] != 0xF0 ||
+      data[1] != 0x00 ||
+      data[2] != 0x00 ||
+      data[3] != 0x7E) {
+    return false;  // Not a MIDIbox/MidiCore SysEx
+  }
+  
+  // CRITICAL: Accept ALL MIDIbox protocol SysEx to prevent routing to MIDI router!
+  // MIOS Studio uses multiple device IDs for different protocols:
+  //   - 0x32 = MidiCore device query/response (our primary protocol)
+  //   - 0x40 = MIOS32 bootloader commands (upload, read memory, etc.)
+  //
+  // ALL of these are device management protocols, NOT music data.
+  // Routing them to MIDI router causes MIOS Studio crashes/freezes.
+  //
+  // Known device IDs from MIOS Studio MIDI monitor:
+  //   f0 00 00 7e 32 00 00 01 f7         -> 0x32 MidiCore query
+  //   f0 00 00 7e 40 00 0d 02 ...        -> 0x40 MIOS32 bootloader
+  //   f0 00 00 7e 40 00 02 00 ...        -> 0x40 MIOS32 read memory
+  
+  uint8_t device_id = data[4];
+  
+  if (device_id == MIDICORE_QUERY_DEVICE_ID ||   // 0x32 = MidiCore protocol
+      device_id == 0x40) {                       // 0x40 = MIOS32 bootloader protocol
+    // Accept ALL commands for these device IDs, prevents routing
+    return true;
   }
   
   return false;
@@ -74,26 +96,50 @@ bool midicore_query_process(const uint8_t* data, uint32_t len, uint8_t cable) {
     return false;
   }
   
-#if defined(MODULE_TEST_USB_DEVICE_MIDI) || MODULE_DEBUG_MIDICORE_QUERIES
-  // Debug: Show MidiCore query reception
-  extern void dbg_print(const char *str);
-  char buf[80];
-  snprintf(buf, sizeof(buf), "[MIDICORE-Q] Received query len:%lu cable:%u\r\n",
-           (unsigned long)len, (unsigned int)cable);
-  dbg_print(buf);
-#endif
+  // Check which protocol this message belongs to (data[4] = device ID)
+  uint8_t protocol_id = data[4];
+  
+  /* MIOS32-STYLE: No debug output here - visible in debugger via breakpoint */
+  (void)protocol_id; /* Used in conditionals below */
+  
+  // ============================================================
+  // MIOS32 BOOTLOADER PROTOCOL (0x40)
+  // ============================================================
+  // MIOS Studio sends these to check for bootloader / upload firmware.
+  // We don't have a MIOS32-compatible bootloader, so we:
+  // 1. Accept the message (prevents routing to MIDI router = crash fix)
+  // 2. Do NOT respond (device won't appear as having bootloader)
+  // 3. Return true (message handled)
+  //
+  // Format: F0 00 00 7E 40 <target> <cmd> <data...> F7
+  //   cmd 0x02 = Read memory block
+  //   cmd 0x0D = Debug command
+  //   etc.
+  // ============================================================
+  if (protocol_id == 0x40) {
+    /* MIOS32 bootloader command - ignore but accept to prevent routing */
+    /* Visible in debugger via breakpoint */
+    return true;
+  }
+  
+  // ============================================================
+  // MIDICORE PROTOCOL (0x32)
+  // ============================================================
+  // Our device query/response protocol
+  // Format: F0 00 00 7E 32 <target> <cmd> <type> <data...> F7
+  // ============================================================
+  if (protocol_id != MIDICORE_QUERY_DEVICE_ID) {
+    // Unknown protocol - ignore but prevent routing
+    return true;
+  }
   
   // Extract command (byte 6 for MidiCore protocol: F0 00 00 7E 32 <dev> <cmd>)
   uint8_t device_id = data[5];
   uint8_t command = data[6];
   uint8_t query_type = (len > 7) ? data[7] : 0x01; // Default to 0x01 if not specified
   
-#if defined(MODULE_TEST_USB_DEVICE_MIDI) || MODULE_DEBUG_MIDICORE_QUERIES
-  // Debug: Show query details
-  snprintf(buf, sizeof(buf), "[MIDICORE-Q] dev_id:%02X cmd:%02X type:%02X\r\n",
-           device_id, command, query_type);
-  dbg_print(buf);
-#endif
+  /* MIOS32-STYLE: No debug output - device_id/command/query_type visible in debugger */
+  (void)device_id; /* Suppress unused warning when debugger not attached */
   
   // Command 0x00: Device Info Request (MIOS Studio uses data[7]=query_type)
   // Command 0x01: Device Info Request (alternate form)
@@ -103,14 +149,48 @@ bool midicore_query_process(const uint8_t* data, uint32_t len, uint8_t cable) {
     return true;
   }
   
-#if defined(MODULE_TEST_USB_DEVICE_MIDI) || MODULE_DEBUG_MIDICORE_QUERIES
-  // Debug: Unknown command
-  snprintf(buf, sizeof(buf), "[MIDICORE-Q] Unknown command ignored\r\n");
-  dbg_print(buf);
-#endif
+  // Command 0x0D: Debug/Terminal message from MIOS Studio
+  // Format: F0 00 00 7E 32 <dev_id> 0D <type> <text...> F7
+  //   type 0x00 = input (command from user)
+  //   type 0x40 = output (response to user) - we send these, not receive
+  if (command == 0x0D && len > 8) {
+    uint8_t msg_type = data[7];
+    
+    if (msg_type == 0x00) {
+      // Input command from MIOS Studio terminal - pass to CLI
+      // Extract text from data[8] to data[len-2] (before F7)
+      uint32_t text_len = len - 9;  // Skip header (8 bytes) and F7 (1 byte)
+      if (text_len > 0 && text_len < 200) {
+        // Copy text to null-terminated buffer
+        char cmd_buf[201];
+        for (uint32_t i = 0; i < text_len; i++) {
+          cmd_buf[i] = (char)(data[8 + i] & 0x7F);  // Mask to 7-bit ASCII
+        }
+        cmd_buf[text_len] = '\0';
+        
+        /* MIOS32-STYLE: No debug output - command visible in debugger via cmd_buf */
+        
+        // Feed command to CLI system
+        // The CLI will process it and send response back via midicore_debug_send_message()
+        extern void cli_process_mios_command(const char* cmd);
+        cli_process_mios_command(cmd_buf);
+      }
+      return true;
+    }
+    // type 0x40 = output message (we don't expect to receive these)
+    return true;  // Acknowledge but don't process
+  }
   
-  // Unknown command - ignore
-  return false;
+  // Command 0x0F: Acknowledge - just ignore (used for bootloader)
+  if (command == 0x0F) {
+    return true;  // Acknowledged, nothing to do
+  }
+  
+  /* MIOS32-STYLE: No debug output - command visible in debugger */
+  (void)command; /* Suppress unused warning */
+  
+  // Unknown command - ignore but return true to prevent routing
+  return true;
 }
 
 void midicore_query_send_response(uint8_t query_type, uint8_t device_id, uint8_t cable) {
@@ -119,12 +199,7 @@ void midicore_query_send_response(uint8_t query_type, uint8_t device_id, uint8_t
   uint32_t ipsr = __get_IPSR();
   if (ipsr != 0) {
     // In ISR context - cannot send USB MIDI response
-    // Would cause USB reentrancy and crash
-    // TODO: Queue response for task context
-#if defined(MODULE_TEST_USB_DEVICE_MIDI) || MODULE_DEBUG_MIDICORE_QUERIES
-    extern void dbg_print(const char *str);
-    dbg_print("[MIDICORE-R] ERROR: Query response from ISR - skipped!\r\n");
-#endif
+    // MIOS32-STYLE: No debug output - set breakpoint here to debug
     return;
   }
   
@@ -166,14 +241,7 @@ void midicore_query_send_response(uint8_t query_type, uint8_t device_id, uint8_t
       break;
   }
   
-#if defined(MODULE_TEST_USB_DEVICE_MIDI) || MODULE_DEBUG_MIDICORE_QUERIES
-  // Debug: Show response being sent
-  extern void dbg_print(const char *str);
-  char buf[100];
-  snprintf(buf, sizeof(buf), "[MIDICORE-R] Sending type:%02X \"%s\" cable:%u\r\n",
-           query_type, response_str, (unsigned int)cable);
-  dbg_print(buf);
-#endif
+  /* MIOS32-STYLE: No debug output - response_str visible in debugger */
   
   // Build response: F0 00 00 7E 32 <device_id> 0x0F <string> F7
   // Following actual MidiCore implementation (mios32/common/mios32_midi.c)
@@ -189,13 +257,7 @@ void midicore_query_send_response(uint8_t query_type, uint8_t device_id, uint8_t
   // Buffer overflow here can crash MIOS Studio or corrupt firmware memory!
   size_t str_len = strlen(response_str);
   if (str_len > MAX_RESPONSE_STRING) {
-#if defined(MODULE_TEST_USB_DEVICE_MIDI) || MODULE_DEBUG_MIDICORE_QUERIES
-    extern void dbg_print(const char *str);
-    char warn_buf[80];
-    snprintf(warn_buf, sizeof(warn_buf), "[MIDICORE-R] WARNING: Response truncated! len=%u max=%u\r\n",
-             (unsigned int)str_len, (unsigned int)MAX_RESPONSE_STRING);
-    dbg_print(warn_buf);
-#endif
+    /* MIOS32-STYLE: No debug output - truncation visible in debugger */
     str_len = MAX_RESPONSE_STRING;  // Truncate to safe length
   }
   
@@ -219,15 +281,8 @@ void midicore_query_send_response(uint8_t query_type, uint8_t device_id, uint8_t
     }
   }
   
-#if defined(MODULE_TEST_USB_DEVICE_MIDI) || MODULE_DEBUG_MIDICORE_QUERIES
-  snprintf(buf, sizeof(buf), "[MIDICORE-R] Sent %lu bytes (success=%d)\r\n",
-           (unsigned long)(p - sysex_response_buffer), sent);
-  dbg_print(buf);
-  
-  if (!sent) {
-    dbg_print("[MIDICORE-R] ERROR: Failed to send query response! TX queue full.\r\n");
-  }
-#endif
+  /* MIOS32-STYLE: No debug output - sent status visible in debugger */
+  (void)sent; /* Suppress unused warning when debugger not attached */
 #else
   (void)cable;  // Suppress unused parameter warning
 #endif
