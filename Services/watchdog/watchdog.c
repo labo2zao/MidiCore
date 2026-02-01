@@ -3,6 +3,29 @@
 #include "main.h"
 #include "Services/system/safe_mode.h"
 #include "Services/ui/ui_status.h"
+#include <stdbool.h>
+
+/* ============================================================================
+ * WATCHDOG CONFIGURATION
+ * ============================================================================
+ * The Independent Watchdog (IWDG) uses the LSI clock (~32 kHz).
+ * 
+ * Timeout calculation:
+ *   timeout = (prescaler * reload) / LSI_freq
+ * 
+ * With prescaler=128, reload=625:
+ *   timeout = (128 * 625) / 32000 = 2.5 seconds
+ * 
+ * This gives enough margin for the 100ms service tick while still
+ * catching stuck tasks within a reasonable time.
+ */
+
+#define IWDG_PRESCALER      IWDG_PRESCALER_128
+#define IWDG_RELOAD_VALUE   625U  /* ~2.5s timeout at 32kHz LSI */
+
+/* Static IWDG handle - no need to expose globally */
+static IWDG_HandleTypeDef s_hiwdg;
+static bool s_watchdog_enabled = false;
 
 void watchdog_panic_code(uint32_t code)
 {
@@ -14,22 +37,29 @@ void watchdog_panic_code(uint32_t code)
 
 void watchdog_init(void)
 {
-#ifdef WATCHDOG_ENABLE
-  // Hardware watchdog setup can be implemented here once the HAL IWDG module
-  // is enabled. Keeping the hook in place ensures the symbol is available for
-  // builds that want to turn the watchdog on without breaking existing
-  // configurations.
-#endif
+  /* Configure the Independent Watchdog (IWDG)
+   * The IWDG is clocked from LSI (~32 kHz on STM32F4)
+   * Once started, the IWDG cannot be stopped - it must be refreshed
+   * periodically or the system will reset.
+   */
+  s_hiwdg.Instance = IWDG;
+  s_hiwdg.Init.Prescaler = IWDG_PRESCALER;
+  s_hiwdg.Init.Reload = IWDG_RELOAD_VALUE;
+  
+  if (HAL_IWDG_Init(&s_hiwdg) == HAL_OK) {
+    s_watchdog_enabled = true;
+    ui_set_status_line("IWDG enabled");
+  } else {
+    /* IWDG init failed - system continues without hardware watchdog
+     * This can happen if LSI oscillator is not stable yet.
+     * The status line provides visual feedback for debugging. */
+    ui_set_status_line("IWDG init FAIL");
+  }
 }
 
 void watchdog_kick(void)
 {
-#ifdef WATCHDOG_ENABLE
-  // Refresh the Independent Watchdog (IWDG) timer
-  // This prevents the watchdog from resetting the system
-  // HAL_IWDG_Refresh(&hiwdg);  // Uncomment when IWDG is configured
-#endif
-  // When WATCHDOG_ENABLE is not defined, this is a no-op
-  // The function must still exist to satisfy the linker when
-  // MODULE_ENABLE_WATCHDOG is set
+  if (s_watchdog_enabled) {
+    HAL_IWDG_Refresh(&s_hiwdg);
+  }
 }
