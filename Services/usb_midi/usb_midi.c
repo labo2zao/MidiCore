@@ -582,6 +582,9 @@ void usb_midi_process_rx_queue(void) {
       }
       continue;
     }
+    /* End of SysEx handling - continue to skip regular MIDI processing */
+    continue;
+  } /* end if (cin >= 0x04 && cin <= 0x07) - SysEx handling */
     
     /* Handle regular MIDI messages (non-SysEx) - optimized with lookup table */
     const uint8_t msg_len = cin_to_length[cin];
