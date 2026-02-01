@@ -184,6 +184,11 @@ static inline uint8_t router_is_loopback(uint8_t in_node, uint8_t out_node) {
 }
 
 void router_process(uint8_t in_node, const router_msg_t* msg) {
+  /* CRITICAL: Early exit if router not initialized
+   * USB callbacks can fire during MX_USB_DEVICE_Init() BEFORE router_init().
+   * Without this check, calling g_send or FreeRTOS APIs will crash. */
+  if (!g_router_ready) return;
+  
   router_tap_hook(in_node, msg);
 
   if (!msg || in_node >= ROUTER_NUM_NODES) return;
