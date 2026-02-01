@@ -18,12 +18,22 @@
  * 
  * This gives enough margin for the 100ms service tick while still
  * catching stuck tasks within a reasonable time.
+ * 
+ * NOTE: IWDG requires HAL_IWDG_MODULE_ENABLED in stm32f4xx_hal_conf.h
+ * To enable hardware watchdog:
+ *   1. Open stm32f4xx_hal_conf.h
+ *   2. Uncomment: #define HAL_IWDG_MODULE_ENABLED
+ *   3. Rebuild
+ * 
+ * When IWDG is not enabled, this module provides safe stubs.
  */
 
+#ifdef HAL_IWDG_MODULE_ENABLED
+
+/* IWDG is available - use hardware watchdog */
 #define IWDG_PRESCALER      IWDG_PRESCALER_128
 #define IWDG_RELOAD_VALUE   625U  /* ~2.5s timeout at 32kHz LSI */
 
-/* Static IWDG handle - no need to expose globally */
 static IWDG_HandleTypeDef s_hiwdg;
 static bool s_watchdog_enabled = false;
 
@@ -63,3 +73,32 @@ void watchdog_kick(void)
     HAL_IWDG_Refresh(&s_hiwdg);
   }
 }
+
+#else /* HAL_IWDG_MODULE_ENABLED not defined */
+
+/* IWDG not available - provide safe stubs
+ * To enable hardware watchdog, uncomment HAL_IWDG_MODULE_ENABLED
+ * in Core/Inc/stm32f4xx_hal_conf.h
+ */
+
+void watchdog_panic_code(uint32_t code)
+{
+  (void)code;
+  safe_mode_set_forced(1);
+  ui_set_status_line("PANIC -> reset");
+  NVIC_SystemReset();
+}
+
+void watchdog_init(void)
+{
+  /* IWDG not enabled - system runs without hardware watchdog
+   * This is a compile-time choice, not an error condition.
+   * No UI notification needed - just silent operation. */
+}
+
+void watchdog_kick(void)
+{
+  /* No-op when IWDG is disabled */
+}
+
+#endif /* HAL_IWDG_MODULE_ENABLED */
