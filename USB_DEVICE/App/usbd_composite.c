@@ -40,6 +40,12 @@ typedef struct {
 /* Static storage for composite class data */
 static USBD_COMPOSITE_HandleTypeDef composite_class_data;
 
+/* MIOS32-STYLE: Diagnostic counters visible in debugger (no printf!) */
+volatile uint32_t g_composite_dataout_calls = 0;
+volatile uint32_t g_composite_midi_dataout = 0;
+volatile uint32_t g_composite_cdc_dataout = 0;
+volatile uint32_t g_composite_midi_class_null = 0;
+
 /* Helper function to switch class data pointer */
 void *USBD_COMPOSITE_SwitchClassData(USBD_HandleTypeDef *pdev, void *new_data)
 {
@@ -291,13 +297,19 @@ static uint8_t USBD_COMPOSITE_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum)
 {
   uint8_t ret = USBD_OK;
   
+  /* Increment total DataOut counter */
+  g_composite_dataout_calls++;
+  
   /* MIDI OUT endpoint: 0x01 (EP1) */
   if (epnum == 0x01) {
     if (USBD_MIDI.DataOut != NULL && composite_class_data.midi_class_data != NULL) {
+      g_composite_midi_dataout++;
       void *previous = USBD_COMPOSITE_SwitchClassData(pdev, composite_class_data.midi_class_data);
       uint8_t status = USBD_MIDI.DataOut(pdev, epnum);
       (void)USBD_COMPOSITE_SwitchClassData(pdev, previous);
       return status;
+    } else {
+      g_composite_midi_class_null++;
     }
     return ret;
   }
@@ -306,6 +318,7 @@ static uint8_t USBD_COMPOSITE_DataOut(USBD_HandleTypeDef *pdev, uint8_t epnum)
   /* CDC OUT endpoint: 0x02 (EP2) */
   if (epnum == 0x02) {
     if (USBD_CDC.DataOut != NULL && composite_class_data.cdc_class_data != NULL) {
+      g_composite_cdc_dataout++;
       void *previous = USBD_COMPOSITE_SwitchClassData(pdev, composite_class_data.cdc_class_data);
       uint8_t status = USBD_CDC.DataOut(pdev, epnum);
       (void)USBD_COMPOSITE_SwitchClassData(pdev, previous);

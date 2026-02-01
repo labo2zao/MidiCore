@@ -109,6 +109,22 @@ bool midicore_query_queue(const uint8_t* data, uint32_t len, uint8_t cable);
  */
 void midicore_query_process_queued(void);
 
+/**
+ * @brief Get MidiCore query statistics (MIOS32-style diagnostics)
+ * 
+ * Returns counters for received, queued, processed queries and sent responses.
+ * These can be viewed in debugger or via CLI 'mios' command.
+ * 
+ * @param received Pointer to store received query count (may be NULL)
+ * @param queued Pointer to store queued query count (may be NULL)
+ * @param processed Pointer to store processed query count (may be NULL)
+ * @param responses Pointer to store sent response count (may be NULL)
+ * @param terminal Pointer to store terminal command count (may be NULL)
+ */
+void midicore_query_get_stats(uint32_t* received, uint32_t* queued, 
+                              uint32_t* processed, uint32_t* responses,
+                              uint32_t* terminal);
+
 #ifdef __cplusplus
 }
 #endif
