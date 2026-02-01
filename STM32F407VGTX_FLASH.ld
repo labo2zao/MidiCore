@@ -40,9 +40,11 @@ ENTRY(Reset_Handler)
 _estack = ORIGIN(RAM) + LENGTH(RAM); /* end of "RAM" Ram type memory */
 
 _Min_Heap_Size = 0x0; /* required amount of heap - using FreeRTOS heap instead */
-_Min_Stack_Size = 0x800; /* required amount of stack - 2KB for MSP (ISR stack)
-                           USB callbacks can use 500-1000 bytes!
-                           Increased from 0x200 (512B) which caused overflow */
+_Min_Stack_Size = 0x400; /* required amount of stack - 1KB for MSP (ISR stack)
+                           USB callbacks can use ~500 bytes.
+                           Was 0x200 (512B) → stack overflow
+                           Was 0x800 (2KB) → RAM overflow by 256 bytes
+                           Now 0x400 (1KB) = balanced for USB + fits in RAM */
 
 /* Memories definition */
 MEMORY
