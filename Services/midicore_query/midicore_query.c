@@ -47,32 +47,38 @@ static volatile uint8_t query_queue_write = 0;
 static volatile uint8_t query_queue_read = 0;
 
 bool midicore_query_is_query_message(const uint8_t* data, uint32_t len) {
-  // Minimum query: F0 00 00 7E 32 <dev_id> <cmd> F7 = 8 bytes
+  // Minimum query: F0 00 00 7E <dev_id> <target> <cmd> F7 = 8 bytes
   if (data == NULL || len < 8) {
     return false;
   }
   
-  // Check for MidiCore query header: F0 00 00 7E 32
-  // CRITICAL: Accept ALL MidiCore SysEx to prevent routing to MIDI router!
-  // MidiCore SysEx is device management protocol, NOT music data.
-  // Routing it would cause MIOS Studio crashes/freezes.
-  if (data[0] == 0xF0 &&
-      data[1] == 0x00 &&
-      data[2] == 0x00 &&
-      data[3] == 0x7E &&
-      data[4] == MIDICORE_QUERY_DEVICE_ID) {
-    // This IS a MidiCore protocol message (F0 00 00 7E 32 ...)
-    // Accept ALL commands, don't filter by specific command codes!
-    // Known commands:
-    //   0x00 = device query (MIOS Studio device detection)
-    //   0x01 = device info response
-    //   0x02 = read memory
-    //   0x03 = write memory
-    //   0x04 = SysEx upload
-    //   0x0D = debug message (MIOS Studio TERMINAL)
-    //   0x0F = acknowledge
-    // But we should accept ANY command to be future-proof and safe.
-    return true;  // ALL MidiCore SysEx is recognized, prevents routing
+  // Check for SysEx start and manufacturer ID: F0 00 00 7E
+  if (data[0] != 0xF0 ||
+      data[1] != 0x00 ||
+      data[2] != 0x00 ||
+      data[3] != 0x7E) {
+    return false;  // Not a MIDIbox/MidiCore SysEx
+  }
+  
+  // CRITICAL: Accept ALL MIDIbox protocol SysEx to prevent routing to MIDI router!
+  // MIOS Studio uses multiple device IDs for different protocols:
+  //   - 0x32 = MidiCore device query/response (our primary protocol)
+  //   - 0x40 = MIOS32 bootloader commands (upload, read memory, etc.)
+  //
+  // ALL of these are device management protocols, NOT music data.
+  // Routing them to MIDI router causes MIOS Studio crashes/freezes.
+  //
+  // Known device IDs from MIOS Studio MIDI monitor:
+  //   f0 00 00 7e 32 00 00 01 f7         -> 0x32 MidiCore query
+  //   f0 00 00 7e 40 00 0d 02 ...        -> 0x40 MIOS32 bootloader
+  //   f0 00 00 7e 40 00 02 00 ...        -> 0x40 MIOS32 read memory
+  
+  uint8_t device_id = data[4];
+  
+  if (device_id == MIDICORE_QUERY_DEVICE_ID ||   // 0x32 = MidiCore protocol
+      device_id == 0x40) {                       // 0x40 = MIOS32 bootloader protocol
+    // Accept ALL commands for these device IDs, prevents routing
+    return true;
   }
   
   return false;
