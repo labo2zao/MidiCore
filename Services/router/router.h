@@ -40,7 +40,12 @@ uint16_t router_get_chanmask(uint8_t in_node, uint8_t out_node);
 void router_set_label(uint8_t in_node, uint8_t out_node, const char* label);
 const char* router_get_label(uint8_t in_node, uint8_t out_node);
 
+// Check if router is initialized and ready to process messages
+// Returns 1 if ready, 0 if not yet initialized
+uint8_t router_is_ready(void);
+
 // Process an incoming message from node 'in_node' and route to all enabled outputs.
+// IMPORTANT: Check router_is_ready() before calling this if called from ISR/callback context!
 void router_process(uint8_t in_node, const router_msg_t* msg);
 
 // Optional hooks (weak symbols, can be overridden)

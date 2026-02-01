@@ -104,7 +104,10 @@ void usb_midi_rx_debug_hook(const uint8_t packet4[4])
   
   /* Route to MIDI router for processing */
   #if MODULE_ENABLE_ROUTER
-  {
+  /* IMPORTANT: Only route if router is initialized!
+   * USB callbacks can fire during MX_USB_DEVICE_Init() BEFORE router_init().
+   * Without this check, we'd call router_process() with uninitialized g_send → HardFault */
+  if (router_is_ready()) {
     /* Convert USB MIDI packet to router message */
     router_msg_t msg;
     uint8_t status = packet4[1];

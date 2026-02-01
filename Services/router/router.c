@@ -38,20 +38,22 @@ typedef struct {
 
 static route_t g_routes[ROUTER_NUM_NODES][ROUTER_NUM_NODES];
 
+/* Router state - starts as NOT ready */
+static router_send_fn_t g_send = 0;  /* NULL until router_init() called */
+static volatile uint8_t g_router_ready = 0;  /* Flag: 1 = initialized and ready */
+
 /**
- * @brief Safe no-op send function to prevent HardFault before router_init()
+ * @brief Check if router is initialized and ready to process messages
  * 
  * USB callbacks can fire during MX_USB_DEVICE_Init() BEFORE router_init()
- * is called. Without this safe default, g_send would be NULL/garbage
- * and calling it would cause a HardFault (executing from heap).
+ * is called. Callers MUST check router_is_ready() before calling router_process()
+ * in ISR/callback context to avoid HardFault.
+ * 
+ * @return 1 if router is ready, 0 if not yet initialized
  */
-static void router_send_noop(uint8_t node, const router_msg_t *msg) {
-  (void)node;
-  (void)msg;
-  // Do nothing - router not yet initialized
+uint8_t router_is_ready(void) {
+  return g_router_ready;
 }
-
-static router_send_fn_t g_send = router_send_noop;  // Safe default!
 static osMutexId_t g_router_mutex;
 
 static inline uint8_t is_channel_voice(uint8_t status) {
@@ -81,6 +83,9 @@ void router_init(router_send_fn_t send_cb) {
   }
   // Lazy creation: mutex will be created on first use (after scheduler starts)
   g_router_mutex = NULL;
+  
+  // Mark router as ready - MUST be last!
+  g_router_ready = 1;
 }
 
 // Helper: ensure mutex is created (call before first use)
