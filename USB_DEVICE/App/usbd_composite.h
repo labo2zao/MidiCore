@@ -32,6 +32,12 @@ USBD_ClassTypeDef* USBD_COMPOSITE_GetClass(uint8_t interface_num);
 void *USBD_COMPOSITE_GetClassData(const USBD_ClassTypeDef *class_handler);
 void *USBD_COMPOSITE_SwitchClassData(USBD_HandleTypeDef *pdev, void *new_data);
 
+/* MIOS32-STYLE: Diagnostic counters visible in debugger (no printf!) */
+extern volatile uint32_t g_composite_dataout_calls;
+extern volatile uint32_t g_composite_midi_dataout;
+extern volatile uint32_t g_composite_cdc_dataout;
+extern volatile uint32_t g_composite_midi_class_null;
+
 #ifdef __cplusplus
 }
 #endif
