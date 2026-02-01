@@ -88,9 +88,16 @@ void router_init(router_send_fn_t send_cb) {
   g_router_ready = 1;
 }
 
+// Helper: check if FreeRTOS scheduler is running
+static inline uint8_t scheduler_running(void) {
+  osKernelState_t state = osKernelGetState();
+  return (state == osKernelRunning);
+}
+
 // Helper: ensure mutex is created (call before first use)
+// ONLY safe to call when scheduler is running!
 static inline void ensure_mutex(void) {
-  if (g_router_mutex == NULL) {
+  if (g_router_mutex == NULL && scheduler_running()) {
     const osMutexAttr_t attr = { .name = "router" };
     g_router_mutex = osMutexNew(&attr);
   }
@@ -221,14 +228,20 @@ void router_process(uint8_t in_node, const router_msg_t* msg) {
   /* Channel mask bit for channel voice messages */
   uint16_t chan_bit = is_chan_voice ? msg_channel_bit(msg) : 0;
 
-  /* Take snapshot of routes under mutex protection */
+  /* Take snapshot of routes under mutex protection
+   * NOTE: If scheduler not running, skip mutex but still read routes.
+   * This is safe because routes are set during init when scheduler isn't running anyway. */
   route_t snap[ROUTER_NUM_NODES];
-  ensure_mutex();
-  if (g_router_mutex) osMutexAcquire(g_router_mutex, osWaitForever);
+  if (scheduler_running()) {
+    ensure_mutex();
+    if (g_router_mutex) osMutexAcquire(g_router_mutex, osWaitForever);
+  }
   for (uint8_t out = 0; out < ROUTER_NUM_NODES; out++) {
     snap[out] = g_routes[in_node][out];
   }
-  if (g_router_mutex) osMutexRelease(g_router_mutex);
+  if (scheduler_running() && g_router_mutex) {
+    osMutexRelease(g_router_mutex);
+  }
 
   /* =========================================================================
    * MIOS32-style: "Forward once per destination" optimization
