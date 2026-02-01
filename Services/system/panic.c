@@ -5,18 +5,36 @@
 static volatile uint32_t g_panic_code = 0;
 
 /**
- * @brief Record panic code - DOES NOT BLOCK
+ * @brief Get the current panic code (for inspection after reset)
+ */
+uint32_t panic_get(void)
+{
+  return g_panic_code;
+}
+
+/**
+ * @brief Record panic code and HALT the system
  * 
- * This function just records the panic code for later inspection.
- * The caller decides what to do next (reset, loop, etc.)
+ * IMPORTANT: This function does NOT return!
+ * Do all critical operations (safe_mode_set, etc.) BEFORE calling this.
  * 
- * IMPORTANT: This function intentionally does NOT enter an infinite loop
- * to allow caller to perform cleanup (set safe_mode, reset, etc.) before
- * any final action.
+ * The infinite loop allows a debugger to:
+ * 1. Attach to the halted processor
+ * 2. Inspect g_panic_code and other globals
+ * 3. Examine stack frames and fault registers
+ * 
+ * For production auto-recovery, call NVIC_SystemReset() BEFORE panic_set()
+ * or use watchdog timeout to force reset.
  */
 void panic_set(uint32_t code)
 {
   g_panic_code = code;
-  /* Keep variable alive for debugger inspection */
-  (void)g_panic_code;
+  
+  /* Disable interrupts to prevent further corruption */
+  __disable_irq();
+  
+  /* Infinite loop - attach debugger to inspect state */
+  while(1) { 
+    __NOP(); 
+  }
 }
