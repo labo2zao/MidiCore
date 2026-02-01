@@ -204,10 +204,26 @@ void dbg_print_hex32(uint32_t dw);
 void dbg_print_uint(uint32_t n);
 
 /**
+ * @brief Print an unsigned 32-bit number (alias for dbg_print_uint)
+ * @param n Number to print
+ * 
+ * MIOS32-STYLE: Consistent naming with cli_print_u32()
+ */
+#define dbg_print_u32(n) dbg_print_uint(n)
+
+/**
  * @brief Print a signed decimal number
  * @param n Number to print
  */
 void dbg_print_int(int32_t n);
+
+/**
+ * @brief Print a signed 32-bit number (alias for dbg_print_int)
+ * @param n Number to print
+ * 
+ * MIOS32-STYLE: Consistent naming with cli_print_i32()
+ */
+#define dbg_print_i32(n) dbg_print_int(n)
 
 /**
  * @brief Print a byte array as hexadecimal

@@ -1,6 +1,11 @@
 /**
  * @file test_debug.c
  * @brief Implementation of MIOS32-compatible debug output
+ * 
+ * MIOS32 PRINCIPLES:
+ * - NO printf / snprintf / vsnprintf (causes stack overflow!)
+ * - Fixed string outputs only
+ * - Use dbg_print() + dbg_print_u32() instead of dbg_printf()
  */
 
 #include "App/tests/test_debug.h"
@@ -8,9 +13,10 @@
 #include "Config/module_config.h"
 #include "main.h"
 #include <string.h>
-#include <stdio.h>
-#include <stdarg.h>
 #include <stdbool.h>
+
+/* NO stdio.h - we don't use printf/vsnprintf! */
+/* NO stdarg.h - dbg_printf is disabled! */
 
 #if MODULE_ENABLE_OLED
 #include "Hal/oled_ssd1322/oled_ssd1322.h"  // For oled_init_newhaven()
@@ -191,14 +197,16 @@ int test_debug_init(void)
   dbg_print("Debug output: UART at 115200 baud\r\n");
   
   // Print diagnostic info (visible in terminal AND GDB)
-  char port_info[128];
+  // MIOS32-STYLE: Use fixed strings + dbg_print_uint instead of snprintf
   const char* uart_names[] = {"USART2", "USART3", "USART1", "UART5"};
   const char* uart_pins[] = {"PA2/PA3", "PD8/PD9", "PA9/PA10", "PC12/PD2"};
-  snprintf(port_info, sizeof(port_info), "Port: %s (port %lu) on pins %s\r\n", 
-           uart_names[TEST_DEBUG_UART_PORT], 
-           (unsigned long)TEST_DEBUG_UART_PORT,
-           uart_pins[TEST_DEBUG_UART_PORT]);
-  dbg_print(port_info);
+  dbg_print("Port: ");
+  dbg_print(uart_names[TEST_DEBUG_UART_PORT]);
+  dbg_print(" (port ");
+  dbg_print_uint(TEST_DEBUG_UART_PORT);
+  dbg_print(") on pins ");
+  dbg_print(uart_pins[TEST_DEBUG_UART_PORT]);
+  dbg_print("\r\n");
   dbg_print("==============================================\r\n");
   
 #else // DEBUG_OUTPUT_NONE
@@ -343,13 +351,10 @@ void dbg_print(const char* str)
     }
     
     // Send periodic heartbeat message every 10 seconds so users know terminal is alive
+    // MIOS32-STYLE: Use fixed string to avoid snprintf stack usage
     static uint32_t last_heartbeat = 0;
     if ((now - last_heartbeat) >= 10000) {
-      char heartbeat[60];
-      snprintf(heartbeat, sizeof(heartbeat), 
-               "[MIOS] Terminal active (sent:%lu)\r\n", 
-               (unsigned long)sent_count);
-      midicore_debug_send_message(heartbeat, 0);
+      midicore_debug_send_message("[MIOS] Terminal active\r\n", 0);
       last_heartbeat = now;
     }
     
@@ -368,37 +373,8 @@ void dbg_print(const char* str)
         last_send_tick = now;
         sent_count++;
         
-        // Report counters periodically (every 200 messages sent, only to CDC)
-        if (sent_count % 200 == 0) {
-          char stats_msg[120];
-          snprintf(stats_msg, sizeof(stats_msg), 
-                   "[MIOS Stats] Sent:%lu Dropped:%lu TxQFull:%lu Rate:50msg/s\r\n", 
-                   (unsigned long)sent_count, (unsigned long)dropped_count, 
-                   (unsigned long)tx_queue_full_count);
-          usb_cdc_send((uint8_t*)stats_msg, strlen(stats_msg));
-        }
-        
-        // Report TX queue full errors immediately (only to CDC to avoid recursion)
-        if (tx_queue_full_count > 0 && (tx_queue_full_count % 10 == 0)) {
-          char tx_err_msg[120];
-          snprintf(tx_err_msg, sizeof(tx_err_msg), 
-                   "[MIOS ERROR] USB MIDI TX queue full %lu times! Packets dropped.\r\n", 
-                   (unsigned long)tx_queue_full_count);
-#if MODULE_ENABLE_USB_CDC
-          usb_cdc_send((const uint8_t*)tx_err_msg, strlen(tx_err_msg));
-#endif
-        }
-        
-        // Report dropped messages more frequently (every 50 drops, only to CDC)
-        if (dropped_count > 0 && (dropped_count % 50 == 0)) {
-          char drop_msg[100];
-          snprintf(drop_msg, sizeof(drop_msg), 
-                   "[DBG] %lu messages dropped (rate limit 50msg/s). Increase limit if needed.\r\n", 
-                   (unsigned long)dropped_count);
-#if MODULE_ENABLE_USB_CDC
-          usb_cdc_send((const uint8_t*)drop_msg, strlen(drop_msg));
-#endif
-        }
+        // MIOS32-STYLE: No snprintf stats - counters visible in debugger
+        // Variables sent_count, dropped_count, tx_queue_full_count are global
       } else {
         // Message failed to send - TX queue was full!
         tx_queue_full_count++;
@@ -423,21 +399,29 @@ void dbg_println(void)
 }
 
 // =============================================================================
-// FORMATTED OUTPUT
+// FORMATTED OUTPUT - MIOS32 STYLE (NO vsnprintf!)
 // =============================================================================
+// 
+// CRITICAL: vsnprintf uses 500+ bytes of stack!
+// This caused heap corruption when called from ISR/callback context.
+// 
+// MIOS32 style: Use fixed strings only.
+// For numbers, use dbg_print_u32(), dbg_print_hex8(), etc.
+//
+// Example migration:
+//   BEFORE: dbg_printf("Value: %d\r\n", val);
+//   AFTER:  dbg_print("Value: "); dbg_print_u32(val); dbg_print("\r\n");
 
 void dbg_printf(const char* format, ...)
 {
-  char buffer[256];
-  va_list args;
+  // MIOS32-STYLE: Just output the format string without formatting
+  // This is a safety fallback - callers should migrate to dbg_print + dbg_print_u32
+  // Variadic args are ignored to prevent stack corruption
+  (void)format;
   
-  va_start(args, format);
-  int len = vsnprintf(buffer, sizeof(buffer), format, args);
-  va_end(args);
-  
-  if (len > 0 && len < (int)sizeof(buffer)) {
-    dbg_print(buffer);
-  }
+  // Output a warning that formatted output is disabled
+  // This helps identify code that needs migration to MIOS32 style
+  dbg_print("[WARN] dbg_printf disabled - use dbg_print+dbg_print_u32\r\n");
 }
 
 // =============================================================================
@@ -715,10 +699,18 @@ void gdb_ptin_SPI_Pinout(const char* label,
     dbg_print(")");
   }
   dbg_print(":\r\n");
-  dbg_printf("  SPI Instance: %s\r\n", spi_instance_name(hspi));
-  dbg_printf("  SPI CPOL: %s\r\n", spi_cpol_name(hspi));
-  dbg_printf("  SPI CPHA: %s\r\n", spi_cpha_name(hspi));
-  dbg_printf("  SPI Prescaler: %s\r\n", spi_prescaler_name(hspi));
+  dbg_print("  SPI Instance: ");
+  dbg_print(spi_instance_name(hspi));
+  dbg_print("\r\n");
+  dbg_print("  SPI CPOL: ");
+  dbg_print(spi_cpol_name(hspi));
+  dbg_print("\r\n");
+  dbg_print("  SPI CPHA: ");
+  dbg_print(spi_cpha_name(hspi));
+  dbg_print("\r\n");
+  dbg_print("  SPI Prescaler: ");
+  dbg_print(spi_prescaler_name(hspi));
+  dbg_print("\r\n");
   dbg_print_gpio_pin("SPI SCK", sck_port, sck_pin, hspi);
   dbg_print_gpio_pin("SPI MISO", miso_port, miso_pin, hspi);
   dbg_print_gpio_pin("SPI MOSI", mosi_port, mosi_pin, hspi);
