@@ -252,15 +252,18 @@ Encoder                  STM32
 | Function | Pin(s) | Notes |
 |----------|--------|-------|
 | **USB Device** | PA11, PA12 | To computer |
-| **USB Host** | PB14, PB15 | To controllers |
+| **USB Host** | PB14, PB15 | Conflicts with SPI2! |
 | **MIDI 1** | PA9, PA10 | UART1 |
 | **MIDI 2** | PD5, PD6 | UART2 |
-| **SPI (AINSER)** | PB13-15 | SPI2 |
+| **SPI (AINSER)** | PB13-15 | SPI2 (conflicts with USB Host) |
 | **I2C (Pressure)** | PB6, PB7 | I2C1 |
 | **OLED** | PC8, PC11, PA8 | Software SPI |
 | **SD Card** | PC8-12, PD2 | SDIO |
 | **Encoders** | PA0-PA5 | GPIO |
 | **SRIO Control** | PD10, PB12 | Load/Latch |
+
+⚠️ **Note:** USB Host and SPI2 share pins PB14/PB15. 
+Choose ONE: either AINSER64 (SPI) or USB Host (keyboards).
 
 ---
 

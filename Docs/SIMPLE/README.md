@@ -50,4 +50,4 @@ For advanced topics, see the full documentation:
 
 ---
 
-**These docs were consolidated from 100+ files into 5 simple files.**
+**These docs were consolidated from 332 files into 5 simple files.**
