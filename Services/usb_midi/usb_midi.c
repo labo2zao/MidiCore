@@ -185,6 +185,15 @@ void usb_midi_init(void) {
   USBD_MIDI_RegisterInterface(&hUsbDeviceFS, &midi_fops);
 }
 
+/* DEBUG: Stub implementations when not in test mode
+ * These are needed when MODULE_DEBUG_MIDICORE_QUERIES=1 but MODULE_TEST_USB_DEVICE_MIDI is not defined.
+ * In test mode, app_test_usb_midi.c provides the real implementations.
+ */
+#if MODULE_DEBUG_MIDICORE_QUERIES && !defined(MODULE_TEST_USB_DEVICE_MIDI)
+__attribute__((weak)) void test_debug_tx_trace(uint8_t code) { (void)code; }
+__attribute__((weak)) void test_debug_tx_packet_queued(uint8_t cin, uint8_t b0) { (void)cin; (void)b0; }
+#endif
+
 /* Send next packet from TX queue (called from tx_queue_send_next and DataIn callback) */
 static void tx_queue_send_next(void) {
   USBD_MIDI_HandleTypeDef *hmidi = usb_midi_get_class_data();
