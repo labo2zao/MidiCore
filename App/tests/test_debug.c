@@ -408,21 +408,7 @@ void dbg_println(void)
 // MIOS32 style: Use fixed strings only.
 // For numbers, use dbg_print_u32(), dbg_print_hex8(), etc.
 //
-// Example migration:
-//   BEFORE: dbg_printf("Value: %d\r\n", val);
-//   AFTER:  dbg_print("Value: "); dbg_print_u32(val); dbg_print("\r\n");
-
-void dbg_printf(const char* format, ...)
-{
-  // MIOS32-STYLE: Just output the format string without formatting
-  // This is a safety fallback - callers should migrate to dbg_print + dbg_print_u32
-  // Variadic args are ignored to prevent stack corruption
-  (void)format;
-  
-  // Output a warning that formatted output is disabled
-  // This helps identify code that needs migration to MIOS32 style
-  dbg_print("[WARN] dbg_printf disabled - use dbg_print+dbg_print_u32\r\n");
-}
+/* dbg_printf fully removed: use dbg_print + dbg_print_u32/hex instead */
 
 // =============================================================================
 // HEXADECIMAL OUTPUT

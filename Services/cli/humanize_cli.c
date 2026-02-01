@@ -13,54 +13,42 @@
 // PARAMETER WRAPPERS
 // =============================================================================
 
-// Note: humanize module doesn't have get/set functions, it works via instrument_cfg_t
-// For CLI, we need to provide stub wrappers that always return 0
-// In a real implementation, these would interface with a configuration system
-
-static int humanize_stub_get_time_amount(uint8_t track) {
-  (void)track;
-  // TODO: Get from configuration system
-  return 0;
+// Real getters/setters backed by the humanize module configuration
+static int humanize_get_time_amount(uint8_t track) {
+  return humanize_get_time_variation(track);
 }
 
-static void humanize_stub_set_time_amount(uint8_t track, int value) {
-  (void)track;
-  (void)value;
-  // TODO: Set in configuration system
+static void humanize_set_time_amount(uint8_t track, int value) {
+  humanize_set_time_variation(track, value);
 }
 
-static int humanize_stub_get_velocity_amount(uint8_t track) {
-  (void)track;
-  // TODO: Get from configuration system
-  return 0;
+static int humanize_get_velocity_amount(uint8_t track) {
+  return humanize_get_velocity_variation(track);
 }
 
-static void humanize_stub_set_velocity_amount(uint8_t track, int value) {
-  (void)track;
-  (void)value;
-  // TODO: Set in configuration system
+static void humanize_set_velocity_amount(uint8_t track, int value) {
+  humanize_set_velocity_variation(track, value);
 }
 
-DEFINE_PARAM_INT_TRACK(humanize, time_amount, humanize_stub_get_time_amount, humanize_stub_set_time_amount)
-DEFINE_PARAM_INT_TRACK(humanize, velocity_amount, humanize_stub_get_velocity_amount, humanize_stub_set_velocity_amount)
+DEFINE_PARAM_INT_TRACK(humanize, time_amount, humanize_get_time_amount, humanize_set_time_amount)
+DEFINE_PARAM_INT_TRACK(humanize, velocity_amount, humanize_get_velocity_amount, humanize_set_velocity_amount)
 
 // =============================================================================
 // MODULE CONTROL WRAPPERS
 // =============================================================================
 
 static int humanize_cli_enable(uint8_t track) {
-  (void)track;
+  humanize_set_enabled(track, 1);
   return 0;
 }
 
 static int humanize_cli_disable(uint8_t track) {
-  (void)track;
+  humanize_set_enabled(track, 0);
   return 0;
 }
 
 static int humanize_cli_get_status(uint8_t track) {
-  (void)track;
-  return MODULE_STATUS_ENABLED;
+  return humanize_is_enabled(track) ? MODULE_STATUS_ENABLED : MODULE_STATUS_DISABLED;
 }
 
 // =============================================================================
@@ -68,7 +56,7 @@ static int humanize_cli_get_status(uint8_t track) {
 // =============================================================================
 
 static int humanize_cli_init(void) {
-  humanize_init(0);  // TODO: Pass actual instrument config
+  humanize_init(0);
   return 0;
 }
 

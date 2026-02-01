@@ -13,9 +13,61 @@
 #include <stdbool.h>
 #include <math.h>
 #include <stdlib.h>
-#include <stdio.h>  // for snprintf
 #include "ff.h"     // for FatFs types: DIR, FILINFO, FRESULT, etc.
 #include "diskio.h" // for DSTATUS, disk_status
+
+/* Lightweight dbg_printf replacement (no stdio/printf).
+ * Supports limited formats used in tests: %s %c %d %u %lu %ld %+d %+ld %02X %04X %08lX.
+ * Uses existing dbg_print/dbg_print_u32/dbg_print_hex* helpers. */
+static void dbg_printf(const char* fmt, ...) {
+  va_list ap;
+  va_start(ap, fmt);
+  while (fmt && *fmt) {
+    if (*fmt != '%') {
+      dbg_putc(*fmt++);
+      continue;
+    }
+    fmt++; // skip '%'
+    int plus = 0, zero_pad = 0, width = 0, long_count = 0;
+    if (*fmt == '+') { plus = 1; fmt++; }
+    if (*fmt == '0') { zero_pad = 1; fmt++; }
+    while (*fmt >= '0' && *fmt <= '9') { width = width*10 + (*fmt-'0'); fmt++; }
+    while (*fmt == 'l') { long_count++; fmt++; }
+    char spec = *fmt ? *fmt++ : 0;
+    switch (spec) {
+      case 's': {
+        const char* s = va_arg(ap, const char*);
+        if (s) dbg_print(s);
+      } break;
+      case 'c': {
+        int c = va_arg(ap, int);
+        dbg_putc((char)c);
+      } break;
+      case 'd':
+      case 'i': {
+        long v = (long)(long_count ? va_arg(ap, long) : va_arg(ap, int));
+        if (v < 0) { dbg_putc('-'); v = -v; }
+        else if (plus) dbg_putc('+');
+        dbg_print_u32((uint32_t)v);
+      } break;
+      case 'u': {
+        unsigned long v = (unsigned long)(long_count ? va_arg(ap, unsigned long) : va_arg(ap, unsigned int));
+        dbg_print_u32((uint32_t)v);
+      } break;
+      case 'X':
+      case 'x': {
+        unsigned long v = (unsigned long)(long_count ? va_arg(ap, unsigned long) : va_arg(ap, unsigned int));
+        if (width == 8 && long_count) dbg_print_hex32((uint32_t)v);
+        else if (width >= 4) dbg_print_hex16((uint16_t)v);
+        else dbg_print_hex8((uint8_t)v);
+      } break;
+      default:
+        dbg_putc('%'); if (spec) dbg_putc(spec);
+        break;
+    }
+  }
+  va_end(ap);
+}
 
 // UI framework for framebuffer-based testing
 #include "Services/ui/ui_page_oled_test.h"
@@ -88,7 +140,7 @@ static void dbg_print_srio_pinout(void)
 {
 #ifdef SRIO_ENABLE
   dbg_print("SRIO Pinout:\r\n");
-  dbg_printf("  SPI Instance: %s\r\n", spi_instance_name(SRIO_SPI_HANDLE));
+  dbg_print("  SPI Instance: "); dbg_print(spi_instance_name(SRIO_SPI_HANDLE)); dbg_print("\r\n");
 #ifdef MIOS_SPI1_SCK_GPIO_Port
   dbg_print_gpio_pin("SPI SCK", MIOS_SPI1_SCK_GPIO_Port, MIOS_SPI1_SCK_Pin);
 #endif
@@ -435,8 +487,9 @@ void module_test_gdb_debug_run(void)
   dbg_print("This test confirms UART communication is working.\r\n");
   dbg_print("\r\n");
   dbg_print("Configuration:\r\n");
-  dbg_printf("  - UART Port: UART%d (Port %d)\r\n", TEST_DEBUG_UART_PORT + 1, TEST_DEBUG_UART_PORT);
-  dbg_printf("  - Baud Rate: %d\r\n", TEST_DEBUG_UART_BAUD);
+  dbg_print("  - UART Port: UART"); dbg_print_u32(TEST_DEBUG_UART_PORT + 1);
+  dbg_print(" (Port "); dbg_print_u32(TEST_DEBUG_UART_PORT); dbg_print(")\r\n");
+  dbg_print("  - Baud Rate: "); dbg_print_u32(TEST_DEBUG_UART_BAUD); dbg_print("\r\n");
   dbg_print("  - Data: 8-N-1\r\n");
   dbg_print("\r\n");
   
@@ -464,8 +517,9 @@ void module_test_gdb_debug_run(void)
       counter++;
       
       // Print various formats to test output
-      dbg_printf("Count: %lu | Time: %lu ms | Hex: 0x%08lX | Status: ", 
-                 counter, now_ms, counter);
+      dbg_print("Count: "); dbg_print_u32(counter);
+      dbg_print(" | Time: "); dbg_print_u32(now_ms); dbg_print(" ms | Hex: 0x");
+      dbg_print_hex32(counter); dbg_print(" | Status: ");
       
       // Test colored output indicators
       if (counter % 3 == 0) {
@@ -670,11 +724,10 @@ void module_test_srio_run(void)
                       SRIO_DOUT_RCLK_PORT, SRIO_DOUT_RCLK_PIN,
                       SRIO_DIN_PL_PORT, SRIO_DIN_PL_PIN);
   dbg_print_separator();
-  dbg_printf("Configuration: %d DIN bytes, %d DOUT bytes\r\n", 
-             SRIO_DIN_BYTES, SRIO_DOUT_BYTES);
-  dbg_printf("Total buttons: %d (8 per byte)\r\n", SRIO_DIN_BYTES * 8);
+  dbg_print("Configuration: "); dbg_print_u32(SRIO_DIN_BYTES); dbg_print(" DIN bytes, "); dbg_print_u32(SRIO_DOUT_BYTES); dbg_print(" DOUT bytes\r\n");
+  dbg_print("Total buttons: "); dbg_print_u32(SRIO_DIN_BYTES * 8); dbg_print(" (8 per byte)\r\n");
   dbg_print("Monitoring button presses (press any button)...\r\n");
-  dbg_printf("Button numbers: 0-%d\r\n", (SRIO_DIN_BYTES * 8) - 1);
+  dbg_print("Button numbers: 0-"); dbg_print_u32((SRIO_DIN_BYTES * 8) - 1); dbg_print("\r\n");
   dbg_print("\r\n");
   
 #if MODULE_ENABLE_ROUTER
@@ -695,13 +748,9 @@ void module_test_srio_run(void)
   
   // Initialize first state
   dbg_print("Testing /PL pin control before first read...\r\n");
-  dbg_printf("  /PL pin should idle at: %s\r\n", SRIO_DIN_PL_ACTIVE_LOW ? "HIGH (GPIO_PIN_SET)" : "LOW (GPIO_PIN_RESET)");
-  dbg_printf("  DIN /PL pin: %s Pin %d\r\n", 
-             SRIO_DIN_PL_PORT == GPIOB ? "GPIOB" : SRIO_DIN_PL_PORT == GPIOD ? "GPIOD" : "GPIO?",
-             SRIO_DIN_PL_PIN);
-  dbg_printf("  DOUT RCLK pin: %s Pin %d\r\n",
-             SRIO_DOUT_RCLK_PORT == GPIOB ? "GPIOB" : SRIO_DOUT_RCLK_PORT == GPIOD ? "GPIOD" : "GPIO?",
-             SRIO_DOUT_RCLK_PIN);
+  dbg_print("  /PL pin should idle at: "); dbg_print(SRIO_DIN_PL_ACTIVE_LOW ? "HIGH (GPIO_PIN_SET)" : "LOW (GPIO_PIN_RESET)"); dbg_print("\r\n");
+  dbg_print("  DIN /PL pin: "); dbg_print(SRIO_DIN_PL_PORT == GPIOB ? "GPIOB" : SRIO_DIN_PL_PORT == GPIOD ? "GPIOD" : "GPIO?"); dbg_print(" Pin "); dbg_print_u32(SRIO_DIN_PL_PIN); dbg_print("\r\n");
+  dbg_print("  DOUT RCLK pin: "); dbg_print(SRIO_DOUT_RCLK_PORT == GPIOB ? "GPIOB" : SRIO_DOUT_RCLK_PORT == GPIOD ? "GPIOD" : "GPIO?"); dbg_print(" Pin "); dbg_print_u32(SRIO_DOUT_RCLK_PIN); dbg_print("\r\n");
   dbg_print("  About to pulse /PL for DIN latch...\r\n");
   dbg_print("\r\n");
   dbg_print("IMPORTANT: Verify your hardware uses these pins for SRIO:\r\n");
@@ -1223,16 +1272,15 @@ void module_test_midi_din_run(void)
   dbg_print("\r\n");
   
   dbg_print("Current LiveFX Settings:\r\n");
-  dbg_printf("  Enabled: %s\r\n", livefx_get_enabled(0) ? "YES" : "NO");
-  dbg_printf("  Transpose: %+d semitones\r\n", livefx_get_transpose(0));
-  dbg_printf("  Velocity Scale: %d%% (%d/128)\r\n", 
-             (livefx_get_velocity_scale(0) * 100) / 128,
-             livefx_get_velocity_scale(0));
+  dbg_print("  Enabled: "); dbg_print(livefx_get_enabled(0) ? "YES" : "NO"); dbg_print("\r\n");
+  dbg_print("  Transpose: "); dbg_print_u32((uint32_t)livefx_get_transpose(0)); dbg_print(" semitones\r\n");
+  dbg_print("  Velocity Scale: "); dbg_print_u32((livefx_get_velocity_scale(0) * 100) / 128); dbg_print("% (");
+  dbg_print_u32(livefx_get_velocity_scale(0)); dbg_print("/128)\r\n");
   // Note: scale variables will be declared at function scope below
   uint8_t init_scale_type, init_scale_root, init_scale_en;
   livefx_get_force_scale(0, &init_scale_type, &init_scale_root, &init_scale_en);
-  dbg_printf("  Force-to-Scale: %s (Type:%d Root:%d)\r\n",
-             init_scale_en ? "ON" : "OFF", init_scale_type, init_scale_root);
+  dbg_print("  Force-to-Scale: "); dbg_print(init_scale_en ? "ON" : "OFF");
+  dbg_print(" (Type:"); dbg_print_u32(init_scale_type); dbg_print(" Root:"); dbg_print_u32(init_scale_root); dbg_print(")\r\n");
   dbg_print("\r\n");
 #endif
 

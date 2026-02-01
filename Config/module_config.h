@@ -181,8 +181,8 @@ extern "C" {
 // ============================================================================
 #ifndef MODULE_DEBUG_OUTPUT
 #define MODULE_DEBUG_OUTPUT DEBUG_OUTPUT_UART  // ⭐ RECOMMENDED: SWV for debugging
+#define MODULE_DEBUG_OUTPUT DEBUG_OUTPUT_UART     // Hardware UART for production debug/CLI
 // #define MODULE_DEBUG_OUTPUT DEBUG_OUTPUT_USB_CDC  // Alternative: USB CDC for MIOS Studio
-// #define MODULE_DEBUG_OUTPUT DEBUG_OUTPUT_UART     // Alternative: Hardware UART
 // #define MODULE_DEBUG_OUTPUT DEBUG_OUTPUT_NONE     // Alternative: Disabled
 #endif
 // ============================================================================
@@ -246,7 +246,7 @@ extern "C" {
 #define CLI_OUTPUT_DEBUG      4
 
 #ifndef MODULE_CLI_OUTPUT
-#define MODULE_CLI_OUTPUT  CLI_OUTPUT_MIOS  // Default: MIOS terminal (standard behavior)
+#define MODULE_CLI_OUTPUT  CLI_OUTPUT_MIOS  // Use MIOS SysEx terminal for MIOS Studio
 #endif
 
 /** @brief Enable USB CDC (Virtual COM Port / ACM) - MidiCore & MIOS Studio compatible
@@ -547,7 +547,7 @@ extern "C" {
  * printf uses 500+ bytes of stack, causing corruption.
  * Only enable for debugging when NOT using USB MIDI! */
 #ifndef MODULE_DEBUG_MIDICORE_QUERIES
-#define MODULE_DEBUG_MIDICORE_QUERIES 0
+#define MODULE_DEBUG_MIDICORE_QUERIES 1
 #endif
 
 /** @brief Enable Module Registry (required for CLI module control) */
