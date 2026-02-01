@@ -75,13 +75,15 @@ void usb_midi_tx_packet_trace(uint8_t cin, uint8_t b0)
   #endif
 }
 
-/* Backwards-compatible aliases for test code */
-void test_debug_tx_trace(uint8_t code) { usb_midi_tx_trace(code); }
-void test_debug_tx_packet_queued(uint8_t cin, uint8_t b0) { usb_midi_tx_packet_trace(cin, b0); }
-
 /*===========================================================================*/
 /* USB MIDI RX Hook - REAL implementation (no stubs)                         */
 /*===========================================================================*/
+
+/* Include router header when enabled */
+#if MODULE_ENABLE_ROUTER
+#include "Services/router/router.h"
+#endif
+
 /**
  * @brief USB MIDI RX hook - routes incoming MIDI to appropriate handlers
  * 
@@ -102,8 +104,45 @@ void usb_midi_rx_debug_hook(const uint8_t packet4[4])
   
   /* Route to MIDI router for processing */
   #if MODULE_ENABLE_ROUTER
-  extern void router_process_usb_midi(uint8_t cable, const uint8_t* data);
-  router_process_usb_midi(cable, &packet4[1]);
+  {
+    /* Convert USB MIDI packet to router message */
+    router_msg_t msg;
+    uint8_t status = packet4[1];
+    
+    /* Determine message type from CIN */
+    switch (cin) {
+      case 0x08: /* Note Off */
+      case 0x09: /* Note On */
+      case 0x0A: /* Poly Aftertouch */
+      case 0x0B: /* Control Change */
+      case 0x0E: /* Pitch Bend */
+        msg.type = ROUTER_MSG_3B;
+        msg.b0 = packet4[1];
+        msg.b1 = packet4[2];
+        msg.b2 = packet4[3];
+        msg.data = NULL;
+        msg.len = 0;
+        /* USB input is node 0 (USB_MIDI port) */
+        router_process(0, &msg);
+        break;
+        
+      case 0x0C: /* Program Change */
+      case 0x0D: /* Channel Aftertouch */
+        msg.type = ROUTER_MSG_2B;
+        msg.b0 = packet4[1];
+        msg.b1 = packet4[2];
+        msg.b2 = 0;
+        msg.data = NULL;
+        msg.len = 0;
+        router_process(0, &msg);
+        break;
+        
+      /* SysEx handled separately via sysex buffer */
+      default:
+        break;
+    }
+    (void)status; /* May be used later */
+  }
   #endif
   
   /* Debug logging only in debug/test mode */
