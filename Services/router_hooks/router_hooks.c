@@ -43,11 +43,22 @@ uint8_t router_hooks_get_track_map(uint8_t out_node) {
 /**
  * @brief Router tap hook - called for incoming messages (before routing)
  * Captures messages for MIDI Monitor, SysEx viewer, and Looper
+ * 
+ * CRITICAL: This can be called from USB callback BEFORE FreeRTOS scheduler starts!
+ *           Must check scheduler_running() before using ANY FreeRTOS API.
  */
 void router_tap_hook(uint8_t in_node, const router_msg_t* msg) {
   if (!msg) return;
   
-  // Update timestamp (approximate)
+  /* CRITICAL: Check if FreeRTOS scheduler is running before using RTOS APIs
+   * USB callbacks can fire during MX_USB_DEVICE_Init() BEFORE osKernelStart()
+   * Calling osKernelGetTickCount() before scheduler starts → HardFault! */
+  osKernelState_t kernel_state = osKernelGetState();
+  if (kernel_state != osKernelRunning) {
+    return;  /* Scheduler not running - skip all processing (safe early exit) */
+  }
+  
+  // Update timestamp (approximate) - SAFE: scheduler is running
   g_timestamp_ms = osKernelGetTickCount();
   
   // Forward to looper (for recording)
