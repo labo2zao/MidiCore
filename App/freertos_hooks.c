@@ -12,6 +12,9 @@
 #include "FreeRTOS.h"
 #include "task.h"
 
+/* CMSIS for NVIC_SystemReset() */
+#include "stm32f4xx.h"
+
 /* Counters visible in debugger */
 volatile uint32_t g_stack_overflow_count = 0;
 volatile uint32_t g_malloc_fail_count = 0;
