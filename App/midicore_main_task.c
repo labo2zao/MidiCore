@@ -154,13 +154,12 @@ static void MidiCore_MainTask(void *argument)
 {
   (void)argument;
   
-  dbg_printf("\r\n");
-  dbg_printf("================================================\r\n");
-  dbg_printf("  MidiCore_MainTask: Cooperative Architecture\r\n");
-  dbg_printf("  Tick period: %u ms\r\n", MIDICORE_MAIN_TICK_MS);
-  dbg_printf("  Stack size: %u bytes\r\n", MIDICORE_MAIN_STACK_SIZE);
-  dbg_printf("================================================\r\n");
-  dbg_printf("\r\n");
+  /* ========================================================================
+   * MIOS32-STYLE MAIN TASK
+   * - NO printf/dbg_printf - use MIOS terminal for debug output
+   * - Cooperative service model
+   * - Deterministic tick period
+   * ======================================================================== */
   
   /* Initialize services that need runtime init */
 #if MODULE_ENABLE_EXPRESSION
@@ -189,8 +188,6 @@ static void MidiCore_MainTask(void *argument)
     memset(s_dout_buf, 0, sizeof(s_dout_buf));
     srio_write_dout(s_dout_buf);
     s_srio_initialized = 1;
-    dbg_printf("[MAIN] SRIO initialized: DIN=%u bytes, DOUT=%u bytes\r\n", 
-               SRIO_DIN_BYTES, SRIO_DOUT_BYTES);
   }
 #endif
 
@@ -204,29 +201,16 @@ static void MidiCore_MainTask(void *argument)
     };
     input_init(&icfg);
     s_input_initialized = 1;
-    dbg_printf("[MAIN] Input service initialized\r\n");
   }
 #endif
 
   /* Wait for USB enumeration to complete before processing MIDI */
-  dbg_printf("[MAIN] Waiting for USB enumeration (500ms)...\r\n");
   osDelay(500);
-  dbg_printf("[MAIN] USB ready\r\n");
   
-  /* Send test message to MIOS Studio terminal to verify connectivity
-   * This matches what MODULE_TEST_USB_DEVICE_MIDI does and is required
-   * for MIOS Studio to recognize the device. */
+  /* Send ready message to MIOS Studio terminal */
 #if MODULE_ENABLE_USB_MIDI
-  dbg_printf("[MAIN] Sending test message to MIOS Studio terminal...\r\n");
-  bool test_sent = midicore_debug_send_message("*** MidiCore Ready ***\r\n", 0);
-  if (test_sent) {
-    dbg_printf("[MAIN] Test message sent - check MIOS Studio Terminal\r\n");
-  } else {
-    dbg_printf("[MAIN] WARNING: Failed to send test message to MIOS terminal\r\n");
-  }
+  (void)midicore_debug_send_message("*** MidiCore Ready ***\r\n", 0);
 #endif
-  
-  dbg_printf("[MAIN] Entering main loop\r\n");
   
   /* Track last wake time for vTaskDelayUntil */
   TickType_t xLastWakeTime = xTaskGetTickCount();
@@ -282,26 +266,11 @@ static void MidiCore_MainTask(void *argument)
       watchdog_service_tick(tick);
     }
     
-    /* Heartbeat logging (every 60 seconds) */
+    /* Heartbeat - update global counter visible in debugger (no printf!) */
     if ((tick % 60000) == 0 && tick > 0) {
-      TaskHandle_t handle = xTaskGetCurrentTaskHandle();
-      UBaseType_t hwm = uxTaskGetStackHighWaterMark(handle);
-      dbg_printf("[MAIN] Heartbeat: tick=%lu, stack_free=%lu bytes\r\n",
-                 (unsigned long)tick,
-                 (unsigned long)(hwm * sizeof(StackType_t)));
+      /* Stack high water mark available via CLI 'stack' command */
+      (void)0; /* Keep timing slot for future use */
     }
-    
-    /* MIOS Studio diagnostics (every 10 seconds) */
-#if MODULE_ENABLE_USB_MIDI && MODULE_DEBUG_MIDICORE_QUERIES
-    if ((tick % 10000) == 0 && tick > 0 && tick <= 30000) {
-      /* Only show in first 30 seconds to avoid spam */
-      uint32_t q_size = 0, q_used = 0, q_drops = 0;
-      bool ready = usb_midi_get_tx_status(&q_size, &q_used, &q_drops);
-      dbg_printf("[MAIN] USB MIDI Status: ready=%d, queue=%lu/%lu, drops=%lu\r\n",
-                 ready, (unsigned long)q_used, (unsigned long)q_size, (unsigned long)q_drops);
-      dbg_printf("[MAIN] Waiting for MIOS Studio query...\r\n");
-    }
-#endif
     
     /* Increment tick counter */
     s_tick_count++;
@@ -518,11 +487,8 @@ static void input_service_tick(uint32_t tick)
 int midicore_main_task_start(void)
 {
   if (s_main_task_handle != NULL) {
-    dbg_printf("[MAIN] Main task already started\r\n");
-    return 0;
+    return 0;  /* Already started */
   }
-  
-  dbg_printf("[MAIN] Creating MidiCore_MainTask...\r\n");
   
   const osThreadAttr_t attr = {
     .name = "MidiCore",
@@ -533,11 +499,9 @@ int midicore_main_task_start(void)
   s_main_task_handle = osThreadNew(MidiCore_MainTask, NULL, &attr);
   
   if (s_main_task_handle == NULL) {
-    dbg_printf("[MAIN] ERROR: Failed to create main task!\r\n");
-    return -1;
+    return -1;  /* Task creation failed - visible in debugger */
   }
   
-  dbg_printf("[MAIN] MidiCore_MainTask created successfully\r\n");
   return 0;
 }
 

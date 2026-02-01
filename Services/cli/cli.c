@@ -1,24 +1,63 @@
 /**
  * @file cli.c
- * @brief Command Line Interface implementation
+ * @brief Command Line Interface implementation - MIOS32 Style
+ * 
+ * MIOS32 PRINCIPLES:
+ * - NO printf / snprintf / vsnprintf
+ * - Fixed string outputs only
+ * - Minimal stack usage
+ * - No dynamic allocation
  */
 
 #include "cli.h"
-#include "App/tests/test_debug.h"
-#include "Config/module_config.h"  // For MODULE_CLI_OUTPUT and DEBUG_OUTPUT modes
-#include "main.h"  // For UART handle
+#include "Config/module_config.h"
+#include "main.h"
 #include <string.h>
-#include <stdio.h>
 #include <ctype.h>
-#include <stdarg.h>
+
+/* NO stdio.h - we don't use printf! */
+/* NO stdarg.h - we don't use variadic functions! */
 
 #if MODULE_ENABLE_USB_CDC
 #include "Services/usb_cdc/usb_cdc.h"
 #endif
 
 #if MODULE_CLI_OUTPUT == CLI_OUTPUT_MIOS
-#include "Services/midicore_query/midicore_query.h"  // For SysEx terminal protocol
+#include "Services/midicore_query/midicore_query.h"
 #endif
+
+/* ============================================================================
+ * MIOS32-STYLE NUMBER TO STRING CONVERSION (NO printf!)
+ * ============================================================================ */
+
+/* Convert uint32 to decimal string - returns pointer to static buffer */
+static const char* cli_u32_to_str(uint32_t val)
+{
+  static char buf[12];  /* Max: 4294967295 = 10 digits + null */
+  char* p = &buf[11];
+  *p = '\0';
+  
+  if (val == 0) {
+    *--p = '0';
+  } else {
+    while (val > 0) {
+      *--p = '0' + (val % 10);
+      val /= 10;
+    }
+  }
+  return p;
+}
+
+/* Convert uint8 to hex string (2 digits) */
+static const char* cli_u8_to_hex(uint8_t val)
+{
+  static char buf[3];
+  static const char hex[] = "0123456789ABCDEF";
+  buf[0] = hex[(val >> 4) & 0x0F];
+  buf[1] = hex[val & 0x0F];
+  buf[2] = '\0';
+  return buf;
+}
 
 // =============================================================================
 // PRIVATE STATE
@@ -104,7 +143,7 @@ static cli_result_t cmd_status(int argc, char* argv[]);
 static cli_result_t cmd_reboot(int argc, char* argv[]);
 
 // =============================================================================
-// INITIALIZATION
+// INITIALIZATION - MIOS32 STYLE (NO printf!)
 // =============================================================================
 
 int cli_init(void)
@@ -113,9 +152,7 @@ int cli_init(void)
     return 0;
   }
 
-  dbg_printf("[CLI] Initializing CLI subsystem...\r\n");
-
-  // Clear state
+  /* Clear state */
   memset(s_commands, 0, sizeof(s_commands));
   s_command_count = 0;
   memset(s_input_line, 0, sizeof(s_input_line));
@@ -124,7 +161,7 @@ int cli_init(void)
   s_history_count = 0;
   s_history_index = 0;
 
-  // Register built-in commands
+  /* Register built-in commands */
   cli_register_command("help", cmd_help, "Show help", "help [command]", "system");
   cli_register_command("list", cmd_list, "List commands", "list", "system");
   cli_register_command("clear", cmd_clear, "Clear screen", "clear", "system");
@@ -134,19 +171,13 @@ int cli_init(void)
   cli_register_command("reboot", cmd_reboot, "Reboot system", "reboot", "system");
 
 #if MODULE_ENABLE_USB_CDC
-  // Register USB CDC receive callback for CLI input
-  // This is CRITICAL - without this, CLI receives no input!
-  dbg_printf("[CLI] Registering USB CDC receive callback...\r\n");
+  /* Register USB CDC receive callback for CLI input */
   usb_cdc_register_receive_callback(cli_usb_cdc_rx_callback);
   s_input_head = 0;
   s_input_tail = 0;
-  dbg_printf("[CLI] USB CDC callback registered\r\n");
 #endif
 
   s_initialized = 1;
-
-  dbg_printf("[CLI] CLI initialization complete - %lu commands registered\r\n", (unsigned long)s_command_count);
-
   return 0;
 }
 
@@ -248,8 +279,10 @@ cli_result_t cli_execute_argv(int argc, char* argv[])
     }
   }
 
-  cli_error("Command not found: %s\n", argv[0]);
-  cli_printf("Type 'help' for available commands.\n");
+  cli_print("Unknown command: ");
+  cli_print(argv[0]);
+  cli_newline();
+  cli_print("Type 'help' for available commands.\n");
   return CLI_NOT_FOUND;
 }
 
@@ -333,13 +366,9 @@ void cli_task(void)
     return; // No character available
   }
   
-  // NOTE: Echo handling is done in cli_get_input_char() for UART modes.
-  // USB CDC modes rely on terminal emulator echo (standard MidiCore behavior).
-  
   // Handle special characters
   if (ch == '\r' || ch == '\n') {
-    // Enter pressed - execute command
-    cli_printf("\r\n");
+    cli_newline();
     
     if (s_input_pos > 0) {
       s_input_line[s_input_pos] = '\0';
@@ -367,8 +396,8 @@ void cli_task(void)
     if (s_input_pos > 0) {
       s_input_pos--;
       s_input_line[s_input_pos] = '\0';
-      // Erase character on terminal: backspace + space + backspace
-      cli_printf("\b \b");
+      // Erase character on terminal
+      cli_print("\b \b");
     }
   }
   else if (ch >= 0x20 && ch < 0x7F) {
@@ -376,22 +405,21 @@ void cli_task(void)
     if (s_input_pos < CLI_MAX_LINE_LEN - 1) {
       s_input_line[s_input_pos++] = (char)ch;
       s_input_line[s_input_pos] = '\0';
-      // Echo only for non-UART modes (UART already echoed in cli_get_input_char)
+      // Echo character
 #if MODULE_CLI_OUTPUT == CLI_OUTPUT_USB_CDC || MODULE_CLI_OUTPUT == CLI_OUTPUT_MIOS || \
     (MODULE_CLI_OUTPUT == CLI_OUTPUT_DEBUG && MODULE_DEBUG_OUTPUT != DEBUG_OUTPUT_UART)
-      cli_printf("%c", ch);
+      cli_putc((char)ch);
 #endif
     }
   }
-  // Ignore other control characters for now (arrows, etc.)
+  // Ignore other control characters
 }
 
 // =============================================================================
-// OUTPUT HELPERS
+// OUTPUT HELPERS - MIOS32 STYLE (NO printf!)
 // =============================================================================
 
-// CLI output function - routes based on MODULE_CLI_OUTPUT configuration
-// Allows user to choose CLI terminal independently from debug output
+/* CLI output function - routes based on MODULE_CLI_OUTPUT configuration */
 static void cli_print(const char* str)
 {
   if (!str || strlen(str) == 0) {
@@ -399,135 +427,128 @@ static void cli_print(const char* str)
   }
 
 #if MODULE_CLI_OUTPUT == CLI_OUTPUT_USB_CDC
-  // Route to USB CDC only
   usb_cdc_send((const uint8_t*)str, strlen(str));
   
 #elif MODULE_CLI_OUTPUT == CLI_OUTPUT_UART
-  // Route to UART (force UART mode for CLI)
-  #if MODULE_DEBUG_OUTPUT == DEBUG_OUTPUT_UART
-    // Already UART mode, use normal debug print
-    dbg_print(str);
-  #else
-    // Not in UART mode, need to send directly to UART
-    // This is a fallback - normally use DEBUG_OUTPUT_UART
-    dbg_print(str);  // Will go to current debug output
-  #endif
+  /* Direct UART output - implement if needed */
+  (void)str;
   
 #elif MODULE_CLI_OUTPUT == CLI_OUTPUT_MIOS
-  // MIOS terminal mode - use MIDI SysEx protocol (NOT USB CDC)
-  // MIOS Studio terminal receives text via SysEx debug messages
-  midicore_debug_send_message(str, 0);  // Cable 0
+  /* MIOS terminal mode - use MIDI SysEx protocol */
+  midicore_debug_send_message(str, 0);
   
 #elif MODULE_CLI_OUTPUT == CLI_OUTPUT_DEBUG
-  // Follow MODULE_DEBUG_OUTPUT setting
-  dbg_print(str);
+  /* Disabled - no debug output in MIOS32 style */
+  (void)str;
   
 #else
   #error "Invalid MODULE_CLI_OUTPUT setting"
 #endif
 }
 
-void cli_printf(const char* fmt, ...)
+/* MIOS32-style output functions - NO printf! */
+void cli_puts(const char* str)
 {
-  char buffer[256];
-  va_list args;
-
-  va_start(args, fmt);
-  vsnprintf(buffer, sizeof(buffer), fmt, args);
-  va_end(args);
-
-  cli_print(buffer);  // Use cli_print() instead of dbg_print()
+  cli_print(str);
 }
 
-void cli_error(const char* fmt, ...)
+void cli_putc(char c)
 {
-  char buffer[256];
-  va_list args;
-
-  cli_printf("ERROR: ");
-  va_start(args, fmt);
-  vsnprintf(buffer, sizeof(buffer), fmt, args);
-  va_end(args);
-
-  cli_print(buffer);  // Use cli_print() for consistency
+  char buf[2] = { c, '\0' };
+  cli_print(buf);
 }
 
-void cli_success(const char* fmt, ...)
+void cli_print_u32(uint32_t val)
 {
-  char buffer[256];
-  va_list args;
-
-  cli_printf("OK: ");
-  va_start(args, fmt);
-  vsnprintf(buffer, sizeof(buffer), fmt, args);
-  va_end(args);
-
-  cli_print(buffer);  // Use cli_print() for consistency
+  cli_print(cli_u32_to_str(val));
 }
 
-void cli_warning(const char* fmt, ...)
+void cli_print_hex8(uint8_t val)
 {
-  char buffer[256];
-  va_list args;
+  cli_print(cli_u8_to_hex(val));
+}
 
-  cli_printf("WARNING: ");
-  va_start(args, fmt);
-  vsnprintf(buffer, sizeof(buffer), fmt, args);
-  va_end(args);
+void cli_newline(void)
+{
+  cli_print("\r\n");
+}
 
-  cli_print(buffer);  // Use cli_print() for consistency
+/* Legacy compatibility - redirect to fixed string output */
+void cli_error(const char* msg)
+{
+  cli_print("ERROR: ");
+  cli_print(msg);
+  cli_newline();
+}
+
+void cli_success(const char* msg)
+{
+  cli_print("OK: ");
+  cli_print(msg);
+  cli_newline();
+}
+
+void cli_warning(const char* msg)
+{
+  cli_print("WARNING: ");
+  cli_print(msg);
+  cli_newline();
 }
 
 // =============================================================================
 // UTILITIES
 // =============================================================================
+// HELP FUNCTIONS - MIOS32 STYLE (NO printf!)
+// =============================================================================
 
 void cli_print_help(const char* command_name)
 {
   if (command_name) {
-    // Show help for specific command
+    /* Show help for specific command */
     for (uint32_t i = 0; i < s_command_count; i++) {
       if (strcasecmp(s_commands[i].name, command_name) == 0) {
-        cli_printf("\n");
-        cli_printf("Command: %s\n", s_commands[i].name);
-        cli_printf("Category: %s\n", s_commands[i].category);
-        cli_printf("Description: %s\n", s_commands[i].description);
-        cli_printf("Usage: %s\n", s_commands[i].usage);
-        cli_printf("\n");
+        cli_newline();
+        cli_print("Command: "); cli_print(s_commands[i].name); cli_newline();
+        cli_print("Category: "); cli_print(s_commands[i].category); cli_newline();
+        cli_print("Description: "); cli_print(s_commands[i].description); cli_newline();
+        cli_print("Usage: "); cli_print(s_commands[i].usage); cli_newline();
+        cli_newline();
         return;
       }
     }
-    cli_error("Command not found: %s\n", command_name);
+    cli_print("Command not found: "); cli_print(command_name); cli_newline();
   } else {
-    // Show all commands grouped by category
-    cli_printf("\n=== MidiCore CLI Help ===\n\n");
+    /* Show all commands */
+    cli_print("\n=== MidiCore CLI Help ===\n");
     
-    // Group by category
     const char* current_category = NULL;
     for (uint32_t i = 0; i < s_command_count; i++) {
       if (current_category == NULL || strcmp(s_commands[i].category, current_category) != 0) {
         current_category = s_commands[i].category;
-        cli_printf("\n[%s]\n", current_category);
+        cli_print("\n["); cli_print(current_category); cli_print("]\n");
       }
-      cli_printf("  %-20s - %s\n", s_commands[i].name, s_commands[i].description);
+      cli_print("  "); cli_print(s_commands[i].name); 
+      cli_print(" - "); cli_print(s_commands[i].description); cli_newline();
     }
-    cli_printf("\nType 'help <command>' for detailed usage.\n\n");
+    cli_print("\nType 'help <command>' for details.\n");
   }
 }
 
 void cli_print_commands(void)
 {
-  cli_printf("\n=== Registered Commands (%lu) ===\n\n", (unsigned long)s_command_count);
+  cli_print("\n=== Commands (");
+  cli_print_u32(s_command_count);
+  cli_print(") ===\n");
   
   const char* current_category = NULL;
   for (uint32_t i = 0; i < s_command_count; i++) {
     if (current_category == NULL || strcmp(s_commands[i].category, current_category) != 0) {
       current_category = s_commands[i].category;
-      cli_printf("\n[%s]\n", current_category);
+      cli_print("\n["); cli_print(current_category); cli_print("]\n");
     }
-    cli_printf("  %s\n", s_commands[i].name);
+    cli_print("  "); cli_print(s_commands[i].name); cli_newline();
   }
-  cli_printf("\n");
+  cli_newline();
 }
 
 uint32_t cli_get_command_count(void)
@@ -537,43 +558,20 @@ uint32_t cli_get_command_count(void)
 
 void cli_print_banner(void)
 {
-  cli_printf("\n");
-  cli_printf("=====================================\n");
-  cli_printf("   MidiCore CLI v1.0\n");
-  cli_printf("   Firmware Configuration Interface\n");
-  cli_printf("=====================================\n");
-  cli_printf("\n");
-#if MODULE_ENABLE_USB_CDC
-  cli_printf("NOTE: USB CDC may take 2-5 seconds to enumerate.\n");
-  cli_printf("      If you don't see prompt, press ENTER.\n");
-  cli_printf("\n");
-#endif
-  cli_printf("Type 'help' for available commands.\n");
-  cli_printf("\n");
+  cli_print("\n=====================================\n");
+  cli_print("   MidiCore CLI v1.0\n");
+  cli_print("   MIOS32-Style Terminal\n");
+  cli_print("=====================================\n");
+  cli_print("Type 'help' for commands.\n\n");
 }
 
 void cli_print_prompt(void)
 {
-  // Add newline before prompt when CLI shares terminal with debug output
-  // This prevents CLI prompt from overwriting MidiCore query debug messages
-  #if (MODULE_CLI_OUTPUT == CLI_OUTPUT_DEBUG) || \
-      (MODULE_CLI_OUTPUT == CLI_OUTPUT_UART && MODULE_DEBUG_OUTPUT == DEBUG_OUTPUT_UART)
-    // CLI and debug on same terminal - add newline for separation
-    #if MODULE_DEBUG_MIDICORE_QUERIES
-      // MidiCore debug active - ensure clean line for prompt
-      cli_printf("\r\nmidicore> ");
-    #else
-      // No MidiCore debug - normal prompt
-      cli_printf("midicore> ");
-    #endif
-  #else
-    // CLI on separate terminal from debug - normal prompt
-    cli_printf("midicore> ");
-  #endif
+  cli_print("midicore> ");
 }
 
 // =============================================================================
-// BUILT-IN COMMANDS
+// BUILT-IN COMMANDS - MIOS32 STYLE (NO printf!)
 // =============================================================================
 
 static cli_result_t cmd_help(int argc, char* argv[])
@@ -599,8 +597,8 @@ static cli_result_t cmd_clear(int argc, char* argv[])
   (void)argc;
   (void)argv;
   
-  // ANSI escape sequence to clear screen
-  cli_printf("\033[2J\033[H");
+  /* ANSI escape sequence to clear screen */
+  cli_print("\033[2J\033[H");
   cli_print_banner();
   return CLI_OK;
 }
@@ -610,12 +608,9 @@ static cli_result_t cmd_version(int argc, char* argv[])
   (void)argc;
   (void)argv;
   
-  cli_printf("\n");
-  cli_printf("MidiCore Firmware\n");
-  cli_printf("  Version: 1.0.0\n");
-  cli_printf("  Build: %s %s\n", __DATE__, __TIME__);
-  cli_printf("  Target: STM32F407VGT6\n");
-  cli_printf("\n");
+  cli_print("\nMidiCore Firmware\n");
+  cli_print("  Version: 1.0.0\n");
+  cli_print("  Target: STM32F407VGT6\n\n");
   return CLI_OK;
 }
 
@@ -630,12 +625,10 @@ static cli_result_t cmd_uptime(int argc, char* argv[])
   uint32_t minutes = seconds / 60;
   uint32_t hours = minutes / 60;
   
-  cli_printf("\n");
-  cli_printf("System Uptime: %lu:%02lu:%02lu\n", 
-             (unsigned long)hours, 
-             (unsigned long)(minutes % 60), 
-             (unsigned long)(seconds % 60));
-  cli_printf("\n");
+  cli_print("\nUptime: ");
+  cli_print_u32(hours); cli_print(":");
+  cli_print_u32(minutes % 60); cli_print(":");
+  cli_print_u32(seconds % 60); cli_newline();
   return CLI_OK;
 }
 
@@ -644,10 +637,9 @@ static cli_result_t cmd_status(int argc, char* argv[])
   (void)argc;
   (void)argv;
   
-  cli_printf("\n");
-  cli_printf("=== System Status ===\n");
-  cli_printf("  Commands registered: %lu\n", (unsigned long)s_command_count);
-  cli_printf("\n");
+  cli_print("\n=== Status ===\n");
+  cli_print("  Commands: "); cli_print_u32(s_command_count); cli_newline();
+  cli_newline();
   return CLI_OK;
 }
 
@@ -656,13 +648,13 @@ static cli_result_t cmd_reboot(int argc, char* argv[])
   (void)argc;
   (void)argv;
   
-  cli_printf("\nRebooting system...\n");
+  cli_print("\nRebooting...\n");
   
-  // Delay to allow UART to flush
+  /* Delay to allow output to flush */
   extern void HAL_Delay(uint32_t Delay);
   HAL_Delay(100);
   
-  // Perform system reset
+  /* System reset */
   extern void NVIC_SystemReset(void);
   NVIC_SystemReset();
   
