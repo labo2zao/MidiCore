@@ -1,6 +1,11 @@
 /**
  * @file midicore_query.c
  * @brief MidiCore Device Query Protocol Implementation
+ * 
+ * MIOS32 PRINCIPLES:
+ * - NO printf / snprintf / vsnprintf (causes stack overflow!)
+ * - Fixed string outputs only via cli_puts/cli_print_u32
+ * - Minimal stack usage
  */
 
 #include "Services/midicore_query/midicore_query.h"
@@ -15,6 +20,8 @@
 #endif
 
 #include <string.h>
+
+/* NO stdio.h - we don't use printf! */
 
 // Default device information
 #ifndef MIDICORE_DEVICE_NAME
@@ -92,14 +99,8 @@ bool midicore_query_process(const uint8_t* data, uint32_t len, uint8_t cable) {
   // Check which protocol this message belongs to (data[4] = device ID)
   uint8_t protocol_id = data[4];
   
-#if defined(MODULE_TEST_USB_DEVICE_MIDI) || MODULE_DEBUG_MIDICORE_QUERIES
-  // Debug: Show MidiCore query reception
-  extern void dbg_print(const char *str);
-  char buf[80];
-  snprintf(buf, sizeof(buf), "[MIDICORE-Q] Received protocol:0x%02X len:%lu cable:%u\r\n",
-           protocol_id, (unsigned long)len, (unsigned int)cable);
-  dbg_print(buf);
-#endif
+  /* MIOS32-STYLE: No debug output here - visible in debugger via breakpoint */
+  (void)protocol_id; /* Used in conditionals below */
   
   // ============================================================
   // MIOS32 BOOTLOADER PROTOCOL (0x40)
@@ -116,13 +117,8 @@ bool midicore_query_process(const uint8_t* data, uint32_t len, uint8_t cable) {
   //   etc.
   // ============================================================
   if (protocol_id == 0x40) {
-#if defined(MODULE_TEST_USB_DEVICE_MIDI) || MODULE_DEBUG_MIDICORE_QUERIES
-    snprintf(buf, sizeof(buf), "[MIDICORE-Q] MIOS32 bootloader cmd:0x%02X - ignored (no bootloader)\r\n",
-             (len > 6) ? data[6] : 0xFF);
-    dbg_print(buf);
-#endif
-    // Do NOT respond - we don't have MIOS32 bootloader
-    // Just acknowledge receipt to prevent routing
+    /* MIOS32 bootloader command - ignore but accept to prevent routing */
+    /* Visible in debugger via breakpoint */
     return true;
   }
   
@@ -142,12 +138,8 @@ bool midicore_query_process(const uint8_t* data, uint32_t len, uint8_t cable) {
   uint8_t command = data[6];
   uint8_t query_type = (len > 7) ? data[7] : 0x01; // Default to 0x01 if not specified
   
-#if defined(MODULE_TEST_USB_DEVICE_MIDI) || MODULE_DEBUG_MIDICORE_QUERIES
-  // Debug: Show query details
-  snprintf(buf, sizeof(buf), "[MIDICORE-Q] MidiCore dev_id:%02X cmd:%02X type:%02X\r\n",
-           device_id, command, query_type);
-  dbg_print(buf);
-#endif
+  /* MIOS32-STYLE: No debug output - device_id/command/query_type visible in debugger */
+  (void)device_id; /* Suppress unused warning when debugger not attached */
   
   // Command 0x00: Device Info Request (MIOS Studio uses data[7]=query_type)
   // Command 0x01: Device Info Request (alternate form)
@@ -176,10 +168,7 @@ bool midicore_query_process(const uint8_t* data, uint32_t len, uint8_t cable) {
         }
         cmd_buf[text_len] = '\0';
         
-#if defined(MODULE_TEST_USB_DEVICE_MIDI) || MODULE_DEBUG_MIDICORE_QUERIES
-        snprintf(buf, sizeof(buf), "[MIOS-TERM] Command: %s\r\n", cmd_buf);
-        dbg_print(buf);
-#endif
+        /* MIOS32-STYLE: No debug output - command visible in debugger via cmd_buf */
         
         // Feed command to CLI system
         // The CLI will process it and send response back via midicore_debug_send_message()
@@ -197,11 +186,8 @@ bool midicore_query_process(const uint8_t* data, uint32_t len, uint8_t cable) {
     return true;  // Acknowledged, nothing to do
   }
   
-#if defined(MODULE_TEST_USB_DEVICE_MIDI) || MODULE_DEBUG_MIDICORE_QUERIES
-  // Debug: Unknown command
-  snprintf(buf, sizeof(buf), "[MIDICORE-Q] Unknown command 0x%02X ignored\r\n", command);
-  dbg_print(buf);
-#endif
+  /* MIOS32-STYLE: No debug output - command visible in debugger */
+  (void)command; /* Suppress unused warning */
   
   // Unknown command - ignore but return true to prevent routing
   return true;
@@ -213,12 +199,7 @@ void midicore_query_send_response(uint8_t query_type, uint8_t device_id, uint8_t
   uint32_t ipsr = __get_IPSR();
   if (ipsr != 0) {
     // In ISR context - cannot send USB MIDI response
-    // Would cause USB reentrancy and crash
-    // TODO: Queue response for task context
-#if defined(MODULE_TEST_USB_DEVICE_MIDI) || MODULE_DEBUG_MIDICORE_QUERIES
-    extern void dbg_print(const char *str);
-    dbg_print("[MIDICORE-R] ERROR: Query response from ISR - skipped!\r\n");
-#endif
+    // MIOS32-STYLE: No debug output - set breakpoint here to debug
     return;
   }
   
@@ -260,14 +241,7 @@ void midicore_query_send_response(uint8_t query_type, uint8_t device_id, uint8_t
       break;
   }
   
-#if defined(MODULE_TEST_USB_DEVICE_MIDI) || MODULE_DEBUG_MIDICORE_QUERIES
-  // Debug: Show response being sent
-  extern void dbg_print(const char *str);
-  char buf[100];
-  snprintf(buf, sizeof(buf), "[MIDICORE-R] Sending type:%02X \"%s\" cable:%u\r\n",
-           query_type, response_str, (unsigned int)cable);
-  dbg_print(buf);
-#endif
+  /* MIOS32-STYLE: No debug output - response_str visible in debugger */
   
   // Build response: F0 00 00 7E 32 <device_id> 0x0F <string> F7
   // Following actual MidiCore implementation (mios32/common/mios32_midi.c)
@@ -283,13 +257,7 @@ void midicore_query_send_response(uint8_t query_type, uint8_t device_id, uint8_t
   // Buffer overflow here can crash MIOS Studio or corrupt firmware memory!
   size_t str_len = strlen(response_str);
   if (str_len > MAX_RESPONSE_STRING) {
-#if defined(MODULE_TEST_USB_DEVICE_MIDI) || MODULE_DEBUG_MIDICORE_QUERIES
-    extern void dbg_print(const char *str);
-    char warn_buf[80];
-    snprintf(warn_buf, sizeof(warn_buf), "[MIDICORE-R] WARNING: Response truncated! len=%u max=%u\r\n",
-             (unsigned int)str_len, (unsigned int)MAX_RESPONSE_STRING);
-    dbg_print(warn_buf);
-#endif
+    /* MIOS32-STYLE: No debug output - truncation visible in debugger */
     str_len = MAX_RESPONSE_STRING;  // Truncate to safe length
   }
   
@@ -313,15 +281,8 @@ void midicore_query_send_response(uint8_t query_type, uint8_t device_id, uint8_t
     }
   }
   
-#if defined(MODULE_TEST_USB_DEVICE_MIDI) || MODULE_DEBUG_MIDICORE_QUERIES
-  snprintf(buf, sizeof(buf), "[MIDICORE-R] Sent %lu bytes (success=%d)\r\n",
-           (unsigned long)(p - sysex_response_buffer), sent);
-  dbg_print(buf);
-  
-  if (!sent) {
-    dbg_print("[MIDICORE-R] ERROR: Failed to send query response! TX queue full.\r\n");
-  }
-#endif
+  /* MIOS32-STYLE: No debug output - sent status visible in debugger */
+  (void)sent; /* Suppress unused warning when debugger not attached */
 #else
   (void)cable;  // Suppress unused parameter warning
 #endif
