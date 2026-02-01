@@ -547,7 +547,7 @@ extern "C" {
  * printf uses 500+ bytes of stack, causing corruption.
  * Only enable for debugging when NOT using USB MIDI! */
 #ifndef MODULE_DEBUG_MIDICORE_QUERIES
-#define MODULE_DEBUG_MIDICORE_QUERIES 0
+#define MODULE_DEBUG_MIDICORE_QUERIES 1
 #endif
 
 /** @brief Enable Module Registry (required for CLI module control) */
