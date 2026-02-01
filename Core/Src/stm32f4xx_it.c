@@ -88,22 +88,22 @@ void NMI_Handler(void)
   /* USER CODE END NonMaskableInt_IRQn 1 */
 }
 
+/* === GLOBAL HARDFAULT DIAGNOSTICS - Must be global for debugger visibility! === */
+volatile uint32_t g_fault_pc = 0;         /* Faulting instruction address */
+volatile uint32_t g_fault_lr = 0;         /* Link register (caller) */
+volatile uint32_t g_fault_sp = 0;         /* Stack pointer at fault */
+volatile uint32_t g_fault_cfsr = 0;       /* Configurable Fault Status Reg */
+volatile uint32_t g_fault_hfsr = 0;       /* Hard Fault Status Reg */
+volatile uint32_t g_fault_mmfar = 0;      /* MemManage Fault Address */
+volatile uint32_t g_fault_bfar = 0;       /* Bus Fault Address */
+volatile uint32_t g_fault_exc_return = 0; /* Exception return value */
+
 /**
   * @brief This function handles Hard fault interrupt.
   */
 void HardFault_Handler(void)
 {
   /* USER CODE BEGIN HardFault_IRQn 0 */
-  
-  /* === HARDFAULT DIAGNOSTIC - Check these in debugger! === */
-  volatile uint32_t g_fault_pc = 0;      /* Faulting instruction address */
-  volatile uint32_t g_fault_lr = 0;      /* Link register (caller) */
-  volatile uint32_t g_fault_sp = 0;      /* Stack pointer at fault */
-  volatile uint32_t g_fault_cfsr = 0;    /* Configurable Fault Status Reg */
-  volatile uint32_t g_fault_hfsr = 0;    /* Hard Fault Status Reg */
-  volatile uint32_t g_fault_mmfar = 0;   /* MemManage Fault Address */
-  volatile uint32_t g_fault_bfar = 0;    /* Bus Fault Address */
-  volatile uint32_t g_fault_exc_return = 0; /* Exception return value */
   
   /* Get the exception return value from LR to determine which stack was used */
   __asm volatile ("MOV %0, LR" : "=r" (g_fault_exc_return));
