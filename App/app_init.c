@@ -148,40 +148,19 @@ void app_init_and_start(void)
   // after they were already created by spibus_begin(), causing NULL pointer access crashes!
   // See: docs/ROOT_CAUSE_DOUBLE_SPIBUS_INIT.md
   
-  // Initialize debug output system FIRST (before any dbg_printf calls!)
-  // This is CRITICAL - without this, all dbg_printf() calls produce no output!
-  // For UART mode: reconfigures from 31250 (MIDI) to 115200 (debug) baud
-  // For SWV mode: initializes ITM
-  // For USB CDC mode: prints startup banner
-  test_debug_init();
+  /* ========================================================================
+   * MIOS32-STYLE INITIALIZATION
+   * 
+   * NO printf/dbg_printf during init - causes stack overflow!
+   * Debug info available via:
+   *   - MIOS Studio terminal (MIOS query SysEx)
+   *   - Debugger variables
+   * ======================================================================== */
   
-  // Print early heap diagnostics to help identify allocation issues
-  // This helps diagnose if tasks fail to create due to heap exhaustion
-  {
-    size_t heap_total = configTOTAL_HEAP_SIZE;
-    size_t free_heap = xPortGetFreeHeapSize();
-    size_t min_ever = xPortGetMinimumEverFreeHeapSize();
-    dbg_printf("\r\n");
-    dbg_printf("========================================\r\n");
-    dbg_printf("   EARLY HEAP DIAGNOSTICS\r\n");
-    dbg_printf("   Function: app_init_and_start()\r\n");
-    dbg_printf("========================================\r\n");
-    dbg_printf("Heap total:       %lu bytes (%luKB)\r\n", 
-               (unsigned long)heap_total, (unsigned long)(heap_total/1024));
-    dbg_printf("Heap free now:    %lu bytes\r\n", (unsigned long)free_heap);
-    dbg_printf("Heap min ever:    %lu bytes\r\n", (unsigned long)min_ever);
-    dbg_printf("Heap used:        %lu bytes\r\n", (unsigned long)(heap_total - free_heap));
-    dbg_printf("========================================\r\n");
-    dbg_printf("\r\n");
-  }
+  /* Heap diagnostics available in debugger via these globals: */
+  /* (defined in freertos_hooks.c or here as needed) */
   
-  // Allow UART TX buffer to drain after early heap diagnostics
-  osDelay(50);
-  
-  // Init shared services
-#if MODULE_ENABLE_SPI_BUS
-  dbg_printf("[INIT] SPI bus already initialized in main.c\r\n");
-#endif
+  /* Init shared services - NO logging! */
 
 #if MODULE_ENABLE_AINSER64
   hal_ainser64_init();
@@ -330,43 +309,22 @@ void app_init_and_start(void)
 
 #if MODULE_ENABLE_LOG
   log_init();
-#if MODULE_ENABLE_BOOT_REASON
-  dbg_printf("BOOT: reason=%d\r\n", (int)boot_reason_get());
-#endif
+  /* Boot reason available via CLI 'status' command */
 #endif
 
-  dbg_printf("[INIT] System initialization complete\r\n");
+  /* System initialization complete - no logging needed! */
 
-  // Initialize CLI and module registry for terminal control
+  /* Initialize CLI and module registry for terminal control */
 #if MODULE_ENABLE_MODULE_REGISTRY
-  dbg_printf("[INIT] Initializing module registry...\r\n");
   module_registry_init();
 #endif
 
 #if MODULE_ENABLE_CLI
-  dbg_printf("[INIT] CLI step 1: calling cli_init...\r\n");
   cli_init();
-  dbg_printf("[INIT] CLI step 2: cli_init returned OK\r\n");
-  dbg_printf("[INIT] CLI step 3: calling cli_module_commands_init...\r\n");
-  int cli_cmd_result = cli_module_commands_init();
-  dbg_printf("[INIT] CLI step 4: cli_module_commands_init returned %d\r\n", cli_cmd_result);
-  dbg_printf("[INIT] CLI step 5: CLI system ready\r\n");
-
-  // Allow UART TX buffer to drain after CLI initialization messages
-  osDelay(100);
-
-  // Initialize MidiCore terminal hooks for thread-safe I/O
-  dbg_printf("[INIT] CLI step 6: Initializing MidiCore terminal hooks...\r\n");
-  if (midicore_hooks_init()) {
-    dbg_printf("[INIT] CLI step 7: MidiCore hooks initialized successfully\r\n");
-  } else {
-    dbg_printf("[INIT] CLI step 7: ERROR - MidiCore hooks initialization failed!\r\n");
-  }
+  (void)cli_module_commands_init();
   
-  // Allow UART TX buffer to drain before stack monitor init
-  osDelay(50);
-#else
-  dbg_printf("[INIT] MODULE_ENABLE_CLI is NOT defined - CLI will not be available\r\n");
+  /* Initialize MidiCore terminal hooks for thread-safe I/O */
+  (void)midicore_hooks_init();
 #endif
 
 #if MODULE_ENABLE_TEST
@@ -375,18 +333,10 @@ void app_init_and_start(void)
 #endif
 
 #if MODULE_ENABLE_STACK_MONITOR
-  dbg_printf("[INIT] Initializing stack monitor...\r\n");
   stack_monitor_init();
-  // Print heap status after stack monitor init
-  {
-    size_t heap_total = configTOTAL_HEAP_SIZE;
-    size_t free_heap = xPortGetFreeHeapSize();
-    dbg_printf("[HEAP] stack_monitor_init() complete - Free: %lu / %lu bytes (%lu KB total)\r\n", 
-               (unsigned long)free_heap, (unsigned long)heap_total, (unsigned long)(heap_total/1024));
-  }
 #endif
 
-  // Default routing examples
+  /* Default routing examples */
 #if MODULE_ENABLE_ROUTER && MODULE_ENABLE_MIDI_DIN
   router_set_route(ROUTER_NODE_DIN_IN1, ROUTER_NODE_DIN_OUT1, 1);
   router_set_route(ROUTER_NODE_DIN_IN2, ROUTER_NODE_DIN_OUT1, 1);
@@ -395,85 +345,31 @@ void app_init_and_start(void)
 #endif
 
 #if MODULE_ENABLE_ROUTER && MODULE_ENABLE_LOOPER && MODULE_ENABLE_MIDI_DIN
-  // Default: Looper playback -> DIN OUT1
+  /* Default: Looper playback -> DIN OUT1 */
   router_set_route(ROUTER_NODE_LOOPER, ROUTER_NODE_DIN_OUT1, 1);
 #endif
 
-  // =========================================================================
-  // TASK CREATION - Cooperative Architecture (Single Main Task)
-  // =========================================================================
-  // MidiCore uses a cooperative service-based design:
-  // - Single MidiCore_MainTask handles all services cooperatively
-  // - Deterministic 1ms tick, minimal stack usage
-  // - Logic lives in service tick functions, not tasks
-  // =========================================================================
-
-  dbg_printf("\r\n");
-  dbg_printf("================================================\r\n");
-  dbg_printf("  MidiCore Cooperative Architecture\r\n");
-  dbg_printf("  Single main task model\r\n");
-  dbg_printf("================================================\r\n");
+  /* =========================================================================
+   * TASK CREATION - Cooperative Architecture (Single Main Task)
+   * =========================================================================
+   * MidiCore uses a cooperative service-based design:
+   * - Single MidiCore_MainTask handles all services cooperatively
+   * - Deterministic 1ms tick, minimal stack usage
+   * - Logic lives in service tick functions, not tasks
+   * ========================================================================= */
   
-  // Calibration task runs once at startup and exits
-  {
-    size_t free_before = xPortGetFreeHeapSize();
-    dbg_printf("[HEAP] Before calibration task: %lu bytes free\r\n", (unsigned long)free_before);
-  }
+  /* Calibration task runs once at startup and exits */
   app_start_calibration_task();
-  {
-    size_t free_after = xPortGetFreeHeapSize();
-    dbg_printf("[HEAP] After calibration task: %lu bytes free\r\n", (unsigned long)free_after);
-  }
   
-  // Start the single MidiCore main task
-  {
-    size_t free_before = xPortGetFreeHeapSize();
-    dbg_printf("[HEAP] Before MidiCore_MainTask: %lu bytes free\r\n", (unsigned long)free_before);
-  }
+  /* Start the single MidiCore main task */
+  (void)midicore_main_task_start();
   
-  int main_task_result = midicore_main_task_start();
-  if (main_task_result != 0) {
-    dbg_printf("[ERROR] Failed to create MidiCore_MainTask!\r\n");
-    dbg_printf("[ERROR] Heap exhausted? Check heap size in FreeRTOSConfig.h\r\n");
-  }
-  
-  {
-    size_t free_after = xPortGetFreeHeapSize();
-    dbg_printf("[HEAP] After MidiCore_MainTask: %lu bytes free\r\n", (unsigned long)free_after);
-  }
-  
-  // Optional debug stream - still allowed as separate task (rare)
+  /* Optional debug stream - still allowed as separate task (rare) */
 #if MODULE_ENABLE_AIN_RAW_DEBUG
   ain_raw_debug_task_create();
 #endif
 
-  // Print final heap summary with percentages
-  {
-    size_t heap_total = configTOTAL_HEAP_SIZE;
-    size_t free_now = xPortGetFreeHeapSize();
-    size_t min_ever = xPortGetMinimumEverFreeHeapSize();
-    size_t used = heap_total - free_now;
-    uint32_t used_percent = (uint32_t)((used * 100) / heap_total);
-    uint32_t peak_used_percent = (uint32_t)(((heap_total - min_ever) * 100) / heap_total);
-    
-    dbg_printf("\r\n");
-    dbg_printf("========================================\r\n");
-    dbg_printf("   FINAL HEAP STATUS\r\n");
-    dbg_printf("   Function: app_init_and_start()\r\n");
-    dbg_printf("========================================\r\n");
-    dbg_printf("Heap total:       %lu bytes (%luKB)\r\n", 
-               (unsigned long)heap_total, (unsigned long)(heap_total/1024));
-    dbg_printf("Heap free now:    %lu bytes\r\n", (unsigned long)free_now);
-    dbg_printf("Heap min ever:    %lu bytes\r\n", (unsigned long)min_ever);
-    dbg_printf("Heap used:        %lu bytes (%lu%%)\r\n", 
-               (unsigned long)used, (unsigned long)used_percent);
-    dbg_printf("Lowest free:      %lu bytes (%lu%% used at peak)\r\n",
-               (unsigned long)min_ever, (unsigned long)peak_used_percent);
-    dbg_printf("========================================\r\n");
-    dbg_printf("\r\n");
-  }
-  
-  dbg_printf("[INIT] app_init_and_start() complete - returning to scheduler\r\n");
+  /* Heap stats available via CLI 'heap' command or debugger */
 }
 
 /* ============================================================================
