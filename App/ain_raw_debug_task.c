@@ -83,7 +83,7 @@ void ain_raw_debug_task_create(void) {
   const osThreadAttr_t attr = {
     .name = "AinRawDbg",
     .priority = (osPriority_t)osPriorityLow,
-    .stack_size = 512,
+    .stack_size = 1024,  /* Increased from 512: uses snprintf/vsnprintf (500+ bytes stack) */
   };
   s_task = osThreadNew(AinRawDebugTask, NULL, &attr);
 }
