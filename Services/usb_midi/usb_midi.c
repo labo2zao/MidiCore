@@ -521,7 +521,8 @@ void usb_midi_process_rx_queue(void) {
               midicore_query_queue(buf->buffer, buf->pos, cable);
               // Don't route query messages - they'll be processed from queue
             } else {
-              #ifndef APP_TEST_USB_MIDI
+              /* Route non-MidiCore SysEx through the MIDI router */
+              /* This enables MIDI thru for external SysEx (synth patches, etc.) */
               router_msg_t msg;
               msg.type = ROUTER_MSG_SYSEX;
               msg.data = buf->buffer;
@@ -530,7 +531,6 @@ void usb_midi_process_rx_queue(void) {
               msg.b1 = 0;
               msg.b2 = 0;
               router_process(node, &msg);
-              #endif
             }
           }
         }
@@ -563,7 +563,8 @@ void usb_midi_process_rx_queue(void) {
               midicore_query_queue(buf->buffer, buf->pos, cable);
               // Don't route query messages - they'll be processed from queue
             } else {
-              #ifndef APP_TEST_USB_MIDI
+              /* Route non-MidiCore SysEx through the MIDI router */
+              /* This enables MIDI thru for external SysEx (synth patches, etc.) */
               router_msg_t msg;
               msg.type = ROUTER_MSG_SYSEX;
               msg.data = buf->buffer;
@@ -572,7 +573,6 @@ void usb_midi_process_rx_queue(void) {
               msg.b1 = 0;
               msg.b2 = 0;
               router_process(node, &msg);
-              #endif
             }
           }
         }
