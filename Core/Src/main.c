@@ -991,13 +991,14 @@ void StartDefaultTask(void *argument)
   
   // PRODUCTION MODE: Run full application
   // Project entrypoint (kept in App/ to survive CubeMX regen)
-  dbg_printf("[DEFAULT_TASK] Calling app_entry_start()...\r\n");
+  /* MIOS32-STYLE: No dbg_printf - use fixed strings only */
+  dbg_print("[DEFAULT_TASK] Calling app_entry_start()...\r\n");
   app_entry_start();
 
   // CRITICAL: This line should NEVER be reached!
   // app_entry_start() has an infinite loop and should never return
-  dbg_printf("[DEFAULT_TASK] FATAL: app_entry_start() returned! This is impossible!\r\n");
-  dbg_printf("[DEFAULT_TASK] Entering fallback infinite loop\r\n");
+  dbg_print("[DEFAULT_TASK] FATAL: app_entry_start() returned! This is impossible!\r\n");
+  dbg_print("[DEFAULT_TASK] Entering fallback infinite loop\r\n");
 
   /* Infinite loop */
   uint32_t loop_count = 0;
@@ -1006,8 +1007,10 @@ void StartDefaultTask(void *argument)
     osDelay(1);
     loop_count++;
     if (loop_count % 10000 == 0) {
-      dbg_printf("[DEFAULT_TASK] FATAL: Still in fallback loop! Count: %lu\r\n", 
-                 (unsigned long)loop_count);
+      /* MIOS32-STYLE: No dbg_printf - use fixed strings + dbg_print_u32 */
+      dbg_print("[DEFAULT_TASK] FATAL: Still in fallback loop! Count: ");
+      dbg_print_u32(loop_count);
+      dbg_print("\r\n");
     }
   }
   
@@ -1015,9 +1018,9 @@ void StartDefaultTask(void *argument)
   // SHOULD NEVER REACH HERE!
   // If we do, something catastrophic happened (stack overflow, heap corruption, hard fault)
 #if defined(MODULE_DEBUG_OUTPUT) && MODULE_DEBUG_OUTPUT == DEBUG_OUTPUT_UART
-  dbg_printf("[FATAL] DefaultTask infinite loop exited!\r\n");
-  dbg_printf("[FATAL] This should be impossible - check stack/heap!\r\n");
-  dbg_printf("[FATAL] DefaultTask stack: 2KB allocated\r\n");
+  dbg_print("[FATAL] DefaultTask infinite loop exited!\r\n");
+  dbg_print("[FATAL] This should be impossible - check stack/heap!\r\n");
+  dbg_print("[FATAL] DefaultTask stack: 2KB allocated\r\n");
 #endif
   
   // Halt system for debugging

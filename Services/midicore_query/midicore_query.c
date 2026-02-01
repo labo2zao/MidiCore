@@ -53,6 +53,13 @@ static midicore_query_queue_entry_t query_queue[MIDICORE_QUERY_QUEUE_SIZE];
 static volatile uint8_t query_queue_write = 0;
 static volatile uint8_t query_queue_read = 0;
 
+/* MIOS32-STYLE: Diagnostic counters visible in debugger (no printf!) */
+volatile uint32_t g_midicore_queries_received = 0;
+volatile uint32_t g_midicore_queries_queued = 0;
+volatile uint32_t g_midicore_queries_processed = 0;
+volatile uint32_t g_midicore_responses_sent = 0;
+volatile uint32_t g_midicore_terminal_commands = 0;
+
 bool midicore_query_is_query_message(const uint8_t* data, uint32_t len) {
   // Minimum query: F0 00 00 7E <dev_id> <target> <cmd> F7 = 8 bytes
   if (data == NULL || len < 8) {
@@ -95,6 +102,9 @@ bool midicore_query_process(const uint8_t* data, uint32_t len, uint8_t cable) {
   if (!midicore_query_is_query_message(data, len)) {
     return false;
   }
+  
+  /* Increment received counter - visible in debugger */
+  g_midicore_queries_received++;
   
   // Check which protocol this message belongs to (data[4] = device ID)
   uint8_t protocol_id = data[4];
@@ -146,6 +156,7 @@ bool midicore_query_process(const uint8_t* data, uint32_t len, uint8_t cable) {
   if (command == 0x01 || (command == 0x00 && len >= 8)) {
     // Respond based on query type, on the same cable the query came from
     midicore_query_send_response(query_type, device_id, cable);
+    g_midicore_responses_sent++;
     return true;
   }
   
@@ -168,7 +179,8 @@ bool midicore_query_process(const uint8_t* data, uint32_t len, uint8_t cable) {
         }
         cmd_buf[text_len] = '\0';
         
-        /* MIOS32-STYLE: No debug output - command visible in debugger via cmd_buf */
+        /* Increment terminal command counter */
+        g_midicore_terminal_commands++;
         
         // Feed command to CLI system
         // The CLI will process it and send response back via midicore_debug_send_message()
@@ -372,6 +384,9 @@ bool midicore_query_queue(const uint8_t* data, uint32_t len, uint8_t cable) {
   // Increment write pointer (atomic on Cortex-M)
   query_queue_write++;
   
+  /* Increment queued counter */
+  g_midicore_queries_queued++;
+  
   return true;
 }
 
@@ -381,6 +396,9 @@ void midicore_query_process_queued(void) {
     uint8_t idx = query_queue_read % MIDICORE_QUERY_QUEUE_SIZE;
     
     if (query_queue[idx].valid) {
+      /* Increment processed counter */
+      g_midicore_queries_processed++;
+      
       // Process query and send response (now safe - we're in task context)
       midicore_query_process(query_queue[idx].data,
                           query_queue[idx].len,
@@ -391,4 +409,15 @@ void midicore_query_process_queued(void) {
     // Increment read pointer
     query_queue_read++;
   }
+}
+
+void midicore_query_get_stats(uint32_t* received, uint32_t* queued, 
+                              uint32_t* processed, uint32_t* responses,
+                              uint32_t* terminal)
+{
+  if (received) *received = g_midicore_queries_received;
+  if (queued) *queued = g_midicore_queries_queued;
+  if (processed) *processed = g_midicore_queries_processed;
+  if (responses) *responses = g_midicore_responses_sent;
+  if (terminal) *terminal = g_midicore_terminal_commands;
 }

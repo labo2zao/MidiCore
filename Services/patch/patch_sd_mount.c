@@ -41,7 +41,10 @@ int patch_sd_mount_init(void) {
   FRESULT fr = f_mount(&g_fs, "0:", 1);
   
   if (fr != FR_OK) {
-    dbg_printf("SD: f_mount failed: %s\r\n", get_fresult_str(fr));
+    /* MIOS32-STYLE: Fixed strings only */
+    dbg_print("SD: f_mount failed: ");
+    dbg_print(get_fresult_str(fr));
+    dbg_print("\r\n");
     return -1;
   }
   
@@ -53,6 +56,9 @@ int patch_sd_mount_retry(uint8_t attempts) {
   for (uint8_t i=0;i<attempts;i++) {
     if (patch_sd_mount_init() == 0) return 0;
   }
-  dbg_printf("SD: mount fail after %d attempts\r\n", attempts); 
+  /* MIOS32-STYLE: Fixed strings + dbg_print_u32 */
+  dbg_print("SD: mount fail after ");
+  dbg_print_u32(attempts);
+  dbg_print(" attempts\r\n"); 
   return -1;
 }

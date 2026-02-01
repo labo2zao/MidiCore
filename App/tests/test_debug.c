@@ -16,7 +16,7 @@
 #include <stdbool.h>
 
 /* NO stdio.h - we don't use printf/vsnprintf! */
-/* NO stdarg.h - dbg_printf is disabled! */
+/* NO stdarg.h - no variadic functions! */
 
 #if MODULE_ENABLE_OLED
 #include "Hal/oled_ssd1322/oled_ssd1322.h"  // For oled_init_newhaven()
@@ -408,7 +408,7 @@ void dbg_println(void)
 // MIOS32 style: Use fixed strings only.
 // For numbers, use dbg_print_u32(), dbg_print_hex8(), etc.
 //
-/* dbg_printf fully removed: use dbg_print + dbg_print_u32/hex instead */
+// dbg_printf REMOVED - use dbg_print + dbg_print_u32/hex instead
 
 // =============================================================================
 // HEXADECIMAL OUTPUT

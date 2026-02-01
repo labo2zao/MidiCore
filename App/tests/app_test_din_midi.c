@@ -113,7 +113,9 @@ void app_test_din_midi_run_forever(void)
   UART_HandleTypeDef* debug_uart = &huart5;  // UART5 is debug port
   if (debug_uart->Init.BaudRate != 115200) {
     dbg_print("WARNING: Debug UART baudrate changed from 115200!\r\n");
-    dbg_printf("Current baudrate: %lu\r\n", (unsigned long)debug_uart->Init.BaudRate);
+    dbg_print("Current baudrate: ");
+    dbg_print_u32(debug_uart->Init.BaudRate);
+    dbg_print("\r\n");
     dbg_print("Reconfiguring to 115200...\r\n");
     HAL_UART_DeInit(debug_uart);
     debug_uart->Init.BaudRate = 115200;

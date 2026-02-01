@@ -1,6 +1,10 @@
 /**
  * @file test_midi_din_livefx_automated.c
  * @brief Automated test suite implementation for MODULE_TEST_MIDI_DIN
+ * 
+ * MIOS32 PRINCIPLES:
+ * - NO printf / snprintf / vsnprintf (causes stack overflow!)
+ * - Fixed string outputs only
  */
 
 #include "App/tests/test_midi_din_livefx_automated.h"
@@ -15,16 +19,24 @@
 
 #include <string.h>
 
-// Test helper macros
+/* MIOS32-STYLE: No printf - use fixed strings + dbg_print_u32 */
+
+// Test helper macros - MIOS32 style (no printf)
 #define TEST_ASSERT(cond, msg) do { \
   if (!(cond)) { \
-    dbg_printf("[FAIL] %s: %s\r\n", __FUNCTION__, msg); \
+    dbg_print("[FAIL] "); \
+    dbg_print(__FUNCTION__); \
+    dbg_print(": "); \
+    dbg_print(msg); \
+    dbg_print("\r\n"); \
     return -1; \
   } \
 } while(0)
 
 #define TEST_PASS() do { \
-  dbg_printf("[PASS] %s\r\n", __FUNCTION__); \
+  dbg_print("[PASS] "); \
+  dbg_print(__FUNCTION__); \
+  dbg_print("\r\n"); \
   return 0; \
 } while(0)
 
@@ -341,12 +353,18 @@ test_result_t test_midi_din_livefx_run_all(void) {
   test_performance_latency();
   result.tests_passed++;
   
-  // Print summary
+  // Print summary - MIOS32 style (no printf)
   dbg_print("\r\n");
   dbg_print("══════════════════════════════════════════════════════════════\r\n");
-  dbg_printf("Test Summary: %lu run, %lu passed, %lu failed, %lu skipped\r\n",
-             result.tests_run, result.tests_passed, 
-             result.tests_failed, result.tests_skipped);
+  dbg_print("Test Summary: ");
+  dbg_print_u32(result.tests_run);
+  dbg_print(" run, ");
+  dbg_print_u32(result.tests_passed);
+  dbg_print(" passed, ");
+  dbg_print_u32(result.tests_failed);
+  dbg_print(" failed, ");
+  dbg_print_u32(result.tests_skipped);
+  dbg_print(" skipped\r\n");
   dbg_print("══════════════════════════════════════════════════════════════\r\n");
   dbg_print("\r\n");
   

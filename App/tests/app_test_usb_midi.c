@@ -219,12 +219,24 @@ void app_test_usb_midi_run_forever(void)
   // Print test header
   dbg_print_test_header("USB MIDI Device Test");
   dbg_print("USB Device MIDI: Enabled\r\n");
-  dbg_printf("Debug UART: UART%d (%d baud)\r\n", 
-             TEST_DEBUG_UART_PORT + 1, TEST_DEBUG_UART_BAUD);
-  dbg_printf("Test send interval: %d ms\r\n", APP_TEST_USB_MIDI_SEND_INTERVAL);
-  dbg_printf("Test channel: %d\r\n", APP_TEST_USB_MIDI_CHANNEL + 1);
-  dbg_printf("Test note: %d\r\n", APP_TEST_USB_MIDI_BASE_NOTE);
-  dbg_printf("USB Cable: %d\r\n", APP_TEST_USB_MIDI_CABLE);
+  /* MIOS32-STYLE: Fixed strings + dbg_print_u32 */
+  dbg_print("Debug UART: UART");
+  dbg_print_u32(TEST_DEBUG_UART_PORT + 1);
+  dbg_print(" (");
+  dbg_print_u32(TEST_DEBUG_UART_BAUD);
+  dbg_print(" baud)\r\n");
+  dbg_print("Test send interval: ");
+  dbg_print_u32(APP_TEST_USB_MIDI_SEND_INTERVAL);
+  dbg_print(" ms\r\n");
+  dbg_print("Test channel: ");
+  dbg_print_u32(APP_TEST_USB_MIDI_CHANNEL + 1);
+  dbg_print("\r\n");
+  dbg_print("Test note: ");
+  dbg_print_u32(APP_TEST_USB_MIDI_BASE_NOTE);
+  dbg_print("\r\n");
+  dbg_print("USB Cable: ");
+  dbg_print_u32(APP_TEST_USB_MIDI_CABLE);
+  dbg_print("\r\n");
   dbg_print_separator();
   
   // Note: usb_midi_init() is already called in main.c before RTOS starts

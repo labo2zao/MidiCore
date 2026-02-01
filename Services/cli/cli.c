@@ -26,6 +26,10 @@
 #include "Services/midicore_query/midicore_query.h"
 #endif
 
+#if MODULE_ENABLE_USB_MIDI
+#include "USB_DEVICE/App/usbd_composite.h"
+#endif
+
 /* Forward declarations */
 static void cli_print(const char* str);
 
@@ -144,6 +148,7 @@ static cli_result_t cmd_version(int argc, char* argv[]);
 static cli_result_t cmd_uptime(int argc, char* argv[]);
 static cli_result_t cmd_status(int argc, char* argv[]);
 static cli_result_t cmd_reboot(int argc, char* argv[]);
+static cli_result_t cmd_mios(int argc, char* argv[]);
 
 // =============================================================================
 // INITIALIZATION - MIOS32 STYLE (NO printf!)
@@ -172,6 +177,7 @@ int cli_init(void)
   cli_register_command("uptime", cmd_uptime, "Show uptime", "uptime", "system");
   cli_register_command("status", cmd_status, "Show status", "status", "system");
   cli_register_command("reboot", cmd_reboot, "Reboot system", "reboot", "system");
+  cli_register_command("mios", cmd_mios, "MIOS terminal stats", "mios", "system");
 
 #if MODULE_ENABLE_USB_CDC
   /* Register USB CDC receive callback for CLI input */
@@ -687,6 +693,59 @@ static cli_result_t cmd_reboot(int argc, char* argv[])
   extern void NVIC_SystemReset(void);
   NVIC_SystemReset();
   
+  return CLI_OK;
+}
+
+/**
+ * @brief Show MIOS terminal statistics
+ * 
+ * MIOS32-STYLE: Fixed strings + cli_print_u32 (no printf!)
+ */
+static cli_result_t cmd_mios(int argc, char* argv[])
+{
+  (void)argc;
+  (void)argv;
+  
+  cli_print("\nMIOS Terminal Statistics:\n");
+  cli_print("==========================\n");
+  
+#if MODULE_ENABLE_USB_MIDI
+  /* Get MidiCore query statistics (uses midicore_query.h) */
+  uint32_t received, queued, processed, responses, terminal;
+  midicore_query_get_stats(&received, &queued, &processed, &responses, &terminal);
+  
+  cli_print("Queries received:  ");
+  cli_print_u32(received);
+  cli_print("\n");
+  cli_print("Queries queued:    ");
+  cli_print_u32(queued);
+  cli_print("\n");
+  cli_print("Queries processed: ");
+  cli_print_u32(processed);
+  cli_print("\n");
+  cli_print("Responses sent:    ");
+  cli_print_u32(responses);
+  cli_print("\n");
+  cli_print("Terminal commands: ");
+  cli_print_u32(terminal);
+  cli_print("\n");
+  
+  /* USB Composite statistics (uses usbd_composite.h) */
+  cli_print("\nUSB Composite Stats:\n");
+  cli_print("DataOut calls:     ");
+  cli_print_u32(g_composite_dataout_calls);
+  cli_print("\n");
+  cli_print("MIDI DataOut:      ");
+  cli_print_u32(g_composite_midi_dataout);
+  cli_print("\n");
+  cli_print("MIDI class NULL:   ");
+  cli_print_u32(g_composite_midi_class_null);
+  cli_print("\n");
+#else
+  cli_print("USB MIDI not enabled\n");
+#endif
+  
+  cli_print("\n");
   return CLI_OK;
 }
 

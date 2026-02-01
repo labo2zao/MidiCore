@@ -148,19 +148,19 @@ int test_debug_init(void);
 void dbg_print(const char* str);
 
 /**
- * @brief Print formatted string to debug output (printf-style)
- * @param format Printf-style format string
- * @param ... Variable arguments
+ * @brief dbg_printf REMOVED - causes stack overflow!
  * 
- * Output routing:
- * - When MODULE_ENABLE_USB_CDC=1: Sends to USB CDC (Virtual COM port)
- * - When MODULE_ENABLE_USB_CDC=0: Sends to TEST_DEBUG_UART_PORT
- * - When MODULE_ENABLE_OLED=1: Also mirrors to OLED display
+ * Use MIOS32-style alternatives instead:
+ *   - dbg_print("string") for fixed strings
+ *   - dbg_print_u32(n) for unsigned numbers
+ *   - dbg_print_hex8/16/32(n) for hex values
  * 
- * Example:
+ * Example (old - DON'T USE):
  *   dbg_printf("Channel %d: value=%d\n", ch, val);
+ * 
+ * Example (new - USE THIS):
+ *   dbg_print("Channel "); dbg_print_u32(ch); dbg_print(": value="); dbg_print_u32(val); dbg_print("\n");
  */
-void dbg_printf(const char* format, ...);
 
 /**
  * @brief Print a single character to debug output
@@ -248,9 +248,14 @@ void dbg_println(void);
 
 /**
  * @brief MIOS32-style debug message macro
- * Usage: DEBUG_MSG("Value: %d\n", value);
+ * 
+ * NOTE: Only prints the first argument (format string). 
+ * Format specifiers are NOT processed - use MIOS32-style helpers instead.
+ * 
+ * For formatted output, use:
+ *   dbg_print("string"), dbg_print_u32(n), dbg_print_hex8(n), etc.
  */
-#define DEBUG_MSG(fmt, ...) dbg_printf(fmt, ##__VA_ARGS__)
+#define DEBUG_MSG(fmt, ...) dbg_print(fmt)
 
 /**
  * @brief Get configured debug UART port

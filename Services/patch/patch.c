@@ -27,7 +27,10 @@ int patch_create_default_config(const char* filename) {
   // Save to SD card
   result = patch_save(filename);
   if (result == 0) {
-    dbg_printf("Created default config: %s\r\n", filename);
+    /* MIOS32-STYLE: Fixed strings only */
+    dbg_print("Created default config: ");
+    dbg_print(filename);
+    dbg_print("\r\n");
   }
   
   return result;

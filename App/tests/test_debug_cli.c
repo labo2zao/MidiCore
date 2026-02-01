@@ -2,14 +2,10 @@
  * @file test_debug_cli.c
  * @brief CLI commands for debug system control and inspection
  * 
- * Provides CLI commands to control and inspect the debug output system.
- * Allows runtime configuration and testing of debug output.
- * 
- * Features:
- * - Show current debug configuration
- * - Test debug output on all channels
- * - Inspect UART port details
- * - Change debug mode at runtime (if supported)
+ * MIOS32 PRINCIPLES:
+ * - NO printf / snprintf / vsnprintf (causes stack overflow!)
+ * - Fixed string outputs only
+ * - Use dbg_print() + dbg_print_u32() instead of dbg_printf()
  * 
  * @author MidiCore
  * @date 2026-01-30
@@ -19,8 +15,9 @@
 #include "test_debug_cli.h"
 #include "Services/cli/cli.h"
 #include "Config/module_config.h"
-#include <stdio.h>
 #include <string.h>
+
+/* NO stdio.h - we don't use printf! */
 
 // =============================================================================
 // HELPER FUNCTIONS - Get Human-Readable Names
@@ -91,15 +88,23 @@ static cli_result_t cmd_debug(int argc, char* argv[]) {
     dbg_print("Debug Output Configuration:\r\n");
     dbg_print("==============================================\r\n");
     
-    dbg_printf("  Output Mode: %s\r\n", debug_get_output_mode_name());
+    /* MIOS32-STYLE: Fixed strings + dbg_print_u32 */
+    dbg_print("  Output Mode: ");
+    dbg_print(debug_get_output_mode_name());
+    dbg_print("\r\n");
     
 #if MODULE_DEBUG_OUTPUT == DEBUG_OUTPUT_UART
-    dbg_printf("  UART Port:   %s (port %d)\r\n", 
-               debug_get_port_name(TEST_DEBUG_UART_PORT),
-               TEST_DEBUG_UART_PORT);
-    dbg_printf("  Pins:        %s\r\n", 
-               debug_get_port_pins(TEST_DEBUG_UART_PORT));
-    dbg_printf("  Baud Rate:   %d\r\n", TEST_DEBUG_UART_BAUD);
+    dbg_print("  UART Port:   ");
+    dbg_print(debug_get_port_name(TEST_DEBUG_UART_PORT));
+    dbg_print(" (port ");
+    dbg_print_u32(TEST_DEBUG_UART_PORT);
+    dbg_print(")\r\n");
+    dbg_print("  Pins:        ");
+    dbg_print(debug_get_port_pins(TEST_DEBUG_UART_PORT));
+    dbg_print("\r\n");
+    dbg_print("  Baud Rate:   ");
+    dbg_print_u32(TEST_DEBUG_UART_BAUD);
+    dbg_print("\r\n");
 #endif
 
     // Show global diagnostic variables
@@ -109,10 +114,18 @@ static cli_result_t cmd_debug(int argc, char* argv[]) {
     extern volatile uint32_t g_debug_uart_baud_after;
     
     dbg_print("\r\nGDB Diagnostic Variables:\r\n");
-    dbg_printf("  g_debug_uart_port:        %lu\r\n", (unsigned long)g_debug_uart_port);
-    dbg_printf("  g_debug_uart_instance:    0x%08lX\r\n", (unsigned long)g_debug_uart_instance);
-    dbg_printf("  g_debug_uart_baud_before: %lu\r\n", (unsigned long)g_debug_uart_baud_before);
-    dbg_printf("  g_debug_uart_baud_after:  %lu\r\n", (unsigned long)g_debug_uart_baud_after);
+    dbg_print("  g_debug_uart_port:        ");
+    dbg_print_u32((uint32_t)g_debug_uart_port);
+    dbg_print("\r\n");
+    dbg_print("  g_debug_uart_instance:    0x");
+    dbg_print_hex32((uint32_t)(uintptr_t)g_debug_uart_instance);
+    dbg_print("\r\n");
+    dbg_print("  g_debug_uart_baud_before: ");
+    dbg_print_u32((uint32_t)g_debug_uart_baud_before);
+    dbg_print("\r\n");
+    dbg_print("  g_debug_uart_baud_after:  ");
+    dbg_print_u32((uint32_t)g_debug_uart_baud_after);
+    dbg_print("\r\n");
     
     dbg_print("==============================================\r\n");
     
@@ -127,13 +140,23 @@ static cli_result_t cmd_debug(int argc, char* argv[]) {
     extern volatile uint32_t g_debug_uart_baud_before;
     extern volatile uint32_t g_debug_uart_baud_after;
     
-    dbg_printf("  Port:         %s (port %d)\r\n", 
-               debug_get_port_name(TEST_DEBUG_UART_PORT),
-               TEST_DEBUG_UART_PORT);
-    dbg_printf("  Instance:     0x%08lX\r\n", (unsigned long)g_debug_uart_instance);
-    dbg_printf("  Pins:         %s\r\n", debug_get_port_pins(TEST_DEBUG_UART_PORT));
-    dbg_printf("  Baud Before:  %lu\r\n", (unsigned long)g_debug_uart_baud_before);
-    dbg_printf("  Baud After:   %lu\r\n", (unsigned long)g_debug_uart_baud_after);
+    dbg_print("  Port:         ");
+    dbg_print(debug_get_port_name(TEST_DEBUG_UART_PORT));
+    dbg_print(" (port ");
+    dbg_print_u32(TEST_DEBUG_UART_PORT);
+    dbg_print(")\r\n");
+    dbg_print("  Instance:     0x");
+    dbg_print_hex32((uint32_t)(uintptr_t)g_debug_uart_instance);
+    dbg_print("\r\n");
+    dbg_print("  Pins:         ");
+    dbg_print(debug_get_port_pins(TEST_DEBUG_UART_PORT));
+    dbg_print("\r\n");
+    dbg_print("  Baud Before:  ");
+    dbg_print_u32((uint32_t)g_debug_uart_baud_before);
+    dbg_print("\r\n");
+    dbg_print("  Baud After:   ");
+    dbg_print_u32((uint32_t)g_debug_uart_baud_after);
+    dbg_print("\r\n");
 #else
     dbg_print("  UART mode not active\r\n");
 #endif
@@ -149,7 +172,11 @@ static cli_result_t cmd_debug(int argc, char* argv[]) {
     dbg_print("[TEST] ASCII: abcdefghijklmnopqrstuvwxyz\r\n");
     dbg_print("[TEST] DIGITS: 0123456789\r\n");
     dbg_print("[TEST] SYMBOLS: !@#$%^&*()-_=+[]{};:'\"<>,.?/\r\n");
-    dbg_printf("[TEST] Formatted: int=%d, hex=0x%04X, str=%s\r\n", 42, 0xDEAD, "Hello");
+    dbg_print("[TEST] Formatted: int=");
+    dbg_print_u32(42);
+    dbg_print(", hex=0x");
+    dbg_print_hex16(0xDEAD);
+    dbg_print(", str=Hello\r\n");
     
     // Test character-by-character
     dbg_print("[TEST] Character-by-character: ");
@@ -180,11 +207,11 @@ static cli_result_t cmd_debug(int argc, char* argv[]) {
 /**
  * @brief Show debug configuration from GDB
  * 
- * Usage in GDB:
- *   (gdb) call gdb_show_debug_config()
- * 
  * This function can be called from GDB to display the current
  * debug configuration without needing to inspect individual variables.
+ * 
+ * Usage in GDB:
+ *   (gdb) call gdb_show_debug_config()
  */
 void gdb_show_debug_config(void) {
   extern volatile uint32_t g_debug_uart_port;
@@ -193,27 +220,40 @@ void gdb_show_debug_config(void) {
   extern volatile uint32_t g_debug_uart_baud_after;
   
   dbg_print("\r\n=== GDB Debug Configuration ===\r\n");
-  dbg_printf("Output Mode:   %s\r\n", debug_get_output_mode_name());
-  dbg_printf("UART Port:     %lu (%s)\r\n", 
-             (unsigned long)g_debug_uart_port,
-             debug_get_port_name(g_debug_uart_port));
-  dbg_printf("UART Instance: 0x%08lX\r\n", (unsigned long)g_debug_uart_instance);
-  dbg_printf("Baud Before:   %lu\r\n", (unsigned long)g_debug_uart_baud_before);
-  dbg_printf("Baud After:    %lu\r\n", (unsigned long)g_debug_uart_baud_after);
+  dbg_print("Output Mode:   ");
+  dbg_print(debug_get_output_mode_name());
+  dbg_print("\r\n");
+  dbg_print("UART Port:     ");
+  dbg_print_u32((uint32_t)g_debug_uart_port);
+  dbg_print(" (");
+  dbg_print(debug_get_port_name((uint8_t)g_debug_uart_port));
+  dbg_print(")\r\n");
+  dbg_print("UART Instance: 0x");
+  dbg_print_hex32((uint32_t)(uintptr_t)g_debug_uart_instance);
+  dbg_print("\r\n");
+  dbg_print("Baud Before:   ");
+  dbg_print_u32((uint32_t)g_debug_uart_baud_before);
+  dbg_print("\r\n");
+  dbg_print("Baud After:    ");
+  dbg_print_u32((uint32_t)g_debug_uart_baud_after);
+  dbg_print("\r\n");
   dbg_print("===============================\r\n");
 }
 
 /**
  * @brief Test debug output from GDB
  * 
+ * Sends a test message to the configured debug output.
+ * This verifies that debug output is working correctly.
+ * 
  * Usage in GDB:
  *   (gdb) call gdb_test_output()
- * 
- * Sends a test message to the configured debug output.
  */
 void gdb_test_output(void) {
   dbg_print("\r\n[GDB TEST] Debug output working!\r\n");
-  dbg_printf("[GDB TEST] Timestamp: %lu\r\n", (unsigned long)HAL_GetTick());
+  dbg_print("[GDB TEST] Timestamp: ");
+  dbg_print_u32(HAL_GetTick());
+  dbg_print("\r\n");
 }
 
 // =============================================================================
