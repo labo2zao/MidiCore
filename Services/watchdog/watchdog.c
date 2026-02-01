@@ -21,3 +21,15 @@ void watchdog_init(void)
   // configurations.
 #endif
 }
+
+void watchdog_kick(void)
+{
+#ifdef WATCHDOG_ENABLE
+  // Refresh the Independent Watchdog (IWDG) timer
+  // This prevents the watchdog from resetting the system
+  // HAL_IWDG_Refresh(&hiwdg);  // Uncomment when IWDG is configured
+#endif
+  // When WATCHDOG_ENABLE is not defined, this is a no-op
+  // The function must still exist to satisfy the linker when
+  // MODULE_ENABLE_WATCHDOG is set
+}
