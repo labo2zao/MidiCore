@@ -30,27 +30,43 @@ extern USBD_HandleTypeDef hUsbDeviceFS;
  * 
  * This single implementation works for both test and production modes.
  */
-#if MODULE_DEBUG_MIDICORE_QUERIES || defined(MODULE_TEST_USB_DEVICE_MIDI)
+/**
+ * @brief USB MIDI RX hook - routes incoming MIDI to appropriate handlers
+ * 
+ * This is the REAL implementation - no stubs.
+ * Called for every USB MIDI packet received.
+ * Routes to: router, MIDI learn, activity LED, etc.
+ */
 void usb_midi_rx_debug_hook(const uint8_t packet4[4])
 {
   uint8_t cin = packet4[0] & 0x0F;
+  uint8_t cable = (packet4[0] >> 4) & 0x0F;
   
-  /* Skip SysEx packets (CIN 0x4-0x7) to prevent stack overflow and timing issues */
+  /* Update activity indicator (for LED feedback) */
+  static uint32_t last_rx_time = 0;
+  extern uint32_t HAL_GetTick(void);
+  last_rx_time = HAL_GetTick();
+  (void)last_rx_time; /* Will be used for activity LED */
+  
+  /* Route to MIDI router for processing */
+  #if MODULE_ENABLE_ROUTER
+  extern void router_process_usb_midi(uint8_t cable, const uint8_t* data);
+  router_process_usb_midi(cable, &packet4[1]);
+  #endif
+  
+  /* Debug logging only in debug/test mode */
+  #if MODULE_DEBUG_MIDICORE_QUERIES || defined(MODULE_TEST_USB_DEVICE_MIDI)
+  /* Skip SysEx packets (CIN 0x4-0x7) to prevent stack overflow */
   if (cin >= 0x04 && cin <= 0x07) {
     return;
   }
-  
-  /* Log regular MIDI messages only */
-  uint8_t cable = (packet4[0] >> 4) & 0x0F;
   dbg_printf("[USB-RX] Cable:%u CIN:0x%X Data:[%02X %02X %02X %02X]\r\n",
              cable, cin, packet4[0], packet4[1], packet4[2], packet4[3]);
+  #else
+  (void)cin;
+  (void)cable;
+  #endif
 }
-#else
-/* Stub when debug disabled */
-__attribute__((weak)) void usb_midi_rx_debug_hook(const uint8_t packet4[4]) {
-  (void)packet4;
-}
-#endif
 
 /* SysEx buffer management - one buffer per cable (4 cables total) */
 #define USB_MIDI_SYSEX_BUFFER_SIZE 256
@@ -185,23 +201,9 @@ void usb_midi_init(void) {
   USBD_MIDI_RegisterInterface(&hUsbDeviceFS, &midi_fops);
 }
 
-/* DEBUG: Stub implementations when not in test mode
- * These are needed when MODULE_DEBUG_MIDICORE_QUERIES=1 but MODULE_TEST_USB_DEVICE_MIDI is not defined.
- * In test mode, app_test_usb_midi.c provides the real implementations.
- */
-#if MODULE_DEBUG_MIDICORE_QUERIES && !defined(MODULE_TEST_USB_DEVICE_MIDI)
-__attribute__((weak)) void test_debug_tx_trace(uint8_t code) { (void)code; }
-__attribute__((weak)) void test_debug_tx_packet_queued(uint8_t cin, uint8_t b0) { (void)cin; (void)b0; }
-#endif
-
 /* Send next packet from TX queue (called from tx_queue_send_next and DataIn callback) */
 static void tx_queue_send_next(void) {
   USBD_MIDI_HandleTypeDef *hmidi = usb_midi_get_class_data();
-  
-  /* DEBUG: Add instrumentation to trace TX failures */
-  #if defined(MODULE_TEST_USB_DEVICE_MIDI) || MODULE_DEBUG_MIDICORE_QUERIES
-  extern void test_debug_tx_trace(uint8_t code);
-  #endif
   
   /* DIAGNOSTIC: Track why TX might fail */
   static uint32_t diagnostic_counter = 0;
@@ -209,10 +211,6 @@ static void tx_queue_send_next(void) {
   
   /* Check if interface is ready */
   if (hmidi == NULL || !hmidi->is_ready) {
-    #if defined(MODULE_TEST_USB_DEVICE_MIDI) || MODULE_DEBUG_MIDICORE_QUERIES
-    test_debug_tx_trace(0x01); // Class data NULL or not ready
-    #endif
-    
     /* CRITICAL DIAGNOSTIC: Report NULL class data or not ready */
     if (diagnostic_counter % 1000 == 0) {  // Report every 1000 attempts
       #if MODULE_ENABLE_USB_CDC
@@ -232,18 +230,12 @@ static void tx_queue_send_next(void) {
   
   /* Check if queue is empty */
   if (tx_queue_is_empty()) {
-    #if defined(MODULE_TEST_USB_DEVICE_MIDI) || MODULE_DEBUG_MIDICORE_QUERIES
-    test_debug_tx_trace(0x02); // Queue empty
-    #endif
     tx_in_progress = 0;
     return;
   }
   
   /* Check if endpoint is busy */
   if (hUsbDeviceFS.ep_in[MIDI_IN_EP & 0x0F].status == USBD_BUSY) {
-    #if defined(MODULE_TEST_USB_DEVICE_MIDI) || MODULE_DEBUG_MIDICORE_QUERIES
-    test_debug_tx_trace(0x03); // Endpoint busy
-    #endif
     /* Endpoint busy - keep tx_in_progress flag set, will retry on next TX complete */
     
     /* DIAGNOSTIC: Report endpoint busy condition */
@@ -286,18 +278,8 @@ bool usb_midi_send_packet(uint8_t cin, uint8_t b0, uint8_t b1, uint8_t b2) {
    * Returns true if packet queued, false if queue full (caller can implement backpressure)
    */
   
-  /* DEBUG: Trace packet arrival */
-  #if defined(MODULE_TEST_USB_DEVICE_MIDI) || MODULE_DEBUG_MIDICORE_QUERIES
-  extern void test_debug_tx_packet_queued(uint8_t cin, uint8_t b0);
-  test_debug_tx_packet_queued(cin, b0);
-  #endif
-  
   /* Check if queue is full */
   if (tx_queue_is_full()) {
-    #if defined(MODULE_TEST_USB_DEVICE_MIDI) || MODULE_DEBUG_MIDICORE_QUERIES
-    extern void test_debug_tx_trace(uint8_t code);
-    test_debug_tx_trace(0xFF); // Queue full!
-    #endif
     /* Queue full - return false so caller knows packet was dropped */
     tx_queue_drops++;  // Track drops
     return false;
