@@ -26,6 +26,9 @@
 #include "Services/midicore_query/midicore_query.h"
 #endif
 
+/* Forward declarations */
+static void cli_print(const char* str);
+
 /* ============================================================================
  * MIOS32-STYLE NUMBER TO STRING CONVERSION (NO printf!)
  * ============================================================================ */
@@ -475,6 +478,12 @@ void cli_print_i32(int32_t val)
 void cli_print_hex8(uint8_t val)
 {
   cli_print(cli_u8_to_hex(val));
+}
+
+void cli_print_hex16(uint16_t val)
+{
+  cli_print(cli_u8_to_hex((uint8_t)(val >> 8)));
+  cli_print(cli_u8_to_hex((uint8_t)(val & 0xFF)));
 }
 
 void cli_newline(void)

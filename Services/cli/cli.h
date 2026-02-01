@@ -106,6 +106,7 @@ void cli_newline(void);
 void cli_print_u32(uint32_t val);
 void cli_print_i32(int32_t val);   /* Signed integer */
 void cli_print_hex8(uint8_t val);
+void cli_print_hex16(uint16_t val);  /* 16-bit hex (e.g., channel masks) */
 
 /* Status messages (fixed string only!) */
 void cli_error(const char* msg);

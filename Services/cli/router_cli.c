@@ -2,6 +2,9 @@
  * @file router_cli.c
  * @brief CLI commands for MIDI Router control
  * 
+ * MIOS32-STYLE: NO printf / snprintf / vsnprintf
+ * Uses only: cli_puts(), cli_putc(), cli_print_u32(), cli_print_hex16(), cli_newline()
+ * 
  * Provides UART terminal commands to control MIDI routing matrix:
  * - Enable/disable routes between nodes
  * - Configure channel masks
@@ -27,7 +30,7 @@
 static int parse_node(const char* str) {
   int node = atoi(str);
   if (node < 0 || node >= ROUTER_NUM_NODES) {
-    cli_error("Invalid node number: %s (must be 0-%d)\n", str, ROUTER_NUM_NODES - 1);
+    cli_error("Invalid node number");
     return -1;
   }
   return node;
@@ -51,10 +54,7 @@ static uint16_t parse_channel_mask(const char* str) {
   }
   
   // Advanced parsing not yet implemented - return error indication
-  // Caller should check for 0 return value
-  cli_error("Advanced channel mask parsing not yet supported\n");
-  cli_error("Supported formats: 'all', '1' through '16'\n");
-  cli_error("TODO: Support ranges ('1-8') and lists ('1,2,3')\n");
+  cli_error("Unsupported mask format. Use: all, 1-16");
   return 0;  // Error - no channels selected
 }
 
@@ -62,31 +62,44 @@ static uint16_t parse_channel_mask(const char* str) {
  * @brief Print routing matrix
  */
 static void print_routing_matrix(void) {
-  cli_printf("\nMIDI Routing Matrix (%dx%d nodes):\n", ROUTER_NUM_NODES, ROUTER_NUM_NODES);
-  cli_printf("=================================================\n");
+  cli_newline();
+  cli_puts("MIDI Routing Matrix (");
+  cli_print_u32(ROUTER_NUM_NODES);
+  cli_puts("x");
+  cli_print_u32(ROUTER_NUM_NODES);
+  cli_puts(" nodes):");
+  cli_newline();
+  cli_puts("=================================================");
+  cli_newline();
   
   // Header row
-  cli_printf("IN\\OUT ");
+  cli_puts("IN\\OUT ");
   for (int out = 0; out < ROUTER_NUM_NODES; out++) {
-    cli_printf(" %2d", out);
+    cli_puts(" ");
+    if (out < 10) cli_putc(' ');
+    cli_print_u32((uint32_t)out);
   }
-  cli_printf("\n");
-  cli_printf("-------");
+  cli_newline();
+  cli_puts("-------");
   for (int out = 0; out < ROUTER_NUM_NODES; out++) {
-    cli_printf("---");
+    cli_puts("---");
   }
-  cli_printf("\n");
+  cli_newline();
   
   // Data rows
   for (int in = 0; in < ROUTER_NUM_NODES; in++) {
-    cli_printf("  %2d   ", in);
+    cli_puts("  ");
+    if (in < 10) cli_putc(' ');
+    cli_print_u32((uint32_t)in);
+    cli_puts("   ");
     for (int out = 0; out < ROUTER_NUM_NODES; out++) {
       uint8_t enabled = router_get_route((uint8_t)in, (uint8_t)out);
-      cli_printf("  %c", enabled ? 'X' : '.');
+      cli_puts("  ");
+      cli_putc(enabled ? 'X' : '.');
     }
-    cli_printf("\n");
+    cli_newline();
   }
-  cli_printf("\n");
+  cli_newline();
 }
 
 /**
@@ -97,24 +110,37 @@ static void print_route_info(uint8_t in_node, uint8_t out_node) {
   uint16_t chmask = router_get_chanmask(in_node, out_node);
   const char* label = router_get_label(in_node, out_node);
   
-  cli_printf("Route: %d -> %d\n", in_node, out_node);
-  cli_printf("  Status: %s\n", enabled ? "ENABLED" : "DISABLED");
-  cli_printf("  Channel Mask: 0x%04X (", chmask);
+  cli_puts("Route: ");
+  cli_print_u32(in_node);
+  cli_puts(" -> ");
+  cli_print_u32(out_node);
+  cli_newline();
+  
+  cli_puts("  Status: ");
+  cli_puts(enabled ? "ENABLED" : "DISABLED");
+  cli_newline();
+  
+  cli_puts("  Channel Mask: 0x");
+  cli_print_hex16(chmask);
+  cli_puts(" (");
   
   // Print enabled channels
   int first = 1;
   for (int ch = 0; ch < 16; ch++) {
     if (chmask & (1 << ch)) {
-      if (!first) cli_printf(",");
-      cli_printf("%d", ch + 1);
+      if (!first) cli_putc(',');
+      cli_print_u32((uint32_t)(ch + 1));
       first = 0;
     }
   }
-  if (first) cli_printf("none");
-  cli_printf(")\n");
+  if (first) cli_puts("none");
+  cli_puts(")");
+  cli_newline();
   
   if (label && label[0]) {
-    cli_printf("  Label: %s\n", label);
+    cli_puts("  Label: ");
+    cli_puts(label);
+    cli_newline();
   }
 }
 
@@ -128,15 +154,24 @@ static void print_route_info(uint8_t in_node, uint8_t out_node) {
  */
 static cli_result_t cmd_router(int argc, char* argv[]) {
   if (argc < 2) {
-    cli_error("Missing subcommand\n");
-    cli_printf("Usage: router <matrix|enable|disable|channel|label|info|test>\n");
-    cli_printf("  router matrix              - Display routing matrix\n");
-    cli_printf("  router enable IN OUT       - Enable route from IN to OUT\n");
-    cli_printf("  router disable IN OUT      - Disable route from IN to OUT\n");
-    cli_printf("  router channel IN OUT MASK - Set channel mask (e.g., 'all', '1', '1-16')\n");
-    cli_printf("  router label IN OUT TEXT   - Set route label\n");
-    cli_printf("  router info IN OUT         - Show detailed route info\n");
-    cli_printf("  router test IN             - Test routing from input node\n");
+    cli_error("Missing subcommand");
+    cli_newline();
+    cli_puts("Usage: router <matrix|enable|disable|channel|label|info|test>");
+    cli_newline();
+    cli_puts("  router matrix              - Display routing matrix");
+    cli_newline();
+    cli_puts("  router enable IN OUT       - Enable route from IN to OUT");
+    cli_newline();
+    cli_puts("  router disable IN OUT      - Disable route from IN to OUT");
+    cli_newline();
+    cli_puts("  router channel IN OUT MASK - Set channel mask");
+    cli_newline();
+    cli_puts("  router label IN OUT TEXT   - Set route label");
+    cli_newline();
+    cli_puts("  router info IN OUT         - Show detailed route info");
+    cli_newline();
+    cli_puts("  router test IN             - Test routing from input node");
+    cli_newline();
     return CLI_INVALID_ARGS;
   }
   
@@ -151,8 +186,10 @@ static cli_result_t cmd_router(int argc, char* argv[]) {
   // router enable IN OUT
   else if (strcasecmp(subcmd, "enable") == 0) {
     if (argc < 4) {
-      cli_error("Missing arguments\n");
-      cli_printf("Usage: router enable IN OUT\n");
+      cli_error("Missing arguments");
+      cli_newline();
+      cli_puts("Usage: router enable IN OUT");
+      cli_newline();
       return CLI_INVALID_ARGS;
     }
     
@@ -161,15 +198,21 @@ static cli_result_t cmd_router(int argc, char* argv[]) {
     if (in_node < 0 || out_node < 0) return CLI_INVALID_ARGS;
     
     router_set_route((uint8_t)in_node, (uint8_t)out_node, 1);
-    cli_success("Enabled route: %d -> %d\n", in_node, out_node);
+    cli_puts("Enabled route: ");
+    cli_print_u32((uint32_t)in_node);
+    cli_puts(" -> ");
+    cli_print_u32((uint32_t)out_node);
+    cli_newline();
     return CLI_OK;
   }
   
   // router disable IN OUT
   else if (strcasecmp(subcmd, "disable") == 0) {
     if (argc < 4) {
-      cli_error("Missing arguments\n");
-      cli_printf("Usage: router disable IN OUT\n");
+      cli_error("Missing arguments");
+      cli_newline();
+      cli_puts("Usage: router disable IN OUT");
+      cli_newline();
       return CLI_INVALID_ARGS;
     }
     
@@ -178,16 +221,23 @@ static cli_result_t cmd_router(int argc, char* argv[]) {
     if (in_node < 0 || out_node < 0) return CLI_INVALID_ARGS;
     
     router_set_route((uint8_t)in_node, (uint8_t)out_node, 0);
-    cli_success("Disabled route: %d -> %d\n", in_node, out_node);
+    cli_puts("Disabled route: ");
+    cli_print_u32((uint32_t)in_node);
+    cli_puts(" -> ");
+    cli_print_u32((uint32_t)out_node);
+    cli_newline();
     return CLI_OK;
   }
   
   // router channel IN OUT MASK
   else if (strcasecmp(subcmd, "channel") == 0) {
     if (argc < 5) {
-      cli_error("Missing arguments\n");
-      cli_printf("Usage: router channel IN OUT MASK\n");
-      cli_printf("  MASK: 'all', '1', '1-16', etc.\n");
+      cli_error("Missing arguments");
+      cli_newline();
+      cli_puts("Usage: router channel IN OUT MASK");
+      cli_newline();
+      cli_puts("  MASK: 'all', '1', '1-16', etc.");
+      cli_newline();
       return CLI_INVALID_ARGS;
     }
     
@@ -197,20 +247,28 @@ static cli_result_t cmd_router(int argc, char* argv[]) {
     
     uint16_t chmask = parse_channel_mask(argv[4]);
     if (chmask == 0) {
-      cli_error("Invalid channel mask, route not modified\n");
+      cli_error("Invalid channel mask");
       return CLI_INVALID_ARGS;
     }
     
     router_set_chanmask((uint8_t)in_node, (uint8_t)out_node, chmask);
-    cli_success("Set channel mask for route %d -> %d: 0x%04X\n", in_node, out_node, chmask);
+    cli_puts("Set channel mask for route ");
+    cli_print_u32((uint32_t)in_node);
+    cli_puts(" -> ");
+    cli_print_u32((uint32_t)out_node);
+    cli_puts(": 0x");
+    cli_print_hex16(chmask);
+    cli_newline();
     return CLI_OK;
   }
   
   // router label IN OUT TEXT
   else if (strcasecmp(subcmd, "label") == 0) {
     if (argc < 5) {
-      cli_error("Missing arguments\n");
-      cli_printf("Usage: router label IN OUT TEXT\n");
+      cli_error("Missing arguments");
+      cli_newline();
+      cli_puts("Usage: router label IN OUT TEXT");
+      cli_newline();
       return CLI_INVALID_ARGS;
     }
     
@@ -236,15 +294,24 @@ static cli_result_t cmd_router(int argc, char* argv[]) {
     label[label_len] = '\0';
     
     router_set_label((uint8_t)in_node, (uint8_t)out_node, label);
-    cli_success("Set label for route %d -> %d: '%s'\n", in_node, out_node, label);
+    cli_puts("Set label for route ");
+    cli_print_u32((uint32_t)in_node);
+    cli_puts(" -> ");
+    cli_print_u32((uint32_t)out_node);
+    cli_puts(": '");
+    cli_puts(label);
+    cli_puts("'");
+    cli_newline();
     return CLI_OK;
   }
   
   // router info IN OUT
   else if (strcasecmp(subcmd, "info") == 0) {
     if (argc < 4) {
-      cli_error("Missing arguments\n");
-      cli_printf("Usage: router info IN OUT\n");
+      cli_error("Missing arguments");
+      cli_newline();
+      cli_puts("Usage: router info IN OUT");
+      cli_newline();
       return CLI_INVALID_ARGS;
     }
     
@@ -259,42 +326,58 @@ static cli_result_t cmd_router(int argc, char* argv[]) {
   // router test IN
   else if (strcasecmp(subcmd, "test") == 0) {
     if (argc < 3) {
-      cli_error("Missing node number\n");
-      cli_printf("Usage: router test IN\n");
+      cli_error("Missing node number");
+      cli_newline();
+      cli_puts("Usage: router test IN");
+      cli_newline();
       return CLI_INVALID_ARGS;
     }
     
     int in_node = parse_node(argv[2]);
     if (in_node < 0) return CLI_INVALID_ARGS;
     
-    cli_printf("Testing routes from input node %d:\n", in_node);
-    cli_printf("Active outputs:\n");
+    cli_puts("Testing routes from input node ");
+    cli_print_u32((uint32_t)in_node);
+    cli_puts(":");
+    cli_newline();
+    cli_puts("Active outputs:");
+    cli_newline();
     
     int count = 0;
     for (int out = 0; out < ROUTER_NUM_NODES; out++) {
       if (router_get_route((uint8_t)in_node, (uint8_t)out)) {
         uint16_t chmask = router_get_chanmask((uint8_t)in_node, (uint8_t)out);
         const char* label = router_get_label((uint8_t)in_node, (uint8_t)out);
-        cli_printf("  -> %2d: channels=0x%04X", out, chmask);
+        cli_puts("  -> ");
+        if (out < 10) cli_putc(' ');
+        cli_print_u32((uint32_t)out);
+        cli_puts(": channels=0x");
+        cli_print_hex16(chmask);
         if (label && label[0]) {
-          cli_printf(" (%s)", label);
+          cli_puts(" (");
+          cli_puts(label);
+          cli_puts(")");
         }
-        cli_printf("\n");
+        cli_newline();
         count++;
       }
     }
     
     if (count == 0) {
-      cli_warning("  No active routes from node %d\n", in_node);
+      cli_warning("No active routes from this node");
+      cli_newline();
     } else {
-      cli_success("Found %d active route(s)\n", count);
+      cli_puts("Found ");
+      cli_print_u32((uint32_t)count);
+      cli_puts(" active route(s)");
+      cli_newline();
     }
     
     return CLI_OK;
   }
   
   else {
-    cli_error("Unknown subcommand: %s\n", subcmd);
+    cli_error("Unknown subcommand");
     return CLI_INVALID_ARGS;
   }
 }
