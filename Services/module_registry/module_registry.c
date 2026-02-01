@@ -1,12 +1,14 @@
 /**
  * @file module_registry.c
  * @brief Module Registry implementation
+ * 
+ * MIOS32-STYLE: NO printf / snprintf / vsnprintf
+ * Uses only fixed-string output: cli_puts, cli_putc, cli_print_u32, cli_newline
  */
 
 #include "module_registry.h"
 #include "Services/cli/cli.h"
 #include <string.h>
-#include <stdio.h>
 
 // =============================================================================
 // PRIVATE STATE
@@ -262,61 +264,97 @@ const module_param_t* module_registry_get_param_descriptor(const char* module_na
 
 void module_registry_print_modules(void)
 {
-  cli_printf("\n=== Registered Modules (%lu) ===\n\n", (unsigned long)s_module_count);
+  cli_newline();
+  cli_puts("=== Registered Modules (");
+  cli_print_u32(s_module_count);
+  cli_puts(") ===");
+  cli_newline();
+  cli_newline();
 
   const char* current_category = NULL;
   for (uint32_t i = 0; i < s_module_count; i++) {
     const char* cat = module_registry_category_to_string(s_modules[i]->category);
     if (current_category == NULL || strcmp(cat, current_category) != 0) {
       current_category = cat;
-      cli_printf("\n[%s]\n", current_category);
+      cli_newline();
+      cli_puts("[");
+      cli_puts(current_category);
+      cli_puts("]");
+      cli_newline();
     }
-    cli_printf("  %-20s - %s\n", s_modules[i]->name, s_modules[i]->description);
+    cli_puts("  ");
+    cli_puts(s_modules[i]->name);
+    cli_puts(" - ");
+    cli_puts(s_modules[i]->description);
+    cli_newline();
   }
-  cli_printf("\n");
+  cli_newline();
 }
 
 void module_registry_print_module(const char* name)
 {
   const module_descriptor_t* module = module_registry_get_by_name(name);
   if (!module) {
-    cli_error("Module not found: %s\n", name);
+    cli_error("Module not found");
     return;
   }
 
-  cli_printf("\n");
-  cli_printf("Module: %s\n", module->name);
-  cli_printf("Category: %s\n", module_registry_category_to_string(module->category));
-  cli_printf("Description: %s\n", module->description);
-  cli_printf("Global: %s\n", module->is_global ? "yes" : "no");
-  cli_printf("Per-track: %s\n", module->has_per_track_state ? "yes" : "no");
-  cli_printf("Parameters: %d\n", module->param_count);
-  cli_printf("\n");
+  cli_newline();
+  cli_puts("Module: ");
+  cli_puts(module->name);
+  cli_newline();
+  cli_puts("Category: ");
+  cli_puts(module_registry_category_to_string(module->category));
+  cli_newline();
+  cli_puts("Description: ");
+  cli_puts(module->description);
+  cli_newline();
+  cli_puts("Global: ");
+  cli_puts(module->is_global ? "yes" : "no");
+  cli_newline();
+  cli_puts("Per-track: ");
+  cli_puts(module->has_per_track_state ? "yes" : "no");
+  cli_newline();
+  cli_puts("Parameters: ");
+  cli_print_u32(module->param_count);
+  cli_newline();
+  cli_newline();
 }
 
 void module_registry_print_params(const char* name)
 {
   const module_descriptor_t* module = module_registry_get_by_name(name);
   if (!module) {
-    cli_error("Module not found: %s\n", name);
+    cli_error("Module not found");
     return;
   }
 
-  cli_printf("\n=== %s Parameters ===\n\n", module->name);
+  cli_newline();
+  cli_puts("=== ");
+  cli_puts(module->name);
+  cli_puts(" Parameters ===");
+  cli_newline();
+  cli_newline();
 
   if (module->param_count == 0) {
-    cli_printf("  (no parameters)\n");
+    cli_puts("  (no parameters)");
+    cli_newline();
   } else {
     for (uint8_t i = 0; i < module->param_count; i++) {
       const module_param_t* param = &module->params[i];
-      cli_printf("  %-20s [%s] %s%s\n",
-                 param->name,
-                 module_registry_param_type_to_string(param->type),
-                 param->read_only ? "(RO) " : "",
-                 param->description);
+      cli_puts("  ");
+      cli_puts(param->name);
+      cli_puts(" [");
+      cli_puts(module_registry_param_type_to_string(param->type));
+      cli_puts("] ");
+      if (param->read_only) {
+        cli_puts("(RO) ");
+      }
+      cli_puts(param->description);
+      cli_newline();
     }
   }
-  cli_printf("\n");
+  cli_newline();
 }
 
 const char* module_registry_category_to_string(module_category_t category)
