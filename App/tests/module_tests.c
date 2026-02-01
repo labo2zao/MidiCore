@@ -16,11 +16,57 @@
 #include "ff.h"     // for FatFs types: DIR, FILINFO, FRESULT, etc.
 #include "diskio.h" // for DSTATUS, disk_status
 
-/* Compatibility wrapper: printf is forbidden. This keeps any legacy
- * dbg_printf call sites from breaking the build; they now emit fixed strings only.
- * New code must use dbg_print/dbg_print_u32/dbg_print_hex* helpers. */
+/* Lightweight dbg_printf replacement (no stdio/printf).
+ * Supports limited formats used in tests: %s %c %d %u %lu %ld %+d %+ld %02X %04X %08lX.
+ * Uses existing dbg_print/dbg_print_u32/dbg_print_hex* helpers. */
 static void dbg_printf(const char* fmt, ...) {
-  if (fmt) dbg_print(fmt);
+  va_list ap;
+  va_start(ap, fmt);
+  while (fmt && *fmt) {
+    if (*fmt != '%') {
+      dbg_putc(*fmt++);
+      continue;
+    }
+    fmt++; // skip '%'
+    int plus = 0, zero_pad = 0, width = 0, long_count = 0;
+    if (*fmt == '+') { plus = 1; fmt++; }
+    if (*fmt == '0') { zero_pad = 1; fmt++; }
+    while (*fmt >= '0' && *fmt <= '9') { width = width*10 + (*fmt-'0'); fmt++; }
+    while (*fmt == 'l') { long_count++; fmt++; }
+    char spec = *fmt ? *fmt++ : 0;
+    switch (spec) {
+      case 's': {
+        const char* s = va_arg(ap, const char*);
+        if (s) dbg_print(s);
+      } break;
+      case 'c': {
+        int c = va_arg(ap, int);
+        dbg_putc((char)c);
+      } break;
+      case 'd':
+      case 'i': {
+        long v = (long)(long_count ? va_arg(ap, long) : va_arg(ap, int));
+        if (v < 0) { dbg_putc('-'); v = -v; }
+        else if (plus) dbg_putc('+');
+        dbg_print_u32((uint32_t)v);
+      } break;
+      case 'u': {
+        unsigned long v = (unsigned long)(long_count ? va_arg(ap, unsigned long) : va_arg(ap, unsigned int));
+        dbg_print_u32((uint32_t)v);
+      } break;
+      case 'X':
+      case 'x': {
+        unsigned long v = (unsigned long)(long_count ? va_arg(ap, unsigned long) : va_arg(ap, unsigned int));
+        if (width == 8 && long_count) dbg_print_hex32((uint32_t)v);
+        else if (width >= 4) dbg_print_hex16((uint16_t)v);
+        else dbg_print_hex8((uint8_t)v);
+      } break;
+      default:
+        dbg_putc('%'); if (spec) dbg_putc(spec);
+        break;
+    }
+  }
+  va_end(ap);
 }
 
 // UI framework for framebuffer-based testing
