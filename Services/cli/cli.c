@@ -463,6 +463,15 @@ void cli_print_u32(uint32_t val)
   cli_print(cli_u32_to_str(val));
 }
 
+void cli_print_i32(int32_t val)
+{
+  if (val < 0) {
+    cli_putc('-');
+    val = -val;
+  }
+  cli_print(cli_u32_to_str((uint32_t)val));
+}
+
 void cli_print_hex8(uint8_t val)
 {
   cli_print(cli_u8_to_hex(val));

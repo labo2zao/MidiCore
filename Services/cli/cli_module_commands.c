@@ -1,6 +1,9 @@
 /**
  * @file cli_module_commands.c
  * @brief CLI commands for module control implementation
+ * 
+ * MIOS32-STYLE: NO printf / snprintf / vsnprintf
+ * Uses only fixed-string output: cli_puts, cli_putc, cli_print_u32, cli_newline
  */
 
 #include "Config/module_config.h"
@@ -18,8 +21,9 @@
 static cli_result_t cmd_module(int argc, char* argv[])
 {
   if (argc < 2) {
-    cli_error("Missing subcommand\n");
-    cli_printf("Usage: module <list|info|enable|disable|status|get|set|params> [args...]\n");
+    cli_error("Missing subcommand");
+    cli_puts("Usage: module <list|info|enable|disable|status|get|set|params> [args...]");
+    cli_newline();
     return CLI_INVALID_ARGS;
   }
 
@@ -29,7 +33,7 @@ static cli_result_t cmd_module(int argc, char* argv[])
   if (strcasecmp(subcmd, "list") == 0) {
     if (argc > 2) {
       // List by category (not implemented yet - would need category string parsing)
-      cli_error("Category filtering not yet implemented\n");
+      cli_error("Category filtering not yet implemented");
       return CLI_ERROR;
     } else {
       module_registry_print_modules();
@@ -40,7 +44,7 @@ static cli_result_t cmd_module(int argc, char* argv[])
   // module info <name>
   else if (strcasecmp(subcmd, "info") == 0) {
     if (argc < 3) {
-      cli_error("Missing module name\n");
+      cli_error("Missing module name");
       return CLI_INVALID_ARGS;
     }
     module_registry_print_module(argv[2]);
@@ -50,7 +54,7 @@ static cli_result_t cmd_module(int argc, char* argv[])
   // module enable <name> [track]
   else if (strcasecmp(subcmd, "enable") == 0) {
     if (argc < 3) {
-      cli_error("Missing module name\n");
+      cli_error("Missing module name");
       return CLI_INVALID_ARGS;
     }
     
@@ -61,13 +65,16 @@ static cli_result_t cmd_module(int argc, char* argv[])
     
     int result = module_registry_enable(argv[2], track);
     if (result == 0) {
-      if (track == 0xFF) {
-        cli_success("Enabled module: %s\n", argv[2]);
-      } else {
-        cli_success("Enabled module: %s (track %d)\n", argv[2], track);
+      cli_puts("Enabled module: ");
+      cli_puts(argv[2]);
+      if (track != 0xFF) {
+        cli_puts(" (track ");
+        cli_print_u32(track);
+        cli_putc(')');
       }
+      cli_newline();
     } else {
-      cli_error("Failed to enable module: %s\n", argv[2]);
+      cli_error("Failed to enable module");
     }
     return result == 0 ? CLI_OK : CLI_ERROR;
   }
@@ -75,7 +82,7 @@ static cli_result_t cmd_module(int argc, char* argv[])
   // module disable <name> [track]
   else if (strcasecmp(subcmd, "disable") == 0) {
     if (argc < 3) {
-      cli_error("Missing module name\n");
+      cli_error("Missing module name");
       return CLI_INVALID_ARGS;
     }
     
@@ -86,13 +93,16 @@ static cli_result_t cmd_module(int argc, char* argv[])
     
     int result = module_registry_disable(argv[2], track);
     if (result == 0) {
-      if (track == 0xFF) {
-        cli_success("Disabled module: %s\n", argv[2]);
-      } else {
-        cli_success("Disabled module: %s (track %d)\n", argv[2], track);
+      cli_puts("Disabled module: ");
+      cli_puts(argv[2]);
+      if (track != 0xFF) {
+        cli_puts(" (track ");
+        cli_print_u32(track);
+        cli_putc(')');
       }
+      cli_newline();
     } else {
-      cli_error("Failed to disable module: %s\n", argv[2]);
+      cli_error("Failed to disable module");
     }
     return result == 0 ? CLI_OK : CLI_ERROR;
   }
@@ -100,7 +110,7 @@ static cli_result_t cmd_module(int argc, char* argv[])
   // module status <name> [track]
   else if (strcasecmp(subcmd, "status") == 0) {
     if (argc < 3) {
-      cli_error("Missing module name\n");
+      cli_error("Missing module name");
       return CLI_INVALID_ARGS;
     }
     
@@ -117,18 +127,23 @@ static cli_result_t cmd_module(int argc, char* argv[])
       case MODULE_STATUS_ERROR: status_str = "Error"; break;
     }
     
-    if (track == 0xFF) {
-      cli_printf("Module %s: %s\n", argv[2], status_str);
-    } else {
-      cli_printf("Module %s (track %d): %s\n", argv[2], track, status_str);
+    cli_puts("Module ");
+    cli_puts(argv[2]);
+    if (track != 0xFF) {
+      cli_puts(" (track ");
+      cli_print_u32(track);
+      cli_putc(')');
     }
+    cli_puts(": ");
+    cli_puts(status_str);
+    cli_newline();
     return CLI_OK;
   }
 
   // module get <name> <param> [track]
   else if (strcasecmp(subcmd, "get") == 0) {
     if (argc < 4) {
-      cli_error("Missing module name or parameter\n");
+      cli_error("Missing module name or parameter");
       return CLI_INVALID_ARGS;
     }
     
@@ -143,27 +158,30 @@ static cli_result_t cmd_module(int argc, char* argv[])
       // Get parameter descriptor to know type
       const module_param_t* param = module_registry_get_param_descriptor(argv[2], argv[3]);
       if (param) {
+        cli_puts(argv[2]);
+        cli_putc('.');
+        cli_puts(argv[3]);
+        cli_puts(" = ");
         switch (param->type) {
           case PARAM_TYPE_BOOL:
-            cli_printf("%s.%s = %s\n", argv[2], argv[3], value.bool_val ? "true" : "false");
+            cli_puts(value.bool_val ? "true" : "false");
             break;
           case PARAM_TYPE_INT:
-            cli_printf("%s.%s = %ld\n", argv[2], argv[3], (long)value.int_val);
+          case PARAM_TYPE_ENUM:
+            cli_print_i32(value.int_val);
             break;
           case PARAM_TYPE_FLOAT:
-            cli_printf("%s.%s = %.3f\n", argv[2], argv[3], value.float_val);
+            /* Float output - print integer part only for MIOS32 compatibility */
+            cli_print_i32((int32_t)value.float_val);
             break;
           case PARAM_TYPE_STRING:
-            cli_printf("%s.%s = %s\n", argv[2], argv[3], 
-                      value.string_val ? value.string_val : "(null)");
-            break;
-          case PARAM_TYPE_ENUM:
-            cli_printf("%s.%s = %ld\n", argv[2], argv[3], (long)value.int_val);
+            cli_puts(value.string_val ? value.string_val : "(null)");
             break;
         }
+        cli_newline();
       }
     } else {
-      cli_error("Failed to get parameter: %s.%s\n", argv[2], argv[3]);
+      cli_error("Failed to get parameter");
     }
     return result == 0 ? CLI_OK : CLI_ERROR;
   }
@@ -171,7 +189,7 @@ static cli_result_t cmd_module(int argc, char* argv[])
   // module set <name> <param> <value> [track]
   else if (strcasecmp(subcmd, "set") == 0) {
     if (argc < 5) {
-      cli_error("Missing module name, parameter, or value\n");
+      cli_error("Missing module name, parameter, or value");
       return CLI_INVALID_ARGS;
     }
     
@@ -183,7 +201,7 @@ static cli_result_t cmd_module(int argc, char* argv[])
     // Get parameter descriptor to know type
     const module_param_t* param = module_registry_get_param_descriptor(argv[2], argv[3]);
     if (!param) {
-      cli_error("Parameter not found: %s.%s\n", argv[2], argv[3]);
+      cli_error("Parameter not found");
       return CLI_ERROR;
     }
     
@@ -208,9 +226,15 @@ static cli_result_t cmd_module(int argc, char* argv[])
     
     int result = module_registry_set_param(argv[2], argv[3], track, &value);
     if (result == 0) {
-      cli_success("Set %s.%s = %s\n", argv[2], argv[3], argv[4]);
+      cli_puts("Set ");
+      cli_puts(argv[2]);
+      cli_putc('.');
+      cli_puts(argv[3]);
+      cli_puts(" = ");
+      cli_puts(argv[4]);
+      cli_newline();
     } else {
-      cli_error("Failed to set parameter: %s.%s\n", argv[2], argv[3]);
+      cli_error("Failed to set parameter");
     }
     return result == 0 ? CLI_OK : CLI_ERROR;
   }
@@ -218,7 +242,7 @@ static cli_result_t cmd_module(int argc, char* argv[])
   // module params <name>
   else if (strcasecmp(subcmd, "params") == 0) {
     if (argc < 3) {
-      cli_error("Missing module name\n");
+      cli_error("Missing module name");
       return CLI_INVALID_ARGS;
     }
     module_registry_print_params(argv[2]);
@@ -226,7 +250,7 @@ static cli_result_t cmd_module(int argc, char* argv[])
   }
 
   else {
-    cli_error("Unknown subcommand: %s\n", subcmd);
+    cli_error("Unknown subcommand");
     return CLI_INVALID_ARGS;
   }
 }
@@ -237,17 +261,15 @@ static cli_result_t cmd_module(int argc, char* argv[])
 
 int cli_module_commands_init(void)
 {
-  dbg_printf("[CLI-MOD] cli_module_commands_init called\r\n");
+  /* MIOS32-STYLE: Silent initialization - no dbg_printf */
   int result = cli_register_command("module", cmd_module,
                               "Module control and configuration",
                               "module <list|info|enable|disable|status|get|set|params> [args...]",
                               "modules");
-  dbg_printf("[CLI-MOD] cli_register_command returned %d\r\n", result);
   
   // Register stack monitor CLI commands
 #if MODULE_ENABLE_STACK_MONITOR
   extern int stack_monitor_cli_init(void);
-  dbg_printf("[CLI-MOD] Registering stack monitor CLI commands\r\n");
   stack_monitor_cli_init();
 #endif
   
