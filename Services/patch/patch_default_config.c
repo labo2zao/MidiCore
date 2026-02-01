@@ -163,6 +163,9 @@ int patch_load_default_config(void) {
     line_num++;
   }
   
-  dbg_printf("Loaded %d default parameters from firmware\r\n", loaded);
+  /* MIOS32-STYLE: Fixed strings + dbg_print_u32 */
+  dbg_print("Loaded ");
+  dbg_print_u32(loaded);
+  dbg_print(" default parameters from firmware\r\n");
   return 0;
 }

@@ -1,6 +1,10 @@
 /**
  * @file stack_monitor.c
  * @brief FreeRTOS Stack Usage Monitor Implementation
+ * 
+ * MIOS32 PRINCIPLES:
+ * - NO printf / snprintf / vsnprintf (causes stack overflow!)
+ * - Fixed string outputs only via dbg_print/dbg_print_u32/etc.
  */
 
 #include "stack_monitor.h"
@@ -8,7 +12,8 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include <string.h>
-#include <stdio.h>
+
+/* NO stdio.h - we don't use printf! */
 
 // =============================================================================
 // PRIVATE STATE
@@ -55,7 +60,7 @@ static task_status_cache_t* find_cache_entry(osThreadId_t handle);
 int stack_monitor_init(void)
 {
 #if !STACK_MONITOR_ENABLED
-  dbg_printf("[STACK] Stack monitoring disabled (STACK_MONITOR_ENABLED=0)\r\n");
+  dbg_print("[STACK] Stack monitoring disabled (STACK_MONITOR_ENABLED=0)\r\n");
   return 0;
 #endif
 
@@ -63,7 +68,7 @@ int stack_monitor_init(void)
     return 0;
   }
 
-  dbg_printf("[STACK] Initializing stack monitor...\r\n");
+  dbg_print("[STACK] Initializing stack monitor...\r\n");
 
   // Reset state
   memset(&s_stats, 0, sizeof(s_stats));
@@ -80,17 +85,21 @@ int stack_monitor_init(void)
 
   s_monitor_task_handle = osThreadNew(stack_monitor_task, NULL, &attr);
   if (s_monitor_task_handle == NULL) {
-    dbg_printf("[STACK] ERROR: Failed to create monitor task\r\n");
+    dbg_print("[STACK] ERROR: Failed to create monitor task\r\n");
     return -1;
   }
 
   s_initialized = 1;
   s_running = 1;
 
-  dbg_printf("[STACK] Stack monitor initialized (interval=%lums, warn=%lu%%, crit=%lu%%)\r\n",
-             (unsigned long)s_interval_ms,
-             (unsigned long)s_warning_threshold,
-             (unsigned long)s_critical_threshold);
+  /* MIOS32-STYLE: Fixed strings + dbg_print_u32 */
+  dbg_print("[STACK] Stack monitor initialized (interval=");
+  dbg_print_u32(s_interval_ms);
+  dbg_print("ms, warn=");
+  dbg_print_u32(s_warning_threshold);
+  dbg_print("%, crit=");
+  dbg_print_u32(s_critical_threshold);
+  dbg_print("%)\r\n");
 
   // Allow UART TX buffer to drain after initialization messages
   osDelay(50);
@@ -126,22 +135,22 @@ static void stack_monitor_task(void* argument)
 {
   (void)argument;
 
-  dbg_printf("[STACK] Monitor task started\r\n");
+  dbg_print("[STACK] Monitor task started\r\n");
   
   // CRITICAL: Allow debug output to flush before continuing
   // Prevents output corruption and UART buffer overflow
   osDelay(100);
   
-  dbg_printf("[STACK] Waiting for system stabilization...\r\n");
+  dbg_print("[STACK] Waiting for system stabilization...\r\n");
   
   // Longer initial delay to ensure all tasks are created and scheduler is stable
   // CRITICAL: Was 1000ms, increased to 3000ms to prevent freeze
   // System needs time for USB enumeration, CLI task startup, etc.
   osDelay(3000);
   
-  dbg_printf("[STACK] Performing initial check...\r\n");
+  dbg_print("[STACK] Performing initial check...\r\n");
   check_all_tasks();
-  dbg_printf("[STACK] Initial check complete\r\n");
+  dbg_print("[STACK] Initial check complete\r\n");
 
   while (1) {
     osDelay(s_interval_ms);
@@ -328,13 +337,19 @@ void stack_monitor_print_task(osThreadId_t task_handle)
     else if (info.status == STACK_STATUS_CRITICAL) status_str = "CRIT";
     else if (info.status == STACK_STATUS_OVERFLOW) status_str = "OVFL";
 
-    dbg_printf("%-15s: %5lu/%5lu bytes (%3lu%% used, %3lu%% free) [%s]\r\n",
-               info.task_name,
-               (unsigned long)info.used_bytes,
-               (unsigned long)info.stack_size_bytes,
-               (unsigned long)info.used_percent,
-               (unsigned long)info.free_percent,
-               status_str);
+    /* MIOS32-STYLE: Fixed strings + dbg_print_u32 */
+    dbg_print(info.task_name);
+    dbg_print(": ");
+    dbg_print_u32(info.used_bytes);
+    dbg_print("/");
+    dbg_print_u32(info.stack_size_bytes);
+    dbg_print(" bytes (");
+    dbg_print_u32(info.used_percent);
+    dbg_print("% used, ");
+    dbg_print_u32(info.free_percent);
+    dbg_print("% free) [");
+    dbg_print(status_str);
+    dbg_print("]\r\n");
   }
 }
 
@@ -344,14 +359,16 @@ void stack_monitor_print_all(uint8_t verbose)
   uint32_t count = 0;
 
   if (stack_monitor_get_all_tasks(tasks, STACK_MONITOR_MAX_TASKS, &count) != 0) {
-    dbg_printf("[STACK] Error getting task list\r\n");
+    dbg_print("[STACK] Error getting task list\r\n");
     return;
   }
 
-  dbg_printf("\r\n=== Stack Usage Report (%lu tasks) ===\r\n", (unsigned long)count);
-  dbg_printf("%-15s %12s %12s %8s %8s %6s\r\n",
-             "Task", "Used", "Total", "Used%", "Free%", "Status");
-  dbg_printf("--------------- ------------ ------------ -------- -------- ------\r\n");
+  /* MIOS32-STYLE: Fixed strings + dbg_print_u32 */
+  dbg_print("\r\n=== Stack Usage Report (");
+  dbg_print_u32(count);
+  dbg_print(" tasks) ===\r\n");
+  dbg_print("Task            Used         Total        Used%    Free%    Status\r\n");
+  dbg_print("--------------- ------------ ------------ -------- -------- ------\r\n");
 
   for (uint32_t i = 0; i < count; i++) {
     const stack_info_t* info = &tasks[i];
@@ -360,35 +377,43 @@ void stack_monitor_print_all(uint8_t verbose)
     else if (info->status == STACK_STATUS_CRITICAL) status_str = "CRIT";
     else if (info->status == STACK_STATUS_OVERFLOW) status_str = "OVFL";
 
-    dbg_printf("%-15s %8lu B %8lu B %7lu%% %7lu%% %-6s\r\n",
-               info->task_name,
-               (unsigned long)info->used_bytes,
-               (unsigned long)info->stack_size_bytes,
-               (unsigned long)info->used_percent,
-               (unsigned long)info->free_percent,
-               status_str);
+    dbg_print(info->task_name);
+    dbg_print(" ");
+    dbg_print_u32(info->used_bytes);
+    dbg_print(" B ");
+    dbg_print_u32(info->stack_size_bytes);
+    dbg_print(" B ");
+    dbg_print_u32(info->used_percent);
+    dbg_print("% ");
+    dbg_print_u32(info->free_percent);
+    dbg_print("% ");
+    dbg_print(status_str);
+    dbg_print("\r\n");
 
     if (verbose) {
-      dbg_printf("  High-water mark: %lu bytes (%lu words)\r\n",
-                 (unsigned long)info->high_water_mark_bytes,
-                 (unsigned long)info->high_water_mark);
+      dbg_print("  High-water mark: ");
+      dbg_print_u32(info->high_water_mark_bytes);
+      dbg_print(" bytes (");
+      dbg_print_u32(info->high_water_mark);
+      dbg_print(" words)\r\n");
     }
   }
 
-  dbg_printf("\r\n");
+  dbg_print("\r\n");
 }
 
 void stack_monitor_print_stats(void)
 {
-  dbg_printf("\r\n=== Stack Monitor Statistics ===\r\n");
-  dbg_printf("Total checks:    %lu\r\n", (unsigned long)s_stats.total_checks);
-  dbg_printf("Warnings:        %lu\r\n", (unsigned long)s_stats.warning_count);
-  dbg_printf("Critical alerts: %lu\r\n", (unsigned long)s_stats.critical_count);
-  dbg_printf("Overflows:       %lu\r\n", (unsigned long)s_stats.overflow_count);
-  dbg_printf("Last check:      %lu ms\r\n", (unsigned long)s_stats.last_check_time);
-  dbg_printf("Interval:        %lu ms\r\n", (unsigned long)s_interval_ms);
-  dbg_printf("Warn threshold:  %lu%%\r\n", (unsigned long)s_warning_threshold);
-  dbg_printf("Crit threshold:  %lu%%\r\n\r\n", (unsigned long)s_critical_threshold);
+  /* MIOS32-STYLE: Fixed strings + dbg_print_u32 */
+  dbg_print("\r\n=== Stack Monitor Statistics ===\r\n");
+  dbg_print("Total checks:    "); dbg_print_u32(s_stats.total_checks); dbg_print("\r\n");
+  dbg_print("Warnings:        "); dbg_print_u32(s_stats.warning_count); dbg_print("\r\n");
+  dbg_print("Critical alerts: "); dbg_print_u32(s_stats.critical_count); dbg_print("\r\n");
+  dbg_print("Overflows:       "); dbg_print_u32(s_stats.overflow_count); dbg_print("\r\n");
+  dbg_print("Last check:      "); dbg_print_u32(s_stats.last_check_time); dbg_print(" ms\r\n");
+  dbg_print("Interval:        "); dbg_print_u32(s_interval_ms); dbg_print(" ms\r\n");
+  dbg_print("Warn threshold:  "); dbg_print_u32(s_warning_threshold); dbg_print("%\r\n");
+  dbg_print("Crit threshold:  "); dbg_print_u32(s_critical_threshold); dbg_print("%\r\n\r\n");
 }
 
 void stack_monitor_export_csv(void)
@@ -400,17 +425,24 @@ void stack_monitor_export_csv(void)
     return;
   }
 
-  dbg_printf("task_name,used_bytes,total_bytes,used_pct,free_pct,hwm_bytes,status\r\n");
+  /* MIOS32-STYLE: Fixed strings + dbg_print_u32 */
+  dbg_print("task_name,used_bytes,total_bytes,used_pct,free_pct,hwm_bytes,status\r\n");
   for (uint32_t i = 0; i < count; i++) {
     const stack_info_t* info = &tasks[i];
-    dbg_printf("%s,%lu,%lu,%lu,%lu,%lu,%d\r\n",
-               info->task_name,
-               (unsigned long)info->used_bytes,
-               (unsigned long)info->stack_size_bytes,
-               (unsigned long)info->used_percent,
-               (unsigned long)info->free_percent,
-               (unsigned long)info->high_water_mark_bytes,
-               (int)info->status);
+    dbg_print(info->task_name);
+    dbg_print(",");
+    dbg_print_u32(info->used_bytes);
+    dbg_print(",");
+    dbg_print_u32(info->stack_size_bytes);
+    dbg_print(",");
+    dbg_print_u32(info->used_percent);
+    dbg_print(",");
+    dbg_print_u32(info->free_percent);
+    dbg_print(",");
+    dbg_print_u32(info->high_water_mark_bytes);
+    dbg_print(",");
+    dbg_print_u32((uint32_t)info->status);
+    dbg_print("\r\n");
   }
 }
 
@@ -472,24 +504,35 @@ static stack_status_t calculate_status(uint32_t free_percent)
 
 static void issue_alert(const char* task_name, const stack_info_t* info)
 {
+  /* MIOS32-STYLE: Fixed strings + dbg_print_u32 */
   // Update statistics
   if (info->status == STACK_STATUS_WARNING) {
     s_stats.warning_count++;
-    dbg_printf("[STACK] WARNING: Task '%s' stack usage high: %lu%% used (%lu/%lu bytes)\r\n",
-               task_name,
-               (unsigned long)info->used_percent,
-               (unsigned long)info->used_bytes,
-               (unsigned long)info->stack_size_bytes);
+    dbg_print("[STACK] WARNING: Task '");
+    dbg_print(task_name);
+    dbg_print("' stack usage high: ");
+    dbg_print_u32(info->used_percent);
+    dbg_print("% used (");
+    dbg_print_u32(info->used_bytes);
+    dbg_print("/");
+    dbg_print_u32(info->stack_size_bytes);
+    dbg_print(" bytes)\r\n");
   } else if (info->status == STACK_STATUS_CRITICAL) {
     s_stats.critical_count++;
-    dbg_printf("[STACK] CRITICAL: Task '%s' stack nearly full: %lu%% used (%lu/%lu bytes)!\r\n",
-               task_name,
-               (unsigned long)info->used_percent,
-               (unsigned long)info->used_bytes,
-               (unsigned long)info->stack_size_bytes);
+    dbg_print("[STACK] CRITICAL: Task '");
+    dbg_print(task_name);
+    dbg_print("' stack nearly full: ");
+    dbg_print_u32(info->used_percent);
+    dbg_print("% used (");
+    dbg_print_u32(info->used_bytes);
+    dbg_print("/");
+    dbg_print_u32(info->stack_size_bytes);
+    dbg_print(" bytes)!\r\n");
   } else if (info->status == STACK_STATUS_OVERFLOW) {
     s_stats.overflow_count++;
-    dbg_printf("[STACK] OVERFLOW: Task '%s' stack corrupted!\r\n", task_name);
+    dbg_print("[STACK] OVERFLOW: Task '");
+    dbg_print(task_name);
+    dbg_print("' stack corrupted!\r\n");
   }
 
   // Call user callback if registered

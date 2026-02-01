@@ -123,17 +123,29 @@ static void print_to_uart(uint8_t node, const uint8_t* data, uint8_t len, uint32
   midi_monitor_get_node_name(node, node_name, sizeof(node_name));
   midi_monitor_decode_message(data, len, msg_decode, sizeof(msg_decode));
 
+  /* MIOS32-STYLE: Fixed strings + dbg_print_u32/hex instead of dbg_printf */
   // Format: [timestamp] NODE >> Message [ROUTED/FILTERED] | Raw bytes
   const char* route_flag = is_routed ? "[ROUTED]" : "[FILTERED]";
-  dbg_printf("[%lu] %s >> %s %s | ", timestamp_ms, node_name, msg_decode, route_flag);
+  dbg_print("[");
+  dbg_print_u32(timestamp_ms);
+  dbg_print("] ");
+  dbg_print(node_name);
+  dbg_print(" >> ");
+  dbg_print(msg_decode);
+  dbg_print(" ");
+  dbg_print(route_flag);
+  dbg_print(" | ");
   
   for (uint8_t i = 0; i < len && i < 16; i++) {
-    dbg_printf("%02X ", data[i]);
+    dbg_print_hex8(data[i]);
+    dbg_putc(' ');
   }
   if (len > 16) {
-    dbg_printf("... (%u bytes)", len);
+    dbg_print("... (");
+    dbg_print_u32(len);
+    dbg_print(" bytes)");
   }
-  dbg_printf("\r\n");
+  dbg_print("\r\n");
 
 #if MIDI_MON_HAS_OLED_MIRROR
   // Mirror to OLED if enabled
